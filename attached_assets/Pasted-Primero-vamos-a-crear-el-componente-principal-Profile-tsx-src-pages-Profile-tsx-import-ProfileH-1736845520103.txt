@@ -1,0 +1,226 @@
+Primero, vamos a crear el componente principal Profile.tsx:
+
+src/pages/Profile.tsx
+import { ProfileHeader } from "@/components/profile/ProfileHeader"
+import { ProfileTabs } from "@/components/profile/ProfileTabs"
+import { useProfile } from "@/hooks/useProfile"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useEffect } from "react"
+import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+
+const Profile = () => {
+  const navigate = useNavigate()
+  const { data: profile, isLoading, error } = useProfile()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        toast.error('Debes iniciar sesión para ver tu perfil')
+        navigate('/autenticacion')
+      }
+    }
+    
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        navigate('/autenticacion')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [navigate])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+        <div className="container max-w-4xl mx-auto space-y-6 py-8 px-4">
+          <div className="space-y-1">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex flex-col gap-6">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+        <div className="container max-w-4xl mx-auto space-y-6 py-8 px-4">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Error al cargar el perfil: {error.message}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+        <div className="container max-w-4xl mx-auto space-y-6 py-8 px-4">
+          <Alert>
+            <AlertDescription>
+              No se encontró información del perfil
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      <div className="container max-w-4xl mx-auto space-y-8 py-8 px-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            Mi Perfil
+          </h1>
+          <p className="text-muted-foreground">
+            Gestiona tu información personal y preferencias
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-8">
+          <ProfileHeader />
+          <ProfileTabs />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Profile
+Ahora el componente ProfileHeader.tsx que muestra el avatar y la información principal:
+
+src/components/profile/ProfileHeader.tsx
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge" 
+import { Globe, Loader2 } from "lucide-react"
+import { AvatarUpload } from "./AvatarUpload"
+import { useProfile } from "@/hooks/useProfile"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+export const ProfileHeader = () => {
+  const { data: profile, isLoading, error } = useProfile()
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertDescription>
+          Error al cargar el perfil: {error.message}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="w-full overflow-hidden">
+        <CardHeader className="relative pb-8 md:pb-6">
+          <div className="absolute inset-0 h-32 bg-gradient-to-r from-primary/10 via-primary/5 to-background backdrop-blur-sm" />
+          <div className="relative flex flex-col md:flex-row items-center gap-4">
+            <div className="z-10 flex items-center justify-center">
+              <Loader2 className="h-32 w-32 animate-spin text-muted-foreground" />
+            </div>
+            <div className="z-10 space-y-2 text-center md:text-left">
+              <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+              <div className="h-6 w-36 bg-muted animate-pulse rounded" />
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <Alert className="mb-6">
+        <AlertDescription>
+          No se encontró información del perfil
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  return (
+    <Card className="w-full overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+      <CardHeader className="relative pb-8 md:pb-6">
+        <div className="absolute inset-0 h-32 bg-gradient-to-r from-primary/10 via-primary/5 to-background backdrop-blur-sm" />
+        
+        <div className="relative flex flex-col md:flex-row items-center gap-6">
+          <div className="z-10 ring-4 ring-background rounded-full shadow-xl">
+            <AvatarUpload 
+              url={profile.avatar_url} 
+              editable={true} 
+              size="lg" 
+            />
+          </div>
+          
+          <div className="z-10 text-center md:text-left space-y-3">
+            <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+              {profile.full_name || 'Usuario'}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {profile.email || 'usuario@example.com'}
+            </CardDescription>
+            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+              <Badge variant="secondary" className="flex items-center gap-1 bg-background/80 backdrop-blur-sm shadow hover:shadow-md transition-all">
+                <Globe className="h-3 w-3" /> España
+              </Badge>
+              <Badge variant="outline" className="capitalize bg-background/80 backdrop-blur-sm shadow hover:shadow-md transition-all">
+                {profile.role || 'usuario'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  )
+}
+Y finalmente el componente ProfileTabs.tsx para las diferentes secciones:
+
+src/components/profile/ProfileTabs.tsx
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PersonalTab } from "./tabs/PersonalTab"
+import { SecurityTab } from "./tabs/SecurityTab"
+import { NotificationsTab } from "./tabs/NotificationsTab"
+import { ActivityTab } from "./tabs/ActivityTab"
+
+export const ProfileTabs = () => {
+  return (
+    <Tabs defaultValue="personal" className="w-full">
+      <TabsList className="w-full justify-start bg-background/50 backdrop-blur-sm">
+        <TabsTrigger value="personal">Personal</TabsTrigger>
+        <TabsTrigger value="security">Seguridad</TabsTrigger>
+        <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
+        <TabsTrigger value="activity">Actividad</TabsTrigger>
+      </TabsList>
+      <div className="mt-6">
+        <TabsContent value="personal" className="m-0">
+          <PersonalTab />
+        </TabsContent>
+        <TabsContent value="security" className="m-0">
+          <SecurityTab />
+        </TabsContent>
+        <TabsContent value="notifications" className="m-0">
+          <NotificationsTab />
+        </TabsContent>
+        <TabsContent value="activity" className="m-0">
+          <ActivityTab />
+        </TabsContent>
+      </div>
+    </Tabs>
+  )
+}

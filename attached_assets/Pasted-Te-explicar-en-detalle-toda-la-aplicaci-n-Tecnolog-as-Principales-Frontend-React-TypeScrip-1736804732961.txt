@@ -1,0 +1,140 @@
+Te explicaré en detalle toda la aplicación:
+
+🛠 Tecnologías Principales
+Frontend:
+
+React + TypeScript
+Vite como bundler
+Tailwind CSS para estilos
+Shadcn/UI para componentes de interfaz
+React Query para gestión de estado y caché
+React Router para navegación
+Backend (Supabase):
+
+PostgreSQL como base de datos
+Autenticación y autorización
+Almacenamiento de archivos
+Edge Functions para lógica personalizada
+Políticas RLS para seguridad
+📱 Funcionalidades Principales
+Gestión de Usuarios:
+
+Sistema de autenticación
+Roles: Admin, Optimizer, Reviewer, Uploader, YouTuber
+Perfiles personalizables
+Control de acceso basado en roles
+Gestión de Proyectos:
+
+Creación y configuración de proyectos
+Asignación de usuarios a proyectos
+Numeración automática de videos
+Integración con YouTube
+Gestión de Videos:
+
+Flujo completo de optimización
+Sistema de revisión
+Subida a YouTube
+Historial de cambios
+🔄 Flujo de Trabajo
+Creación de Video:
+
+Se crea un video en estado "pending"
+Se asigna automáticamente un número de serie
+Optimización:
+
+Optimizador toma el video
+Optimiza el título
+Envía para revisión
+Revisión de Título:
+
+Revisor aprueba o solicita cambios
+Si se aprueba, pasa a "upload_review"
+Si no, vuelve a "title_corrections"
+Subida de Archivos:
+
+Se sube el video y la miniatura
+Se revisa el contenido
+Se puede solicitar correcciones
+Publicación:
+
+Se sube a YouTube
+Se marca como completado
+Se guarda el enlace de YouTube
+📊 Dashboard y Estadísticas
+Panel Principal:
+
+Estadísticas generales
+Actividad reciente
+Lista de usuarios activos
+Gráficos de rendimiento
+Monitoreo:
+
+Videos en proceso
+Videos completados
+Tiempo promedio de proceso
+Actividad del equipo
+🔐 Seguridad
+Autenticación:
+
+Login/registro de usuarios
+Gestión de sesiones
+Recuperación de contraseña
+Autorización:
+
+Políticas RLS en base de datos
+Control de acceso por rol
+Protección de rutas
+📁 Estructura de Archivos
+Frontend:
+
+src/
+├── components/     # Componentes reutilizables
+├── pages/         # Páginas principales
+├── hooks/         # Hooks personalizados
+├── utils/         # Utilidades
+├── types/         # Definiciones TypeScript
+└── integrations/  # Integraciones (Supabase)
+Backend (Supabase):
+
+supabase/
+├── functions/     # Edge Functions
+├── migrations/    # Migraciones SQL
+└── seeds/        # Datos iniciales
+🔌 Integraciones
+YouTube:
+
+Autenticación OAuth
+Subida automática de videos
+Gestión de canales
+Almacenamiento:
+
+Videos en Supabase Storage
+Miniaturas en Supabase Storage
+Avatares de usuario
+📈 Características Avanzadas
+Tiempo Real:
+
+Actualizaciones en vivo
+Estado de usuarios online
+Notificaciones
+Optimización:
+
+Caché con React Query
+Lazy loading de componentes
+Optimización de imágenes
+🎯 Objetivos del Sistema
+Eficiencia:
+
+Automatización de procesos
+Reducción de errores
+Seguimiento en tiempo real
+Colaboración:
+
+Trabajo en equipo
+Comunicación clara
+Roles definidos
+Calidad:
+
+Sistema de revisión
+Control de calidad
+Historial de cambios

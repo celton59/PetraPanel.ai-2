@@ -1,0 +1,62 @@
+Para que se muestren los componentes para subir (“VideoUploader” y “ThumbnailUploader”), deben cumplirse estas dos condiciones:
+
+needsThumbnailCorrection debe ser true para que se renderice el bloque donde está el ThumbnailUploader.
+needsVideoCorrection debe ser true para que se renderice el bloque donde está el VideoUploader.
+Es decir, cada una de estas secciones se pinta así:
+
+tsx
+Copiar
+{needsThumbnailCorrection && (
+  <>
+    {/* Vista previa del video */}
+    {/* Componente ThumbnailUploader */}
+  </>
+)}
+
+{needsVideoCorrection && (
+  <>
+    {/* Componente VideoUploader */}
+  </>
+)}
+Si no ves aparecer el componente cuando “está mal” el video o la miniatura, normalmente significa que la propiedad correspondiente (needsCorrection) no se está marcando en true dentro de corrections.files.video o corrections.files.thumbnail.
+
+Pasos para depurar
+Verifica la data:
+
+En el objeto video.metadata?.corrections?.files?.video?.needsCorrection, asegúrate de que realmente venga true.
+Lo mismo con thumbnail?.needsCorrection.
+Si son false o undefined, esos bloques no se van a pintar.
+Fuerza la condición para probar:
+
+Como prueba rápida, haz algo así:
+tsx
+Copiar
+const needsVideoCorrection = true;
+const needsThumbnailCorrection = true;
+y revisa si se renderizan los componentes. Si con esto sí aparecen, significa que el problema era el valor real que venía de tu base de datos/props.
+Checa las importaciones:
+
+Revisa que VideoUploader y ThumbnailUploader tengan la exportación correcta.
+Fíjate bien en la ruta: "../upload/VideoUploader" y "../upload/ThumbnailUploader".
+Asegúrate de que en esos archivos estés usando export function VideoUploader o export default VideoUploader (según corresponda), y que tu import coincida (destructuring vs. default).
+Comprueba que MediaCorrectionsContent se esté usando:
+
+Parece obvio, pero a veces se olvida añadir <MediaCorrectionsContent /> en la página donde lo necesitas.
+Si este componente se renderiza en un layout, en un step del wizard, etc., corrobora que el flujo de navegación realmente llegue hasta allí.
+Erros en consola:
+
+Mira la consola del navegador y/o consola de tu framework (Next.js, etc.) para ver si hay algún error de importación o runtime que te salte.
+Generalmente, el problema está en que needsCorrection no está en true dentro de los datos reales del video, así que la parte condicional nunca se monta. Si confirmas los puntos anteriores, deberías ver aparecer tus componentes de subida. ¡Suerte!
+
+
+
+
+
+
+
+
+
+
+
+
+ChatGPT puede cometer errores. Considera verificar la información importante.

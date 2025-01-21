@@ -1,0 +1,90 @@
+{"corrections": {"files": {"thumbnail": {"originalUrl": "/api/videos/stream/thumbnail/1737126028052-700930140.png", "needsCorrection": true}}, "status": "pending", "history": [{"files": {"videoRequested": false, "thumbnailRequested": true}, "comment": "hola", "timestamp": "2025-01-17T15:00:40.592Z", "requestedBy": 7}], "requestedAt": "2025-01-17T15:00:40.592Z"}}
+Docs
+Powered by
+/
+/
+/
+Name	Added	Size
+
+
+Unified
+
+Split
+⦚ 18 unchanged lines ⦚
+  const needsThumbnailCorrection = corrections?.files.thumbnail?.needsCorrection || false;
+  const thumbnailUrl = corrections?.files.thumbnail?.originalUrl || video.thumbnailUrl;
+  const videoUrl = corrections?.files.video?.originalUrl || video.videoUrl;
+  const thumbnailUrl = corrections?.files.thumbnail?.originalUrl || video.thumbnailUrl;
+
+  const handleVideoUpload = async (newVideoUrl: string) => {
+    await onUpdate(video.id, {
+⦚ 110 unchanged lines ⦚
+⦚ 18 unchanged lines ⦚
+  const needsThumbnailCorrection = corrections?.files.thumbnail?.needsCorrection || false;
+  const thumbnailUrl = corrections?.files.thumbnail?.originalUrl || video.thumbnailUrl;
+  const videoUrl = corrections?.files.video?.originalUrl || video.videoUrl;
+
+  const handleVideoUpload = async (newVideoUrl: string) => {
+    await onUpdate(video.id, {
+⦚ 110 unchanged lines ⦚
+import { Video } from "@db/schema";
+export function MediaCorrectionsContent({ video, onUpdate }: MediaCorrectionsContentProps) {
+  // Debugging: Imprimir los valores de metadata
+  console.log('Video metadata:', video.metadata);
+  console.log('Corrections:', video.metadata?.corrections);
+  console.log('Files:', video.metadata?.corrections?.files);
+
+  // Determinar si los archivos necesitan corrección basado en metadata
+  const needsVideoCorrection = video.metadata?.corrections?.files?.video?.needsCorrection || false;
+  const needsThumbnailCorrection = video.metadata?.corrections?.files?.thumbnail?.needsCorrection || false;
+
+  // Debugging: Imprimir los valores calculados
+  console.log('needsVideoCorrection:', needsVideoCorrection);
+  console.log('needsThumbnailCorrection:', needsThumbnailCorrection);
+
+  const handleVideoUpload = async (newVideoUrl: string) => {
+    await onUpdate(video.id, {
+      videoUrl: newVideoUrl,
+      status: needsThumbnailCorrection ? "media_corrections" : "review",
+      metadata: {
+        ...video.metadata,
+        corrections: {
+          ...video.metadata?.corrections,
+          files: {
+            ...video.metadata?.corrections?.files,
+            video: {
+              ...video.metadata?.corrections?.files?.video,
+              needsCorrection: false
+            }
+          }
+        }
+      }
+    });
+  };
+
+  const handleThumbnailUpload = async (newThumbnailUrl: string) => {
+    await onUpdate(video.id, {
+      thumbnailUrl: newThumbnailUrl,
+      status: needsVideoCorrection ? "media_corrections" : "review",
+      metadata: {
+        ...video.metadata,
+        corrections: {
+          ...video.metadata?.corrections,
+          files: {
+            ...video.metadata?.corrections?.files,
+            thumbnail: {
+              ...video.metadata?.corrections?.files?.thumbnail,
+              needsCorrection: false
+            }
+          }
+        }
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Alerta principal con instrucciones claras */}
+      <Alert variant="destructive" className="bg-destructive/10">
+        <AlertCircle className="h-4 w-4" />
+}

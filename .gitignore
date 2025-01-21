@@ -1,0 +1,13 @@
+
+node_modules
+dist
+.env
+uploads/videos/*
+uploads/avatars/*
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.m4v
+.DS_Store

@@ -1,0 +1,358 @@
+Primero, necesitamos crear el componente principal del perfil:
+
+src/pages/Profile.tsx
+import { useEffect, useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Save } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { useQueryClient } from "@tanstack/react-query";
+
+export default function Profile() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: profile, isLoading } = useProfile();
+  
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: "",
+    username: "",
+    email: "",
+    phone: "",
+    bio: "",
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || "",
+        username: profile.username || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        bio: profile.bio || "",
+      });
+    }
+  }, [profile]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setIsUpdating(true);
+      
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: formData.full_name,
+          username: formData.username,
+          phone: formData.phone,
+          bio: formData.bio,
+        })
+        .eq("id", profile?.id);
+
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+      
+      toast({
+        title: "Perfil actualizado",
+        description: "Los cambios se han guardado correctamente.",
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: "No se pudieron guardar los cambios. Por favor, intenta de nuevo.",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container max-w-2xl py-8 space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Mi Perfil</h1>
+        <p className="text-muted-foreground">
+          Gestiona tu información personal y preferencias
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Avatar</CardTitle>
+          <CardDescription>
+            Tu foto de perfil será visible para otros usuarios
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AvatarUpload 
+            url={profile?.avatar_url} 
+            size="lg"
+            onUploadComplete={() => {
+              queryClient.invalidateQueries({ queryKey: ["profile"] });
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Información Personal</CardTitle>
+            <CardDescription>
+              Actualiza tu información de perfil
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Nombre completo</Label>
+                <Input
+                  id="full_name"
+                  placeholder="Tu nombre completo"
+                  value={formData.full_name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, full_name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Nombre de usuario</Label>
+                <Input
+                  id="username"
+                  placeholder="@usuario"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, username: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={formData.email}
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Teléfono</Label>
+                <Input
+                  id="phone"
+                  placeholder="+34 600 000 000"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Biografía</Label>
+              <Input
+                id="bio"
+                placeholder="Cuéntanos sobre ti..."
+                value={formData.bio}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, bio: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {!isUpdating && <Save className="mr-2 h-4 w-4" />}
+                Guardar cambios
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
+  );
+}
+Ahora, creemos el componente AvatarUpload que maneja la subida de la foto de perfil:
+
+src/components/profile/AvatarUpload.tsx
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Camera, Loader2, User } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+
+interface AvatarUploadProps {
+  url?: string | null;
+  size?: "sm" | "lg";
+  editable?: boolean;
+  onUploadComplete?: () => void;
+}
+
+export function AvatarUpload({ 
+  url, 
+  size = "sm",
+  editable = true,
+  onUploadComplete 
+}: AvatarUploadProps) {
+  const { toast } = useToast();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (url) setAvatarUrl(url);
+  }, [url]);
+
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      onUploadComplete?.();
+
+      toast({
+        title: "Avatar actualizado",
+        description: "Tu foto de perfil se ha actualizado correctamente.",
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        variant: "destructive",
+        title: "Error al subir avatar",
+        description: "No se pudo actualizar tu foto de perfil. Por favor, intenta de nuevo.",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4">
+      <Avatar className={cn(
+        size === "sm" ? "h-8 w-8" : "h-24 w-24",
+        "relative group"
+      )}>
+        <AvatarImage src={avatarUrl || undefined} />
+        <AvatarFallback>
+          <User className={cn(
+            size === "sm" ? "h-4 w-4" : "h-8 w-8"
+          )} />
+        </AvatarFallback>
+        {editable && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+            <Camera className={cn(
+              size === "sm" ? "h-4 w-4" : "h-6 w-6",
+              "text-white"
+            )} />
+          </div>
+        )}
+      </Avatar>
+
+      {editable && (
+        <div>
+          <input
+            type="file"
+            id="avatar"
+            accept="image/*"
+            className="hidden"
+            onChange={uploadAvatar}
+            disabled={uploading}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="relative"
+            disabled={uploading}
+            onClick={() => document.getElementById("avatar")?.click()}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Subiendo...
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-4 w-4" />
+                Cambiar foto
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+También necesitamos el hook useProfile para manejar la obtención de datos del perfil:
+
+src/hooks/useProfile.ts
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+export function useProfile() {
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  });
+}

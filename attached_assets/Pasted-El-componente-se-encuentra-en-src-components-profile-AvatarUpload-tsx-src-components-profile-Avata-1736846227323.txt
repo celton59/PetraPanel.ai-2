@@ -1,0 +1,127 @@
+El componente se encuentra en src/components/profile/AvatarUpload.tsx:
+
+src/components/profile/AvatarUpload.tsx
+import { useState } from "react"
+import { Camera } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
+
+interface AvatarUploadProps {
+  url?: string
+  onUpload?: (url: string) => void
+  size?: "sm" | "default" | "lg"
+  editable?: boolean
+}
+
+export function AvatarUpload({ 
+  url, 
+  onUpload, 
+  size = "default", 
+  editable = true 
+}: AvatarUploadProps) {
+  const [uploading, setUploading] = useState(false)
+  const queryClient = useQueryClient()
+
+  const sizes = {
+    sm: "h-8 w-8",
+    default: "h-20 w-20",
+    lg: "h-32 w-32"
+  }
+
+  const buttonSizes = {
+    sm: "h-6 w-6",
+    default: "h-8 w-8",
+    lg: "h-10 w-10"
+  }
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true)
+
+      const file = event.target.files?.[0]
+      if (!file) return
+
+      // Validar el tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor, sube solo imágenes')
+        return
+      }
+
+      // Validar el tamaño (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('La imagen debe ser menor a 2MB')
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No user found')
+
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`
+
+      // Subir el archivo
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      // Obtener la URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Actualizar el perfil del usuario
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      // Actualizar la caché de React Query
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      
+      onUpload?.(publicUrl)
+      toast.success('Foto de perfil actualizada')
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('Error al actualizar la foto de perfil')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Avatar className={sizes[size]}>
+        <AvatarImage src={url} />
+        <AvatarFallback>
+          {uploading ? '...' : 'CN'}
+        </AvatarFallback>
+      </Avatar>
+      {editable && (
+        <Button
+          disabled={uploading}
+          size="icon"
+          variant="outline"
+          className={`absolute -bottom-2 -right-2 rounded-full ${buttonSizes[size]}`}
+          onClick={() => document.getElementById('avatar-upload')?.click()}
+        >
+          <Camera className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />
+        </Button>
+      )}
+      <input
+        type="file"
+        id="avatar-upload"
+        accept="image/*"
+        onChange={handleUpload}
+        disabled={uploading}
+        className="hidden"
+      />
+    </div>
+  )
+}

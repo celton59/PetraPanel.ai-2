@@ -1,0 +1,48 @@
+Parece que el problema se debe a que el formulario se está recargando cuando intentas crear un nuevo usuario sin completar los campos requeridos. Vamos a asegurarnos de que el formulario maneje correctamente la validación de errores y evite la recarga de la página.
+
+Aquí hay una modificación que puedes hacer en el componente UserSettingsForm.tsx:
+
+import { useForm } from "react-hook-form";
+// ... otras importaciones
+export const UserSettingsForm = ({ user, onClose }: UserSettingsFormProps) => {
+  // ... código existente
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      // ... valores predeterminados
+    },
+  });
+  const onSubmit = async (data: UserFormData) => {
+    // Esto manejará la creación o actualización de usuario, según la lógica existente
+  };
+  return (
+    <Form {...form}>
+      <form 
+        onSubmit={form.handleSubmit(onSubmit)}  // Aquí usamos handleSubmit para manejar validaciones
+        className="space-y-6"
+        noValidate // Esto previene las validaciones nativas del navegador
+      >
+        <PersonalInfoSection
+          formData={form.getValues()}
+          setFormData={(data) => {
+            Object.entries(data).forEach(([key, value]) => {
+              form.setValue(key as keyof UserFormData, value, {
+                shouldValidate: true,
+                shouldDirty: true,
+              });
+            });
+          }}
+          form={form}
+        />
+        {/* Otras secciones y el botón para crear/editar usuario */}
+      </form>
+    </Form>
+  );
+};
+Cambios realizados:
+Se usa handleSubmit para manejar la validación del formulario, asegurando que solo se envíen los datos si no hay errores.
+La propiedad noValidate en la etiqueta <form> previene las validaciones nativas del navegador.
+Asegúrate de haber instalado y configurado react-hook-form correctamente. Estos ajustes deberían solucionar el problema de la recarga de página y permitir mostrar los mensajes de error correspondientes. Si continúas teniendo problemas, verifica la consola del navegador para ver si hay errores adicionales.
+
+Assistant saved your changes
+Assistant mode

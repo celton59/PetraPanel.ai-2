@@ -1,0 +1,373 @@
+import { Card } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
+} from "recharts";
+import { 
+  Loader2, TrendingUp, TrendingDown, Users, Video, 
+  Zap, BarChart3, Activity, Award, Target 
+} from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+// Mock data
+const mockOverallStats = {
+  total_videos: 1234,
+  total_optimizations: 567,
+  total_uploads: 890,
+  trend_data: [
+    { date: '2024-03-01', videos: 100, optimizations: 50 },
+    { date: '2024-03-02', videos: 120, optimizations: 60 },
+    { date: '2024-03-03', videos: 115, optimizations: 55 },
+    { date: '2024-03-04', videos: 130, optimizations: 65 },
+    { date: '2024-03-05', videos: 140, optimizations: 70 },
+    { date: '2024-03-06', videos: 135, optimizations: 68 },
+    { date: '2024-03-07', videos: 150, optimizations: 75 },
+  ]
+};
+
+const mockOptimizations = [
+  { id: 1, user: "Ana S.", count: 156, efficiency: 98 },
+  { id: 2, user: "Carlos M.", count: 142, efficiency: 95 },
+  { id: 3, user: "Elena R.", count: 128, efficiency: 93 }
+];
+
+const mockUploads = [
+  { id: 1, user: "Juan P.", count: 234, success_rate: 99 },
+  { id: 2, user: "María L.", count: 198, success_rate: 97 },
+  { id: 3, user: "David G.", count: 167, success_rate: 96 }
+];
+
+export function StatsOverview() {
+  const { toast } = useToast();
+
+  const { data: overallStats, isLoading: loadingOverall } = useQuery({
+    queryKey: ['stats-overall'],
+    queryFn: () => Promise.resolve(mockOverallStats),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: optimizations, isLoading: loadingOptimizations } = useQuery({
+    queryKey: ['stats-optimizations'],
+    queryFn: () => Promise.resolve(mockOptimizations),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: uploads, isLoading: loadingUploads } = useQuery({
+    queryKey: ['stats-uploads'],
+    queryFn: () => Promise.resolve(mockUploads),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (loadingOverall || loadingOptimizations || loadingUploads) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando estadísticas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const pieData = [
+    { name: 'Videos', value: overallStats?.total_videos || 0 },
+    { name: 'Optimizaciones', value: overallStats?.total_optimizations || 0 },
+    { name: 'Subidas', value: overallStats?.total_uploads || 0 }
+  ];
+
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658'];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-8"
+    >
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <Card className="relative overflow-hidden p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-950/30 border border-blue-200 dark:border-blue-800">
+            <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
+              <div className="absolute inset-0 bg-blue-500 opacity-10 rounded-full" />
+            </div>
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900 shadow-inner">
+                <Video className="w-6 h-6 text-blue-600 dark:text-blue-300" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-300">Videos Totales</p>
+                <h3 className="text-3xl font-bold text-blue-700 dark:text-blue-200">
+                  {overallStats?.total_videos.toLocaleString()}
+                </h3>
+                <p className="text-sm text-blue-600/70 dark:text-blue-300/70 mt-1">
+                  <TrendingUp className="w-4 h-4 inline mr-1" />
+                  +12% vs mes anterior
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <Card className="relative overflow-hidden p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-950/30 border border-green-200 dark:border-green-800">
+            <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
+              <div className="absolute inset-0 bg-green-500 opacity-10 rounded-full" />
+            </div>
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-green-100 dark:bg-green-900 shadow-inner">
+                <Zap className="w-6 h-6 text-green-600 dark:text-green-300" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-300">Optimizaciones</p>
+                <h3 className="text-3xl font-bold text-green-700 dark:text-green-200">
+                  {overallStats?.total_optimizations.toLocaleString()}
+                </h3>
+                <p className="text-sm text-green-600/70 dark:text-green-300/70 mt-1">
+                  <TrendingUp className="w-4 h-4 inline mr-1" />
+                  +8% vs mes anterior
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <Card className="relative overflow-hidden p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-950/30 border border-purple-200 dark:border-purple-800">
+            <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
+              <div className="absolute inset-0 bg-purple-500 opacity-10 rounded-full" />
+            </div>
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900 shadow-inner">
+                <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-300" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Subidas</p>
+                <h3 className="text-3xl font-bold text-purple-700 dark:text-purple-200">
+                  {overallStats?.total_uploads.toLocaleString()}
+                </h3>
+                <p className="text-sm text-purple-600/70 dark:text-purple-300/70 mt-1">
+                  <TrendingUp className="w-4 h-4 inline mr-1" />
+                  +15% vs mes anterior
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Enhanced Trend Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg">Tendencias de los Últimos 7 Días</h3>
+            </div>
+            <Badge variant="secondary" className="font-medium">
+              +23% crecimiento
+            </Badge>
+          </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={overallStats?.trend_data}>
+                <defs>
+                  <linearGradient id="colorVideos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorOptimizations" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    color: '#fff'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="videos" 
+                  name="Videos" 
+                  stroke="#8884d8" 
+                  fillOpacity={1} 
+                  fill="url(#colorVideos)" 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="optimizations" 
+                  name="Optimizaciones" 
+                  stroke="#82ca9d" 
+                  fillOpacity={1} 
+                  fill="url(#colorOptimizations)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Enhanced Performance Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-lg">Top Optimizadores</h3>
+              </div>
+              <Badge variant="secondary" className="font-medium">
+                Rendimiento
+              </Badge>
+            </div>
+            <div className="space-y-4">
+              {optimizations?.map((opt) => (
+                <div key={opt.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{opt.user}</p>
+                      <p className="text-sm text-muted-foreground">{opt.count} optimizaciones</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">
+                    {opt.efficiency}% eficiencia
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-lg">Top Subidas</h3>
+              </div>
+              <Badge variant="secondary" className="font-medium">
+                Efectividad
+              </Badge>
+            </div>
+            <div className="space-y-4">
+              {uploads?.map((upload) => (
+                <div key={upload.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{upload.user}</p>
+                      <p className="text-sm text-muted-foreground">{upload.count} subidas</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">
+                    {upload.success_rate}% éxito
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Distribution Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg">Distribución General</h3>
+            </div>
+            <Badge variant="secondary" className="font-medium">
+              Balance General
+            </Badge>
+          </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </motion.div>
+    </motion.div>
+  );
+}

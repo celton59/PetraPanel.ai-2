@@ -1,0 +1,221 @@
+Primero, vamos a crear el componente principal para la revisión de archivos:
+
+src/components/video-dialog/states/UploadReviewContent.tsx
+import React from "react";
+import { Video } from "@/types/video";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MediaPreviewGrid } from "./media-corrections/MediaPreviewGrid";
+import { ReviewGuide } from "./review/ReviewGuide";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+interface UploadReviewContentProps {
+  video: Video;
+  onApprove: () => void;
+  onReject: (reason: string, comments: string) => void;
+}
+
+export function UploadReviewContent({
+  video,
+  onApprove,
+  onReject,
+}: UploadReviewContentProps) {
+  const [showRejectionDialog, setShowRejectionDialog] = React.useState(false);
+
+  const handleApprove = () => {
+    if (!video.videoFile || !video.thumbnail) {
+      toast.error("Se requieren tanto el video como la miniatura para aprobar");
+      return;
+    }
+    onApprove();
+  };
+
+  if (!video.videoFile || !video.thumbnail) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          No se encontró el video o la miniatura para revisar.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-semibold">Revisar Archivos</h2>
+        <p className="text-muted-foreground">
+          Revisa el video y la miniatura antes de aprobar
+        </p>
+      </div>
+
+      <ScrollArea className="h-[600px] rounded-lg pr-4">
+        <div className="space-y-6">
+          <MediaPreviewGrid video={video} />
+          <ReviewGuide isTitleReview={false} />
+          
+          <div className="flex justify-end gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowRejectionDialog(true)}
+            >
+              Solicitar Cambios
+            </Button>
+            <Button onClick={handleApprove}>
+              Aprobar
+            </Button>
+          </div>
+        </div>
+      </ScrollArea>
+
+      {showRejectionDialog && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
+          <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Solicitar Cambios</h2>
+              <textarea
+                className="w-full min-h-[100px] p-2 border rounded-md"
+                placeholder="Describe los cambios necesarios..."
+                onChange={(e) => {
+                  if (e.target.value.trim()) {
+                    onReject("other", e.target.value);
+                    setShowRejectionDialog(false);
+                  }
+                }}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRejectionDialog(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+Ahora actualizamos el manejador de revisión para incluir la lógica de aprobación/rechazo:
+
+src/components/video-dialog/actions/handlers/reviewHandlers.ts
+import { Video } from "@/types/video";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+export const handleOptimizationReview = async (
+  video: Video,
+  isApproved: boolean,
+  comments?: string
+) => {
+  try {
+    console.log('Iniciando revisión de optimización:', {
+      videoId: video.id,
+      isApproved,
+      comments
+    });
+
+    const newStatus = isApproved ? 'youtube_ready' : 'title_corrections';
+
+    const { data, error } = await supabase
+      .from('videos')
+      .update({
+        status: newStatus,
+        corrections: !isApproved ? comments : null,
+        last_updated: new Date().toISOString()
+      })
+      .eq('id', video.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Registrar en el historial
+    const { error: historyError } = await supabase
+      .from('video_title_history')
+      .insert({
+        video_id: video.id,
+        previous_title: video.title,
+        new_title: video.optimizedTitle || video.title,
+        optimized_by: video.optimizedBy,
+        status: isApproved ? 'approved' : 'rejected',
+        comment: comments
+      });
+
+    if (historyError) throw historyError;
+
+    toast.success(
+      isApproved 
+        ? "Optimización aprobada correctamente" 
+        : "Se han solicitado correcciones"
+    );
+
+    return data;
+  } catch (error) {
+    console.error('Error en revisión de optimización:', error);
+    toast.error("Error al procesar la revisión");
+    throw error;
+  }
+};
+
+export const handleUploadReview = async (
+  video: Video,
+  isApproved: boolean,
+  comments?: string
+) => {
+  try {
+    console.log('Iniciando revisión de archivos:', {
+      videoId: video.id,
+      isApproved,
+      comments
+    });
+
+    const newStatus = isApproved ? 'youtube_ready' : 'media_corrections';
+
+    const { data, error } = await supabase
+      .from('videos')
+      .update({
+        status: newStatus,
+        media_corrections: !isApproved ? comments : null,
+        last_updated: new Date().toISOString()
+      })
+      .eq('id', video.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Registrar en el historial de media
+    const { error: historyError } = await supabase
+      .from('video_media_history')
+      .insert({
+        video_id: video.id,
+        previous_video_url: video.videoFile,
+        new_video_url: video.videoFile,
+        previous_thumbnail_url: video.thumbnail,
+        new_thumbnail_url: video.thumbnail,
+        reviewed_by: video.optimizedBy,
+        status: isApproved ? 'approved' : 'rejected',
+        comment: comments
+      });
+
+    if (historyError) throw historyError;
+
+    toast.success(
+      isApproved 
+        ? "Archivos aprobados correctamente" 
+        : "Se han solicitado correcciones"
+    );
+
+    return data;
+  } catch (error) {
+    console.error('Error en revisión de archivos:', error);
+    toast.error("Error al procesar la revisión");
+    throw error;
+  }
+};

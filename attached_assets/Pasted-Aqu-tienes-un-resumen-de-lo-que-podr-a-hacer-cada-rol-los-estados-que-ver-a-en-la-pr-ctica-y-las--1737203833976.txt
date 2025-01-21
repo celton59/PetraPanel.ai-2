@@ -1,0 +1,79 @@
+Aquí tienes un resumen de lo que podría hacer cada rol, los estados que vería en la práctica, y las transiciones que se le permiten. De esta manera, te quedará claro cómo implementar la lógica para cada uno en el sistema.
+
+1. Rol: Optimizador
+Estados Principales que Debería Ver
+pending: videos recién creados, aún sin asignar.
+in_progress: aquellos en los que está trabajando activamente (optimización de título).
+optimize_review: para saber si su optimización está en revisión o esperando aprobación. (Aunque aquí no actúe directamente, sí puede verlo si el sistema lo permite, según cómo manejes la visibilidad).
+title_corrections: videos devueltos con correcciones de título solicitadas.
+Transiciones Que Puede Realizar
+pending → in_progress
+
+Toma (o “reclama”) el video para comenzar a optimizarlo.
+in_progress → optimize_review
+
+Cuando termina la optimización de título, envía el video a revisión por el revisor.
+title_corrections → optimize_review
+
+Si el revisor solicitó correcciones en el título, el optimizador trabaja nuevamente y vuelve a marcarlo como listo para revisión.
+Responsabilidad Principal
+Crear o modificar el título (u otros metadatos del video, si aplica) para que cumpla los lineamientos.
+Pasar el video a revisión cuando haya terminado, o corregirlo si el revisor lo rechaza.
+2. Rol: Youtuber (o Uploader Final)
+En tu flujo, se mencionan dos tipos de “uploader”:
+
+Un Uploader que revisa archivos (upload_review / media_corrections).
+Un Youtuber que finalmente sube a YouTube cuando está en youtube_ready.
+Si en tu caso puntual el “Youtuber” es directamente quien sube el video final (sin una fase previa de “upload_review”), entonces:
+
+Estados Relevantes
+youtube_ready: el video ya pasó por todas las revisiones (título, medios, revisión final) y está listo para publicar.
+completed: el video ya está publicado.
+Transición Principal
+youtube_ready → completed
+El Youtuber sube el video al canal y marca que está “completado” en el sistema.
+Responsabilidades
+Recibir el video una vez que toda la optimización y las revisiones estén aprobadas.
+Publicarlo en YouTube.
+Marcarlo como “completado” para cerrar el flujo.
+Nota: Si en tu proyecto usas el rol “Uploader” para gestionar también la fase de revisión de los archivos (video/miniatura), entonces ese Uploader adicional manejaría los estados upload_review y media_corrections. Sin embargo, si lo tuyo es un solo rol “Youtuber” que hace todo, puedes adaptarlo para que, además de subir a YouTube, revise los medios y los corrija.
+
+3. Rol: Revisor
+Estados Que Necesita Gestionar
+optimize_review: para revisar el título y/o metadatos creados por el optimizador.
+title_corrections: el revisor envía el video de vuelta al optimizador si el título no cumple los requisitos.
+upload_review: (si también revisa archivos) fase en la que se revisa el contenido del video y la miniatura.
+media_corrections: si hay un problema con el video o miniatura, envía a correcciones.
+review: la fase de revisión final antes de declararlo “youtube_ready”.
+Transiciones Más Comunes
+optimize_review → title_corrections
+Solicita cambios en el título.
+optimize_review → upload_review
+Acepta el título (o toda la optimización) y pasa el control al equipo que revisa/sube archivos (si es un proceso separado).
+upload_review → media_corrections
+Detecta fallos en el video/miniatura, solicita que se arreglen.
+upload_review → review
+Da visto bueno a los medios (video/miniatura).
+review → youtube_ready
+Aprobación final de todo; el video está listo para ser subido a YouTube.
+(O bien, si faltan correcciones, podría volver a title_corrections o media_corrections.)
+Responsabilidades Principales
+Validar que el título (o cualquier metadato a optimizar) cumpla con la estrategia, SEO, lineamientos, etc.
+En la fase de revisión de archivos, asegurarse de que el video/miniatura cumplan con los estándares de calidad.
+Dar la aprobación final para que el video pase a “youtube_ready”.
+4. Resumen Breve por Rol
+Optimizador:
+
+Ve: pending, in_progress, optimize_review, title_corrections.
+Acciones: Reclamar video, optimizar título, enviar a revisión, corregir si vuelve rechazado.
+Youtuber (Uploader final):
+
+Ve: youtube_ready.
+Acciones: Subir a YouTube, marcar como completed.
+Revisor:
+
+Ve: optimize_review, title_corrections, upload_review, media_corrections, review.
+Acciones: Aprobar/rechazar título, aprobar/rechazar medios, dar aprobación final.
+En caso de que haya otro rol llamado “Uploader” (separado del “Youtuber”), ese rol gestionaría específicamente upload_review y media_corrections, revisando y corrigiendo los archivos. Después, el revisor final (o admin) vería review para el check final y pasaría a youtube_ready.
+
+Con estos detalles, deberías poder implementar la lógica de vistas (qué ve cada rol) y las transiciones (qué estado puede cambiar quién, y a cuál estado). ¡Cualquier duda adicional, quedo atento!

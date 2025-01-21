@@ -1,0 +1,364 @@
+e muestro los componentes principales del dashboard relacionados con el listado y tabla de usuarios:
+
+UsersList.tsx: Componente principal que muestra la lista de usuarios en el dashboard
+UserCard.tsx: Tarjeta individual para cada usuario
+UserDetails.tsx: Modal con detalles del usuario
+RoleFilter.tsx: Filtro por rol de usuario
+Estos componentes ya están implementados en el proyecto. Aquí está el código actual:
+
+
+// src/components/dashboard/UsersList.tsx
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Profile } from "@/types/profile";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { UserCheck, Upload, Video, User, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { UserCard } from "./users/UserCard";
+import { UserDetails } from "./users/UserDetails";
+import { RoleFilter } from "./users/RoleFilter";
+
+export const UsersList = () => {
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("all");
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['dashboard-users'],
+    queryFn: async () => {
+      console.log('Fetching dashboard users...');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Profile[];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    gcTime: 1000 * 60 * 30, // 30 minutos
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+  });
+
+  useEffect(() => {
+    const channel = supabase.channel('online-users');
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const online = new Set(Object.keys(state));
+        setOnlineUsers(online);
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        setOnlineUsers(prev => new Set(prev.add(key)));
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await channel.track({ user_id: user.id });
+          }
+        }
+      });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+
+  const getRoleIcon = (role: string | undefined) => {
+    switch (role) {
+      case "admin":
+        return <UserCheck className="h-4 w-4 text-blue-500" />;
+      case "uploader":
+        return <Upload className="h-4 w-4 text-green-500" />;
+      case "youtuber":
+        return <Video className="h-4 w-4 text-red-500" />;
+      default:
+        return <User className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const filteredUsers = users?.filter(user => 
+    selectedRole === "all" ? true : user.role === selectedRole
+  );
+
+  const roles = Array.from(new Set(users?.map(user => user.role) || [])).filter(Boolean);
+
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-primary/10">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-semibold text-lg">Equipo</h3>
+          </div>
+          <div className="h-10 w-32 bg-muted rounded-lg animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-full bg-primary/10">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="font-semibold text-lg">Equipo</h3>
+        </div>
+        <RoleFilter
+          selectedRole={selectedRole}
+          onRoleChange={setSelectedRole}
+          roles={roles}
+          getRoleIcon={getRoleIcon}
+        />
+      </div>
+      <ScrollArea className="h-[350px] sm:h-[400px] pr-4">
+        <div className="space-y-2">
+          {filteredUsers?.map((user) => (
+            <UserCard
+              key={user.id}
+              user={user}
+              onSelect={setSelectedUser}
+              isOnline={onlineUsers.has(user.id)}
+            />
+          ))}
+        </div>
+      </ScrollArea>
+
+      <UserDetails
+        user={selectedUser}
+        isOpen={!!selectedUser}
+        onClose={() => setSelectedUser(null)}
+        isOnline={selectedUser ? onlineUsers.has(selectedUser.id) : false}
+      />
+    </div>
+  );
+};
+
+// src/components/dashboard/users/UserCard.tsx
+import { Profile } from "@/types/profile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { CircleDot, ChevronRight } from "lucide-react";
+
+interface UserCardProps {
+  user: Profile;
+  onSelect: (user: Profile) => void;
+  isOnline: boolean;
+}
+
+export const UserCard = ({ user, onSelect, isOnline }: UserCardProps) => {
+  const getRoleBadgeColor = (role: string | undefined) => {
+    switch (role) {
+      case "admin":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      case "uploader":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "youtuber":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+    }
+  };
+
+  return (
+    <div
+      className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg hover:bg-accent/50 transition-all cursor-pointer gap-2 border border-transparent hover:border-border/50 hover:shadow-sm animate-in fade-in duration-200"
+      onClick={() => onSelect(user)}
+    >
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <Avatar className="h-10 w-10 border">
+            <AvatarImage src={user.avatar_url || undefined} />
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {user.full_name?.[0] || user.username?.[0] || "?"}
+            </AvatarFallback>
+          </Avatar>
+          {isOnline && (
+            <div className="absolute -bottom-0.5 -right-0.5">
+              <CircleDot className="h-4 w-4 text-green-500 fill-green-500" />
+            </div>
+          )}
+        </div>
+        <div>
+          <h4 className="font-medium text-sm flex items-center gap-2">
+            {user.full_name || user.username || "Usuario sin nombre"}
+            <Badge variant="outline" className={`${getRoleBadgeColor(user.role)} capitalize`}>
+              {user.role || "Sin rol"}
+            </Badge>
+          </h4>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
+        </div>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+};
+
+// src/components/dashboard/users/UserDetails.tsx
+import { Profile } from "@/types/profile";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Mail, Phone, Info, CircleDot } from "lucide-react";
+
+interface UserDetailsProps {
+  user: Profile | null;
+  isOpen: boolean;
+  onClose: () => void;
+  isOnline: boolean;
+}
+
+export const UserDetails = ({ user, isOpen, onClose, isOnline }: UserDetailsProps) => {
+  const getRoleBadgeColor = (role: string | undefined) => {
+    switch (role) {
+      case "admin":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      case "uploader":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "youtuber":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Detalles del Usuario</DialogTitle>
+          <DialogDescription>
+            Información detallada del usuario seleccionado
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Avatar className="h-16 w-16 border">
+                <AvatarImage src={user.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                  {user.full_name?.[0] || user.username?.[0] || "?"}
+                </AvatarFallback>
+              </Avatar>
+              {isOnline && (
+                <div className="absolute -bottom-1 -right-1">
+                  <CircleDot className="h-5 w-5 text-green-500 fill-green-500" />
+                </div>
+              )}
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">
+                {user.full_name || user.username || "Usuario sin nombre"}
+              </h3>
+              <Badge variant="outline" className={`${getRoleBadgeColor(user.role)} capitalize mt-1`}>
+                {user.role || "Sin rol"}
+              </Badge>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span>{user.email || "No disponible"}</span>
+            </div>
+            {user.phone && (
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{user.phone}</span>
+              </div>
+            )}
+            {user.bio && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Info className="h-4 w-4" />
+                    <span>Biografía</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{user.bio}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// src/components/dashboard/users/RoleFilter.tsx
+import { Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface RoleFilterProps {
+  selectedRole: string;
+  onRoleChange: (role: string) => void;
+  roles: string[];
+  getRoleIcon: (role: string) => JSX.Element;
+}
+
+export const RoleFilter = ({ selectedRole, onRoleChange, roles, getRoleIcon }: RoleFilterProps) => {
+  return (
+    <div className="flex items-center gap-2 bg-card/50 p-1.5 rounded-lg border shadow-sm">
+      <Filter className="h-4 w-4 text-muted-foreground ml-2" />
+      <Select
+        value={selectedRole}
+        onValueChange={onRoleChange}
+      >
+        <SelectTrigger className="w-[160px] border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
+          <SelectValue placeholder="Filtrar por rol" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos los roles</SelectItem>
+          {roles.map((role) => (
+            <SelectItem key={role} value={role || ""} className="flex items-center gap-2">
+              {getRoleIcon(role)}
+              <span className="capitalize">{role || "Sin rol"}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+Estos componentes trabajan juntos para mostrar:
+
+Una lista de usuarios con sus roles y estado online/offline
+Un filtro para filtrar usuarios por rol
+Un modal de detalles que muestra información adicional del usuario
+Manejo de estados de carga y errores

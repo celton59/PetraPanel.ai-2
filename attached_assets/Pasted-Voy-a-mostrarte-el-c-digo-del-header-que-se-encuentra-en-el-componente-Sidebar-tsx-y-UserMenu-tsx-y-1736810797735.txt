@@ -1,0 +1,233 @@
+Voy a mostrarte el código del header que se encuentra en el componente Sidebar.tsx y UserMenu.tsx, ya que juntos forman el header de la aplicación. Estos componentes ya están implementados y funcionando correctamente.
+
+El header está compuesto por:
+
+Logo y navegación principal (Sidebar.tsx)
+Menú de usuario con tema y perfil (UserMenu.tsx)
+Aquí está el código actual:
+
+
+// src/components/Sidebar.tsx
+import { Home, Menu, Settings, Video } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
+interface SidebarProps {
+  className?: string;
+}
+
+const Sidebar = ({ className }: SidebarProps) => {
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const isAdmin = profile?.role === 'admin';
+  
+  const menuItems = [
+    { icon: Home, label: "Dashboard", path: "/" },
+    { icon: Video, label: "Videos", path: "/videos" },
+    ...(isAdmin ? [{ icon: Settings, label: "Configuración", path: "/ajustes" }] : []),
+  ];
+
+  const isActiveRoute = (path: string) => {
+    if (path === '/') {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  const NavLinks = () => (
+    <nav className="flex md:items-center gap-1.5 flex-col md:flex-row">
+      {menuItems.map((item) => (
+        <Link
+          key={item.label}
+          to={item.path}
+          onClick={() => setIsOpen(false)}
+          className={cn(
+            "flex items-center gap-2 rounded-md px-3 py-2 md:py-1.5 text-sm font-medium transition-colors w-full md:w-auto",
+            isActiveRoute(item.path)
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+        >
+          <item.icon className="h-4 w-4" />
+          <span className="text-sm">{item.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+
+  return (
+    <div className={cn(
+      "flex-1 border-b md:border-b-0",
+      className
+    )}>
+      <div className="flex h-14 items-center px-4 gap-4">
+        <Link 
+          to="/" 
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
+          <div className="relative h-7 w-7 flex items-center justify-center">
+            <Video className="h-5 w-5 text-primary" />
+          </div>
+          <span className="font-bold text-sm">PetraPanel</span>
+        </Link>
+        
+        {/* Versión de escritorio */}
+        <div className="hidden md:block">
+          <NavLinks />
+        </div>
+
+        {/* Menú móvil */}
+        <div className="md:hidden ml-auto">
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-9 w-9 border rounded-md hover:bg-accent"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[240px] p-0">
+              <div className="flex flex-col h-full">
+                <div className="flex items-center p-4 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="relative h-7 w-7 flex items-center justify-center">
+                      <Video className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="font-bold text-sm">PetraPanel</span>
+                  </div>
+                </div>
+                <div className="flex-1 p-4">
+                  <NavLinks />
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Sidebar;
+
+// src/components/UserMenu.tsx
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { LogOut, User } from "lucide-react"
+import { ThemeToggle } from "./ThemeToggle"
+import { useNavigate } from "react-router-dom"
+import { Separator } from "./ui/separator"
+import { AvatarUpload } from "./profile/AvatarUpload"
+import { useProfile } from "@/hooks/useProfile"
+import { supabase } from "@/integrations/supabase/client"
+
+interface UserMenuProps {
+  className?: string;
+}
+
+export function UserMenu({ className }: UserMenuProps) {
+  const navigate = useNavigate()
+  const { data: profile, isLoading } = useProfile()
+
+  if (isLoading) {
+    return (
+      <div className={`flex items-center px-4 h-14 ${className}`}>
+        <div className="flex items-center space-x-4 ml-auto">
+          <ThemeToggle />
+          <Separator orientation="vertical" className="h-6" />
+          <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`flex items-center px-4 h-14 ${className}`}>
+      <div className="flex items-center space-x-4 ml-auto">
+        <ThemeToggle />
+        <Separator orientation="vertical" className="h-6" />
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <AvatarUpload 
+                url={profile?.avatar_url} 
+                size="sm" 
+                editable={false} 
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          
+          <DropdownMenuContent 
+            className="w-56" 
+            align="end" 
+            forceMount
+            sideOffset={8}
+          >
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{profile?.full_name || 'Usuario'}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {profile?.email || 'usuario@example.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem 
+                onClick={() => navigate('/perfil')}
+              >
+                <User className="mr-2 h-4 w-4" />
+                <span>Mi Perfil</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-red-600"
+              onClick={async () => {
+                await supabase.auth.signOut()
+                navigate('/autenticacion')
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Cerrar Sesión</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  )
+}
+Estos componentes juntos forman el header de la aplicación, que incluye:
+
+Logo de PetraPanel con icono de video
+Navegación principal con enlaces a Dashboard, Videos y Configuración (si el usuario es admin)
+Menú responsive que se convierte en un drawer en móvil
+Toggle de tema claro/oscuro
+Menú de usuario con avatar, nombre, email y opciones de perfil y cierre de sesión
+El diseño es totalmente responsive y utiliza componentes de shadcn/ui para mantener una apariencia consistente y moderna.

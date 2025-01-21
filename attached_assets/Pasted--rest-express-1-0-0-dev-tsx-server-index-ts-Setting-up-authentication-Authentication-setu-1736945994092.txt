@@ -1,0 +1,41 @@
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Setting up authentication...
+Authentication setup complete
+Routes registered successfully
+12:59:05 PM [express] serving on port 5000
+User request received, authenticated: false
+12:59:14 PM [express] GET /api/user 401 in 3ms
+User request received, authenticated: false
+12:59:15 PM [express] GET /api/user 401 in 1ms
+Authenticating user: hola
+12:59:21 PM [express] POST /api/login 200 in 192ms :: {"id":1,"username":"hola","password":"e6cde3b58…
+User request received, authenticated: true
+12:59:21 PM [express] GET /api/user 304 in 24ms :: {"id":1,"username":"hola","password":"e6cde3b58ba3…
+12:59:22 PM [express] GET /api/videos 304 in 57ms :: [{"id":32,"projectId":2,"title":"g","description…
+12:59:23 PM [express] GET /api/projects 304 in 66ms :: {"success":true,"data":[{"id":3,"name":"yhj","…
+Error downloading file: undefined
+12:59:23 PM [express] GET /api/videos/stream/thumbnail/1736945336251-274461669.jpeg 404 in 45ms :: {"…
+Error downloading file: undefined
+12:59:23 PM [express] GET /api/videos/stream/thumbnail/1736944465953-687683608.jpeg 404 in 41ms :: {"…
+12:59:23 PM [express] GET /api/videos/stream/videos/thumbnail/1736943977108-377076769.jpeg 200 in 53ms
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+StreamRequestError: 404: No such object: replit-objstore-cf499cd2-8666-4219-bb8b-6e5a039bf18b/videos/1736944465953-687683608.jpeg
+    at PassThroughShim.<anonymous> (/home/runner/workspace/node_modules/@replit/object-storage/src/client.ts:293:39)
+    at PassThroughShim.emit (node:events:518:28)
+    at emitErrorNT (node:internal/streams/destroy:169:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:128:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+Emitted 'error' event on PassThrough instance at:
+    at emitErrorNT (node:internal/streams/destroy:169:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:128:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  requestError: {
+    message: 'No such object: replit-objstore-cf499cd2-8666-4219-bb8b-6e5a039bf18b/videos/1736944465953-687683608.jpeg',
+    statusCode: 404
+  }
+}

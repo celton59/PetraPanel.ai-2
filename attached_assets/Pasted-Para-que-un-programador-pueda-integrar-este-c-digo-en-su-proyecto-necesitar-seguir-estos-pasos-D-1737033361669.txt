@@ -1,0 +1,125 @@
+Para que un programador pueda integrar este código en su proyecto, necesitará seguir estos pasos:
+
+Dependencias Necesarias
+
+{
+  "dependencies": {
+    "@tanstack/react-query": "^5.28.4",
+    "lucide-react": "^0.446.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
+    "@radix-ui/react-scroll-area": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.2"
+  }
+}
+Estructura de Archivos
+
+src/
+├── components/
+│   ├── users/
+│   │   ├── UserCard.tsx
+│   │   ├── UserDetails.tsx
+│   │   └── RoleFilter.tsx
+│   └── UsersList.tsx
+├── types/
+│   └── user.ts
+└── lib/
+    └── utils.ts
+Configuración de Tailwind
+
+// tailwind.config.js
+module.exports = {
+  content: ["./src/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        }
+      }
+    }
+  },
+  plugins: []
+}
+Integración con la API
+Para conectar con una API real, modificar la función queryFn en UsersList.tsx:
+
+
+const { data: users, isLoading } = useQuery({
+  queryKey: ['users'],
+  queryFn: async () => {
+    const response = await fetch('TU_API_URL/users', {
+      headers: {
+        'Authorization': 'Bearer TU_TOKEN' // Si es necesario
+      }
+    });
+    if (!response.ok) throw new Error('Error fetching users');
+    return response.json();
+  }
+});
+Instrucciones de Implementación
+
+Instalar las dependencias necesarias:
+
+
+npm install @tanstack/react-query lucide-react @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-scroll-area @radix-ui/react-tooltip class-variance-authority clsx tailwind-merge
+Copiar los componentes a las ubicaciones correspondientes en el proyecto
+
+Configurar React Query en el componente raíz:
+
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <UsersList />
+    </QueryClientProvider>
+  );
+}
+Asegurarse de que los tipos de usuario coincidan con la API:
+
+// src/types/user.ts
+export interface User {
+  id: string;
+  username: string;
+  fullName?: string;
+  email: string;
+  avatarUrl?: string;
+  role?: string;
+  bio?: string;
+  phone?: string;
+  created_at?: string;
+}
+Personalizar los textos y traducciones según sea necesario
+
+Ajustar los estilos y temas según el diseño del proyecto
+
+Notas Importantes:
+
+El componente usa shadcn/ui para los componentes base (Button, Card, etc.)
+Se requiere Tailwind CSS configurado en el proyecto
+Los iconos son de lucide-react
+La gestión de estado usa React Query
+El diseño es responsive y soporta temas claro/oscuro

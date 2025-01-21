@@ -1,0 +1,365 @@
+Para replicar el index, necesitamos crear o modificar los siguientes archivos:
+
+src/pages/Index.tsx
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { DashboardActions } from "@/components/dashboard/DashboardActions";
+import { UsersList } from "@/components/dashboard/UsersList";
+import ActivityChart from "@/components/ActivityChart";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+const Index = () => {
+  const { data: activityData } = useQuery({
+    queryKey: ['activity-data'],
+    queryFn: async () => {
+      console.log('Fetching activity data...');
+      const { data: videos, error } = await supabase
+        .from('videos')
+        .select('created_at, status')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching activity data:', error);
+        throw error;
+      }
+
+      // Obtener los últimos 30 días
+      const last30Days = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        return date;
+      }).reverse();
+
+      // Procesar los datos por día
+      const dailyData = last30Days.map(date => {
+        const dayVideos = videos?.filter(video => {
+          const videoDate = new Date(video.created_at);
+          return (
+            videoDate.getDate() === date.getDate() &&
+            videoDate.getMonth() === date.getMonth() &&
+            videoDate.getFullYear() === date.getFullYear()
+          );
+        });
+
+        return {
+          date: date,
+          name: date.toLocaleString('es-ES', { day: '2-digit', month: 'short' }),
+          videos: dayVideos?.length || 0,
+          completados: dayVideos?.filter(v => v.status === 'completed').length || 0
+        };
+      });
+
+      console.log('Activity data processed:', dailyData.length, 'days');
+      return dailyData;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos antes de considerar los datos obsoletos
+    gcTime: 1000 * 60 * 30, // 30 minutos antes de eliminar del caché
+    refetchOnMount: false, // No recargar al montar si los datos están en caché
+    refetchOnWindowFocus: false, // No recargar al enfocar la ventana
+    placeholderData: (previousData) => previousData, // Mantener datos anteriores mientras se recargan
+  });
+
+  return (
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Panel de Control</h1>
+        <p className="text-muted-foreground mt-1">Resumen de estadísticas y actividad</p>
+      </div>
+
+      <div className="grid gap-4 md:gap-6">
+        <DashboardActions />
+        <DashboardStats />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="glass-card lg:col-span-2">
+          <ActivityChart data={activityData || []} />
+        </div>
+        <div className="glass-card">
+          <UsersList />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Index;
+src/components/dashboard/DashboardActions.tsx
+import { Video, Target, Youtube, Rocket } from "lucide-react";
+import ActionCard from "@/components/ActionCard";
+import { useNavigate } from "react-router-dom";
+
+export const DashboardActions = () => {
+  const navigate = useNavigate();
+  
+  const actions = [
+    {
+      icon: Video,
+      title: "Nuevo Video",
+      description: "Crear y subir un nuevo video",
+      iconColor: "text-blue-500",
+      iconBgColor: "bg-blue-500/10",
+      onClick: () => navigate('/videos/nuevo')
+    },
+    {
+      icon: Target,
+      title: "Optimizar SEO",
+      description: "Mejorar el posicionamiento",
+      iconColor: "text-green-500",
+      iconBgColor: "bg-green-500/10",
+      onClick: () => navigate('/videos')
+    },
+    {
+      icon: Youtube,
+      title: "Gestionar Canal",
+      description: "Administrar YouTube",
+      iconColor: "text-red-500",
+      iconBgColor: "bg-red-500/10",
+      onClick: () => navigate('/videos')
+    },
+    {
+      icon: Rocket,
+      title: "Sugerir Video",
+      description: "Nueva idea de contenido",
+      iconColor: "text-purple-500",
+      iconBgColor: "bg-purple-500/10",
+      onClick: () => navigate('/videos/nuevo')
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {actions.map((action) => (
+        <ActionCard 
+          key={action.title} 
+          {...action}
+          className="transform hover:scale-105 transition-all duration-200"
+        />
+      ))}
+    </div>
+  );
+};
+src/components/dashboard/DashboardStats.tsx
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import StatsCard from "@/components/StatsCard";
+import { ChartBar, Eye, TrendingUp, Users } from "lucide-react";
+import { useEffect } from "react";
+import { queryClient } from "@/hooks/useQueryConfig";
+
+export const DashboardStats = () => {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      console.log('Fetching dashboard stats...');
+      const { data: videos, error: videosError } = await supabase
+        .from('videos')
+        .select('status, created_at');
+
+      if (videosError) throw videosError;
+
+      const { data: users, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, created_at');
+
+      if (usersError) throw usersError;
+
+      const totalVideos = videos?.length || 0;
+      const completedVideos = videos?.filter(v => v.status === 'completed').length || 0;
+      const inProgressVideos = videos?.filter(v => v.status === 'in_progress').length || 0;
+      const activeUsers = users?.length || 0;
+
+      const lastMonthVideos = videos?.filter(v => {
+        const date = new Date(v.created_at);
+        const lastMonth = new Date();
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        return date >= lastMonth;
+      }).length || 0;
+
+      const growthRate = totalVideos > 0 
+        ? ((lastMonthVideos / totalVideos) * 100).toFixed(1)
+        : 0;
+
+      return {
+        totalVideos,
+        completedVideos,
+        inProgressVideos,
+        activeUsers,
+        growthRate
+      };
+    },
+    staleTime: 0, // Los datos se considerarán obsoletos inmediatamente
+    gcTime: 1000 * 60 * 30, // 30 minutos antes de eliminar del caché
+  });
+
+  // Suscribirse a cambios en tiempo real
+  useEffect(() => {
+    // Canal para videos
+    const videosChannel = supabase
+      .channel('videos-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'videos' },
+        () => {
+          console.log('Videos changed, invalidating query...');
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        }
+      )
+      .subscribe();
+
+    // Canal para perfiles
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          console.log('Profiles changed, invalidating query...');
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(videosChannel);
+      supabase.removeChannel(profilesChannel);
+    };
+  }, []);
+
+  const statsCards = [
+    {
+      title: "Total Videos",
+      value: stats?.totalVideos.toString() || "0",
+      change: `${stats?.growthRate}% este mes`,
+      isPositive: Number(stats?.growthRate) > 0,
+      icon: ChartBar,
+    },
+    {
+      title: "Videos Completados",
+      value: stats?.completedVideos.toString() || "0",
+      change: `${stats?.completedVideos} videos listos`,
+      isPositive: true,
+      icon: Eye,
+    },
+    {
+      title: "En Proceso",
+      value: stats?.inProgressVideos.toString() || "0",
+      change: `${stats?.inProgressVideos} en producción`,
+      isPositive: true,
+      icon: TrendingUp,
+    },
+    {
+      title: "Usuarios Activos",
+      value: stats?.activeUsers.toString() || "0",
+      change: "Equipo actual",
+      isPositive: true,
+      icon: Users,
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-32 bg-muted rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {statsCards.map((stat) => (
+        <StatsCard key={stat.title} {...stat} />
+      ))}
+    </div>
+  );
+};
+src/components/StatsCard.tsx
+import { LucideIcon } from "lucide-react";
+import { Card } from "./ui/card";
+
+interface StatsCardProps {
+  title: string;
+  value: string;
+  change: string;
+  isPositive: boolean;
+  icon: LucideIcon;
+}
+
+const StatsCard = ({ title, value, change, isPositive, icon: Icon }: StatsCardProps) => {
+  return (
+    <Card className="glass-card transition-all duration-300 hover:scale-[1.02]">
+      <div className="p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className="p-2.5 rounded-xl bg-primary/10 transition-colors duration-200 group-hover:bg-primary/20">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-2xl md:text-3xl font-bold tracking-tight">{value}</h3>
+          <p className={`text-sm font-medium ${isPositive ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+            {isPositive ? '+' : ''}{change}
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export default StatsCard;
+src/components/ActionCard.tsx
+import { LucideIcon } from "lucide-react";
+import { Card } from "./ui/card";
+import { cn } from "@/lib/utils";
+
+interface ActionCardProps {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  iconColor?: string;
+  iconBgColor?: string;
+  className?: string;
+  onClick?: () => void;
+}
+
+const ActionCard = ({ 
+  icon: Icon, 
+  title, 
+  description, 
+  iconColor = "text-primary", 
+  iconBgColor = "bg-primary/10",
+  className,
+  onClick 
+}: ActionCardProps) => {
+  return (
+    <Card 
+      className={cn(
+        "glass-card transition-all duration-200 hover:scale-[1.02] cursor-pointer",
+        "group hover:shadow-lg dark:hover:shadow-primary/5",
+        className
+      )}
+      onClick={onClick}
+    >
+      <div className="p-4 md:p-6">
+        <div className={cn(
+          "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
+          "transition-all duration-200 group-hover:scale-110",
+          iconBgColor
+        )}>
+          <Icon className={cn("w-6 h-6", iconColor)} />
+        </div>
+        <h3 className="font-semibold text-lg mb-1.5 group-hover:text-primary transition-colors">
+          {title}
+        </h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {description}
+        </p>
+      </div>
+    </Card>
+  );
+};
+
+export default ActionCard;

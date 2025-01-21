@@ -1,0 +1,305 @@
+rimero, el componente principal de filtros:
+
+src/components/video/VideoFilters.tsx
+import { SearchInput } from "./filters/SearchInput";
+import { StatusFilter } from "./filters/StatusFilter";
+import { AssigneeFilter } from "./filters/AssigneeFilter";
+import { ProjectFilter } from "./filters/ProjectFilter";
+import { Button } from "@/components/ui/button";
+import { Filter } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+
+interface VideoFiltersProps {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  status: string;
+  onStatusChange: (value: string) => void;
+  date: DateRange | undefined;
+  onDateChange: (date: DateRange | undefined) => void;
+  assignedTo: string;
+  onAssignedToChange: (value: string) => void;
+  showFilters: boolean;
+  onToggleFilters: () => void;
+}
+
+export function VideoFilters({
+  searchTerm,
+  onSearchChange,
+  status,
+  onStatusChange,
+  date,
+  onDateChange,
+  assignedTo,
+  onAssignedToChange,
+  showFilters,
+  onToggleFilters,
+}: VideoFiltersProps) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <SearchInput 
+          searchTerm={searchTerm} 
+          onSearchChange={onSearchChange} 
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onToggleFilters}
+          className={showFilters ? "bg-accent" : ""}
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {showFilters && (
+        <div className="grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4">
+          <StatusFilter status={status} onStatusChange={onStatusChange} />
+          <AssigneeFilter
+            assignedTo={assignedTo}
+            onAssignedToChange={onAssignedToChange}
+          />
+          <ProjectFilter />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "LLL dd, y", { locale: es })} -{" "}
+                      {format(date.to, "LLL dd, y", { locale: es })}
+                    </>
+                  ) : (
+                    format(date.from, "LLL dd, y", { locale: es })
+                  )
+                ) : (
+                  <span>Seleccionar fechas</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={onDateChange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+    </div>
+  );
+}
+Ahora los componentes individuales de filtros:
+
+src/components/video/filters/SearchInput.tsx
+import React from 'react';
+import { Input } from "@/components/ui/input";
+
+interface SearchInputProps {
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+}
+
+export const SearchInput = ({ searchTerm, onSearchChange }: SearchInputProps) => {
+  return (
+    <Input
+      placeholder="Buscar videos por título o número de serie"
+      value={searchTerm}
+      onChange={(e) => onSearchChange(e.target.value)}
+      className="w-full pl-4"
+    />
+  );
+};
+src/components/video/filters/StatusFilter.tsx
+import React from 'react';
+import { FileType } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface StatusFilterProps {
+  status: string;
+  onStatusChange: (status: string) => void;
+}
+
+export const StatusFilter = ({ status, onStatusChange }: StatusFilterProps) => {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium flex items-center gap-2">
+        <FileType className="h-4 w-4" />
+        Estado
+      </label>
+      <Select value={status} onValueChange={onStatusChange}>
+        <SelectTrigger className="w-full bg-background">
+          <SelectValue placeholder="Estado" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos los estados</SelectItem>
+          <SelectItem value="pending">Pendientes</SelectItem>
+          <SelectItem value="in_progress">En Progreso</SelectItem>
+          <SelectItem value="completed">Completados</SelectItem>
+          <SelectItem value="corrections">Con correcciones</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+src/components/video/filters/AssigneeFilter.tsx
+import React from 'react';
+import { Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+interface AssigneeFilterProps {
+  assignedTo: string;
+  onAssignedToChange: (userId: string) => void;
+}
+
+export const AssigneeFilter = ({ assignedTo, onAssignedToChange }: AssigneeFilterProps) => {
+  const { data: users } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, username')
+        .order('full_name');
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+      }
+
+      return profiles;
+    }
+  });
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium flex items-center gap-2">
+        <Users className="h-4 w-4" />
+        Asignado a
+      </label>
+      <Select value={assignedTo} onValueChange={onAssignedToChange}>
+        <SelectTrigger className="w-full bg-background">
+          <SelectValue placeholder="Asignado a" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos los usuarios</SelectItem>
+          <SelectItem value="unassigned">Sin asignar</SelectItem>
+          {users?.map((user) => (
+            <SelectItem key={user.id} value={user.id}>
+              {user.full_name || user.username}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+src/components/video/filters/ProjectFilter.tsx
+import React from 'react';
+import { Building2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useProjectStore } from "@/stores/projectStore";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export const ProjectFilter = () => {
+  const { currentProject, setCurrentProject } = useProjectStore();
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['available-projects'],
+    queryFn: async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No hay usuario autenticado');
+
+        // Obtener el perfil del usuario
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        let projectsQuery;
+
+        // Si es admin, obtiene todos los proyectos
+        if (userProfile?.role === 'admin') {
+          projectsQuery = supabase
+            .from('projects')
+            .select('*')
+            .order('name');
+        } else {
+          // Si no es admin, obtener los proyectos asignados
+          projectsQuery = supabase
+            .from('project_assignments')
+            .select('project:project_id(*)')
+            .eq('user_id', user.id)
+            .order('project.name');
+        }
+
+        const { data, error: projectsError } = await projectsQuery;
+
+        if (projectsError) throw projectsError;
+
+        // Si es admin, devolvemos los proyectos directamente
+        if (userProfile?.role === 'admin') {
+          return data || [];
+        }
+
+        // Si no es admin, necesitamos extraer los proyectos del resultado anidado
+        return data?.map(assignment => assignment.project) || [];
+      } catch (error) {
+        console.error('Error al obtener proyectos:', error);
+        return [];
+      }
+    }
+  });
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium flex items-center gap-2">
+        <Building2 className="h-4 w-4" />
+        Proyecto
+      </label>
+      <Select 
+        value={currentProject?.id?.toString() || "all"}
+        onValueChange={(value) => {
+          if (value === "all") {
+            setCurrentProject(undefined);
+          } else {
+            const project = projects.find(p => p.id === parseInt(value));
+            if (project) setCurrentProject(project);
+          }
+        }}
+      >
+        <SelectTrigger className="w-full bg-background">
+          <SelectValue placeholder="Seleccionar proyecto" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos los proyectos</SelectItem>
+          {projects.map((project) => (
+            <SelectItem key={project.id} value={project.id.toString()}>
+              {project.name} ({project.prefix})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
