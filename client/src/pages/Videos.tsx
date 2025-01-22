@@ -26,7 +26,7 @@ import type { DateRange } from "react-day-picker";
 const VISIBLE_STATES = {
   optimizer: ['pending', 'in_progress', 'optimize_review', 'title_corrections', 'en_revision'],
   youtuber: ['video_disponible', 'asignado', 'youtube_ready', 'completed'],
-  reviewer: ['optimize_review', 'title_corrections', 'upload_review', 'media_corrections', 'review', 'en_revision'],
+  reviewer: ['optimize_review', 'title_corrections', 'in_progress', 'completed', 'en_revision'],
   admin: ['pending', 'in_progress', 'optimize_review', 'title_corrections', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision']
 } as const;
 
