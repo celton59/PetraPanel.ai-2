@@ -373,20 +373,30 @@ const Videos = () => {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{video.seriesNumber || '-'}</TableCell>
+                  <TableCell className="font-medium">
+                    {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                      '(No disponible)' : 
+                      (video.seriesNumber || '-')}
+                  </TableCell>
                   <TableCell className="font-medium max-w-[300px] truncate">
-                    {video.optimizedTitle || video.title}
+                    {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                      '(No disponible)' : 
+                      (video.optimizedTitle || video.title)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`${getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus)}`}>
-                      {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
-                    </Badge>
+                    {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                      <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
+                      <Badge variant="secondary" className={`${getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus)}`}>
+                        {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
+                      </Badge>
                   </TableCell>
                   <TableCell>
                     {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
                   </TableCell>
                   <TableCell>
-                    {new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
+                    {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                      '-' :
+                      new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
