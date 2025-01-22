@@ -284,7 +284,7 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   return roleStatus[userRole as string] || video.status;
 };
 
-const getRoleStatus = (status: VideoStatus): Record<string, string> => {
+export const getRoleStatus = (status: VideoStatus): Record<string, string> => {
   const roleStatuses = {
     pending: {
       optimizer: 'disponible', // Optimizer puede ver títulos pendientes para optimizar
