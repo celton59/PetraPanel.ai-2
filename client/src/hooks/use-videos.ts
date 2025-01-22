@@ -227,6 +227,13 @@ const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, n
 
 // Función mejorada para obtener el estado efectivo considerando metadata
 const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) => {
+  const roleStatus = getRoleStatus(video.status as VideoStatus);
+  
+  // Verificar si el rol actual tiene acceso al video
+  if (!roleStatus[userRole as string] || roleStatus[userRole as string] === 'no_disponible') {
+    return 'no_disponible';
+  }
+
   // Si el video tiene un estado personalizado en metadata, tiene prioridad
   if (video.metadata?.customStatus) {
     return video.metadata.customStatus;
@@ -235,47 +242,36 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   // Estados específicos por rol
   switch (userRole) {
     case 'youtuber':
-      // Cuando está en upload_review, el youtuber lo ve como disponible
-      if (video.status === 'upload_review') {
-        // Si está asignado a este youtuber específicamente
-        if (video.currentReviewerId === currentUser?.id) {
-          return 'asignado';
-        }
-        // Por defecto, mostrar como disponible sin importar la metadata
-        return 'video_disponible';
+      if (video.status === 'upload_review' || video.status === 'youtube_ready') {
+        return video.currentReviewerId === currentUser?.id ? 'asignado' : 'video_disponible';
       }
       break;
 
     case 'optimizer':
-      // Si es pending, mostrar como disponible sin importar la metadata
-      if (video.status === 'pending') {
-        return 'disponible';
+      if (['pending', 'in_progress', 'optimize_review', 'title_corrections'].includes(video.status)) {
+        return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id ? 
+          'en_proceso' : 'disponible';
       }
       break;
 
     case 'reviewer':
-      // Solo mostrar los videos en optimize_review
-      if (video.status === 'optimize_review') {
-        // Si no tiene revisor asignado, mostrar como disponible
+      if (['optimize_review', 'title_corrections'].includes(video.status)) {
         if (!video.currentReviewerId) {
           return 'disponible';
         }
-        // Si está asignado a este revisor
-        if (video.currentReviewerId === currentUser?.id) {
-          return 'revisando_titulo';
-        }
-        // Si tiene otro revisor asignado
-        return 'en_revision';
+        return video.currentReviewerId === currentUser?.id ? 'revisando_titulo' : 'en_revision';
       }
-      // Para upload_review, ignorar las asignaciones existentes
-      else if (video.status === 'upload_review') {
+      break;
+
+    case 'uploader':
+      if (['media_corrections', 'youtube_ready'].includes(video.status)) {
         return 'disponible';
       }
       break;
   }
 
-  // Si no hay estados especiales, devolver el estado normal
-  return video.status;
+  // Si no hay estados especiales, devolver el estado basado en el rol
+  return roleStatus[userRole as string] || video.status;
 };
 
 const getRoleStatus = (status: VideoStatus): Record<string, string> => {
