@@ -147,8 +147,8 @@ const Videos = () => {
       const isAssignedToUser = video.currentReviewerId === user?.id ||
         video.metadata?.optimization?.assignedTo?.userId === user?.id;
 
-      // Videos pendientes siempre son visibles para optimizadores
-      if (effectiveStatus === 'pending') {
+      // Videos pendientes o en progreso siempre son visibles para optimizadores
+      if (video.status === 'pending' || effectiveStatus === 'pending') {
         return true;
       }
 
