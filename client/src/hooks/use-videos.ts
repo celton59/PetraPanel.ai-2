@@ -178,12 +178,12 @@ const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
   reviewer: {
     pending: [],
     in_progress: [],
-    title_corrections: ["optimize_review"],
-    optimize_review: ["title_corrections", "upload_review", "completed"],
-    upload_review: ["optimize_review"],
+    title_corrections: [],
+    optimize_review: ["title_corrections", "upload_review", "youtube_ready"],
+    upload_review: ["optimize_review", "youtube_ready"],
     youtube_ready: ["completed"],
     review: [],
-    media_corrections: ["upload_review"],
+    media_corrections: ["upload_review", "youtube_ready"],
     completed: []
   },
   uploader: {
