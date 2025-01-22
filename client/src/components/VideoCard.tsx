@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Video, VideoStatus } from "@db/schema";
+import { getRoleStatus } from "@/hooks/use-videos";
 import { Clock, Edit, PlayCircle, Upload, Youtube, AlertCircle, Image, CheckCircle2, List } from "lucide-react";
 import {
   Dialog,
