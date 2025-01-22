@@ -228,7 +228,7 @@ const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, n
 // Función mejorada para obtener el estado efectivo considerando metadata
 const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) => {
   const roleStatus = getRoleStatus(video.status as VideoStatus);
-  
+
   // Verificar si el rol actual tiene acceso al video
   if (!roleStatus[userRole as string] || roleStatus[userRole as string] === 'no_disponible') {
     return 'no_disponible';
@@ -249,7 +249,7 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
 
     case 'optimizer':
       if (['pending', 'in_progress', 'optimize_review', 'title_corrections'].includes(video.status)) {
-        return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id ? 
+        return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id ?
           'en_proceso' : 'disponible';
       }
       break;
@@ -277,52 +277,52 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
 const getRoleStatus = (status: VideoStatus): Record<string, string> => {
   const roleStatuses = {
     pending: {
-      optimizer: 'disponible',
-      reviewer: 'no_disponible', 
+      optimizer: 'disponible', // Optimizer puede ver títulos pendientes para optimizar
+      reviewer: 'no_disponible', // Reviewer no necesita ver títulos pendientes
+      youtuber: 'no_disponible', // Youtuber no debe ver títulos en proceso
+      uploader: 'no_disponible' // Uploader no necesita ver títulos pendientes
+    },
+    in_progress: {
+      optimizer: 'disponible', // Optimizer puede ver títulos en proceso
+      reviewer: 'no_disponible',
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
-    in_progress: {
-      optimizer: 'disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'no_disponible', 
-      uploader: 'no_disponible'
-    },
     optimize_review: {
-      optimizer: 'disponible',
-      reviewer: 'disponible',
+      optimizer: 'disponible', // Optimizer puede ver títulos en revisión
+      reviewer: 'disponible', // Reviewer necesita ver títulos para revisar
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
     title_corrections: {
-      optimizer: 'disponible',
-      reviewer: 'disponible',
+      optimizer: 'disponible', // Optimizer puede ver títulos que necesitan correcciones
+      reviewer: 'disponible', // Reviewer puede ver títulos para verificar correcciones
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
     media_corrections: {
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
+      youtuber: 'disponible', // Youtuber puede ver títulos cuando hay correcciones de media
+      uploader: 'disponible' // Uploader puede ver títulos durante correcciones
     },
     upload_review: {
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
+      youtuber: 'disponible', // Youtuber puede ver títulos durante la revisión de subida
+      uploader: 'disponible' // Uploader puede ver títulos durante la revisión
     },
     youtube_ready: {
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
+      youtuber: 'disponible', // Youtuber puede ver títulos listos para YouTube
+      uploader: 'disponible' // Uploader puede ver títulos listos
     },
     completed: {
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'no_disponible',
-      uploader: 'disponible'
+      youtuber: 'disponible', // Youtuber puede ver títulos completados
+      uploader: 'disponible' // Uploader puede ver títulos completados
     }
   };
   return roleStatuses[status] || {};
@@ -455,7 +455,7 @@ export function useVideos(projectId?: number) {
   });
 
   return {
-    videos: videos?.map((video:any) => ({...video, effectiveStatus: getEffectiveStatus(video, localStorage.getItem('userRole'), JSON.parse(localStorage.getItem('currentUser') || '{}'))})),
+    videos: videos?.map((video: any) => ({ ...video, effectiveStatus: getEffectiveStatus(video, localStorage.getItem('userRole'), JSON.parse(localStorage.getItem('currentUser') || '{}')) })),
     isLoading,
     createVideo: createVideoMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
