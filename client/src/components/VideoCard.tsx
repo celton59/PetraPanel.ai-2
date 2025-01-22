@@ -23,7 +23,6 @@ import { UploadReviewContent } from "@/components/video/review/UploadReviewConte
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { MediaCorrectionsDialog } from "./video/review/MediaCorrectionsDialog";
 import { MediaCorrectionsContent } from "./video/review/MediaCorrectionsContent";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface VideoCardProps {
   video: Video;
@@ -331,6 +330,9 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isRequestingCorrections, setIsRequestingCorrections] = useState(false);
 
+  // Determinar si el usuario tiene visibilidad del título
+  const hasVisibility = video.effectiveStatus !== 'no_disponible';
+
   const form = useForm<UpdateVideoData>({
     defaultValues: {
       title: video.title,
@@ -513,24 +515,37 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   const statusLabel = statusLabels[video.status as VideoStatus] || "Pendiente";
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-lg">{video.optimizedTitle || video.title}</CardTitle>
-            <Badge
-              variant="outline"
-              className={`${statusColor.bg} ${statusColor.text} border-0`}
-            >
-              {statusLabel}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {renderContent()}
-        </CardContent>
-      </Card>
-    </>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-lg">
+            {hasVisibility ? (
+              video.optimizedTitle || video.title
+            ) : (
+              <span className="text-muted-foreground italic">Título no disponible</span>
+            )}
+          </CardTitle>
+          <Badge
+            variant="outline"
+            className={`${statusColor.bg} ${statusColor.text} border-0`}
+          >
+            {statusLabel}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {hasVisibility ? (
+          renderContent()
+        ) : (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No tienes acceso a ver el contenido de este video en este momento.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
