@@ -28,11 +28,11 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
       title_corrections: ["optimize_review"],
     },
     reviewer: {
-      optimize_review: ["upload_review", "title_corrections", "revisando_titulo", "revisando_contenido"],
+      optimize_review: ["upload_review", "title_corrections"],
       review: ["youtube_ready", "media_corrections"],
       media_corrections: ["review"],
-      revisando_titulo: ["aprobado", "rechazado"],
-      revisando_contenido: ["aprobado", "rechazado"],
+      title_corrections: ["optimize_review"],
+      upload_review: ["review", "media_corrections"],
     },
     uploader: {
       upload_review: ["review", "media_corrections"],
