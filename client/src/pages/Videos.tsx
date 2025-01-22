@@ -389,6 +389,7 @@ const Videos = () => {
                       <Badge variant="secondary" className={`${getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus)}`}>
                         {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
                       </Badge>
+                    }
                   </TableCell>
                   <TableCell>
                     {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
