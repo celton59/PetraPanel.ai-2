@@ -14,6 +14,19 @@ export type VideoStatus =
   | "completed";
 
 export type VideoMetadata = {
+  roleView?: {
+    optimizer?: {
+      status: 'disponible' | 'en_proceso' | 'en_revision' | 'con_correcciones' | 'completado';
+      assignedAt?: string;
+      lastUpdated?: string;
+    };
+    reviewer?: {
+      status: 'disponible' | 'en_proceso' | 'con_correcciones' | 'completado';
+      assignedAt?: string;
+      lastUpdated?: string;
+      comments?: string;
+    };
+  };
   corrections?: {
     status: string;
     requestedAt: string;

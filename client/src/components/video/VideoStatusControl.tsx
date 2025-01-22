@@ -26,13 +26,12 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
       pending: ["in_progress"],
       in_progress: ["optimize_review"],
       title_corrections: ["optimize_review"],
+      optimize_review: ["completed"],
     },
     reviewer: {
-      optimize_review: ["upload_review", "title_corrections"],
-      review: ["youtube_ready", "media_corrections"],
-      media_corrections: ["review"],
+      optimize_review: ["in_progress", "title_corrections", "completed"],
+      in_progress: ["completed", "title_corrections"],
       title_corrections: ["optimize_review"],
-      upload_review: ["review", "media_corrections"],
     },
     uploader: {
       upload_review: ["review", "media_corrections"],
@@ -55,12 +54,12 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
 
 // Expandir getStatusLabel para incluir sub-estados del reviewer
 const getStatusLabel = (status: VideoStatus | string): string => {
-  // Estados específicos del reviewer
-  if (status === 'revisando_titulo') return "Revisando Título";
-  if (status === 'revisando_contenido') return "Revisando Contenido";
-  if (status === 'pendiente') return "Pendiente de Revisión";
-  if (status === 'aprobado') return "Aprobado";
-  if (status === 'rechazado') return "Rechazado";
+  // Estados para optimizador
+  if (status === 'pending') return "Disponible";
+  if (status === 'in_progress') return "En Proceso";
+  if (status === 'optimize_review') return "En Revisión";
+  if (status === 'title_corrections') return "Con Correcciones";
+  if (status === 'completed') return "Completado";
 
   // Sub-estados de youtuber
   if (status === 'video_disponible') return "Video Disponible";

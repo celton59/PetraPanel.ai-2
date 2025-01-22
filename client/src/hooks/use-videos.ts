@@ -234,6 +234,16 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
     return 'no_disponible';
   }
 
+  // Verificar estados específicos por rol en metadata
+  if (video.metadata?.roleView) {
+    if (userRole === 'optimizer' && video.metadata.roleView.optimizer) {
+      return video.metadata.roleView.optimizer.status;
+    }
+    if (userRole === 'reviewer' && video.metadata.roleView.reviewer) {
+      return video.metadata.roleView.reviewer.titleReview?.status || video.metadata.roleView.reviewer.contentReview?.status || 'disponible';
+    }
+  }
+
   // Si el video tiene un estado personalizado en metadata, tiene prioridad
   if (video.metadata?.customStatus) {
     return video.metadata.customStatus;
