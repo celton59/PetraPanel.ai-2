@@ -168,9 +168,9 @@ const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
     pending: ["in_progress"],  // Permitir que el optimizador vea y trabaje con videos pending
     in_progress: ["optimize_review"],
     title_corrections: ["optimize_review"],
-    optimize_review: [],
-    upload_review: [],
-    youtube_ready: [],
+    optimize_review: ["youtube_ready"],
+    upload_review: ["youtube_ready"],
+    youtube_ready: ["completed"],
     review: [],
     media_corrections: [],
     completed: []
@@ -179,33 +179,33 @@ const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
     pending: [],
     in_progress: [],
     title_corrections: [],
-    optimize_review: ["title_corrections", "upload_review"],
-    upload_review: ["optimize_review"],
+    optimize_review: ["title_corrections", "upload_review", "youtube_ready"],
+    upload_review: ["optimize_review", "youtube_ready"],
     youtube_ready: ["completed"],
     review: [],
-    media_corrections: ["upload_review"],
+    media_corrections: ["upload_review", "youtube_ready"],
     completed: []
   },
   uploader: {
     pending: [],
     in_progress: [],
     title_corrections: [],
-    optimize_review: [],
-    upload_review: ["optimize_review"],
-    youtube_ready: [],
+    optimize_review: ["youtube_ready"],
+    upload_review: ["optimize_review", "youtube_ready"],
+    youtube_ready: ["completed"],
     review: [],
-    media_corrections: ["upload_review"],
+    media_corrections: ["upload_review", "youtube_ready"],
     completed: []
   },
   admin: {
     pending: ["in_progress"],
-    in_progress: ["optimize_review"],
-    title_corrections: ["optimize_review"],
-    optimize_review: ["youtube_ready"],
-    upload_review: ["optimize_review"],
+    in_progress: ["optimize_review", "youtube_ready"],
+    title_corrections: ["optimize_review", "youtube_ready"],
+    optimize_review: ["youtube_ready", "completed"],
+    upload_review: ["optimize_review", "youtube_ready", "completed"],
     youtube_ready: ["completed"],
     review: [],
-    media_corrections: ["upload_review"],
+    media_corrections: ["upload_review", "youtube_ready", "completed"],
     completed: []
   }
 };
