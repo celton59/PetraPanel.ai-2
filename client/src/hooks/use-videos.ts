@@ -299,8 +299,8 @@ const getRoleStatus = (status: VideoStatus): Record<string, string> => {
       uploader: 'no_disponible'
     },
     optimize_review: {
-      optimizer: 'disponible', // Optimizer puede ver títulos en revisión
-      reviewer: 'disponible', // Reviewer necesita ver títulos para revisar
+      optimizer: 'disponible',
+      reviewer: 'disponible',
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
