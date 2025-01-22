@@ -141,6 +141,14 @@ const Videos = () => {
 
     // Admin puede ver todo
     if (userRole === 'admin') return true;
+    
+    // Revisor puede ver videos en optimize_review
+    if (userRole === 'reviewer' && 
+        (video.status === 'optimize_review' || 
+         video.status === 'title_corrections' || 
+         effectiveStatus === 'optimize_review')) {
+      return true;
+    }
 
     // Optimizador puede ver:
     if (userRole === 'optimizer') {
