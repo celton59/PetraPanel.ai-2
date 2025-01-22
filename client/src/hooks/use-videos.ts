@@ -278,6 +278,60 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   return video.status;
 };
 
+const getRoleStatus = (status: VideoStatus): Record<string, string> => {
+  const roleStatuses = {
+    pending: {
+      optimizer: 'disponible',
+      reviewer: 'no_disponible', 
+      youtuber: 'no_disponible',
+      uploader: 'no_disponible'
+    },
+    in_progress: {
+      optimizer: 'disponible',
+      reviewer: 'no_disponible',
+      youtuber: 'no_disponible', 
+      uploader: 'no_disponible'
+    },
+    optimize_review: {
+      optimizer: 'disponible',
+      reviewer: 'disponible',
+      youtuber: 'no_disponible',
+      uploader: 'no_disponible'
+    },
+    title_corrections: {
+      optimizer: 'disponible',
+      reviewer: 'disponible',
+      youtuber: 'no_disponible',
+      uploader: 'no_disponible'
+    },
+    media_corrections: {
+      optimizer: 'no_disponible',
+      reviewer: 'no_disponible',
+      youtuber: 'disponible',
+      uploader: 'disponible'
+    },
+    upload_review: {
+      optimizer: 'no_disponible',
+      reviewer: 'no_disponible',
+      youtuber: 'disponible',
+      uploader: 'disponible'
+    },
+    youtube_ready: {
+      optimizer: 'no_disponible',
+      reviewer: 'no_disponible',
+      youtuber: 'disponible',
+      uploader: 'disponible'
+    },
+    completed: {
+      optimizer: 'no_disponible',
+      reviewer: 'no_disponible',
+      youtuber: 'no_disponible',
+      uploader: 'disponible'
+    }
+  };
+  return roleStatuses[status] || {};
+};
+
 
 export function useVideos(projectId?: number) {
   const queryClient = useQueryClient();
