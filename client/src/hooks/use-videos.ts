@@ -134,7 +134,7 @@ export const getEffectiveStatus = (
   return 'no_disponible';
 };
 
-export default function useVideos(projectId?: number) {
+export function useVideos(projectId?: number) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const queryKey = projectId ? [`/api/projects/${projectId}/videos`] : ['/api/videos'];
