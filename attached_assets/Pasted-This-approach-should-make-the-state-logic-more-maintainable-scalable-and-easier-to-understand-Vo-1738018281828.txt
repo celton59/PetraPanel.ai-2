@@ -1,0 +1,208 @@
+This approach should make the state logic more maintainable, scalable, and easier to understand.
+
+Voy a proponer una refactorización de la lógica de estados usando principios SOLID y patrones de diseño. Dividiré la solución en partes clave:
+
+1. Definición Centralizada de Estados (Strategy Pattern)
+typescript
+Copy
+// src/lib/status/stateDefinitions.ts
+export type VideoStatus = 
+  | 'pending' 
+  | 'in_progress' 
+  | 'optimize_review' 
+  | 'title_corrections' 
+  | 'media_corrections' 
+  | 'upload_review' 
+  | 'youtube_ready' 
+  | 'completed';
+
+export type UserRole = 
+  | 'optimizer' 
+  | 'reviewer' 
+  | 'uploader' 
+  | 'admin' 
+  | 'youtuber';
+
+export type StatusTransition = {
+  from: VideoStatus;
+  to: VideoStatus[];
+  allowedRoles: UserRole[];
+  metadataConditions?: (metadata: VideoMetadata) => boolean;
+};
+
+export const STATE_TRANSITIONS: StatusTransition[] = [
+  {
+    from: 'pending',
+    to: ['in_progress'],
+    allowedRoles: ['optimizer', 'admin'],
+  },
+  {
+    from: 'in_progress',
+    to: ['optimize_review', 'title_corrections'],
+    allowedRoles: ['optimizer', 'admin'],
+    metadataConditions: (meta) => !!meta.optimization?.assignedTo
+  },
+  // ... otras transiciones
+];
+2. Máquina de Estados (State Machine)
+typescript
+Copy
+// src/lib/status/StateMachine.ts
+export class VideoStateMachine {
+  private currentStatus: VideoStatus;
+  private metadata: VideoMetadata;
+
+  constructor(initialStatus: VideoStatus, metadata: VideoMetadata = {}) {
+    this.currentStatus = initialStatus;
+    this.metadata = metadata;
+  }
+
+  getAvailableTransitions(userRole: UserRole): VideoStatus[] {
+    return STATE_TRANSITIONS
+      .filter(t => 
+        t.from === this.currentStatus &&
+        t.allowedRoles.includes(userRole) &&
+        (!t.metadataConditions || t.metadataConditions(this.metadata))
+      )
+      .flatMap(t => t.to);
+  }
+
+  canTransitionTo(newStatus: VideoStatus, userRole: UserRole): boolean {
+    return this.getAvailableTransitions(userRole).includes(newStatus);
+  }
+
+  determineNextStatus(userRole: UserRole): VideoStatus | undefined {
+    const autoTransitions = this.getAvailableTransitions(userRole);
+    return autoTransitions.length > 0 ? autoTransitions[0] : undefined;
+  }
+}
+3. Gestión de Metadatos (Decorator Pattern)
+typescript
+Copy
+// src/lib/status/metadataManager.ts
+export class MetadataManager {
+  constructor(private metadata: VideoMetadata) {}
+
+  getOptimizerStatus(): string {
+    return this.metadata.roleView?.optimizer?.status || 'disponible';
+  }
+
+  updateReviewStatus(newStatus: 'aprobado' | 'rechazado', comments: string): void {
+    if (!this.metadata.roleView) this.metadata.roleView = {};
+    if (!this.metadata.roleView.reviewer) this.metadata.roleView.reviewer = {};
+    
+    this.metadata.roleView.reviewer.contentReview = {
+      ...this.metadata.roleView.reviewer.contentReview,
+      status: newStatus,
+      lastUpdated: new Date().toISOString(),
+      comments
+    };
+  }
+
+  // ... otros métodos específicos de metadata
+}
+4. Hook Optimizado para Estados
+typescript
+Copy
+// src/hooks/useVideoState.ts
+export function useVideoState(video: Video, userRole: UserRole) {
+  const stateMachine = useMemo(
+    () => new VideoStateMachine(video.status, video.metadata),
+    [video.status, video.metadata]
+  );
+
+  const metadataManager = useMemo(
+    () => new MetadataManager(video.metadata || {}),
+    [video.metadata]
+  );
+
+  const effectiveStatus = useMemo(() => {
+    if (userRole === 'optimizer') return metadataManager.getOptimizerStatus();
+    // ... lógica para otros roles
+    return video.status;
+  }, [userRole, video, metadataManager]);
+
+  return {
+    stateMachine,
+    metadataManager,
+    effectiveStatus,
+    availableTransitions: stateMachine.getAvailableTransitions(userRole)
+  };
+}
+5. Implementación en Mutaciones
+typescript
+Copy
+// Actualización en updateVideoMutation
+const updateVideoMutation = useMutation({
+  mutationFn: async ({ videoId, data, userRole }) => {
+    const currentVideo = videos.find(v => v.id === videoId);
+    const stateMachine = new VideoStateMachine(currentVideo.status, currentVideo.metadata);
+    
+    if (data.status && !stateMachine.canTransitionTo(data.status, userRole)) {
+      throw new Error('Transición de estado no permitida');
+    }
+
+    // ... resto de la lógica
+  }
+});
+Beneficios de esta Refactorización:
+Single Responsibility Principle: Cada clase maneja una responsabilidad específica
+
+Open/Closed Principle: Nuevos estados se añaden modificando STATE_TRANSITIONS
+
+Testabilidad: Lógica de estados ahora es completamente unit-testable
+
+Type Safety: Mejor tipado de estados y transiciones
+
+Centralización: Todas las reglas de estado en un único lugar
+
+Metadata Handling: Separación clara de la lógica de metadatos
+
+Mejoras Adicionales Sugeridas:
+Estado Histórico: Añadir registro de cambios de estado
+
+typescript
+Copy
+interface StateHistory {
+  timestamp: string;
+  from: VideoStatus;
+  to: VideoStatus;
+  user: { id: number; name: string };
+  comments?: string;
+}
+Visualización de Flujo: Generar diagramas de flujo automáticamente
+
+typescript
+Copy
+export function generateMermaidDiagram(): string {
+  let diagram = "graph TD\n";
+  STATE_TRANSITIONS.forEach(t => {
+    t.to.forEach(target => {
+      diagram += `    ${t.from} --> ${target}[${t.allowedRoles.join(', ')}]\n`;
+    });
+  });
+  return diagram;
+}
+Sistema de Plugins: Para extensibilidad
+
+typescript
+Copy
+interface StatePlugin {
+  beforeTransition?: (current: VideoStatus, next: VideoStatus) => boolean;
+  afterTransition?: (newState: VideoStatus) => void;
+}
+
+class PluginSystem {
+  private plugins: StatePlugin[] = [];
+  
+  register(plugin: StatePlugin) {
+    this.plugins.push(plugin);
+  }
+
+  executeBeforeTransition(current: VideoStatus, next: VideoStatus) {
+    return this.plugins.every(p => 
+      p.beforeTransition ? p.beforeTransition(current, next) : true
+    );
+  }
+}
+¿Te gustaría que profundice en alguna parte específica de la refactorización? ¿O prefieres que muestre cómo implementar tests para esta nueva estructura?
