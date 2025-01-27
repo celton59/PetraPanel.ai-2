@@ -96,6 +96,16 @@ export const validateStatusTransition = (
   return STATUS_TRANSITIONS[userRole]?.[currentStatus]?.includes(newStatus) ?? false;
 };
 
+export const getRoleStatus = (video: Video, userRole?: string): string => {
+  if (!userRole) return 'no_disponible';
+  
+  const roleStatus = video.metadata?.roleView?.[userRole as keyof VideoMetadata['roleView']];
+  if (roleStatus && 'status' in roleStatus) {
+    return roleStatus.status;
+  }
+  return 'no_disponible';
+};
+
 export const getEffectiveStatus = (
   video: Video,
   userRole?: string,
@@ -124,7 +134,7 @@ export const getEffectiveStatus = (
   return 'no_disponible';
 };
 
-export function useVideos(projectId?: number) {
+export default function useVideos(projectId?: number) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const queryKey = projectId ? [`/api/projects/${projectId}/videos`] : ['/api/videos'];
