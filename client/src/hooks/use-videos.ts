@@ -198,15 +198,15 @@ const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
     completed: []
   },
   admin: {
-    pending: ["in_progress"],
-    in_progress: ["optimize_review", "youtube_ready"],
-    title_corrections: ["optimize_review", "youtube_ready"],
-    optimize_review: ["youtube_ready", "completed"],
-    upload_review: ["optimize_review", "youtube_ready", "completed"],
-    youtube_ready: ["completed"],
-    review: [],
-    media_corrections: ["upload_review", "youtube_ready", "completed"],
-    completed: []
+    pending: ["in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready", "completed"],
+    in_progress: ["pending", "optimize_review", "title_corrections", "upload_review", "youtube_ready", "completed"],
+    title_corrections: ["pending", "in_progress", "optimize_review", "upload_review", "youtube_ready", "completed"],
+    optimize_review: ["pending", "in_progress", "title_corrections", "upload_review", "youtube_ready", "completed"],
+    upload_review: ["pending", "in_progress", "optimize_review", "title_corrections", "youtube_ready", "completed"],
+    review: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready", "completed"],
+    media_corrections: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready", "completed"],
+    youtube_ready: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "completed"],
+    completed: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready"]
   }
 };
 
