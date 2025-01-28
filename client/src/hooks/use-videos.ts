@@ -287,52 +287,60 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
 export const getRoleStatus = (status: VideoStatus): Record<string, string> => {
   const roleStatuses = {
     pending: {
-      optimizer: 'disponible', // Optimizer puede ver títulos pendientes para optimizar
-      reviewer: 'no_disponible', // Reviewer no necesita ver títulos pendientes
-      youtuber: 'no_disponible', // Youtuber no debe ver títulos en proceso
-      uploader: 'no_disponible' // Uploader no necesita ver títulos pendientes
+      admin: 'disponible',
+      optimizer: 'disponible',
+      reviewer: 'no_disponible',
+      youtuber: 'no_disponible',
+      uploader: 'no_disponible'
     },
     in_progress: {
-      optimizer: 'disponible', // Optimizer puede ver títulos en proceso
+      admin: 'disponible',
+      optimizer: 'disponible',
       reviewer: 'no_disponible',
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
     optimize_review: {
+      admin: 'disponible',
       optimizer: 'disponible',
       reviewer: 'disponible',
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
     title_corrections: {
-      optimizer: 'disponible', // Optimizer puede ver títulos que necesitan correcciones
-      reviewer: 'disponible', // Reviewer puede ver títulos para verificar correcciones
+      admin: 'disponible',
+      optimizer: 'disponible',
+      reviewer: 'disponible',
       youtuber: 'no_disponible',
       uploader: 'no_disponible'
     },
     media_corrections: {
+      admin: 'disponible',
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible', // Youtuber puede ver títulos cuando hay correcciones de media
-      uploader: 'disponible' // Uploader puede ver títulos durante correcciones
+      youtuber: 'disponible',
+      uploader: 'disponible'
     },
     upload_review: {
+      admin: 'disponible',
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible', // Youtuber puede ver títulos durante la revisión de subida
-      uploader: 'disponible' // Uploader puede ver títulos durante la revisión
+      youtuber: 'disponible',
+      uploader: 'disponible'
     },
     youtube_ready: {
+      admin: 'disponible',
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible', // Youtuber puede ver títulos listos para YouTube
-      uploader: 'disponible' // Uploader puede ver títulos listos
+      youtuber: 'disponible',
+      uploader: 'disponible'
     },
     completed: {
+      admin: 'disponible',
       optimizer: 'no_disponible',
       reviewer: 'no_disponible',
-      youtuber: 'disponible', // Youtuber puede ver títulos completados
-      uploader: 'disponible' // Uploader puede ver títulos completados
+      youtuber: 'disponible',
+      uploader: 'disponible'
     }
   };
   return roleStatuses[status] || {};
