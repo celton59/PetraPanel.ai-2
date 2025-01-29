@@ -204,8 +204,8 @@ const Videos = () => {
   const handleVideoClick = async (video: any) => {
     const userRole = user?.role || 'viewer';
 
-    // Si es optimizador y el video está pendiente, asignarlo
-    if (userRole === 'optimizer' && video.status === 'pending') {
+    // Si es optimizador o admin y el video está pendiente, asignarlo
+    if ((userRole === 'optimizer' || userRole === 'admin') && video.status === 'pending') {
       setUpdatingVideoId(video.id);
       try {
         await updateVideo({
