@@ -21,6 +21,7 @@ import { VideoOptimizer } from "@/components/video/VideoOptimizer";
 import { useState } from "react";
 import { VideoFilters } from "@/components/video/VideoFilters";
 import type { DateRange } from "react-day-picker";
+import { getStatusLabel } from '@/lib/status-labels';
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -141,7 +142,7 @@ const Videos = () => {
 
     // Admin puede ver todo
     if (userRole === 'admin') return true;
-    
+
     // Revisor puede ver videos en optimize_review
     if (userRole === 'reviewer' && 
         (video.status === 'optimize_review' || 
@@ -519,37 +520,6 @@ const getStatusBadge = (status: VideoStatus) => {
   return styles[status as keyof typeof styles] || "bg-gray-500/20 text-gray-600";
 };
 
-const getStatusLabel = (status: VideoStatus, userRole?: string) => {
-
-  // Si es optimizador y el estado es pendiente, mostrar como disponible
-  if (userRole === 'optimizer' && status === 'pending') {
-    return "Disponible";
-  }
-
-  // Si es un estado personalizado, mostrar su etiqueta correspondiente
-  if (status === 'video_disponible') {
-    return "Video Disponible";
-  }
-  if (status === 'asignado') {
-    return "Asignado";
-  }
-  if (status === 'en_revision') {
-    return "En Revisión";
-  }
-
-  const labels = {
-    pending: "Pendiente",
-    in_progress: "En Proceso",
-    title_corrections: "Correcciones de Título",
-    optimize_review: "Rev. Optimización",
-    upload_review: "Rev. Archivos",
-    youtube_ready: "Listo YouTube",
-    review: "Rev. Final",
-    media_corrections: "Correcciones de Archivos",
-    completed: "Completado"
-  };
-  return labels[status as keyof typeof labels] || status;
-};
 
 const ALLOWED_TRANSITIONS = {
   optimizer: {
