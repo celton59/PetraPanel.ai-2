@@ -78,6 +78,13 @@ export interface VideoMetadata {
       username: string;
       optimizedAt: string;
     };
+    approvalHistory?: {
+      action: 'approved' | 'rejected';
+      timestamp: string;
+      userId: number;
+      username: string;
+      comments?: string;
+    }[];
   };
   secondaryStatus?: {
     type: 'title_approved' | 'needs_review' | 'in_review';
@@ -256,7 +263,27 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
     return video.metadata.customStatus;
   }
 
-  // Estados específicos por rol
+  // Para el rol reviewer
+  if (userRole === 'reviewer') {
+    if (video.status === 'optimize_review') {
+      const lastApproval = video.metadata?.optimization?.approvalHistory?.[
+        video.metadata.optimization.approvalHistory?.length - 1
+      ];
+
+      // Si el último estado fue una corrección de título, mostrar como "en_revision"
+      if (lastApproval?.action === 'rejected') {
+        return 'en_revision';
+      }
+
+      return 'disponible';
+    }
+
+    if (video.status === 'title_corrections') {
+      return 'en_revision';
+    }
+  }
+
+  // Para otros roles, mantener la lógica existente
   switch (userRole) {
     case 'youtuber':
       if (video.status === 'upload_review' || video.status === 'youtube_ready') {
@@ -270,32 +297,9 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
           'en_proceso' : 'disponible';
       }
       break;
-
-    case 'reviewer':
-      if (video.status === 'optimize_review') {
-        const lastStatusChange = video.metadata?.statusHistory?.[video.metadata.statusHistory.length - 1];
-        if (lastStatusChange?.previousStatus === 'title_corrections') {
-          return 'en_revision';
-        }
-        
-        if (!video.currentReviewerId) {
-          return 'disponible';
-        }
-        return video.currentReviewerId === currentUser?.id ? 'revisando_titulo' : 'en_revision';
-      }
-      if (video.status === 'title_corrections') {
-        return 'en_revision';
-      }
-      break;
-
-    case 'uploader':
-      if (['media_corrections', 'youtube_ready'].includes(video.status)) {
-        return 'disponible';
-      }
-      break;
   }
 
-  // Si no hay estados especiales, devolver el estado basado en el rol
+  // Si no hay reglas específicas, usar el estado del video
   return roleStatus[userRole as string] || video.status;
 };
 
