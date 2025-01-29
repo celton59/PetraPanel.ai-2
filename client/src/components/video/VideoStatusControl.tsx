@@ -54,7 +54,7 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
 
 // Expandir getStatusLabel para incluir sub-estados del reviewer
 const getStatusLabel = (status: VideoStatus | string, role?: string): string => {
-  // Estados para optimizador
+  // Primero verificar si hay un label específico para el rol
   if (role === 'optimizer') {
     if (status === 'pending') return "Disponible";
     if (status === 'in_progress') return "En Proceso";
@@ -100,12 +100,12 @@ const getStatusLabel = (status: VideoStatus | string, role?: string): string => 
       completed: "Completado"
     }
   };
-  
+
   // Si existe un mapeo específico para el rol, usarlo
   if (role && labels[role]) {
     return labels[role][status] || status;
   }
-  
+
   // Si no hay rol o no tiene mapeo específico, usar etiquetas por defecto
   const defaultLabels: Record<VideoStatus, string> = {
     pending: "Pendiente",
