@@ -265,11 +265,6 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
       break;
 
     case 'reviewer':
-      // Cuando está en estado review, mostrar como disponible
-      if (video.status === 'review') {
-        return 'video_disponible';
-      }
-      // Mantener la lógica existente para otros estados
       if (['optimize_review', 'title_corrections'].includes(video.status)) {
         if (!video.currentReviewerId) {
           return 'disponible';
