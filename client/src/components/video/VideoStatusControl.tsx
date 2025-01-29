@@ -54,13 +54,18 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
 
 // Expandir getStatusLabel para incluir sub-estados del reviewer
 const getStatusLabel = (status: VideoStatus | string, role?: string): string => {
-  // Primero verificar si hay un label específico para el rol
-  if (role === 'optimizer') {
-    if (status === 'pending') return "Disponible";
-    if (status === 'in_progress') return "En Proceso";
-    if (status === 'optimize_review') return "En Revisión";
-    if (status === 'title_corrections') return "Con Correcciones";
-    if (status === 'completed') return "Completado";
+  // Primero verificar los labels específicos por rol
+  if (role && role === 'optimizer') {
+    const optimizerLabels: Record<string, string> = {
+      pending: "Disponible",
+      in_progress: "En Proceso",
+      optimize_review: "En Revisión",
+      title_corrections: "Con Correcciones",
+      completed: "Completado"
+    };
+    if (optimizerLabels[status]) {
+      return optimizerLabels[status];
+    }
   }
 
   // Sub-estados de youtuber
