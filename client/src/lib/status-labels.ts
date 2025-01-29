@@ -1,10 +1,9 @@
-
 import { VideoStatus } from "@db/schema";
 
 export type Role = 'optimizer' | 'reviewer' | 'youtuber' | 'uploader' | 'admin' | 'viewer';
 
 // Etiquetas específicas por rol
-const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, string>>> = {
+const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, string | ((previousStatus: string) => string)>>> = {
   optimizer: {
     pending: "Disponible",
     in_progress: "En Proceso",
@@ -19,7 +18,7 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
     needs_attention: "Necesita Atención"
   },
   reviewer: {
-    optimize_review: "Disponible",
+    optimize_review: (previousStatus: string) => previousStatus === 'title_corrections' ? "En Revisión" : "Disponible",
     title_corrections: "Correcciones de Título",
     upload_review: "Rev. Archivos",
     en_revision: "En Revisión"
@@ -49,10 +48,11 @@ const defaultLabels: Record<VideoStatus | string, string> = {
   needs_attention: "Necesita Atención"
 };
 
-export const getStatusLabel = (status: VideoStatus | string, role?: Role): string => {
+export const getStatusLabel = (status: VideoStatus | string, role?: Role, previousStatus?: string): string => {
   // 1. Buscar etiqueta específica del rol
   if (role && roleSpecificLabels[role]?.[status]) {
-    return roleSpecificLabels[role][status]!;
+    const label = roleSpecificLabels[role][status];
+    return typeof label === 'function' ? label(previousStatus || '') : label;
   }
 
   // 2. Si no hay etiqueta específica, usar la predeterminada
