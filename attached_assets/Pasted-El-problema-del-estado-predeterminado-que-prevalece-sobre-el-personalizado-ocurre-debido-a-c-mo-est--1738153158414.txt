@@ -1,0 +1,57 @@
+El problema del estado predeterminado que prevalece sobre el personalizado ocurre debido a cómo está implementada la jerarquía de prioridades en el sistema de estados. Analizando el código React proporcionado 1 y los casos de uso en otras plataformas 56, podemos identificar varios factores clave:
+1. Configuración de transiciones de estado:
+typescript
+const statusTransitions = {
+  optimizer: {
+    pending: ["in_progress"],
+    in_progress: ["optimize_review"],
+    title_corrections: ["optimize_review"],
+    optimize_review: ["completed"],
+  },
+  // ... otras configuraciones de roles
+};
+El sistema prioriza los estados definidos en las transiciones por rol sobre los personalizados 1. Si un estado personalizado no está incluido en estas transiciones permitidas, el sistema recurrirá al predeterminado.
+2. Mecanismo de herencia de estados:
+typescript
+const getStatusLabel = (status: VideoStatus | string, role?: string): string => {
+  if (role === 'optimizer') {
+    // Prioriza estados específicos del rol
+    return labelsOptimizer[status] || status;
+  }
+  // Usa estados predeterminados si no hay coincidencia
+  return defaultLabels[status] || status;
+};
+La función getStatusLabel da prioridad a las etiquetas definidas para cada rol antes de considerar estados personalizados 1.
+3. Comportamiento observado en otras plataformas:
+En Webex, los estados predeterminados como "Viajando por trabajo" sobrescriben los personalizados 5
+Discord.js requiere configuración explícita para mantener estados personalizados 36
+4. Gestión de metadatos:
+El código de Google Cloud Storage 4 muestra cómo los metadatos personalizados deben establecerse explícitamente:
+python
+blob.metadata = {'color': 'Red', 'name': 'Test'}
+blob.patch()
+Si este tipo de actualización explícita no se implementa para los estados personalizados, el sistema recurrirá a los valores predeterminados.
+Solución propuesta:
+Modificar la lógica de prioridades en getStatusLabel:
+typescript
+const getStatusLabel = (status: VideoStatus | string, role?: string): string => {
+  // Primero verificar estados personalizados
+  if (customStatusMap[status]) return customStatusMap[status];
+  
+  // Luego estados específicos del rol
+  if (role && labels[role]?.[status]) return labels[role][status];
+  
+  // Finalmente estados predeterminados
+  return defaultLabels[status] || status;
+};
+Implementar almacenamiento persistente para estados personalizados usando patrones como:
+typescript
+localStorage.setItem('customStatuses', JSON.stringify(customStates));
+Añadir validación explícita en las transiciones de estado:
+typescript
+const availableStatuses = [
+  ...getNextStatuses(userRole, currentStatus),
+  ...getCustomStatuses(userId)
+];
+Este enfoque técnico aseguraría que los estados personalizados tengan prioridad cuando existan, mientras mantiene los predeterminados como fallback, resolviendo el problema de superposición 135.
+
