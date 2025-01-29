@@ -11,6 +11,9 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
     optimize_review: "En Revisión",
     title_corrections: "Con Correcciones",
     completed: "Completado",
+    upload_review: "Completado",
+    media_corrections: "Completado",
+    youtube_ready: "Completado",
     disponible: "Título Disponible",
     en_revision: "En Revisión",
     needs_attention: "Necesita Atención"
