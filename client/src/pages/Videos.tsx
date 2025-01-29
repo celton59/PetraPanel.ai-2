@@ -41,28 +41,39 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   // Estados específicos por rol
   switch (userRole) {
     case 'youtuber':
-      // Cuando está en upload_review, el youtuber lo ve como disponible
       if (video.status === 'upload_review') {
-        // Si está asignado a este youtuber específicamente
         if (video.currentReviewerId === currentUser?.id) {
           return 'asignado';
         }
-        // Por defecto, mostrar como disponible sin importar la metadata
         return 'video_disponible';
       }
       break;
 
     case 'reviewer':
-      // Para revisores, mostrar upload_review como disponible
+      if (video.status === 'optimize_review') {
+        // Verificar si viene de title_corrections
+        const lastStatusChange = video.metadata?.statusHistory?.[video.metadata.statusHistory.length - 1];
+        if (lastStatusChange?.previousStatus === 'title_corrections') {
+          return 'en_revision';
+        }
+        return 'disponible';
+      }
+      if (video.status === 'title_corrections') {
+        return 'en_revision';
+      }
       if (video.status === 'upload_review') {
         return 'video_disponible';
       }
       break;
 
     case 'optimizer':
-      // Si es pending, mostrar como disponible sin importar la metadata
       if (video.status === 'pending') {
         return 'disponible';
+      }
+      if (video.status === 'optimize_review' || video.status === 'title_corrections') {
+        if (video.currentReviewerId === currentUser?.id) {
+          return 'en_proceso';
+        }
       }
       break;
   }
