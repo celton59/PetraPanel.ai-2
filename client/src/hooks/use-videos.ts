@@ -4,6 +4,13 @@ import { useToast } from "./use-toast";
 
 // Tipos para metadata y sub-estados
 export interface VideoMetadata {
+  statusHistory?: {
+    previousStatus: VideoStatus;
+    newStatus: VideoStatus;
+    timestamp: string;
+    userId: number;
+    username: string;
+  }[];
   roleView?: {
     youtuber?: {
       status: 'video_disponible' | 'asignado' | 'completado';
@@ -266,11 +273,8 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
 
     case 'reviewer':
       if (video.status === 'optimize_review') {
-        const cameFromTitleCorrections = video.metadata?.optimization?.approvalHistory?.some(
-          history => history.action === 'rejected'
-        );
-        
-        if (cameFromTitleCorrections) {
+        const lastStatusChange = video.metadata?.statusHistory?.[video.metadata.statusHistory.length - 1];
+        if (lastStatusChange?.previousStatus === 'title_corrections') {
           return 'en_revision';
         }
         
