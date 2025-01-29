@@ -76,6 +76,10 @@ const getStatusLabel = (status: VideoStatus | string, role?: string): string => 
   if (status === 'needs_attention') return "Necesita Atención";
 
   // Estados principales permanecen igual...
+  if (role === 'optimizer' && status === 'optimize_review') {
+    return "En Revisión";
+  }
+  
   const labels: Record<VideoStatus, string> = {
     pending: "Pendiente",
     in_progress: "En Proceso",
