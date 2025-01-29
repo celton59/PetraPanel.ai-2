@@ -18,7 +18,15 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
     needs_attention: "Necesita Atención"
   },
   reviewer: {
-    optimize_review: (previousStatus: string) => previousStatus === 'title_corrections' ? "En Revisión" : "Disponible",
+    optimize_review: (previousStatus: string, metadata?: any) => {
+      if (metadata?.optimization?.approvalHistory?.length > 0) {
+        const lastAction = metadata.optimization.approvalHistory[metadata.optimization.approvalHistory.length - 1];
+        if (lastAction.action === 'rejected') {
+          return "A Revisar";
+        }
+      }
+      return "Disponible";
+    },
     title_corrections: "Correcciones de Título",
     upload_review: "Rev. Archivos",
     en_revision: "En Revisión"
