@@ -265,21 +265,18 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
 
   // Para el rol reviewer
   if (userRole === 'reviewer') {
-    if (video.status === 'optimize_review') {
+    if (video.status === 'optimize_review' || video.status === 'title_corrections') {
+      // Verificar el último estado en el historial de aprobaciones
       const lastApproval = video.metadata?.optimization?.approvalHistory?.[
         video.metadata.optimization.approvalHistory?.length - 1
       ];
-
-      // Si el último estado fue una corrección de título, mostrar como "en_revision"
-      if (lastApproval?.action === 'rejected') {
+      
+      // Si hay un rechazo reciente o estamos en correcciones, mostrar como en_revision
+      if (lastApproval?.action === 'rejected' || video.status === 'title_corrections') {
         return 'en_revision';
       }
-
+      
       return 'disponible';
-    }
-
-    if (video.status === 'title_corrections') {
-      return 'en_revision';
     }
   }
 
