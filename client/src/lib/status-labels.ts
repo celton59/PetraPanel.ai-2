@@ -19,7 +19,7 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
     needs_attention: "Necesita Atención"
   },
   reviewer: {
-    optimize_review: "Rev. Optimización",
+    optimize_review: "Disponible",
     title_corrections: "Correcciones de Título",
     upload_review: "Rev. Archivos",
     en_revision: "En Revisión"
