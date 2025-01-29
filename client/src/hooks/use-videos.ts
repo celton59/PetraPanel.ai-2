@@ -265,11 +265,22 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
       break;
 
     case 'reviewer':
-      if (['optimize_review', 'title_corrections'].includes(video.status)) {
+      if (video.status === 'optimize_review') {
+        const cameFromTitleCorrections = video.metadata?.optimization?.approvalHistory?.some(
+          history => history.action === 'rejected'
+        );
+        
+        if (cameFromTitleCorrections) {
+          return 'en_revision';
+        }
+        
         if (!video.currentReviewerId) {
           return 'disponible';
         }
         return video.currentReviewerId === currentUser?.id ? 'revisando_titulo' : 'en_revision';
+      }
+      if (video.status === 'title_corrections') {
+        return 'en_revision';
       }
       break;
 
