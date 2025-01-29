@@ -53,13 +53,15 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
 };
 
 // Expandir getStatusLabel para incluir sub-estados del reviewer
-const getStatusLabel = (status: VideoStatus | string): string => {
+const getStatusLabel = (status: VideoStatus | string, role?: string): string => {
   // Estados para optimizador
-  if (status === 'pending') return "Disponible";
-  if (status === 'in_progress') return "En Proceso";
-  if (status === 'optimize_review') return "En Revisión";
-  if (status === 'title_corrections') return "Con Correcciones";
-  if (status === 'completed') return "Completado";
+  if (role === 'optimizer') {
+    if (status === 'pending') return "Disponible";
+    if (status === 'in_progress') return "En Proceso";
+    if (status === 'optimize_review') return "En Revisión";
+    if (status === 'title_corrections') return "Con Correcciones";
+    if (status === 'completed') return "Completado";
+  }
 
   // Sub-estados de youtuber
   if (status === 'video_disponible') return "Video Disponible";
@@ -202,7 +204,7 @@ export const VideoStatusControl = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {getStatusIcon(currentStatus)}
-          <span>Estado: {getStatusLabel(currentStatus)}</span>
+          <span>Estado: {getStatusLabel(currentStatus, userRole)}</span>
         </CardTitle>
         <CardDescription>
           {getStatusDescription(currentStatus)}
@@ -220,7 +222,7 @@ export const VideoStatusControl = ({
                   className="flex items-center gap-2"
                 >
                   {getStatusIcon(status)}
-                  {getStatusLabel(status)}
+                  {getStatusLabel(status, userRole)}
                 </Button>
               ))}
             </div>
