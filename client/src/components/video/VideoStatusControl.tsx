@@ -76,11 +76,38 @@ const getStatusLabel = (status: VideoStatus | string, role?: string): string => 
   if (status === 'needs_attention') return "Necesita Atención";
 
   // Estados principales permanecen igual...
-  if (role === 'optimizer' && status === 'optimize_review') {
-    return "En Revisión";
+  const labels: Record<string, Record<VideoStatus | string, string>> = {
+    optimizer: {
+      pending: "Disponible",
+      in_progress: "En Proceso",
+      title_corrections: "Con Correcciones",
+      optimize_review: "En Revisión",
+      upload_review: "Rev. Archivos",
+      youtube_ready: "Listo YouTube",
+      review: "Rev. Final",
+      media_corrections: "Correcciones de Archivos",
+      completed: "Completado"
+    },
+    reviewer: {
+      pending: "Pendiente",
+      in_progress: "En Proceso",
+      title_corrections: "Correcciones de Título",
+      optimize_review: "Rev. Optimización",
+      upload_review: "Rev. Archivos",
+      youtube_ready: "Listo YouTube",
+      review: "Rev. Final",
+      media_corrections: "Correcciones de Archivos",
+      completed: "Completado"
+    }
+  };
+  
+  // Si existe un mapeo específico para el rol, usarlo
+  if (role && labels[role]) {
+    return labels[role][status] || status;
   }
   
-  const labels: Record<VideoStatus, string> = {
+  // Si no hay rol o no tiene mapeo específico, usar etiquetas por defecto
+  const defaultLabels: Record<VideoStatus, string> = {
     pending: "Pendiente",
     in_progress: "En Proceso",
     title_corrections: "Correcciones de Título",
@@ -91,7 +118,7 @@ const getStatusLabel = (status: VideoStatus | string, role?: string): string => 
     media_corrections: "Correcciones de Archivos",
     completed: "Completado"
   };
-  return labels[status as VideoStatus] || status;
+  return defaultLabels[status as VideoStatus] || status;
 };
 
 // Expandir getStatusDescription para incluir sub-estados
