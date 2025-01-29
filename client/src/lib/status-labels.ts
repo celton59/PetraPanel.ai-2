@@ -25,6 +25,9 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
           return "A Revisar";
         }
       }
+      if (metadata?.secondaryStatus?.type === 'title_rejected') {
+        return "A Revisar";
+      }
       return "Disponible";
     },
     title_corrections: "Correcciones de Título",

@@ -270,7 +270,7 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
         video.metadata.optimization.approvalHistory?.length - 1
       ];
       
-      if (lastApproval?.action === 'rejected') {
+      if (lastApproval?.action === 'rejected' || video.metadata?.secondaryStatus?.type === 'title_rejected') {
         return 'en_revision';
       }
       return 'disponible';
