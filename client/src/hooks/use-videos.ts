@@ -266,14 +266,16 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   // Para el rol reviewer
   if (userRole === 'reviewer') {
     if (video.status === 'optimize_review') {
-      if (video.metadata?.optimization?.approvalHistory?.length > 0) {
-        const lastApproval = video.metadata.optimization.approvalHistory[video.metadata.optimization.approvalHistory.length - 1];
-        if (lastApproval.action === 'rejected') {
-          return 'en_revision';
-        }
+      const lastApproval = video.metadata?.optimization?.approvalHistory?.[
+        video.metadata.optimization.approvalHistory?.length - 1
+      ];
+      
+      if (lastApproval?.action === 'rejected' || video.metadata?.secondaryStatus?.type === 'title_rejected') {
+        return 'en_revision';
       }
       return 'disponible';
     }
+    
     if (video.status === 'title_corrections') {
       return 'en_revision';
     }

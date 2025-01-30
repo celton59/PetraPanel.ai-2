@@ -18,8 +18,6 @@ interface VideoStatusControlProps {
   currentStatus: VideoStatus;
   userRole: string;
   onUpdateStatus: (videoId: number, data: { status: VideoStatus; lastReviewComments?: string }) => Promise<void>;
-  metadata?: any;
-  previousStatus?: string;
 }
 
 const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): VideoStatus[] => {
@@ -31,10 +29,9 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
       optimize_review: ["completed"],
     },
     reviewer: {
-      optimize_review: ["title_corrections", "upload_review"],
-      title_corrections: ["optimize_review"],
-      upload_review: ["media_corrections", "completed"],
-      media_corrections: ["upload_review"]
+      optimize_review: ["in_progress", "title_corrections", "completed"],
+      in_progress: ["completed", "title_corrections"],
+      title_corrections: ["optimize_review", "in_progress", "completed"],
     },
     uploader: {
       upload_review: ["review", "media_corrections"],
@@ -121,8 +118,6 @@ export const VideoStatusControl = ({
   currentStatus,
   userRole,
   onUpdateStatus,
-  previousStatus,
-  metadata,
 }: VideoStatusControlProps) => {
   const [newStatus, setNewStatus] = useState<VideoStatus | null>(null);
   const [comments, setComments] = useState("");
@@ -174,7 +169,7 @@ export const VideoStatusControl = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {getStatusIcon(currentStatus)}
-          <span>Estado: {getStatusLabel(currentStatus, userRole, previousStatus, metadata)}</span>
+          <span>Estado: {getStatusLabel(currentStatus, userRole)}</span>
         </CardTitle>
         <CardDescription>
           {getStatusDescription(currentStatus)}

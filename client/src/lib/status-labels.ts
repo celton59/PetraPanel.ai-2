@@ -19,17 +19,14 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
   },
   reviewer: {
     optimize_review: (previousStatus: string, metadata?: any) => {
-      if (previousStatus === "title_corrections") {
-        return "A Revisar";
-      }
-      if (!previousStatus || previousStatus === "0") {
-        return "Disponible";
-      }
       if (metadata?.optimization?.approvalHistory?.length > 0) {
-        const lastApproval = metadata.optimization.approvalHistory[metadata.optimization.approvalHistory.length - 1];
-        if (lastApproval.action === 'rejected') {
+        const lastAction = metadata.optimization.approvalHistory[metadata.optimization.approvalHistory.length - 1];
+        if (lastAction.action === 'rejected') {
           return "A Revisar";
         }
+      }
+      if (metadata?.secondaryStatus?.type === 'title_rejected') {
+        return "A Revisar";
       }
       return "Disponible";
     },
@@ -62,16 +59,11 @@ const defaultLabels: Record<VideoStatus | string, string> = {
   needs_attention: "Necesita Atención"
 };
 
-export const getStatusLabel = (
-  status: VideoStatus | string,
-  role?: Role,
-  previousStatus?: string,
-  metadata?: any
-): string => {
+export const getStatusLabel = (status: VideoStatus | string, role?: Role, previousStatus?: string): string => {
   // 1. Buscar etiqueta específica del rol
   if (role && roleSpecificLabels[role]?.[status]) {
     const label = roleSpecificLabels[role][status];
-    return typeof label === 'function' ? label(previousStatus || '', metadata) : label;
+    return typeof label === 'function' ? label(previousStatus || '') : label;
   }
 
   // 2. Si no hay etiqueta específica, usar la predeterminada
