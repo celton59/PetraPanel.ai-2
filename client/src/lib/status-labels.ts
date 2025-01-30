@@ -19,6 +19,9 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
   },
   reviewer: {
     optimize_review: (previousStatus: string, metadata?: any) => {
+      if (previousStatus === "title_corrections") {
+        return "A Revisar";
+      }
       if (metadata?.optimization?.approvalHistory?.length > 0) {
         const lastApproval = metadata.optimization.approvalHistory[metadata.optimization.approvalHistory.length - 1];
         if (lastApproval.action === 'rejected') {
