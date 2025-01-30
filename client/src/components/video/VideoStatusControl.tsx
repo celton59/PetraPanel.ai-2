@@ -18,6 +18,8 @@ interface VideoStatusControlProps {
   currentStatus: VideoStatus;
   userRole: string;
   onUpdateStatus: (videoId: number, data: { status: VideoStatus; lastReviewComments?: string }) => Promise<void>;
+  metadata?: any;
+  previousStatus?: string;
 }
 
 const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): VideoStatus[] => {
@@ -170,7 +172,7 @@ export const VideoStatusControl = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {getStatusIcon(currentStatus)}
-          <span>Estado: {getStatusLabel(currentStatus, userRole)}</span>
+          <span>Estado: {getStatusLabel(currentStatus, userRole, previousStatus, metadata)}</span>
         </CardTitle>
         <CardDescription>
           {getStatusDescription(currentStatus)}
