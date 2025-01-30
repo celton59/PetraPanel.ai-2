@@ -1,4 +1,4 @@
-import { BarChart, Home, Menu, Settings, Video } from "lucide-react";
+import { BarChart, Home, Menu, Settings, Video, Languages } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -23,6 +23,7 @@ export function Sidebar({ className }: SidebarProps) {
   const menuItems = [
     { icon: Home, label: "Dashboard", path: "/" },
     { icon: Video, label: "Videos", path: "/videos" },
+    { icon: Languages, label: "Traductor", path: "/traductor" },
     { icon: BarChart, label: "Estadísticas", path: "/estadisticas" },
     ...(isAdmin ? [{ icon: Settings, label: "Configuración", path: "/ajustes" }] : []),
   ];
