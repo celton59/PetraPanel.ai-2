@@ -1,0 +1,54 @@
+Dentro de tu objeto roleSpecificLabels, ubica la sección del revisor (reviewer) y modifica la clave optimize_review. Antes tenías algo como:
+
+ts
+Copiar
+const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, string | ((previousStatus: string) => string)>>> = {
+  reviewer: {
+    optimize_review: (previousStatus: string, metadata?: any) => {
+      if (metadata?.optimization?.approvalHistory?.length > 0) {
+        const lastApproval = metadata.optimization.approvalHistory[metadata.optimization.approvalHistory.length - 1];
+        if (lastApproval.action === "rejected") {
+          return "A Revisar";
+        }
+      }
+      return "Disponible";
+    },
+    title_corrections: "Correcciones de Título",
+    upload_review: "Rev. Archivos",
+    en_revision: "En Revisión"
+  },
+  // ...
+};
+Ahora necesitamos que, si previousStatus === "title_corrections", devuelva "A Revisar". Por ejemplo:
+
+ts
+Copiar
+const roleSpecificLabels: Record<Role, Partial<
+  Record<VideoStatus | string, string | ((previousStatus: string, metadata?: VideoMetadata) => string)>
+>> = {
+  reviewer: {
+    optimize_review: (previousStatus: string, metadata?: VideoMetadata) => {
+      // 1) Si la transición inmediatamente anterior fue de title_corrections -> optimize_review
+      if (previousStatus === "title_corrections") {
+        return "A Revisar";
+      }
+
+      // 2) O si en metadata aparece que fue rechazado previamente:
+      if (metadata?.optimization?.approvalHistory?.length > 0) {
+        const lastApproval = metadata.optimization.approvalHistory[metadata.optimization.approvalHistory.length - 1];
+        if (lastApproval.action === "rejected") {
+          return "A Revisar";
+        }
+      }
+
+      // En el resto de casos, lo marcamos como "Disponible"
+      return "Disponible";
+    },
+    title_corrections: "Correcciones de Título",
+    upload_review: "Rev. Archivos",
+    en_revision: "En Revisión"
+  },
+  // ...
+};
+Con ello se cubre el caso de que, al pasar de title_corrections a optimize_review, se muestre la etiqueta "A Revisar".
+
