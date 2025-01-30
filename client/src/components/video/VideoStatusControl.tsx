@@ -29,9 +29,9 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
       optimize_review: ["completed"],
     },
     reviewer: {
-      optimize_review: ["in_progress", "title_corrections", "completed"],
+      optimize_review: ["title_corrections", "completed"],
       in_progress: ["completed", "title_corrections"],
-      title_corrections: ["optimize_review", "in_progress", "completed"],
+      title_corrections: ["optimize_review", "completed"],
     },
     uploader: {
       upload_review: ["review", "media_corrections"],
