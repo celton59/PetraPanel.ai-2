@@ -19,6 +19,9 @@ const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, stri
   },
   reviewer: {
     optimize_review: (previousStatus: string, metadata?: any) => {
+      if (!previousStatus || previousStatus === "0") {
+        return "Disponible";
+      }
       if (previousStatus === "title_corrections") {
         return "A Revisar";
       }
