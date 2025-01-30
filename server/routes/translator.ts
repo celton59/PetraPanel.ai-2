@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
-import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
 import axios from "axios";
 import fs from "fs";
 import { promisify } from "util";
@@ -24,17 +24,18 @@ const upload = multer({ storage });
 
 // Función para extraer audio usando FFmpeg
 async function extractAudio(videoPath: string, audioPath: string) {
-  const ffmpeg = createFFmpeg({ log: true });
+  const ffmpeg = new FFmpeg();
   await ffmpeg.load();
 
   const videoData = await readFile(videoPath);
-  ffmpeg.FS('writeFile', 'input.mp4', videoData);
+  ffmpeg.writeFile('input.mp4', videoData);
 
-  await ffmpeg.run('-i', 'input.mp4', '-vn', '-acodec', 'libmp3lame', 'output.mp3');
-  await writeFile(audioPath, ffmpeg.FS('readFile', 'output.mp3'));
+  await ffmpeg.exec(['-i', 'input.mp4', '-vn', '-acodec', 'libmp3lame', 'output.mp3']);
+  const data = await ffmpeg.readFile('output.mp3');
+  await writeFile(audioPath, data);
 
-  ffmpeg.FS('unlink', 'input.mp4');
-  ffmpeg.FS('unlink', 'output.mp3');
+  await ffmpeg.deleteFile('input.mp4');
+  await ffmpeg.deleteFile('output.mp3');
 }
 
 // Función para separar voz usando Lalal.ai

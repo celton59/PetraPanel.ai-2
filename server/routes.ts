@@ -16,6 +16,7 @@ import type { InsertVideo, InsertProject } from "@db/schema";
 import { Client } from '@replit/object-storage';
 import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
+import translatorRouter from "./routes/translator";
 
 const scryptAsync = promisify(scrypt);
 
@@ -77,6 +78,10 @@ export function registerRoutes(app: Express): Server {
       }
       next();
     };
+
+    // Register translator routes.  Assuming authentication is needed.
+    app.use('/api/translator', requireAuth, translatorRouter);
+
 
     // Rutas de estadísticas
     app.get("/api/stats/overall", requireAuth, async (req: Request, res: Response) => {
