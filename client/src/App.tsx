@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import Videos from "@/pages/Videos";
 import StatsPage from "@/pages/StatsPage";
+import VideoTranslator from "@/pages/VideoTranslator";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/ajustes" component={() => <ProtectedRoute component={Settings} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={Videos} />} />
       <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
+      <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route component={NotFound} />
     </Switch>
   );
