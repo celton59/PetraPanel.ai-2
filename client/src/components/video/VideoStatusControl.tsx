@@ -121,6 +121,8 @@ export const VideoStatusControl = ({
   currentStatus,
   userRole,
   onUpdateStatus,
+  previousStatus,
+  metadata,
 }: VideoStatusControlProps) => {
   const [newStatus, setNewStatus] = useState<VideoStatus | null>(null);
   const [comments, setComments] = useState("");
