@@ -1,22 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, PlayCircle, Loader2, Volume2, Mic, Languages, FileVideo } from "lucide-react";
-import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-
-type TranslationStep = 
-  | "uploading"
-  | "extracting_audio"
-  | "separating_voice"
-  | "cloning_voice"
-  | "transcribing"
-  | "translating"
-  | "merging";
-
-interface TranslationProgress {
-  step: TranslationStep;
-  progress: number;
-}
+import { useVideoTranslator, type TranslationStep } from "@/hooks/use-video-translator";
+import { useState } from "react";
 
 const stepMessages: Record<TranslationStep, string> = {
   uploading: "Subiendo video...",
@@ -50,9 +37,8 @@ const StepIcon = ({ step }: { step: TranslationStep }) => {
 };
 
 export default function VideoTranslator() {
-  const [isUploading, setIsUploading] = useState(false);
+  const { isUploading, translationProgress, uploadVideo } = useVideoTranslator();
   const [currentVideo, setCurrentVideo] = useState<File | null>(null);
-  const [translationProgress, setTranslationProgress] = useState<TranslationProgress | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -63,48 +49,7 @@ export default function VideoTranslator() {
 
   const handleUpload = async () => {
     if (!currentVideo) return;
-
-    try {
-      setIsUploading(true);
-      setTranslationProgress({ step: "uploading", progress: 0 });
-
-      // Simular progreso de subida
-      const formData = new FormData();
-      formData.append("video", currentVideo);
-
-      // Aquí irá la lógica real de subida y procesamiento
-      await simulateTranslationProcess();
-
-    } catch (error) {
-      console.error("Error during translation:", error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // Función temporal para simular el proceso
-  const simulateTranslationProcess = async () => {
-    const steps: TranslationStep[] = [
-      "uploading",
-      "extracting_audio",
-      "separating_voice",
-      "cloning_voice",
-      "transcribing",
-      "translating",
-      "merging"
-    ];
-
-    for (const step of steps) {
-      setTranslationProgress({ step, progress: 0 });
-
-      // Simular progreso
-      for (let progress = 0; progress <= 100; progress += 10) {
-        setTranslationProgress({ step, progress });
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-
-    setTranslationProgress(null);
+    await uploadVideo(currentVideo);
   };
 
   return (
