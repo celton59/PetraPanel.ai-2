@@ -63,15 +63,6 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Middleware para manejar errores de deserialización
-  app.use((req, res, next) => {
-    if (req.session && !req.user && req.session.passport && req.session.passport.user) {
-      console.log("Session exists but user not deserialized, cleaning up session");
-      delete req.session.passport.user;
-    }
-    next();
-  });
-
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -121,7 +112,7 @@ export function setupAuth(app: Express) {
       done(null, user);
     } catch (err) {
       console.error("Deserialization error:", err);
-      done(null, false);
+      done(err);
     }
   });
 
