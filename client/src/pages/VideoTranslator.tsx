@@ -1,12 +1,58 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, PlayCircle, Loader2 } from "lucide-react";
+import { Upload, PlayCircle, Loader2, Volume2, Mic, Languages, FileVideo } from "lucide-react";
 import { useState } from "react";
+import { Progress } from "@/components/ui/progress";
+
+type TranslationStep = 
+  | "uploading"
+  | "extracting_audio"
+  | "separating_voice"
+  | "cloning_voice"
+  | "transcribing"
+  | "translating"
+  | "merging";
+
+interface TranslationProgress {
+  step: TranslationStep;
+  progress: number;
+}
+
+const stepMessages: Record<TranslationStep, string> = {
+  uploading: "Subiendo video...",
+  extracting_audio: "Extrayendo audio...",
+  separating_voice: "Separando voz y música...",
+  cloning_voice: "Clonando voz...",
+  transcribing: "Transcribiendo audio...",
+  translating: "Traduciendo texto...",
+  merging: "Uniendo archivos finales..."
+};
+
+const StepIcon = ({ step }: { step: TranslationStep }) => {
+  switch (step) {
+    case "uploading":
+      return <Upload className="h-4 w-4" />;
+    case "extracting_audio":
+      return <Volume2 className="h-4 w-4" />;
+    case "separating_voice":
+      return <Volume2 className="h-4 w-4" />;
+    case "cloning_voice":
+      return <Mic className="h-4 w-4" />;
+    case "transcribing":
+      return <Languages className="h-4 w-4" />;
+    case "translating":
+      return <Languages className="h-4 w-4" />;
+    case "merging":
+      return <FileVideo className="h-4 w-4" />;
+    default:
+      return <Loader2 className="h-4 w-4 animate-spin" />;
+  }
+};
 
 export default function VideoTranslator() {
   const [isUploading, setIsUploading] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<File | null>(null);
-  const [processingStep, setProcessingStep] = useState<string | null>(null);
+  const [translationProgress, setTranslationProgress] = useState<TranslationProgress | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -17,9 +63,48 @@ export default function VideoTranslator() {
 
   const handleUpload = async () => {
     if (!currentVideo) return;
-    setIsUploading(true);
-    // TODO: Implementar lógica de subida
-    setIsUploading(false);
+
+    try {
+      setIsUploading(true);
+      setTranslationProgress({ step: "uploading", progress: 0 });
+
+      // Simular progreso de subida
+      const formData = new FormData();
+      formData.append("video", currentVideo);
+
+      // Aquí irá la lógica real de subida y procesamiento
+      await simulateTranslationProcess();
+
+    } catch (error) {
+      console.error("Error during translation:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Función temporal para simular el proceso
+  const simulateTranslationProcess = async () => {
+    const steps: TranslationStep[] = [
+      "uploading",
+      "extracting_audio",
+      "separating_voice",
+      "cloning_voice",
+      "transcribing",
+      "translating",
+      "merging"
+    ];
+
+    for (const step of steps) {
+      setTranslationProgress({ step, progress: 0 });
+
+      // Simular progreso
+      for (let progress = 0; progress <= 100; progress += 10) {
+        setTranslationProgress({ step, progress });
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    setTranslationProgress(null);
   };
 
   return (
@@ -55,6 +140,7 @@ export default function VideoTranslator() {
                     accept="video/*"
                     className="hidden"
                     onChange={handleFileSelect}
+                    disabled={isUploading}
                   />
                 </label>
               </div>
@@ -72,7 +158,7 @@ export default function VideoTranslator() {
                     {isUploading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Subiendo...
+                        Procesando...
                       </>
                     ) : (
                       <>
@@ -87,16 +173,26 @@ export default function VideoTranslator() {
           </CardContent>
         </Card>
 
-        {processingStep && (
+        {translationProgress && (
           <Card>
             <CardHeader>
               <CardTitle>Progreso de Traducción</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{processingStep}</span>
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <StepIcon step={translationProgress.step} />
+                  <div className="flex-1">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        {stepMessages[translationProgress.step]}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {translationProgress.progress}%
+                      </span>
+                    </div>
+                    <Progress value={translationProgress.progress} />
+                  </div>
                 </div>
               </div>
             </CardContent>
