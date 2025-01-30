@@ -1,43 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, PlayCircle, Loader2, Volume2, Mic, Languages, FileVideo } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { useVideoTranslator, type TranslationStep } from "@/hooks/use-video-translator";
+import { Upload, PlayCircle, Loader2 } from "lucide-react";
+import { useVideoTranslator } from "@/hooks/use-video-translator";
 import { useState } from "react";
-
-const stepMessages: Record<TranslationStep, string> = {
-  uploading: "Subiendo video...",
-  extracting_audio: "Extrayendo audio...",
-  separating_voice: "Separando voz y música...",
-  cloning_voice: "Clonando voz...",
-  transcribing: "Transcribiendo audio...",
-  translating: "Traduciendo texto...",
-  merging: "Uniendo archivos finales..."
-};
-
-const StepIcon = ({ step }: { step: TranslationStep }) => {
-  switch (step) {
-    case "uploading":
-      return <Upload className="h-4 w-4" />;
-    case "extracting_audio":
-      return <Volume2 className="h-4 w-4" />;
-    case "separating_voice":
-      return <Volume2 className="h-4 w-4" />;
-    case "cloning_voice":
-      return <Mic className="h-4 w-4" />;
-    case "transcribing":
-      return <Languages className="h-4 w-4" />;
-    case "translating":
-      return <Languages className="h-4 w-4" />;
-    case "merging":
-      return <FileVideo className="h-4 w-4" />;
-    default:
-      return <Loader2 className="h-4 w-4 animate-spin" />;
-  }
-};
+import { TranslationSteps } from "@/components/video/TranslationSteps";
 
 export default function VideoTranslator() {
-  const { isUploading, translationProgress, uploadVideo } = useVideoTranslator();
+  const { isProcessing, progress, uploadVideo, extractAudio, separateVoice, cloneVoice, transcribe } = useVideoTranslator();
   const [currentVideo, setCurrentVideo] = useState<File | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +54,7 @@ export default function VideoTranslator() {
                     accept="video/*"
                     className="hidden"
                     onChange={handleFileSelect}
-                    disabled={isUploading}
+                    disabled={isProcessing}
                   />
                 </label>
               </div>
@@ -97,10 +66,10 @@ export default function VideoTranslator() {
                   </p>
                   <Button
                     onClick={handleUpload}
-                    disabled={isUploading}
+                    disabled={isProcessing}
                     className="w-full"
                   >
-                    {isUploading ? (
+                    {isProcessing ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Procesando...
@@ -118,31 +87,15 @@ export default function VideoTranslator() {
           </CardContent>
         </Card>
 
-        {translationProgress && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Progreso de Traducción</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <StepIcon step={translationProgress.step} />
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium">
-                        {stepMessages[translationProgress.step]}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {translationProgress.progress}%
-                      </span>
-                    </div>
-                    <Progress value={translationProgress.progress} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Componente de pasos de traducción */}
+        <TranslationSteps
+          progress={progress}
+          isProcessing={isProcessing}
+          onExtractAudio={extractAudio}
+          onSeparateVoice={separateVoice}
+          onCloneVoice={cloneVoice}
+          onTranscribe={transcribe}
+        />
       </div>
     </div>
   );
