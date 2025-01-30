@@ -28,20 +28,26 @@ export function useVideoTranslator() {
       const formData = new FormData();
       formData.append("video", file);
 
-      // Subir el video
+      // Hacer la petición con credentials: 'include' para enviar las cookies de sesión
       const uploadResponse = await fetch("/api/translator/upload", {
         method: "POST",
         body: formData,
+        credentials: 'include' // Añadir esta línea para incluir cookies
       });
 
       if (!uploadResponse.ok) {
+        if (uploadResponse.status === 401) {
+          throw new Error("Por favor, inicia sesión para usar el traductor");
+        }
         throw new Error("Error al subir el video");
       }
 
       const { videoId } = await uploadResponse.json();
 
-      // Iniciar el proceso de traducción
-      const eventSource = new EventSource(`/api/translator/${videoId}/translate`);
+      // Configurar el EventSource con withCredentials
+      const eventSource = new EventSource(`/api/translator/${videoId}/translate`, {
+        withCredentials: true // Añadir esta línea para incluir cookies en SSE
+      });
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);

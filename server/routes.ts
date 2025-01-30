@@ -68,6 +68,20 @@ async function hashPassword(password: string) {
 
 export function registerRoutes(app: Express): Server {
   try {
+    // Configuración de CORS para permitir credenciales
+    app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+      } else {
+        next();
+      }
+    });
+
     // Serve uploaded files
     app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
@@ -79,7 +93,7 @@ export function registerRoutes(app: Express): Server {
       next();
     };
 
-    // Register translator routes.  Assuming authentication is needed.
+    // Register translator routes. Requiring authentication.
     app.use('/api/translator', requireAuth, translatorRouter);
 
 
@@ -1002,7 +1016,7 @@ export function registerRoutes(app: Express): Server {
         // Actualizar con nueva contraseña
         const newHashedPassword = await hashPassword(newPassword);
         await db.update(users)
-          .set({ password: newHashedPassword })
+          .set({ password: newHashedPassword})
           .where(eq(users.id, req.user!.id));
 
         res.json({
