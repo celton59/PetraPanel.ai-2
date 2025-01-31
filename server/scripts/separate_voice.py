@@ -37,9 +37,9 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         y_vocals = librosa.util.normalize(y_vocals)
         y_instrumental = librosa.util.normalize(y_instrumental)
 
-        # Save files with higher quality
-        sf.write(vocals_path, y_vocals, sr, format='mp3', subtype='MP3_320')
-        sf.write(instrumental_path, y_instrumental, sr, format='mp3', subtype='MP3_320')
+        # Save files
+        sf.write(vocals_path, y_vocals, sr, 'PCM_16')
+        sf.write(instrumental_path, y_instrumental, sr, 'PCM_16')
 
         print("Separation completed successfully")
         return True
