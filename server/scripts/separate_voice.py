@@ -1,3 +1,4 @@
+
 import sys
 import os
 import torch
@@ -12,33 +13,36 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Cargar modelo de Demucs (usando MDX-Net que es más ligero)
+        # Force CPU usage
+        device = torch.device('cpu')
+        
+        # Load model on CPU
         print("Loading Demucs model...")
         model = get_model('mdx')
-        model.cpu()
+        model.to(device)
         model.eval()
 
-        # Cargar y preprocesar audio
+        # Load and preprocess audio
         print("Loading audio...")
         wav = AudioFile(audio_path).read()
         wav = torch.as_tensor(wav, dtype=torch.float32)
 
-        # Asegurar que el audio tenga la forma correcta (canales, muestras)
+        # Ensure audio has correct shape
         if wav.dim() == 1:
             wav = wav.unsqueeze(0)
         if wav.size(0) == 1:
             wav = wav.expand(2, -1)
 
-        # Normalizar audio
+        # Normalize audio
         wav = wav / wav.abs().max()
 
-        # Separar audio
+        # Separate audio
         print("Separating audio...")
         with torch.no_grad():
-            sources = apply_model(model, wav[None], device='cpu', progress=True)[0]
+            sources = apply_model(model, wav[None], device=device, progress=True)[0]
             sources = sources * wav.abs().max()
 
-        # Guardar los archivos separados
+        # Save the files
         print(f"Saving vocals to: {vocals_path}")
         save_audio(sources[0].cpu().numpy(), vocals_path, model.samplerate)
 
