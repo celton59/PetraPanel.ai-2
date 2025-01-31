@@ -1,11 +1,12 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
-import { FFmpeg } from "@ffmpeg/ffmpeg";
 import axios from "axios";
 import fs from "fs";
 import { promisify } from "util";
+import { exec } from "child_process";
 
+const execAsync = promisify(exec);
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 const unlink = promisify(fs.unlink);
@@ -14,32 +15,48 @@ const router = Router();
 
 // Configurar multer para la subida de archivos
 const storage = multer.diskStorage({
-  destination: "uploads/",
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
 const upload = multer({ storage });
 
-// Función para extraer audio usando FFmpeg
+// Función para extraer audio usando FFmpeg del sistema
 async function extractAudio(videoPath: string): Promise<string> {
-  const ffmpeg = new FFmpeg();
-  await ffmpeg.load();
+  const audioPath = videoPath.replace(/\.[^/.]+$/, '') + '_audio.mp3';
 
-  const audioPath = videoPath.replace('.mp4', '_audio.mp3');
-  const videoData = await readFile(videoPath);
+  console.log('Extracting audio from:', videoPath);
+  console.log('Output audio path:', audioPath);
 
-  ffmpeg.writeFile('input.mp4', videoData);
-  await ffmpeg.exec(['-i', 'input.mp4', '-vn', '-acodec', 'libmp3lame', 'output.mp3']);
+  try {
+    const command = `ffmpeg -i "${videoPath}" -vn -acodec libmp3lame -q:a 2 "${audioPath}"`;
+    console.log('Executing command:', command);
 
-  const data = await ffmpeg.readFile('output.mp3');
-  await writeFile(audioPath, data);
+    const { stdout, stderr } = await execAsync(command);
+    console.log('FFmpeg stdout:', stdout);
 
-  await ffmpeg.deleteFile('input.mp4');
-  await ffmpeg.deleteFile('output.mp3');
+    if (stderr) {
+      console.log('FFmpeg stderr:', stderr);
+    }
 
-  return audioPath;
+    if (!fs.existsSync(audioPath)) {
+      throw new Error('Audio file was not created');
+    }
+
+    return audioPath;
+  } catch (error) {
+    console.error('FFmpeg error:', error);
+    throw error;
+  }
 }
 
 // Función para separar voz usando Lalal.ai
@@ -142,7 +159,8 @@ router.post("/upload", upload.single("video"), (req, res) => {
 
   res.json({
     videoId: path.basename(req.file.path, path.extname(req.file.path)),
-    status: 'uploaded'
+    status: 'uploaded',
+    videoPath: req.file.path
   });
 });
 
@@ -152,14 +170,21 @@ router.post("/:videoId/extract-audio", async (req, res) => {
   const videoPath = path.join("uploads", `${videoId}.mp4`);
 
   try {
+    console.log('Starting audio extraction for video:', videoId);
     const audioPath = await extractAudio(videoPath);
+    console.log('Audio extraction completed:', audioPath);
+
     res.json({ 
       status: 'audio_extracted',
-      audioPath: path.basename(audioPath)
+      audioPath: path.basename(audioPath),
+      fullPath: audioPath
     });
   } catch (error) {
     console.error("Error extracting audio:", error);
-    res.status(500).json({ error: "Error al extraer el audio" });
+    res.status(500).json({ 
+      error: "Error al extraer el audio",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
