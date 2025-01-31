@@ -1,7 +1,9 @@
+
 import sys
 import os
 import numpy as np
-from spleeter.separator import Separator
+import librosa
+import soundfile as sf
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
@@ -9,30 +11,36 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Configure Spleeter to use CPU
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+        # Load the audio file
+        y, sr = librosa.load(audio_path)
 
-        # Initialize separator
-        separator = Separator('spleeter:2stems', multiprocess=False)
+        # Perform the separation using librosa
+        S_full, phase = librosa.magphase(librosa.stft(y))
+        S_filter = librosa.decompose.nn_filter(S_full,
+                                             aggregate=np.median,
+                                             metric='cosine',
+                                             width=int(librosa.time_to_frames(2, sr=sr)))
+        S_filter = np.minimum(S_full, S_filter)
+        margin_i, margin_v = 2, 10
+        power = 2
 
-        # Separate audio
-        print("Separating audio...")
-        prediction = separator.separate_to_file(
-            audio_path,
-            os.path.dirname(vocals_path),
-            filename_format="{instrument}.{codec}",
-            codec='mp3'
-        )
+        mask_i = librosa.util.softmask(S_filter,
+                                     margin_i * (S_full - S_filter),
+                                     power=power)
+        mask_v = librosa.util.softmask(S_full - S_filter,
+                                     margin_v * S_filter,
+                                     power=power)
 
-        # Rename files to match expected paths
-        os.rename(
-            os.path.join(os.path.dirname(vocals_path), "vocals.mp3"),
-            vocals_path
-        )
-        os.rename(
-            os.path.join(os.path.dirname(vocals_path), "accompaniment.mp3"),
-            instrumental_path
-        )
+        S_foreground = mask_v * S_full
+        S_background = mask_i * S_full
+
+        # Convert back to audio signals
+        vocals = librosa.istft(S_foreground * phase)
+        instrumental = librosa.istft(S_background * phase)
+
+        # Save the separated audio files
+        sf.write(vocals_path, vocals, sr)
+        sf.write(instrumental_path, instrumental, sr)
 
         print("Separation completed successfully")
         return True
