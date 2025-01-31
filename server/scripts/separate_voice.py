@@ -11,36 +11,35 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Load the audio file
-        y, sr = librosa.load(audio_path)
+        # Load the audio file with a higher sample rate
+        y, sr = librosa.load(audio_path, sr=44100)
 
-        # Perform the separation using librosa
-        S_full, phase = librosa.magphase(librosa.stft(y))
-        S_filter = librosa.decompose.nn_filter(S_full,
-                                             aggregate=np.median,
-                                             metric='cosine',
-                                             width=int(librosa.time_to_frames(2, sr=sr)))
-        S_filter = np.minimum(S_full, S_filter)
-        margin_i, margin_v = 2, 10
-        power = 2
+        # Compute the spectrogram
+        D = librosa.stft(y, n_fft=2048, hop_length=512)
+        D_mag, D_phase = librosa.magphase(D)
 
-        mask_i = librosa.util.softmask(S_filter,
-                                     margin_i * (S_full - S_filter),
-                                     power=power)
-        mask_v = librosa.util.softmask(S_full - S_filter,
-                                     margin_v * S_filter,
-                                     power=power)
+        # Compute percussive and harmonic components
+        H, P = librosa.decompose.hpss(D_mag, margin=3.0)
 
-        S_foreground = mask_v * S_full
-        S_background = mask_i * S_full
+        # Create soft mask for vocals
+        mask_harm = H / np.maximum(H + P, 1e-10)
+        mask_perc = P / np.maximum(H + P, 1e-10)
 
-        # Convert back to audio signals
-        vocals = librosa.istft(S_foreground * phase)
-        instrumental = librosa.istft(S_background * phase)
+        # Apply masks and combine with phase
+        vocals = D_phase * mask_harm * D_mag
+        instrumental = D_phase * mask_perc * D_mag
 
-        # Save the separated audio files
-        sf.write(vocals_path, vocals, sr)
-        sf.write(instrumental_path, instrumental, sr)
+        # Inverse STFT
+        y_vocals = librosa.istft(vocals)
+        y_instrumental = librosa.istft(instrumental)
+
+        # Normalize audio
+        y_vocals = librosa.util.normalize(y_vocals)
+        y_instrumental = librosa.util.normalize(y_instrumental)
+
+        # Save files with higher quality
+        sf.write(vocals_path, y_vocals, sr, format='mp3', subtype='MP3_320')
+        sf.write(instrumental_path, y_instrumental, sr, format='mp3', subtype='MP3_320')
 
         print("Separation completed successfully")
         return True
