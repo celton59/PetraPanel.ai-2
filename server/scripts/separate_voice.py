@@ -14,10 +14,10 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         UPLOAD_URL = "https://api.lalal.ai/v1/uploads/"
         PROCESS_URL = "https://api.lalal.ai/v1/split/"
         DOWNLOAD_URL = "https://api.lalal.ai/v1/downloads/"
-        API_KEY = os.getenv("LALAL_API_KEY")
+        API_KEY = os.getenv("LALAAI_API_KEY")
 
         if not API_KEY:
-            raise ValueError("LALAL_API_KEY environment variable not set")
+            raise ValueError("LALAAI_API_KEY environment variable not set")
 
         headers = {"Authorization": f"Bearer {API_KEY}"}
 
