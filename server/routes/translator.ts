@@ -146,51 +146,44 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
   try {
     console.log("Starting transcription with AssemblyAI...");
 
-    // Crear una URL pública para el archivo de audio
-    const audioUrl = await assemblyai.files.upload(audioPath, {
-      fileName: path.basename(audioPath)
-    });
+    const audioFile = await fs.promises.readFile(audioPath);
+    const uploadResponse = await assemblyai.files.upload(audioFile);
+    console.log("File uploaded successfully, URL:", uploadResponse);
 
-    console.log("File uploaded successfully, URL:", audioUrl);
-
-    // Configurar parámetros de transcripción
     const config = {
-      audio_url: audioUrl,
-      word_timestamps: true,
+      audio_url: uploadResponse.url,
+      word_boost: [],
+      language_code: "es",
       punctuate: true,
       format_text: true,
-      language_code: "es"
+      word_timestamps: true
     };
 
-    // Crear transcript
+    console.log("Creating transcript with config:", config);
     const transcript = await assemblyai.transcripts.create(config);
     console.log("Transcript created with ID:", transcript.id);
 
-    // Poll for completion
-    let result;
-    do {
-      result = await assemblyai.transcripts.get(transcript.id);
+    while (true) {
+      const result = await assemblyai.transcripts.get(transcript.id);
       console.log("Transcript status:", result.status);
 
-      if (result.status === 'error') {
+      if (result.status === "completed") {
+        const words = result.words?.map(word => ({
+          text: word.text,
+          start: word.start / 1000,
+          end: word.end / 1000
+        })) || [];
+
+        return {
+          text: result.text || "",
+          words
+        };
+      } else if (result.status === "error") {
         throw new Error(`Transcription failed: ${result.error}`);
       }
-      if (result.status !== 'completed') {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-    } while (result.status !== 'completed');
 
-    // Format words with timestamps
-    const words = result.words?.map(word => ({
-      text: word.text,
-      start: word.start / 1000, // Convert to seconds
-      end: word.end / 1000
-    })) || [];
-
-    return {
-      text: result.text || '',
-      words
-    };
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
 
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
