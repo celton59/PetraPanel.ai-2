@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { type TranslationProgress, type TranslationStep } from "@/hooks/use-video-translator";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Download } from "lucide-react";
 
 interface TranslationStepsProps {
   progress: TranslationProgress | null;
@@ -18,7 +18,7 @@ interface Step {
   description: string;
   isEnabled: (progress: TranslationProgress) => boolean;
   action?: (progress: TranslationProgress) => void;
-  getResult?: (progress: TranslationProgress) => { label: string; value: string } | null;
+  getResult?: (progress: TranslationProgress) => { label: string; value: string; downloadUrls?: { label: string, url: string }[] } | null;
 }
 
 const steps: Step[] = [
@@ -29,7 +29,13 @@ const steps: Step[] = [
     isEnabled: () => true,
     getResult: (progress) => progress.videoId ? {
       label: "ID del video",
-      value: progress.videoId
+      value: progress.videoId,
+      downloadUrls: [
+        {
+          label: "Descargar video",
+          url: `/uploads/${progress.videoId}.mp4`
+        }
+      ]
     } : null
   },
   {
@@ -39,7 +45,13 @@ const steps: Step[] = [
     isEnabled: (progress) => progress.step === "uploaded" || progress.step === "extracting_audio",
     getResult: (progress) => progress.audioPath ? {
       label: "Archivo de audio",
-      value: `/uploads/${progress.audioPath}`
+      value: progress.audioPath,
+      downloadUrls: [
+        {
+          label: "Descargar audio",
+          url: `/uploads/${progress.audioPath}`
+        }
+      ]
     } : null
   },
   {
@@ -49,7 +61,17 @@ const steps: Step[] = [
     isEnabled: (progress) => progress.step === "audio_extracted" || progress.step === "separating_voice",
     getResult: (progress) => progress.vocals ? {
       label: "Archivos de audio",
-      value: `Voz: /uploads/${progress.vocals}, Instrumental: /uploads/${progress.instrumental}`
+      value: `Voz y pista instrumental separadas`,
+      downloadUrls: [
+        {
+          label: "Descargar voz",
+          url: `/uploads/${progress.vocals}`
+        },
+        {
+          label: "Descargar instrumental",
+          url: `/uploads/${progress.instrumental}`
+        }
+      ]
     } : null
   },
   {
@@ -133,11 +155,30 @@ export function TranslationSteps({
                   <h4 className="font-medium">{step.label}</h4>
                 </div>
                 <p className="text-sm text-muted-foreground">{step.description}</p>
-                
+
                 {result && (
                   <div className="mt-2 text-sm">
                     <p className="font-medium">{result.label}:</p>
                     <code className="rounded bg-muted px-2 py-1">{result.value}</code>
+
+                    {/* Botones de descarga */}
+                    {result.downloadUrls && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {result.downloadUrls.map((download, i) => (
+                          <a
+                            key={i}
+                            href={download.url}
+                            download
+                            className="inline-flex items-center gap-1 text-xs"
+                          >
+                            <Button variant="outline" size="sm">
+                              <Download className="mr-1 h-3 w-3" />
+                              {download.label}
+                            </Button>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
