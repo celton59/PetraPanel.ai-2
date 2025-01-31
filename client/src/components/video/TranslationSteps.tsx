@@ -18,10 +18,10 @@ interface Step {
   description: string;
   isEnabled: (progress: TranslationProgress) => boolean;
   action?: (progress: TranslationProgress) => void;
-  getResult?: (progress: TranslationProgress) => { 
-    label: string; 
-    value: string; 
-    downloadUrls?: { label: string, url: string }[];
+  getResult?: (progress: TranslationProgress) => {
+    label: string;
+    value: string;
+    downloadUrls?: { label: string; url: string }[];
     words?: Word[];
   } | null;
 }
@@ -85,7 +85,7 @@ const steps: Step[] = [
     description: "Audio convertido a texto con tiempos",
     isEnabled: (progress) => progress.step === "voice_separated" || progress.step === "transcribing",
     getResult: (progress) => progress.text ? {
-      label: "Transcripción",
+      label: "Transcripción y tiempos",
       value: progress.text,
       words: progress.words
     } : null
@@ -101,6 +101,22 @@ const steps: Step[] = [
     } : null
   }
 ];
+
+const renderWordTimings = (words: Word[]) => (
+  <div className="mt-4 space-y-2">
+    <p className="font-medium mb-2">Palabras con tiempos:</p>
+    <div className="max-h-60 overflow-y-auto rounded-md border p-4 bg-muted/50">
+      {words.map((word, i) => (
+        <div key={i} className="text-sm mb-2 flex items-center gap-2">
+          <span className="font-mono text-xs px-2 py-1 rounded-md bg-primary/10">
+            {word.start.toFixed(2)}s - {word.end.toFixed(2)}s
+          </span>
+          <span className="text-foreground">{word.text}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export function TranslationSteps({
   progress,
@@ -167,19 +183,7 @@ export function TranslationSteps({
                     <p className="font-medium">{result.label}:</p>
                     <code className="rounded bg-muted px-2 py-1">{result.value}</code>
 
-                    {result.words && (
-                      <div className="mt-4">
-                        <p className="font-medium mb-2">Palabras con tiempos:</p>
-                        <div className="max-h-40 overflow-y-auto">
-                          {result.words.map((word, i) => (
-                            <div key={i} className="text-xs mb-1">
-                              <span className="font-mono">{word.start.toFixed(2)}s - {word.end.toFixed(2)}s:</span>
-                              <span className="ml-2">{word.text}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    {result.words && renderWordTimings(result.words)}
 
                     {result.downloadUrls && (
                       <div className="mt-4 flex flex-wrap gap-2">

@@ -6,12 +6,19 @@ import fs from "fs";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { spawn } from "child_process";
+import { AssemblyAI } from 'assemblyai';
 
 const execAsync = promisify(exec);
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 const unlink = promisify(fs.unlink);
 
+// Inicializar cliente de AssemblyAI
+const assemblyai = new AssemblyAI({
+  apiKey: process.env.ASSEMBLYAI_API_KEY || ''
+});
+
+// Inicializar el router
 const router = Router();
 
 // Configurar multer para la subida de archivos
@@ -139,97 +146,41 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
   try {
     console.log("Starting transcription with AssemblyAI...");
 
-    // First, upload the file to AssemblyAI
-    const audioFile = await readFile(audioPath);
-    console.log("File read successfully, uploading to AssemblyAI...");
-
-    const uploadUrl = await axios.post(
-      "https://api.assemblyai.com/v2/upload",
-      audioFile,
-      {
-        headers: {
-          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
-          "Content-Type": "application/octet-stream"
-        }
-      }
-    );
-
-    console.log("Upload response:", uploadUrl.data);
-
-    if (!uploadUrl.data.upload_url) {
-      throw new Error("Failed to get upload URL from AssemblyAI");
-    }
-
+    // Upload the audio file
+    const audioUrl = await assemblyai.files.upload(audioPath);
     console.log("File uploaded successfully, creating transcript...");
 
-    // Create the transcript using the uploaded file URL
-    const transcript = await axios.post(
-      "https://api.assemblyai.com/v2/transcript",
-      {
-        audio_url: uploadUrl.data.upload_url,
-        language_code: "es",
-        word_boost: [""],
-        words_per_minute: true,
-        word_timestamps: true
-      },
-      {
-        headers: {
-          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    console.log("Transcript creation response:", transcript.data);
-
-    if (!transcript.data.id) {
-      throw new Error("Failed to create transcript");
-    }
-
-    // Poll for transcript completion
-    console.log("Polling for transcript completion...");
-    let transcriptResult;
-    while (true) {
-      transcriptResult = await axios.get(
-        `https://api.assemblyai.com/v2/transcript/${transcript.data.id}`,
-        {
-          headers: {
-            "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`
-          }
-        }
-      );
-
-      console.log("Poll status:", transcriptResult.data.status);
-
-      if (transcriptResult.data.status === "completed") {
-        break;
-      } else if (transcriptResult.data.status === "error") {
-        throw new Error(`Transcription failed: ${transcriptResult.data.error}`);
-      }
-
-      // Wait before polling again
-      await new Promise(resolve => setTimeout(resolve, 3000));
-    }
-
-    // Format the response to include word-level timing
-    const words = transcriptResult.data.words.map((word: any) => ({
-      text: word.text,
-      start: word.start / 1000, // Convert to seconds
-      end: word.end / 1000 // Convert to seconds
-    }));
-
-    console.log("Transcription completed successfully");
-
-    return {
-      text: transcriptResult.data.text,
-      words
+    // Configure transcription parameters
+    const config = {
+      audio_url: audioUrl,
+      word_timestamps: true,
+      punctuate: true,
+      format_text: true,
+      language_code: "es"
     };
+
+    // Create and wait for transcript
+    const transcript = await assemblyai.transcripts.create(config);
+    const result = await assemblyai.transcripts.waitUntilDone(transcript.id);
+
+    if (result.status === 'completed') {
+      // Format words with timestamps
+      const words = result.words?.map(word => ({
+        text: word.text,
+        start: word.start / 1000, // Convert to seconds
+        end: word.end / 1000
+      })) || [];
+
+      return {
+        text: result.text || '',
+        words
+      };
+    } else {
+      throw new Error(`Transcription failed with status: ${result.status}`);
+    }
 
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
-    if (axios.isAxiosError(error)) {
-      console.error("Axios error response:", error.response?.data);
-    }
     throw error;
   }
 }
@@ -286,14 +237,14 @@ router.post("/:videoId/extract-audio", async (req, res) => {
     const audioPath = await extractAudio(videoPath);
     console.log('Audio extraction completed:', audioPath);
 
-    res.json({ 
+    res.json({
       status: 'audio_extracted',
       audioPath: path.basename(audioPath),
       fullPath: audioPath
     });
   } catch (error) {
     console.error("Error extracting audio:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Error al extraer el audio",
       details: error instanceof Error ? error.message : String(error)
     });
@@ -341,7 +292,7 @@ router.post("/:videoId/separate-voice", async (req, res) => {
       pythonProcess.on('close', (code) => {
         console.log('Python process exited with code:', code);
         if (code !== 0) {
-          return res.status(500).json({ 
+          return res.status(500).json({
             error: "Error al separar la voz",
             details: errorOutput,
             code: code
@@ -350,13 +301,13 @@ router.post("/:videoId/separate-voice", async (req, res) => {
 
         // Verify files exist
         if (!fs.existsSync(vocalsPath) || !fs.existsSync(instrumentalPath)) {
-          return res.status(500).json({ 
+          return res.status(500).json({
             error: "Error: Los archivos de salida no fueron generados",
             details: stdOutput
           });
         }
 
-        res.json({ 
+        res.json({
           status: 'voice_separated',
           vocals: path.basename(vocalsPath),
           instrumental: path.basename(instrumentalPath)
@@ -366,7 +317,7 @@ router.post("/:videoId/separate-voice", async (req, res) => {
 
   } catch (error) {
     console.error("Error separating voice:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Error al separar la voz",
       details: error instanceof Error ? error.message : String(error)
     });
@@ -380,9 +331,9 @@ router.post("/:videoId/clone-voice", async (req, res) => {
 
   try {
     const voiceId = await cloneVoice(vocalsPath);
-    res.json({ 
+    res.json({
       status: 'voice_cloned',
-      voiceId 
+      voiceId
     });
   } catch (error) {
     console.error("Error cloning voice:", error);
@@ -405,13 +356,13 @@ router.post("/:videoId/transcribe", async (req, res) => {
     const transcription = await transcribeAudio(vocalsPath);
     console.log("Transcription completed successfully");
 
-    res.json({ 
+    res.json({
       status: 'transcribed',
       ...transcription
     });
   } catch (error) {
     console.error("Error transcribing:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Error al transcribir el audio",
       details: error instanceof Error ? error.message : String(error)
     });
@@ -420,17 +371,17 @@ router.post("/:videoId/transcribe", async (req, res) => {
 
 // Ruta para traducir
 router.post("/:videoId/translate", async (req, res) => {
-    const { videoId } = req.params;
-    const { text } = req.body;
-    const targetLanguage = "es"; // Spanish
+  const { videoId } = req.params;
+  const { text } = req.body;
+  const targetLanguage = "es"; // Spanish
 
-    try {
-        const translatedText = await translateText(text, targetLanguage);
-        res.json({ status: 'translated', translatedText });
-    } catch (error) {
-        console.error("Error translating:", error);
-        res.status(500).json({ error: "Error al traducir el texto" });
-    }
+  try {
+    const translatedText = await translateText(text, targetLanguage);
+    res.json({ status: 'translated', translatedText });
+  } catch (error) {
+    console.error("Error translating:", error);
+    res.status(500).json({ error: "Error al traducir el texto" });
+  }
 });
 
 export default router;

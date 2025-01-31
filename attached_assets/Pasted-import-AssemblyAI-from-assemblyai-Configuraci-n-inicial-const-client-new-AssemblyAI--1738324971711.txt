@@ -1,0 +1,67 @@
+import { AssemblyAI } from 'assemblyai';
+
+// Configuración inicial
+const client = new AssemblyAI({
+  apiKey: 'TU_API_KEY'
+});
+
+async function transcribeAudio() {
+  try {
+    // Cargar archivo de audio (local o URL)
+    const audioUrl = await client.files.upload('./audio.mp3');
+    // const audioUrl = 'https://ejemplo.com/audio.mp3';
+
+    // Configurar parámetros de transcripción
+    const config = {
+      word_timestamps: true,     // Habilita tiempos por palabra
+      punctuate: true,           // Agrega puntuación automática
+      format_text: true,         // Formatea texto (mayúsculas)
+      speaker_labels: true,     // Identifica hablantes
+      auto_highlights: false     // Desactivar si no se necesita
+    };
+
+    // Iniciar transcripción
+    const transcript = await client.transcripts.create({
+      audio_url: audioUrl,
+      ...config
+    });
+
+    // Esperar hasta completar el procesamiento
+    let result = await client.transcripts.waitUntilDone(transcript.id);
+
+    // Procesar resultados
+    if (result.status === 'completed') {
+      // 1. Palabras con marcas temporales
+      console.log('Palabras detalladas:');
+      result.words?.forEach(word => {
+        console.log(`[${formatTime(word.start)}] ${word.text}`);
+      });
+
+      // 2. Frases segmentadas
+      console.log('\nFrases estructuradas:');
+      result.utterances?.forEach((utterance, index) => {
+        console.log(`\nFrase ${index + 1} (${formatTime(utterance.start)}):`);
+        console.log(`- Texto: ${utterance.text}`);
+        console.log(`- Hablante: ${utterance.speaker}`);
+        console.log(`- Duración: ${(utterance.end - utterance.start)/1000}s`);
+      });
+      
+      return result;
+
+    } else {
+      throw new Error(`Error en transcripción: ${result.status}`);
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Helper para formato de tiempo
+function formatTime(ms: number): string {
+  const date = new Date(ms);
+  return date.toISOString().substr(11, 12);
+}
+
+// Ejecutar
+transcribeAudio();
