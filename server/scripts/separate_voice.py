@@ -1,12 +1,6 @@
 import sys
 import os
-import warnings
-import torch
-import torchaudio
-from demucs.pretrained import get_model
-from demucs.apply import apply_model
-
-warnings.filterwarnings('ignore')
+from subprocess import run, PIPE
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
@@ -14,51 +8,32 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Load audio
-        wav, sr = torchaudio.load(audio_path)
+        # Extract vocals (focus on mid frequencies where voice usually is)
+        vocals_cmd = [
+            'ffmpeg', '-i', audio_path,
+            '-af', 'areverse,afftfilt=real=\'hypot(re,im)*sin(0)\':imag=\'hypot(re,im)*cos(0)\':win_size=4096:overlap=0.75',
+            '-ar', '44100', vocals_path, '-y'
+        ]
 
-        # Convert to mono if stereo
-        if wav.size(0) > 1:
-            wav = wav.mean(0, keepdim=True)
+        # Extract instrumental (remove mid frequencies)
+        instrumental_cmd = [
+            'ffmpeg', '-i', audio_path,
+            '-af', 'areverse,highpass=200,lowpass=3000',
+            '-ar', '44100', instrumental_path, '-y'
+        ]
 
-        # Load model
-        model = get_model('htdemucs')
-        model.eval()
+        print("Extracting vocals...")
+        result = run(vocals_cmd, stdout=PIPE, stderr=PIPE)
+        if result.returncode != 0:
+            raise Exception(f"Error extracting vocals: {result.stderr.decode()}")
 
-        # Get model sample rate
-        model_sr = model.samplerate
+        print("Extracting instrumental...")
+        result = run(instrumental_cmd, stdout=PIPE, stderr=PIPE)
+        if result.returncode != 0:
+            raise Exception(f"Error extracting instrumental: {result.stderr.decode()}")
 
-        # Resample if needed
-        if sr != model_sr:
-            resampler = torchaudio.transforms.Resample(sr, model_sr)
-            wav = resampler(wav)
-
-        # Move to CPU/GPU
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        wav = wav.to(device)
-        model.to(device)
-
-        # Separate
-        with torch.no_grad():
-            print("Processing audio...")
-            sources = model.separate(wav.reshape(1, -1))
-            sources = sources.cpu()
-
-        # Save vocals
-        print(f"Saving vocals to: {vocals_path}")
-        torchaudio.save(
-            vocals_path,
-            sources[None, 0],  # vocals
-            model_sr
-        )
-
-        # Save instrumental
-        print(f"Saving instrumental to: {instrumental_path}")
-        torchaudio.save(
-            instrumental_path,
-            sources[None, 1],  # instrumental
-            model_sr
-        )
+        if not os.path.exists(vocals_path) or not os.path.exists(instrumental_path):
+            raise Exception("Failed to generate output files")
 
         print("Separation completed successfully")
         return True

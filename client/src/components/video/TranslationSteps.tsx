@@ -32,7 +32,7 @@ const steps: Step[] = [
       value: progress.videoId,
       downloadUrls: [
         {
-          label: "Descargar video",
+          label: "Descargar video original",
           url: `/uploads/${progress.videoId}.mp4`
         }
       ]
@@ -48,7 +48,7 @@ const steps: Step[] = [
       value: progress.audioPath,
       downloadUrls: [
         {
-          label: "Descargar audio",
+          label: "Descargar audio original",
           url: `/uploads/${progress.audioPath}`
         }
       ]
@@ -60,7 +60,7 @@ const steps: Step[] = [
     description: "Voz separada del audio de fondo",
     isEnabled: (progress) => progress.step === "audio_extracted" || progress.step === "separating_voice",
     getResult: (progress) => progress.vocals ? {
-      label: "Archivos de audio",
+      label: "Archivos de audio separados",
       value: `Voz y pista instrumental separadas`,
       downloadUrls: [
         {
@@ -163,16 +163,16 @@ export function TranslationSteps({
 
                     {/* Botones de descarga */}
                     {result.downloadUrls && (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-4 flex flex-wrap gap-2">
                         {result.downloadUrls.map((download, i) => (
                           <a
                             key={i}
                             href={download.url}
                             download
-                            className="inline-flex items-center gap-1 text-xs"
+                            className="inline-flex items-center gap-1"
                           >
-                            <Button variant="outline" size="sm">
-                              <Download className="mr-1 h-3 w-3" />
+                            <Button variant="outline" size="sm" className="bg-primary/10 hover:bg-primary/20">
+                              <Download className="mr-2 h-4 w-4" />
                               {download.label}
                             </Button>
                           </a>
