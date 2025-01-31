@@ -1,11 +1,7 @@
-
 import sys
 import os
-import torch
-import torchaudio
-from demucs.apply import apply_model
-from demucs.pretrained import get_model
-from demucs.audio import AudioFile, save_audio
+import numpy as np
+from spleeter.separator import Separator
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
@@ -13,41 +9,30 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Force CPU usage
-        device = torch.device('cpu')
-        
-        # Load model on CPU
-        print("Loading Demucs model...")
-        model = get_model('mdx')
-        model.to(device)
-        model.eval()
+        # Configure Spleeter to use CPU
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-        # Load and preprocess audio
-        print("Loading audio...")
-        wav = AudioFile(audio_path).read()
-        wav = torch.as_tensor(wav, dtype=torch.float32)
-
-        # Ensure audio has correct shape
-        if wav.dim() == 1:
-            wav = wav.unsqueeze(0)
-        if wav.size(0) == 1:
-            wav = wav.expand(2, -1)
-
-        # Normalize audio
-        wav = wav / wav.abs().max()
+        # Initialize separator
+        separator = Separator('spleeter:2stems', multiprocess=False)
 
         # Separate audio
         print("Separating audio...")
-        with torch.no_grad():
-            sources = apply_model(model, wav[None], device=device, progress=True)[0]
-            sources = sources * wav.abs().max()
+        prediction = separator.separate_to_file(
+            audio_path,
+            os.path.dirname(vocals_path),
+            filename_format="{instrument}.{codec}",
+            codec='mp3'
+        )
 
-        # Save the files
-        print(f"Saving vocals to: {vocals_path}")
-        save_audio(sources[0].cpu().numpy(), vocals_path, model.samplerate)
-
-        print(f"Saving instrumental to: {instrumental_path}")
-        save_audio(sources[1].cpu().numpy(), instrumental_path, model.samplerate)
+        # Rename files to match expected paths
+        os.rename(
+            os.path.join(os.path.dirname(vocals_path), "vocals.mp3"),
+            vocals_path
+        )
+        os.rename(
+            os.path.join(os.path.dirname(vocals_path), "accompaniment.mp3"),
+            instrumental_path
+        )
 
         print("Separation completed successfully")
         return True
