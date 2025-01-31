@@ -8,10 +8,10 @@ export type TranslationStep =
   | "audio_extracted"
   | "separating_voice"
   | "voice_separated"
-  | "cloning_voice"
-  | "voice_cloned"
   | "transcribing"
   | "transcribed"
+  | "cloning_voice"
+  | "voice_cloned"
   | "translating"
   | "translated"
   | "merging"
@@ -151,43 +151,6 @@ export function useVideoTranslator() {
     }
   };
 
-  const cloneVoice = async () => {
-    if (!progress?.videoId) return;
-
-    try {
-      setIsProcessing(true);
-      setProgress(prev => ({ ...prev!, step: "cloning_voice" }));
-
-      const response = await fetch(`/api/translator/${progress.videoId}/clone-voice`, {
-        method: "POST",
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al clonar la voz");
-      }
-
-      const result = await response.json();
-      setProgress(prev => ({ ...prev!, ...result, step: "voice_cloned" }));
-
-      toast({
-        title: "Voz clonada",
-        description: "La voz se ha clonado correctamente. Puedes continuar con el siguiente paso.",
-      });
-
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error al clonar la voz",
-        variant: "destructive",
-      });
-      setProgress({step: "error", error: error instanceof Error ? error.message : "Error al clonar la voz"})
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const transcribe = async () => {
     if (!progress?.videoId) return;
 
@@ -225,13 +188,50 @@ export function useVideoTranslator() {
     }
   };
 
+  const cloneVoice = async () => {
+    if (!progress?.videoId) return;
+
+    try {
+      setIsProcessing(true);
+      setProgress(prev => ({ ...prev!, step: "cloning_voice" }));
+
+      const response = await fetch(`/api/translator/${progress.videoId}/clone-voice`, {
+        method: "POST",
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al clonar la voz");
+      }
+
+      const result = await response.json();
+      setProgress(prev => ({ ...prev!, ...result, step: "voice_cloned" }));
+
+      toast({
+        title: "Voz clonada",
+        description: "La voz se ha clonado correctamente. Puedes continuar con el siguiente paso.",
+      });
+
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al clonar la voz",
+        variant: "destructive",
+      });
+      setProgress({step: "error", error: error instanceof Error ? error.message : "Error al clonar la voz"})
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return {
     isProcessing,
     progress,
     uploadVideo,
     extractAudio,
     separateVoice,
-    cloneVoice,
-    transcribe
+    transcribe,
+    cloneVoice
   };
 }

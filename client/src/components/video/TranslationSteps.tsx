@@ -75,23 +75,23 @@ const steps: Step[] = [
     } : null
   },
   {
-    id: "voice_cloned",
-    label: "Voz clonada",
-    description: "Voz clonada para la traducción",
-    isEnabled: (progress) => progress.step === "voice_separated" || progress.step === "cloning_voice",
-    getResult: (progress) => progress.voiceId ? {
-      label: "ID de voz",
-      value: progress.voiceId
-    } : null
-  },
-  {
     id: "transcribed",
     label: "Audio transcrito",
     description: "Audio convertido a texto",
-    isEnabled: (progress) => progress.step === "voice_cloned" || progress.step === "transcribing",
+    isEnabled: (progress) => progress.step === "voice_separated" || progress.step === "transcribing",
     getResult: (progress) => progress.text ? {
       label: "Transcripción",
       value: progress.text
+    } : null
+  },
+  {
+    id: "voice_cloned",
+    label: "Voz clonada",
+    description: "Voz clonada para la traducción",
+    isEnabled: (progress) => progress.step === "transcribed" || progress.step === "cloning_voice",
+    getResult: (progress) => progress.voiceId ? {
+      label: "ID de voz",
+      value: progress.voiceId
     } : null
   }
 ];
@@ -112,10 +112,10 @@ export function TranslationSteps({
         return onExtractAudio;
       case "voice_separated":
         return onSeparateVoice;
-      case "voice_cloned":
-        return onCloneVoice;
       case "transcribed":
         return onTranscribe;
+      case "voice_cloned":
+        return onCloneVoice;
       default:
         return undefined;
     }
