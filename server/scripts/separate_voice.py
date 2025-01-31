@@ -1,7 +1,10 @@
 import sys
 import warnings
-from demucs.separate import MSeparator
 import torch
+import torchaudio
+from demucs.apply import apply_model
+from demucs.pretrained import get_model
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -9,23 +12,36 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
         print(f"Loading audio file: {audio_path}")
 
-        # Initialize Demucs separator
-        separator = MSeparator()
+        # Cargar el modelo pre-entrenado
+        model = get_model('htdemucs')
+        model.eval()
 
-        # Load and separate audio
+        if torch.cuda.is_available():
+            model.cuda()
+
+        # Cargar y normalizar el audio
+        wav, sr = torchaudio.load(audio_path)
+        wav = wav.mean(0, keepdim=True)  # convertir a mono si es necesario
+
+        # Asegurarse de que la frecuencia de muestreo sea la correcta
+        if sr != model.samplerate:
+            wav = torchaudio.transforms.Resample(sr, model.samplerate)(wav)
+
+        # Separar el audio
         print("Separating audio...")
-        sources = separator.separate_audio_file(audio_path)
+        with torch.no_grad():
+            wav = wav.cuda() if torch.cuda.is_available() else wav
+            estimates = model.separate(wav)
+            estimates = estimates.cpu()
 
-        # Extract vocals and instrumental
-        vocals = sources['vocals']
-        instrumental = sources['instrumental']
-
-        # Save separated audio files
+        # Guardar los archivos separados
         print(f"Saving vocals to: {vocals_path}")
-        torch.save(vocals, vocals_path)
+        vocals = estimates[0]  # vocals es el primer canal
+        torchaudio.save(vocals_path, vocals, model.samplerate)
 
         print(f"Saving instrumental to: {instrumental_path}")
-        torch.save(instrumental, instrumental_path)
+        instrumental = estimates[1]  # instrumental es el segundo canal
+        torchaudio.save(instrumental_path, instrumental, model.samplerate)
 
         print("Separation completed successfully")
 
