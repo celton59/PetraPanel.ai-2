@@ -146,11 +146,14 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
   try {
     console.log("Starting transcription with AssemblyAI...");
 
-    // Upload the audio file
-    const audioUrl = await assemblyai.files.upload(audioPath);
-    console.log("File uploaded successfully, creating transcript...");
+    // Crear una URL pública para el archivo de audio
+    const audioUrl = await assemblyai.files.upload(audioPath, {
+      fileName: path.basename(audioPath)
+    });
 
-    // Configure transcription parameters
+    console.log("File uploaded successfully, URL:", audioUrl);
+
+    // Configurar parámetros de transcripción
     const config = {
       audio_url: audioUrl,
       word_timestamps: true,
@@ -159,13 +162,16 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
       language_code: "es"
     };
 
-    // Create transcript
+    // Crear transcript
     const transcript = await assemblyai.transcripts.create(config);
+    console.log("Transcript created with ID:", transcript.id);
 
     // Poll for completion
     let result;
     do {
       result = await assemblyai.transcripts.get(transcript.id);
+      console.log("Transcript status:", result.status);
+
       if (result.status === 'error') {
         throw new Error(`Transcription failed: ${result.error}`);
       }
