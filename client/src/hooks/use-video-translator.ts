@@ -225,6 +225,61 @@ export function useVideoTranslator() {
     }
   };
 
+  const executeStep = async <T extends object>(
+    {
+      preStep,
+      endpoint,
+      successStep,
+      successToast,
+      errorMessage,
+      options = {}
+    }: {
+      preStep: TranslationStep;
+      endpoint: string;
+      successStep: TranslationStep;
+      successToast: { title: string; description: string };
+      errorMessage: string;
+      options?: RequestInit;
+    }
+  ): Promise<T | null> => {
+    try {
+      setIsProcessing(true);
+      setProgress(prev => ({ ...prev!, step: preStep }));
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        credentials: 'include',
+        ...options
+      });
+
+      if (!response.ok) {
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json() as T;
+      setProgress(prev => ({ ...prev!, ...result, step: successStep }));
+
+      toast({
+        ...successToast
+      });
+
+      return result;
+
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : errorMessage,
+        variant: "destructive",
+      });
+      setProgress({ step: "error", error: error instanceof Error ? error.message : errorMessage });
+      return null;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
   return {
     isProcessing,
     progress,
@@ -232,6 +287,7 @@ export function useVideoTranslator() {
     extractAudio,
     separateVoice,
     transcribe,
-    cloneVoice
+    cloneVoice,
+    executeStep
   };
 }
