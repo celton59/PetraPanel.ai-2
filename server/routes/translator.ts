@@ -136,21 +136,73 @@ async function cloneVoice(voicePath: string): Promise<string> {
 
 // Función para transcribir usando AssemblyAI
 async function transcribeAudio(audioPath: string): Promise<string> {
-  const audioFile = await readFile(audioPath);
-  const formData = new FormData();
-  formData.append('audio', new Blob([audioFile]), 'audio.mp3');
+  try {
+    console.log("Starting transcription with AssemblyAI...");
 
-  const response = await axios.post(
-    "https://api.assemblyai.com/v2/transcript",
-    formData,
-    {
-      headers: {
-        "Authorization": process.env.ASSEMBLYAI_API_KEY,
-      },
+    // First, upload the file to AssemblyAI
+    const audioFile = await readFile(audioPath);
+    const uploadUrl = await axios.post(
+      "https://api.assemblyai.com/v2/upload",
+      audioFile,
+      {
+        headers: {
+          "Authorization": process.env.ASSEMBLYAI_API_KEY,
+          "Content-Type": "application/octet-stream",
+          "Transfer-Encoding": "chunked"
+        }
+      }
+    );
+
+    if (!uploadUrl.data.upload_url) {
+      throw new Error("Failed to get upload URL from AssemblyAI");
     }
-  );
 
-  return response.data.text;
+    // Create the transcript using the uploaded file URL
+    const transcript = await axios.post(
+      "https://api.assemblyai.com/v2/transcript",
+      {
+        audio_url: uploadUrl.data.upload_url,
+        language_code: "es"
+      },
+      {
+        headers: {
+          "Authorization": process.env.ASSEMBLYAI_API_KEY,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (!transcript.data.id) {
+      throw new Error("Failed to create transcript");
+    }
+
+    // Poll for transcript completion
+    let transcriptResult;
+    while (true) {
+      transcriptResult = await axios.get(
+        `https://api.assemblyai.com/v2/transcript/${transcript.data.id}`,
+        {
+          headers: {
+            "Authorization": process.env.ASSEMBLYAI_API_KEY
+          }
+        }
+      );
+
+      if (transcriptResult.data.status === "completed") {
+        break;
+      } else if (transcriptResult.data.status === "error") {
+        throw new Error(`Transcription failed: ${transcriptResult.data.error}`);
+      }
+
+      // Wait before polling again
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    return transcriptResult.data.text;
+  } catch (error) {
+    console.error("Error in transcribeAudio:", error);
+    throw error;
+  }
 }
 
 // Función para traducir usando OpenAI
@@ -312,17 +364,28 @@ router.post("/:videoId/clone-voice", async (req, res) => {
 // Ruta para transcribir
 router.post("/:videoId/transcribe", async (req, res) => {
   const { videoId } = req.params;
-  const vocalsPath = path.join("uploads", `${videoId}_vocals.mp3`);
+  const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
 
   try {
+    console.log("Starting transcription for:", vocalsPath);
+
+    if (!fs.existsSync(vocalsPath)) {
+      throw new Error(`Vocals file not found: ${vocalsPath}`);
+    }
+
     const text = await transcribeAudio(vocalsPath);
+    console.log("Transcription completed successfully");
+
     res.json({ 
       status: 'transcribed',
       text 
     });
   } catch (error) {
     console.error("Error transcribing:", error);
-    res.status(500).json({ error: "Error al transcribir el audio" });
+    res.status(500).json({ 
+      error: "Error al transcribir el audio",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
