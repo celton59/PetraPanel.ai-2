@@ -1,45 +1,71 @@
 
 import sys
 import os
-import numpy as np
-import librosa
-import soundfile as sf
+import requests
+import time
+import json
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
-        print(f"Loading audio file: {audio_path}")
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Load the audio file with a higher sample rate
-        y, sr = librosa.load(audio_path, sr=44100)
+        # LALAL.AI API endpoints
+        UPLOAD_URL = "https://api.lalal.ai/v1/uploads/"
+        PROCESS_URL = "https://api.lalal.ai/v1/split/"
+        DOWNLOAD_URL = "https://api.lalal.ai/v1/downloads/"
+        API_KEY = os.getenv("LALAL_API_KEY")
 
-        # Compute the spectrogram
-        D = librosa.stft(y, n_fft=2048, hop_length=512)
-        D_mag, D_phase = librosa.magphase(D)
+        if not API_KEY:
+            raise ValueError("LALAL_API_KEY environment variable not set")
 
-        # Compute percussive and harmonic components
-        H, P = librosa.decompose.hpss(D_mag, margin=3.0)
+        headers = {"Authorization": f"Bearer {API_KEY}"}
 
-        # Create soft mask for vocals
-        mask_harm = H / np.maximum(H + P, 1e-10)
-        mask_perc = P / np.maximum(H + P, 1e-10)
+        # Upload file
+        print("Uploading file to LALAL.AI...")
+        with open(audio_path, "rb") as audio_file:
+            files = {"file": audio_file}
+            response = requests.post(UPLOAD_URL, headers=headers, files=files)
+            response.raise_for_status()
+            upload_id = response.json()["id"]
 
-        # Apply masks and combine with phase
-        vocals = D_phase * mask_harm * D_mag
-        instrumental = D_phase * mask_perc * D_mag
+        # Process file
+        print("Processing audio...")
+        data = {
+            "upload_id": upload_id,
+            "target": "vocals",
+            "model": "standard"
+        }
+        response = requests.post(PROCESS_URL, headers=headers, json=data)
+        response.raise_for_status()
+        task_id = response.json()["task_id"]
 
-        # Inverse STFT
-        y_vocals = librosa.istft(vocals)
-        y_instrumental = librosa.istft(instrumental)
+        # Wait for processing
+        while True:
+            response = requests.get(f"{PROCESS_URL}{task_id}/", headers=headers)
+            response.raise_for_status()
+            status = response.json()["status"]
+            
+            if status == "done":
+                break
+            elif status == "error":
+                raise Exception("LALAL.AI processing failed")
+            
+            time.sleep(5)
 
-        # Normalize audio
-        y_vocals = librosa.util.normalize(y_vocals)
-        y_instrumental = librosa.util.normalize(y_instrumental)
-
-        # Save files
-        sf.write(vocals_path, y_vocals, sr, 'PCM_16')
-        sf.write(instrumental_path, y_instrumental, sr, 'PCM_16')
+        # Download results
+        print("Downloading separated tracks...")
+        for track_type, output_path in [("vocals", vocals_path), ("instrumental", instrumental_path)]:
+            response = requests.get(
+                f"{DOWNLOAD_URL}{task_id}/{track_type}/",
+                headers=headers,
+                stream=True
+            )
+            response.raise_for_status()
+            
+            with open(output_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
         print("Separation completed successfully")
         return True
