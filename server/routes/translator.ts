@@ -159,25 +159,32 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
       language_code: "es"
     };
 
-    // Create and wait for transcript
+    // Create transcript
     const transcript = await assemblyai.transcripts.create(config);
-    const result = await assemblyai.transcripts.waitUntilDone(transcript.id);
 
-    if (result.status === 'completed') {
-      // Format words with timestamps
-      const words = result.words?.map(word => ({
-        text: word.text,
-        start: word.start / 1000, // Convert to seconds
-        end: word.end / 1000
-      })) || [];
+    // Poll for completion
+    let result;
+    do {
+      result = await assemblyai.transcripts.get(transcript.id);
+      if (result.status === 'error') {
+        throw new Error(`Transcription failed: ${result.error}`);
+      }
+      if (result.status !== 'completed') {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    } while (result.status !== 'completed');
 
-      return {
-        text: result.text || '',
-        words
-      };
-    } else {
-      throw new Error(`Transcription failed with status: ${result.status}`);
-    }
+    // Format words with timestamps
+    const words = result.words?.map(word => ({
+      text: word.text,
+      start: word.start / 1000, // Convert to seconds
+      end: word.end / 1000
+    })) || [];
+
+    return {
+      text: result.text || '',
+      words
+    };
 
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
