@@ -1,75 +1,48 @@
-
 import sys
 import os
-import requests
-import time
-import json
+import torch
+import torchaudio
+from demucs.apply import apply_model
+from demucs.pretrained import get_model
+from demucs.audio import AudioFile, save_audio
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # LALAL.AI API endpoints
-        UPLOAD_URL = "https://www.lalal.ai/api/upload/"
-        PROCESS_URL = "https://www.lalal.ai/api/process/"
-        DOWNLOAD_URL = "https://www.lalal.ai/api/download/"
-        API_KEY = os.getenv("LALAAI_API_KEY")
+        # Cargar modelo de Demucs (usando MDX-Net que es más ligero)
+        print("Loading Demucs model...")
+        model = get_model('mdx')
+        model.cpu()
+        model.eval()
 
-        if not API_KEY:
-            raise ValueError("LALAAI_API_KEY environment variable not set")
+        # Cargar y preprocesar audio
+        print("Loading audio...")
+        wav = AudioFile(audio_path).read()
+        wav = torch.as_tensor(wav, dtype=torch.float32)
 
-        # Read file data
-        print("Uploading file to LALAL.AI...")
-        with open(audio_path, "rb") as audio_file:
-            file_data = audio_file.read()
-            
-        headers = {
-            "Authorization": f"license {API_KEY}",
-            "Content-Disposition": f"attachment; filename={os.path.basename(audio_path)}"
-        }
-            
-        response = requests.post(UPLOAD_URL, data=file_data, headers=headers)
-            response.raise_for_status()
-            upload_id = response.json()["id"]
+        # Asegurar que el audio tenga la forma correcta (canales, muestras)
+        if wav.dim() == 1:
+            wav = wav.unsqueeze(0)
+        if wav.size(0) == 1:
+            wav = wav.expand(2, -1)
 
-        # Process file
-        print("Processing audio...")
-        data = {
-            "upload_id": upload_id,
-            "target": "vocals",
-            "model": "standard"
-        }
-        response = requests.post(PROCESS_URL, headers=headers, json=data)
-        response.raise_for_status()
-        task_id = response.json()["task_id"]
+        # Normalizar audio
+        wav = wav / wav.abs().max()
 
-        # Wait for processing
-        while True:
-            response = requests.get(f"{PROCESS_URL}{task_id}/", headers=headers)
-            response.raise_for_status()
-            status = response.json()["status"]
-            
-            if status == "done":
-                break
-            elif status == "error":
-                raise Exception("LALAL.AI processing failed")
-            
-            time.sleep(5)
+        # Separar audio
+        print("Separating audio...")
+        with torch.no_grad():
+            sources = apply_model(model, wav[None], device='cpu', progress=True)[0]
+            sources = sources * wav.abs().max()
 
-        # Download results
-        print("Downloading separated tracks...")
-        for track_type, output_path in [("vocals", vocals_path), ("instrumental", instrumental_path)]:
-            response = requests.get(
-                f"{DOWNLOAD_URL}{task_id}/{track_type}/",
-                headers=headers,
-                stream=True
-            )
-            response.raise_for_status()
-            
-            with open(output_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        # Guardar los archivos separados
+        print(f"Saving vocals to: {vocals_path}")
+        save_audio(sources[0].cpu().numpy(), vocals_path, model.samplerate)
+
+        print(f"Saving instrumental to: {instrumental_path}")
+        save_audio(sources[1].cpu().numpy(), instrumental_path, model.samplerate)
 
         print("Separation completed successfully")
         return True
