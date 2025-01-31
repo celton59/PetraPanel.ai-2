@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -55,15 +56,15 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   };
 
   return (
-    <div className="w-full h-screen bg-background p-6">
-      <Card className="w-full h-full border-none shadow-none">
+    <div className="w-full">
+      <Card className="border-none shadow-none">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             Optimización de Contenido
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-[calc(100vh-200px)]">
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 h-full">
+        <CardContent>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Proyecto</label>
               <ProjectSelector
