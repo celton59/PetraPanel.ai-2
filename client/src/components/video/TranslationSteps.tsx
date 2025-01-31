@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { type TranslationProgress, type TranslationStep } from "@/hooks/use-video-translator";
+import { type TranslationProgress, type TranslationStep, type Word } from "@/hooks/use-video-translator";
 import { Check, Loader2, Download } from "lucide-react";
 
 interface TranslationStepsProps {
@@ -18,7 +18,12 @@ interface Step {
   description: string;
   isEnabled: (progress: TranslationProgress) => boolean;
   action?: (progress: TranslationProgress) => void;
-  getResult?: (progress: TranslationProgress) => { label: string; value: string; downloadUrls?: { label: string, url: string }[] } | null;
+  getResult?: (progress: TranslationProgress) => { 
+    label: string; 
+    value: string; 
+    downloadUrls?: { label: string, url: string }[];
+    words?: Word[];
+  } | null;
 }
 
 const steps: Step[] = [
@@ -77,11 +82,12 @@ const steps: Step[] = [
   {
     id: "transcribed",
     label: "Audio transcrito",
-    description: "Audio convertido a texto",
+    description: "Audio convertido a texto con tiempos",
     isEnabled: (progress) => progress.step === "voice_separated" || progress.step === "transcribing",
     getResult: (progress) => progress.text ? {
       label: "Transcripción",
-      value: progress.text
+      value: progress.text,
+      words: progress.words
     } : null
   },
   {
@@ -161,7 +167,20 @@ export function TranslationSteps({
                     <p className="font-medium">{result.label}:</p>
                     <code className="rounded bg-muted px-2 py-1">{result.value}</code>
 
-                    {/* Botones de descarga */}
+                    {result.words && (
+                      <div className="mt-4">
+                        <p className="font-medium mb-2">Palabras con tiempos:</p>
+                        <div className="max-h-40 overflow-y-auto">
+                          {result.words.map((word, i) => (
+                            <div key={i} className="text-xs mb-1">
+                              <span className="font-mono">{word.start.toFixed(2)}s - {word.end.toFixed(2)}s:</span>
+                              <span className="ml-2">{word.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {result.downloadUrls && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {result.downloadUrls.map((download, i) => (

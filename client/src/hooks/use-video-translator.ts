@@ -19,6 +19,12 @@ export type TranslationStep =
   | "completed"
   | "error";
 
+export interface Word {
+  text: string;
+  start: number;
+  end: number;
+}
+
 export interface TranslationProgress {
   step: TranslationStep;
   videoId?: string;
@@ -27,6 +33,7 @@ export interface TranslationProgress {
   instrumental?: string;
   voiceId?: string;
   text?: string;
+  words?: Word[];
   error?: string;
 }
 
@@ -168,7 +175,12 @@ export function useVideoTranslator() {
       }
 
       const result = await response.json();
-      setProgress(prev => ({ ...prev!, ...result, step: "transcribed" }));
+      setProgress(prev => ({
+        ...prev!,
+        text: result.text,
+        words: result.words,
+        step: "transcribed"
+      }));
 
       toast({
         title: "Transcripción completada",
