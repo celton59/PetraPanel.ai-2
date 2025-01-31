@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -8,6 +9,8 @@ import { ProjectSelector } from "@/components/ProjectSelector";
 import { OptimizationReviewSection } from "./review/OptimizationReviewSection";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface VideoOptimizerProps {
   video: Video;
@@ -25,7 +28,6 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(video.projectId);
   const [optimizedTitle, setOptimizedTitle] = useState(video.optimizedTitle || video.title || "");
 
-  // Solo se muestra el optimizador si el video está en "in_progress" o "title_corrections"
   if (video.status !== "in_progress" && video.status !== "title_corrections") {
     return null;
   }
@@ -67,76 +69,81 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center p-6">
-      <ScrollArea className="w-full max-w-6xl bg-transparent">
-        <Card className="shadow-2xl rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="px-8 py-6 border-b border-gray-200">
-            <CardTitle className="text-3xl font-bold text-gray-800">
+    <div className="w-full bg-background">
+      <ScrollArea className="h-[calc(100vh-12rem)]">
+        <Card className="border-none shadow-none">
+          <CardHeader className="px-0">
+            <CardTitle className="text-2xl font-semibold">
               Optimización de Contenido
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-8 py-6">
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <CardContent className="px-0">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               {/* Selector de Proyecto */}
-              <div>
-                <label className="block text-lg font-medium text-gray-700 mb-2">
-                  Proyecto
-                </label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Proyecto</label>
                 <ProjectSelector
                   value={selectedProjectId}
                   onChange={setSelectedProjectId}
                 />
               </div>
 
-              {/* Grid de dos columnas */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Grilla de contenido */}
+              <div className="grid gap-6 lg:grid-cols-2">
                 {/* Columna Izquierda */}
-                <div className="space-y-8">
+                <div className="space-y-6">
                   <OptimizationReviewSection
                     video={video}
                     optimizedTitle={optimizedTitle}
                     setOptimizedTitle={setOptimizedTitle}
                   />
-                  <div>
-                    <label className="block text-lg font-medium text-gray-700 mb-2">
-                      Descripción Original
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Descripción Original</label>
                     <Textarea
                       value={video.description || ""}
                       disabled
-                      className="min-h-[180px] resize-none text-base border border-gray-200 rounded-lg bg-gray-100"
+                      className="h-36 resize-none bg-muted/50"
                     />
                   </div>
                 </div>
+
                 {/* Columna Derecha */}
-                <div className="space-y-8">
-                  <div>
-                    <label className="block text-lg font-medium text-gray-700 mb-2">
-                      Descripción Optimizada
-                    </label>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Descripción Optimizada</label>
                     <Textarea
                       {...form.register("optimizedDescription")}
-                      placeholder="Ingresa la descripción optimizada"
-                      className="min-h-[180px] resize-none text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      placeholder="Escribe la descripción optimizada"
+                      className="h-36 resize-none"
                     />
                   </div>
-                  <div>
-                    <label className="block text-lg font-medium text-gray-700 mb-2">
-                      Tags (separados por comas)
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tags</label>
                     <Textarea
                       {...form.register("tags")}
-                      placeholder="tag1, tag2, tag3"
-                      className="min-h-[100px] resize-none text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      placeholder="Ingresa los tags separados por comas"
+                      className="h-24 resize-none"
                     />
                   </div>
                 </div>
               </div>
+
+              {/* Alertas y estado */}
+              {video.status === "title_corrections" && video.lastReviewComments && (
+                <Alert variant="destructive" className="bg-destructive/10 border-none">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {video.lastReviewComments}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Botón de envío */}
               <Button
                 type="submit"
                 disabled={isSubmitting || !selectedProjectId}
-                className="w-full py-4 text-xl font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+                className="w-full"
+                size="lg"
               >
                 {isSubmitting ? "Enviando..." : "Enviar a Revisión"}
               </Button>
