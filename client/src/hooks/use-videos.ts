@@ -2,7 +2,42 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Video, VideoStatus } from "@db/schema";
 import { useToast } from "./use-toast";
 
-// Tipos para metadata y sub-estados
+/* -------------------------------------------------------------------------- */
+/*                            Helper: useCurrentUser                          */
+/* -------------------------------------------------------------------------- */
+/**
+ * Hook para obtener el userRole y currentUser centralizando la lectura
+ * desde localStorage. Así evitamos llamadas repetidas en cada render.
+ */
+function useCurrentUser() {
+  const userRole = localStorage.getItem('userRole') || '';
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem('currentUser') || "null");
+  } catch (error) {
+    console.error("Error parsing currentUser from localStorage", error);
+  }
+  return { userRole, currentUser };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         Helper: handleResponse                           */
+/* -------------------------------------------------------------------------- */
+/**
+ * Función auxiliar para validar la respuesta de una petición fetch.
+ * Lanza un error con el mensaje adecuado si la respuesta no es ok.
+ */
+async function handleResponse(res: Response, fallbackMessage: string) {
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || fallbackMessage);
+  }
+  return res.json();
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Tipos e Interfaces del Video                        */
+/* -------------------------------------------------------------------------- */
 export interface VideoMetadata {
   statusHistory?: {
     previousStatus: VideoStatus;
@@ -119,17 +154,22 @@ export interface UpdateVideoData {
   metadata?: VideoMetadata;
 }
 
-// Añadir la función determineNextStatus
-export const determineNextStatus = (currentStatus: VideoStatus, userRole: string): VideoStatus | undefined => {
-  // Si el usuario es viewer o el rol no existe, no cambiamos el estado
+/* -------------------------------------------------------------------------- */
+/*                Funciones de transición y validación de estados             */
+/* -------------------------------------------------------------------------- */
+
+// Función para determinar el siguiente estado automático según rol
+export const determineNextStatus = (
+  currentStatus: VideoStatus,
+  userRole: string
+): VideoStatus | undefined => {
   if (userRole === 'viewer' || !userRole) {
     return undefined;
   }
 
-  // Mapa de transiciones automáticas al asignar un video
   const autoTransitions: Record<string, Record<VideoStatus, VideoStatus | undefined>> = {
     optimizer: {
-      pending: 'in_progress',  // Permitir que el optimizador cambie de pending a in_progress
+      pending: 'in_progress',
       title_corrections: 'in_progress',
       in_progress: undefined,
       optimize_review: undefined,
@@ -179,7 +219,7 @@ export const determineNextStatus = (currentStatus: VideoStatus, userRole: string
 
 const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
   optimizer: {
-    pending: ["in_progress"],  // Permitir que el optimizador vea y trabaje con videos pending
+    pending: ["in_progress"],
     in_progress: ["optimize_review"],
     title_corrections: ["optimize_review"],
     optimize_review: ["youtube_ready"],
@@ -224,80 +264,80 @@ const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
   }
 };
 
-const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, newStatus: VideoStatus): boolean => {
-  // Si es admin, permitir todas las transiciones
+const canUpdateVideoStatus = (
+  currentRole: string,
+  currentStatus: VideoStatus,
+  newStatus: VideoStatus
+): boolean => {
   if (currentRole === 'admin') {
     return true;
   }
-
-  // Si el estado actual es in_progress y el rol es optimizer, permitir la edición
   if (currentStatus === 'in_progress' && currentRole === 'optimizer') {
     return true;
   }
-
   const allowedTransitions = statusTransitions[currentRole]?.[currentStatus] || [];
   return newStatus ? allowedTransitions.includes(newStatus) : true;
 };
 
-// Función mejorada para obtener el estado efectivo considerando metadata
-const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) => {
+// Función para obtener el estado efectivo considerando metadata
+const getEffectiveStatus = (
+  video: any, // Podrías tipar mejor usando Video & { metadata?: VideoMetadata, currentReviewerId?: number }
+  userRole?: string,
+  currentUser?: any
+) => {
   const roleStatus = getRoleStatus(video.status as VideoStatus);
 
-  // Verificar si el rol actual tiene acceso al video
   if (!roleStatus[userRole as string] || roleStatus[userRole as string] === 'no_disponible') {
     return 'no_disponible';
   }
 
-  // Verificar estados específicos por rol en metadata
   if (video.metadata?.roleView) {
     if (userRole === 'optimizer' && video.metadata.roleView.optimizer) {
       return video.metadata.roleView.optimizer.status;
     }
     if (userRole === 'reviewer' && video.metadata.roleView.reviewer) {
-      return video.metadata.roleView.reviewer.titleReview?.status || video.metadata.roleView.reviewer.contentReview?.status || 'disponible';
+      return video.metadata.roleView.reviewer.titleReview?.status ||
+             video.metadata.roleView.reviewer.contentReview?.status ||
+             'disponible';
     }
   }
 
-  // Si el video tiene un estado personalizado en metadata, tiene prioridad
   if (video.metadata?.customStatus) {
     return video.metadata.customStatus;
   }
 
-  // Para el rol reviewer
   if (userRole === 'reviewer') {
     if (video.status === 'optimize_review') {
       const lastApproval = video.metadata?.optimization?.approvalHistory?.[
         video.metadata.optimization.approvalHistory?.length - 1
       ];
-      
+
       if (lastApproval?.action === 'rejected' || video.metadata?.secondaryStatus?.type === 'title_rejected') {
         return 'en_revision';
       }
       return 'disponible';
     }
-    
+
     if (video.status === 'title_corrections') {
       return 'en_revision';
     }
   }
 
-  // Para otros roles, mantener la lógica existente
   switch (userRole) {
     case 'youtuber':
       if (video.status === 'upload_review' || video.status === 'youtube_ready') {
         return video.currentReviewerId === currentUser?.id ? 'asignado' : 'video_disponible';
       }
       break;
-
     case 'optimizer':
       if (['pending', 'in_progress', 'optimize_review', 'title_corrections'].includes(video.status)) {
-        return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id ?
-          'en_proceso' : 'disponible';
+        return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id
+          ? 'en_proceso'
+          : 'disponible';
       }
       break;
   }
 
-  // Si no hay reglas específicas, usar el estado del video
   return roleStatus[userRole as string] || video.status;
 };
 
@@ -363,12 +403,18 @@ export const getRoleStatus = (status: VideoStatus): Record<string, string> => {
   return roleStatuses[status] || {};
 };
 
-
+/* -------------------------------------------------------------------------- */
+/*                              Hook: useVideos                             */
+/* -------------------------------------------------------------------------- */
 export function useVideos(projectId?: number) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { userRole, currentUser } = useCurrentUser();
 
-  const queryKey = projectId ? [`/api/projects/${projectId}/videos`] : ['/api/videos'];
+  // Definir la queryKey según la existencia de projectId
+  const queryKey = projectId
+    ? [`/api/projects/${projectId}/videos`]
+    : ['/api/videos'];
 
   const { data: videos, isLoading } = useQuery({
     queryKey,
@@ -376,15 +422,12 @@ export function useVideos(projectId?: number) {
       const res = await fetch(queryKey[0], {
         credentials: "include"
       });
-      if (!res.ok) {
-        throw new Error("Error al cargar los videos");
-      }
-      return res.json();
+      return handleResponse(res, "Error al cargar los videos");
     },
     retry: 1,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // Datos considerados frescos por 5 minutos
-    gcTime: 30 * 60 * 1000 // Tiempo de recolección de basura (antes cacheTime)
+    staleTime: 5 * 60 * 1000, // Datos frescos por 5 minutos
+    gcTime: 30 * 60 * 1000   // Tiempo de recolección de basura
   });
 
   const createVideoMutation = useMutation({
@@ -395,13 +438,7 @@ export function useVideos(projectId?: number) {
         body: JSON.stringify(video),
         credentials: "include",
       });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al crear el video");
-      }
-
-      return res.json();
+      return handleResponse(res, "Error al crear el video");
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
@@ -421,27 +458,33 @@ export function useVideos(projectId?: number) {
   });
 
   const updateVideoMutation = useMutation({
-    mutationFn: async ({ videoId, data, currentRole, currentUser }: { videoId: number; data: UpdateVideoData; currentRole: string; currentUser?: any }) => {
+    mutationFn: async ({
+      videoId,
+      data,
+      currentRole,
+      currentUser,
+    }: {
+      videoId: number;
+      data: UpdateVideoData;
+      currentRole: string;
+      currentUser?: any;
+    }) => {
       if (data.status && videos) {
         const currentVideo = videos.find((v: Video) => v.id === videoId);
-        if (currentVideo && !canUpdateVideoStatus(currentRole, currentVideo.status as VideoStatus, data.status)) {
+        if (
+          currentVideo &&
+          !canUpdateVideoStatus(currentRole, currentVideo.status as VideoStatus, data.status)
+        ) {
           throw new Error("No tienes permiso para realizar esta transición de estado");
         }
       }
-
       const res = await fetch(`/api/videos/${videoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         credentials: "include",
       });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al actualizar el video");
-      }
-
-      return res.json();
+      return handleResponse(res, "Error al actualizar el video");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -465,13 +508,7 @@ export function useVideos(projectId?: number) {
         method: "DELETE",
         credentials: "include",
       });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al eliminar el video");
-      }
-
-      return res.json();
+      return handleResponse(res, "Error al eliminar el video");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -490,7 +527,10 @@ export function useVideos(projectId?: number) {
   });
 
   return {
-    videos: videos?.map((video: any) => ({ ...video, effectiveStatus: getEffectiveStatus(video, localStorage.getItem('userRole'), JSON.parse(localStorage.getItem('currentUser') || '{}')) })),
+    videos: videos?.map((video: any) => ({
+      ...video,
+      effectiveStatus: getEffectiveStatus(video, userRole, currentUser)
+    })),
     isLoading,
     createVideo: createVideoMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
