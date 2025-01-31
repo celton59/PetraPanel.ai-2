@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { type TranslationProgress, type TranslationStep, type Word } from "@/hooks/use-video-translator";
+import { type TranslationProgress, type TranslationStep } from "@/hooks/use-video-translator";
 import { Check, Loader2, Download } from "lucide-react";
 
 interface TranslationStepsProps {
@@ -18,12 +18,7 @@ interface Step {
   description: string;
   isEnabled: (progress: TranslationProgress) => boolean;
   action?: (progress: TranslationProgress) => void;
-  getResult?: (progress: TranslationProgress) => {
-    label: string;
-    value: string;
-    downloadUrls?: { label: string; url: string }[];
-    words?: Word[];
-  } | null;
+  getResult?: (progress: TranslationProgress) => { label: string; value: string; downloadUrls?: { label: string, url: string }[] } | null;
 }
 
 const steps: Step[] = [
@@ -82,12 +77,11 @@ const steps: Step[] = [
   {
     id: "transcribed",
     label: "Audio transcrito",
-    description: "Audio convertido a texto con tiempos",
+    description: "Audio convertido a texto",
     isEnabled: (progress) => progress.step === "voice_separated" || progress.step === "transcribing",
     getResult: (progress) => progress.text ? {
-      label: "Transcripción y tiempos",
-      value: progress.text,
-      words: progress.words
+      label: "Transcripción",
+      value: progress.text
     } : null
   },
   {
@@ -101,22 +95,6 @@ const steps: Step[] = [
     } : null
   }
 ];
-
-const renderWordTimings = (words: Word[]) => (
-  <div className="mt-4 space-y-2">
-    <p className="font-medium mb-2">Palabras con tiempos:</p>
-    <div className="max-h-60 overflow-y-auto rounded-md border p-4 bg-muted/50">
-      {words.map((word, i) => (
-        <div key={i} className="text-sm mb-2 flex items-center gap-2">
-          <span className="font-mono text-xs px-2 py-1 rounded-md bg-primary/10">
-            {word.start.toFixed(2)}s - {word.end.toFixed(2)}s
-          </span>
-          <span className="text-foreground">{word.text}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 export function TranslationSteps({
   progress,
@@ -183,8 +161,7 @@ export function TranslationSteps({
                     <p className="font-medium">{result.label}:</p>
                     <code className="rounded bg-muted px-2 py-1">{result.value}</code>
 
-                    {result.words && renderWordTimings(result.words)}
-
+                    {/* Botones de descarga */}
                     {result.downloadUrls && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {result.downloadUrls.map((download, i) => (
