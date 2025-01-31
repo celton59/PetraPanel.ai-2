@@ -11,21 +11,25 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
         # LALAL.AI API endpoints
-        UPLOAD_URL = "https://api.lalal.ai/v1/uploads/"
-        PROCESS_URL = "https://api.lalal.ai/v1/split/"
-        DOWNLOAD_URL = "https://api.lalal.ai/v1/downloads/"
+        UPLOAD_URL = "https://www.lalal.ai/api/upload/"
+        PROCESS_URL = "https://www.lalal.ai/api/process/"
+        DOWNLOAD_URL = "https://www.lalal.ai/api/download/"
         API_KEY = os.getenv("LALAAI_API_KEY")
 
         if not API_KEY:
             raise ValueError("LALAAI_API_KEY environment variable not set")
 
-        headers = {"Authorization": f"Bearer {API_KEY}"}
-
-        # Upload file
+        # Read file data
         print("Uploading file to LALAL.AI...")
         with open(audio_path, "rb") as audio_file:
-            files = {"file": audio_file}
-            response = requests.post(UPLOAD_URL, headers=headers, files=files)
+            file_data = audio_file.read()
+            
+        headers = {
+            "Authorization": f"license {API_KEY}",
+            "Content-Disposition": f"attachment; filename={os.path.basename(audio_path)}"
+        }
+            
+        response = requests.post(UPLOAD_URL, data=file_data, headers=headers)
             response.raise_for_status()
             upload_id = response.json()["id"]
 
