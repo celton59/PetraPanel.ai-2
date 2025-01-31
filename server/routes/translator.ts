@@ -150,13 +150,18 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
     const uploadResponse = await assemblyai.files.upload(audioFile);
     console.log("File uploaded successfully, URL:", uploadResponse);
 
+    if (!uploadResponse || !uploadResponse.url) {
+      throw new Error("Failed to get upload URL from AssemblyAI");
+    }
+
     const config = {
       audio_url: uploadResponse.url,
-      word_boost: [],
       language_code: "es",
       punctuate: true,
       format_text: true,
-      word_timestamps: true
+      word_timestamps: true,
+      webhook_url: null,
+      boost_param: null
     };
 
     console.log("Creating transcript with config:", config);
