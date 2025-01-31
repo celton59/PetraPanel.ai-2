@@ -141,21 +141,26 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
 
     // First, upload the file to AssemblyAI
     const audioFile = await readFile(audioPath);
+    console.log("File read successfully, uploading to AssemblyAI...");
+
     const uploadUrl = await axios.post(
       "https://api.assemblyai.com/v2/upload",
       audioFile,
       {
         headers: {
-          "Authorization": process.env.ASSEMBLYAI_API_KEY,
-          "Content-Type": "application/octet-stream",
-          "Transfer-Encoding": "chunked"
+          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
+          "Content-Type": "application/octet-stream"
         }
       }
     );
 
+    console.log("Upload response:", uploadUrl.data);
+
     if (!uploadUrl.data.upload_url) {
       throw new Error("Failed to get upload URL from AssemblyAI");
     }
+
+    console.log("File uploaded successfully, creating transcript...");
 
     // Create the transcript using the uploaded file URL
     const transcript = await axios.post(
@@ -165,31 +170,36 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
         language_code: "es",
         word_boost: [""],
         words_per_minute: true,
-        word_timestamps: true // Enable word-level timestamps
+        word_timestamps: true
       },
       {
         headers: {
-          "Authorization": process.env.ASSEMBLYAI_API_KEY,
+          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
           "Content-Type": "application/json"
         }
       }
     );
+
+    console.log("Transcript creation response:", transcript.data);
 
     if (!transcript.data.id) {
       throw new Error("Failed to create transcript");
     }
 
     // Poll for transcript completion
+    console.log("Polling for transcript completion...");
     let transcriptResult;
     while (true) {
       transcriptResult = await axios.get(
         `https://api.assemblyai.com/v2/transcript/${transcript.data.id}`,
         {
           headers: {
-            "Authorization": process.env.ASSEMBLYAI_API_KEY
+            "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`
           }
         }
       );
+
+      console.log("Poll status:", transcriptResult.data.status);
 
       if (transcriptResult.data.status === "completed") {
         break;
@@ -208,6 +218,8 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
       end: word.end / 1000 // Convert to seconds
     }));
 
+    console.log("Transcription completed successfully");
+
     return {
       text: transcriptResult.data.text,
       words
@@ -215,6 +227,9 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
 
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error response:", error.response?.data);
+    }
     throw error;
   }
 }
