@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -7,8 +6,6 @@ import type { Video } from "@db/schema";
 import { useForm } from "react-hook-form";
 import { ProjectSelector } from "@/components/ProjectSelector";
 import { OptimizationReviewSection } from "./review/OptimizationReviewSection";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
@@ -16,11 +13,6 @@ interface VideoOptimizerProps {
   video: Video;
   onUpdate: (videoId: number, data: any) => Promise<void>;
 }
-
-type FormValues = {
-  optimizedDescription: string;
-  tags: string;
-};
 
 export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   const { user } = useUser();
@@ -32,19 +24,13 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
     return null;
   }
 
-  const form = useForm<FormValues>({
-    defaultValues: {
-      optimizedDescription: video.optimizedDescription || video.description || "",
-      tags: video.tags || "",
-    },
-  });
+  const form = useForm();
 
-  const handleSubmit = async (formData: FormValues) => {
+  const handleSubmit = async () => {
     if (!selectedProjectId) return;
     setIsSubmitting(true);
     try {
       await onUpdate(video.id, {
-        ...formData,
         projectId: selectedProjectId,
         optimizedTitle,
         status: "optimize_review" as const,
@@ -69,88 +55,49 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   };
 
   return (
-    <div className="w-full bg-background h-screen">
-      <ScrollArea className="h-full">
-        <Card className="border-none shadow-none">
-          <CardHeader className="px-6">
-            <CardTitle className="text-2xl font-semibold">
-              Optimización de Contenido
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-6">
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              {/* Selector de Proyecto */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Proyecto</label>
-                <ProjectSelector
-                  value={selectedProjectId}
-                  onChange={setSelectedProjectId}
-                />
-              </div>
+    <div className="w-full h-screen bg-background p-6">
+      <Card className="w-full h-full border-none shadow-none">
+        <CardHeader>
+          <CardTitle className="text-2xl font-semibold">
+            Optimización de Contenido
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="h-[calc(100vh-200px)]">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 h-full">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Proyecto</label>
+              <ProjectSelector
+                value={selectedProjectId}
+                onChange={setSelectedProjectId}
+              />
+            </div>
 
-              {/* Grilla de contenido */}
-              <div className="grid grid-cols-2 gap-6 h-[calc(100vh-12rem)]">
-                {/* Columna Izquierda */}
-                <div className="space-y-6 pr-3">
-                  <OptimizationReviewSection
-                    video={video}
-                    optimizedTitle={optimizedTitle}
-                    setOptimizedTitle={setOptimizedTitle}
-                  />
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Descripción Original</label>
-                    <Textarea
-                      value={video.description || ""}
-                      disabled
-                      className="h-36 resize-none bg-muted/50"
-                    />
-                  </div>
-                </div>
+            <OptimizationReviewSection
+              video={video}
+              optimizedTitle={optimizedTitle}
+              setOptimizedTitle={setOptimizedTitle}
+            />
 
-                {/* Columna Derecha */}
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Descripción Optimizada</label>
-                    <Textarea
-                      {...form.register("optimizedDescription")}
-                      placeholder="Escribe la descripción optimizada"
-                      className="h-36 resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tags</label>
-                    <Textarea
-                      {...form.register("tags")}
-                      placeholder="Ingresa los tags separados por comas"
-                      className="h-24 resize-none"
-                    />
-                  </div>
-                </div>
-              </div>
+            {video.status === "title_corrections" && video.lastReviewComments && (
+              <Alert variant="destructive" className="bg-destructive/10 border-none">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {video.lastReviewComments}
+                </AlertDescription>
+              </Alert>
+            )}
 
-              {/* Alertas y estado */}
-              {video.status === "title_corrections" && video.lastReviewComments && (
-                <Alert variant="destructive" className="bg-destructive/10 border-none">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {video.lastReviewComments}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Botón de envío */}
-              <Button
-                type="submit"
-                disabled={isSubmitting || !selectedProjectId}
-                className="w-full"
-                size="lg"
-              >
-                {isSubmitting ? "Enviando..." : "Enviar a Revisión"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </ScrollArea>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !selectedProjectId}
+              className="w-full"
+              size="lg"
+            >
+              {isSubmitting ? "Enviando..." : "Enviar a Revisión"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
