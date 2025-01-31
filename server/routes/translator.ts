@@ -5,6 +5,7 @@ import axios from "axios";
 import fs from "fs";
 import { promisify } from "util";
 import { exec } from "child_process";
+import { spawn } from "child_process";
 
 const execAsync = promisify(exec);
 const writeFile = promisify(fs.writeFile);
@@ -59,27 +60,45 @@ async function extractAudio(videoPath: string): Promise<string> {
   }
 }
 
-// Función para separar voz usando Lalal.ai
+// Función para separar voz usando procesamiento de audio local
 async function separateVoice(audioPath: string): Promise<{vocals: string, instrumental: string}> {
-  const formData = new FormData();
-  const audioFile = await readFile(audioPath);
-  const blob = new Blob([audioFile], { type: 'audio/mpeg' });
-  formData.append('audio', blob, 'audio.mp3');
-
-  const response = await axios.post("https://api.lalal.ai/process", formData, {
-    headers: {
-      "Authorization": `Bearer ${process.env.LALAAI_API_KEY}`,
-      "Content-Type": "multipart/form-data",
-    },
-  });
-
   const vocalsPath = audioPath.replace('_audio.mp3', '_vocals.mp3');
   const instrumentalPath = audioPath.replace('_audio.mp3', '_instrumental.mp3');
 
-  await writeFile(vocalsPath, response.data.vocals);
-  await writeFile(instrumentalPath, response.data.instrumental);
+  try {
+    // Ejecutar script Python para separación de voz
+    const scriptPath = path.join(process.cwd(), 'server', 'scripts', 'separate_voice.py');
 
-  return { vocals: vocalsPath, instrumental: instrumentalPath };
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python3', [
+        scriptPath,
+        audioPath,
+        vocalsPath,
+        instrumentalPath
+      ]);
+
+      let errorOutput = '';
+
+      pythonProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          console.error('Error in Python script:', errorOutput);
+          reject(new Error(`Voice separation failed with code ${code}: ${errorOutput}`));
+        } else {
+          resolve({
+            vocals: vocalsPath,
+            instrumental: instrumentalPath
+          });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error separating voice:', error);
+    throw error;
+  }
 }
 
 // Función para clonar voz usando ElevenLabs
@@ -151,7 +170,7 @@ async function translateText(text: string, targetLanguage: string) {
 }
 
 
-// Ruta para subir video
+// Rutas
 router.post("/upload", upload.single("video"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No se subió ningún archivo" });
@@ -202,7 +221,10 @@ router.post("/:videoId/separate-voice", async (req, res) => {
     });
   } catch (error) {
     console.error("Error separating voice:", error);
-    res.status(500).json({ error: "Error al separar la voz" });
+    res.status(500).json({ 
+      error: "Error al separar la voz",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
