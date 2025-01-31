@@ -69,15 +69,15 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   };
 
   return (
-    <div className="w-full bg-background">
-      <ScrollArea className="h-[calc(100vh-12rem)]">
+    <div className="w-full bg-background h-screen">
+      <ScrollArea className="h-full">
         <Card className="border-none shadow-none">
-          <CardHeader className="px-0">
+          <CardHeader className="px-6">
             <CardTitle className="text-2xl font-semibold">
               Optimización de Contenido
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-0">
+          <CardContent className="px-6">
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               {/* Selector de Proyecto */}
               <div className="space-y-2">
@@ -89,9 +89,9 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
               </div>
 
               {/* Grilla de contenido */}
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-2 gap-6 h-[calc(100vh-12rem)]">
                 {/* Columna Izquierda */}
-                <div className="space-y-6">
+                <div className="space-y-6 pr-3">
                   <OptimizationReviewSection
                     video={video}
                     optimizedTitle={optimizedTitle}
