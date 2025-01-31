@@ -78,21 +78,33 @@ async function separateVoice(audioPath: string): Promise<{vocals: string, instru
       ]);
 
       let errorOutput = '';
+      let stdOutput = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        stdOutput += data.toString();
+        console.log('Python stdout:', data.toString());
+      });
 
       pythonProcess.stderr.on('data', (data) => {
         errorOutput += data.toString();
+        console.error('Python stderr:', data.toString());
       });
 
       pythonProcess.on('close', (code) => {
+        console.log('Python process exited with code:', code);
         if (code !== 0) {
-          console.error('Error in Python script:', errorOutput);
-          reject(new Error(`Voice separation failed with code ${code}: ${errorOutput}`));
-        } else {
-          resolve({
-            vocals: vocalsPath,
-            instrumental: instrumentalPath
-          });
+          return reject(new Error(`Voice separation failed with code ${code}: ${errorOutput}`));
         }
+
+        // Verify files exist
+        if (!fs.existsSync(vocalsPath) || !fs.existsSync(instrumentalPath)) {
+          return reject(new Error(`Error: Los archivos de salida no fueron generados: ${stdOutput}`));
+        }
+
+        resolve({
+          vocals: vocalsPath,
+          instrumental: instrumentalPath
+        });
       });
     });
   } catch (error) {
@@ -210,15 +222,67 @@ router.post("/:videoId/extract-audio", async (req, res) => {
 // Ruta para separar voz
 router.post("/:videoId/separate-voice", async (req, res) => {
   const { videoId } = req.params;
-  const audioPath = path.join("uploads", `${videoId}_audio.mp3`);
+  const audioPath = path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
+  const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
+  const instrumentalPath = path.join(process.cwd(), "uploads", `${videoId}_instrumental.mp3`);
 
   try {
-    const { vocals, instrumental } = await separateVoice(audioPath);
-    res.json({ 
-      status: 'voice_separated',
-      vocals: path.basename(vocals),
-      instrumental: path.basename(instrumental)
+    console.log("Starting voice separation for:", audioPath);
+
+    if (!fs.existsSync(audioPath)) {
+      throw new Error(`Audio file not found: ${audioPath}`);
+    }
+
+    const scriptPath = path.join(process.cwd(), 'server', 'scripts', 'separate_voice.py');
+    console.log("Using script:", scriptPath);
+
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python3', [
+        scriptPath,
+        audioPath,
+        vocalsPath,
+        instrumentalPath
+      ]);
+
+      let errorOutput = '';
+      let stdOutput = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        stdOutput += data.toString();
+        console.log('Python stdout:', data.toString());
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+        console.error('Python stderr:', data.toString());
+      });
+
+      pythonProcess.on('close', (code) => {
+        console.log('Python process exited with code:', code);
+        if (code !== 0) {
+          return res.status(500).json({ 
+            error: "Error al separar la voz",
+            details: errorOutput,
+            code: code
+          });
+        }
+
+        // Verify files exist
+        if (!fs.existsSync(vocalsPath) || !fs.existsSync(instrumentalPath)) {
+          return res.status(500).json({ 
+            error: "Error: Los archivos de salida no fueron generados",
+            details: stdOutput
+          });
+        }
+
+        res.json({ 
+          status: 'voice_separated',
+          vocals: path.basename(vocalsPath),
+          instrumental: path.basename(instrumentalPath)
+        });
+      });
     });
+
   } catch (error) {
     console.error("Error separating voice:", error);
     res.status(500).json({ 
@@ -276,6 +340,5 @@ router.post("/:videoId/translate", async (req, res) => {
         res.status(500).json({ error: "Error al traducir el texto" });
     }
 });
-
 
 export default router;
