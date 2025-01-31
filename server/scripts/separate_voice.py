@@ -1,6 +1,9 @@
 import sys
 import os
-from subprocess import run, PIPE
+import torch
+from demucs.pretrained import get_pretrained
+from demucs.audio import AudioFile, save_audio
+import numpy as np
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
     try:
@@ -8,32 +11,41 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Extract vocals (focus on mid frequencies where voice usually is)
-        vocals_cmd = [
-            'ffmpeg', '-i', audio_path,
-            '-af', 'areverse,afftfilt=real=\'hypot(re,im)*sin(0)\':imag=\'hypot(re,im)*cos(0)\':win_size=4096:overlap=0.75',
-            '-ar', '44100', vocals_path, '-y'
-        ]
+        # Cargar modelo de Demucs
+        print("Loading Demucs model...")
+        model = get_pretrained('htdemucs')
+        model.cpu()  # Usar CPU para evitar problemas de CUDA
+        model.eval()
 
-        # Extract instrumental (remove mid frequencies)
-        instrumental_cmd = [
-            'ffmpeg', '-i', audio_path,
-            '-af', 'areverse,highpass=200,lowpass=3000',
-            '-ar', '44100', instrumental_path, '-y'
-        ]
+        # Cargar audio
+        print("Loading audio...")
+        wav = AudioFile(audio_path).read()
+        wav = torch.as_tensor(wav, dtype=torch.float32)
+        ref = wav.mean(0)
+        wav = (wav - ref.mean()) / ref.std()
 
-        print("Extracting vocals...")
-        result = run(vocals_cmd, stdout=PIPE, stderr=PIPE)
-        if result.returncode != 0:
-            raise Exception(f"Error extracting vocals: {result.stderr.decode()}")
+        # Asegurar que el audio tenga la forma correcta (canales, muestras)
+        wav = wav.expand(2, -1) if wav.dim() == 1 else wav
 
-        print("Extracting instrumental...")
-        result = run(instrumental_cmd, stdout=PIPE, stderr=PIPE)
-        if result.returncode != 0:
-            raise Exception(f"Error extracting instrumental: {result.stderr.decode()}")
+        # Separar audio
+        print("Separating audio...")
+        with torch.no_grad():
+            sources = model.forward(wav[None])
+            sources = sources.squeeze(0)
 
-        if not os.path.exists(vocals_path) or not os.path.exists(instrumental_path):
-            raise Exception("Failed to generate output files")
+        # Obtener componentes
+        vocals = sources[model.sources.index('vocals')]
+        no_vocals = torch.zeros_like(sources)
+        no_vocals[model.sources.index('drums')] = sources[model.sources.index('drums')]
+        no_vocals[model.sources.index('bass')] = sources[model.sources.index('bass')]
+        no_vocals[model.sources.index('other')] = sources[model.sources.index('other')]
+
+        # Normalizar y guardar
+        print(f"Saving vocals to: {vocals_path}")
+        save_audio(vocals.cpu().numpy(), vocals_path, model.samplerate)
+
+        print(f"Saving instrumental to: {instrumental_path}")
+        save_audio(no_vocals.sum(0).cpu().numpy(), instrumental_path, model.samplerate)
 
         print("Separation completed successfully")
         return True
