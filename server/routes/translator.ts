@@ -148,20 +148,22 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
 
     const audioFile = await fs.promises.readFile(audioPath);
     const uploadResponse = await assemblyai.files.upload(audioFile);
-    console.log("File uploaded successfully, URL:", uploadResponse);
+    console.log("File uploaded successfully, Response:", JSON.stringify(uploadResponse));
 
-    if (!uploadResponse || !uploadResponse.url) {
-      throw new Error("Failed to get upload URL from AssemblyAI");
+    // Validar que la respuesta contenga una URL válida
+    if (!uploadResponse || typeof uploadResponse !== 'object' || !('url' in uploadResponse)) {
+      throw new Error(`Invalid upload response from AssemblyAI: ${JSON.stringify(uploadResponse)}`);
     }
 
+    const audioUrl = uploadResponse.url;
+    console.log("Audio URL for transcription:", audioUrl);
+
     const config = {
-      audio_url: uploadResponse.url,
+      audio_url: audioUrl,
       language_code: "es",
       punctuate: true,
       format_text: true,
-      word_timestamps: true,
-      webhook_url: null,
-      boost_param: null
+      word_timestamps: true
     };
 
     console.log("Creating transcript with config:", config);
