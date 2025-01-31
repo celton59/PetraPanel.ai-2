@@ -1,7 +1,9 @@
 import sys
 import os
 import torch
-from demucs.pretrained import get_pretrained
+import torchaudio
+from demucs.apply import apply_model
+from demucs.pretrained import get_model
 from demucs.audio import AudioFile, save_audio
 
 def separate_voice(audio_path, vocals_path, instrumental_path):
@@ -10,32 +12,38 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        # Cargar modelo de Demucs (usando mdx_extra_q que es más ligero)
+        # Cargar modelo de Demucs (usando MDX-Net que es más ligero)
         print("Loading Demucs model...")
-        model = get_pretrained('mdx_extra_q')
-        model.cpu()  # Usar CPU para evitar problemas de CUDA
+        model = get_model('mdx')
+        model.cpu()
         model.eval()
 
-        # Cargar audio
+        # Cargar y preprocesar audio
         print("Loading audio...")
         wav = AudioFile(audio_path).read()
         wav = torch.as_tensor(wav, dtype=torch.float32)
 
         # Asegurar que el audio tenga la forma correcta (canales, muestras)
-        wav = wav.mean(0, keepdim=True).expand(2, -1) if wav.dim() == 1 else wav
+        if wav.dim() == 1:
+            wav = wav.unsqueeze(0)
+        if wav.size(0) == 1:
+            wav = wav.expand(2, -1)
+
+        # Normalizar audio
+        wav = wav / wav.abs().max()
 
         # Separar audio
         print("Separating audio...")
         with torch.no_grad():
-            sources = model.forward(wav[None])
-            sources = sources.squeeze(0)
+            sources = apply_model(model, wav[None], device='cpu', progress=True)[0]
+            sources = sources * wav.abs().max()
 
         # Guardar los archivos separados
         print(f"Saving vocals to: {vocals_path}")
-        save_audio(sources[0].cpu().numpy(), vocals_path, model.samplerate)  # vocals es el primer canal
+        save_audio(sources[0].cpu().numpy(), vocals_path, model.samplerate)
 
         print(f"Saving instrumental to: {instrumental_path}")
-        save_audio(sources[1].cpu().numpy(), instrumental_path, model.samplerate)  # instrumental es el segundo canal
+        save_audio(sources[1].cpu().numpy(), instrumental_path, model.samplerate)
 
         print("Separation completed successfully")
         return True
