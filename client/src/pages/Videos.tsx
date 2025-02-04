@@ -22,6 +22,8 @@ import { useState } from "react";
 import { VideoFilters } from "@/components/video/VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusLabel } from '@/lib/status-labels';
+import { useLocation } from 'react-router-dom';
+
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -127,6 +129,7 @@ const Videos = () => {
   const [updatingVideoId, setUpdatingVideoId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
+  const location = useLocation(); // Added useLocation hook
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
@@ -327,7 +330,7 @@ const Videos = () => {
         </p>
         {user?.role !== 'optimizer' && (
           <div className="flex justify-end mt-4">
-            <NewVideoDialog autoOpen={true} />
+            <NewVideoDialog autoOpen={location.search.includes('?new=true')} />
           </div>
         )}
       </div>
