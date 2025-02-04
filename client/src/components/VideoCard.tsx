@@ -353,58 +353,14 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   };
 
   const renderContent = () => {
-    const baseContent = (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          {video.optimizedDescription || video.description}
-        </p>
-
-        {video.tags && (
-          <div className="flex flex-wrap gap-2">
-            {video.tags.split(",").map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
-                {tag.trim()}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {video.lastReviewComments && (
-          <Alert variant="destructive" className="bg-destructive/5 border-destructive/10">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-destructive">
-              <p className="font-medium mb-1">Correcciones:</p>
-              <p className="text-sm">{video.lastReviewComments}</p>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="h-4 w-4" />
-          {new Date(video.updatedAt || video.createdAt || Date.now()).toLocaleDateString()}
-        </div>
-
-        <VideoStatusControl
-          videoId={video.id}
-          currentStatus={video.status as VideoStatus}
-          userRole={userRole}
-          onUpdateStatus={(videoId, data) => onUpdate(videoId, data)}
-        />
-      </div>
-    );
-
-    // Renderizar contenido específico sobre el contenido base
     switch (video.status) {
       case 'in_progress':
       case 'title_corrections':
         return (
-          <>
-            {baseContent}
-            <VideoOptimizer
-              video={video}
-              onUpdate={(videoId, data) => onUpdate(videoId, data)}
-            />
-          </>
+          <VideoOptimizer
+            video={video}
+            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+          />
         );
       case 'upload_review':
         // Para youtubers, mostrar el formulario de subida si el video está asignado a ellos
