@@ -39,23 +39,16 @@ const ActionCard = ({
             iconBgColor
           )}
           animate={{
-            y: [0, -8, -4, -8, 0],
-            x: [0, -2, 2, -2, 0],
-            rotate: [0, -5, 5, -5, 0],
-            scale: [1, 1.15, 1.05, 1.15, 1],
-            filter: [
-              "brightness(1) drop-shadow(0 0 0 #ff6b6b)",
-              "brightness(1.4) drop-shadow(0 4px 8px #ff6b6b)",
-              "brightness(1.2) drop-shadow(0 2px 4px #ff6b6b)",
-              "brightness(1.4) drop-shadow(0 4px 8px #ff6b6b)",
-              "brightness(1) drop-shadow(0 0 0 #ff6b6b)"
-            ]
+            y: [0, -5, 0],
+            rotate: [0, -15, 15, 0],
+            scale: [1, 1.2, 0.9, 1],
+            filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
           }}
           transition={{
-            duration: 2,
+            duration: 3,
             repeat: Infinity,
             ease: "easeInOut",
-            times: [0, 0.25, 0.5, 0.75, 1]
+            times: [0, 0.2, 0.8, 1]
           }}
           style={{
             position: 'relative'
