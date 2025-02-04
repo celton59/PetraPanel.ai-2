@@ -1,6 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ActionCardProps {
   icon: LucideIcon;
@@ -31,13 +32,24 @@ const ActionCard = ({
       onClick={onClick}
     >
       <div className="p-4 md:p-6">
-        <div className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-          "transition-all duration-200 group-hover:scale-110",
-          iconBgColor
-        )}>
+        <motion.div 
+          className={cn(
+            "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
+            "transition-all duration-200 group-hover:scale-110",
+            iconBgColor
+          )}
+          animate={{
+            rotate: [0, -10, 10, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
           <Icon className={cn("w-6 h-6", iconColor)} />
-        </div>
+        </motion.div>
         <h3 className="font-semibold text-lg mb-1.5 group-hover:text-primary transition-colors">
           {title}
         </h3>
