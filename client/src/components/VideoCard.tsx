@@ -523,7 +523,7 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   const statusLabel = getStatusLabel(video.status as VideoStatus, userRole as Role, undefined, video);
 
   return (
-    <Card>
+    <Card className="transition-all duration-300 ease-in-out">
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg">
