@@ -1,8 +1,7 @@
-
 import { VideoCard } from "@/components/VideoCard";
 import { useVideos } from "@/hooks/use-videos";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List, Image as ImageIcon } from "lucide-react";
+import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List } from "lucide-react";
 import { NewVideoDialog } from "@/components/video/NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
 import {
@@ -42,6 +41,7 @@ const Videos = () => {
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'list'>('table');
 
+  // Check URL parameters and open dialog if needed
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get('new') === 'true') {
@@ -157,44 +157,6 @@ const Videos = () => {
 
   const selectedVideo = videos?.find(v => v.id === selectedVideoId);
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
-      <div className="rounded-full bg-primary/10 p-3 mb-4">
-        <ImageIcon className="w-6 h-6 text-primary" />
-      </div>
-      <h3 className="text-lg font-medium">No hay videos disponibles</h3>
-      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
-        {user?.role === 'optimizer' 
-          ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
-          : "Comienza agregando tu primer video usando el botón superior"}
-      </p>
-      {user?.role !== 'optimizer' && (
-        <Button 
-          onClick={() => setNewVideoDialogOpen(true)}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Video
-        </Button>
-      )}
-    </div>
-  );
-
-  const renderThumbnail = (video: any, className?: string) => (
-    video.thumbnailUrl ? (
-      <img
-        src={video.thumbnailUrl}
-        alt={video.title}
-        className={cn("w-full h-full object-cover", className)}
-      />
-    ) : (
-      <div className={cn("w-full h-full flex flex-col items-center justify-center gap-2 bg-muted/50 text-muted-foreground", className)}>
-        <ImageIcon className="w-5 h-5" />
-        <span className="text-xs">Sin miniatura</span>
-      </div>
-    )
-  );
-
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -210,11 +172,21 @@ const Videos = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredVideos?.map((video: any) => (
         <div key={video.id} 
-          className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
+          className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-border"
           onClick={() => handleVideoClick(video)}
         >
           <div className="aspect-video bg-muted relative">
-            {renderThumbnail(video)}
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                <Layout className="h-8 w-8" />
+              </div>
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Eye className="h-6 w-6 text-white" />
             </div>
@@ -235,7 +207,6 @@ const Videos = () => {
           </div>
         </div>
       ))}
-      {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
     </div>
   );
 
@@ -243,11 +214,21 @@ const Videos = () => {
     <div className="space-y-4">
       {filteredVideos?.map((video: any) => (
         <div key={video.id} 
-          className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer"
+          className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow border border-border cursor-pointer"
           onClick={() => handleVideoClick(video)}
         >
           <div className="w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-            {renderThumbnail(video)}
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                <Layout className="h-6 w-6" />
+              </div>
+            )}
           </div>
           <div className="flex-grow min-w-0">
             <h3 className="font-medium mb-1 truncate">
@@ -295,7 +276,6 @@ const Videos = () => {
           </div>
         </div>
       ))}
-      {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
     </div>
   );
 
@@ -322,7 +302,7 @@ const Videos = () => {
         </div>
 
         <div className="mb-8 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
             <VideoFilters
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
@@ -338,7 +318,7 @@ const Videos = () => {
               onToggleFilters={() => setShowFilters(!showFilters)}
               visibleStates={VISIBLE_STATES[user?.role as keyof typeof VISIBLE_STATES] || []}
             />
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2">
               <Button
                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                 size="icon"
@@ -369,7 +349,7 @@ const Videos = () => {
 
         <div className="rounded-lg">
           {viewMode === 'table' ? (
-            <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-lg border bg-card shadow-sm">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -388,7 +368,17 @@ const Videos = () => {
                       <TableRow key={video.id} className="group">
                         <TableCell>
                           <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                            {renderThumbnail(video)}
+                            {video.thumbnailUrl ? (
+                              <img
+                                src={video.thumbnailUrl}
+                                alt={video.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                <Layout className="h-4 w-4" />
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
@@ -404,7 +394,7 @@ const Videos = () => {
                         <TableCell>
                           {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
                             <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
-                            <Badge variant="secondary" className={cn(getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus))}>
+                            <Badge variant="secondary" className={`${getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus)}`}>
                               {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
                             </Badge>
                           }
@@ -469,8 +459,14 @@ const Videos = () => {
                     ))}
                     {(!filteredVideos || filteredVideos.length === 0) && (
                       <TableRow>
-                        <TableCell colSpan={7}>
-                          {renderEmptyState()}
+                        <TableCell colSpan={7} className="h-32">
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <Layout className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-muted-foreground font-medium">No hay videos disponibles</p>
+                            <p className="text-sm text-muted-foreground">
+                              Los videos aparecerán aquí cuando estén disponibles
+                            </p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
