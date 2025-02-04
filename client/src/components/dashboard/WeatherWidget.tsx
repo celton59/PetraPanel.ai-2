@@ -93,7 +93,9 @@ export function WeatherWidget() {
           }}
         >
           {isNight ? 
-            <Moon className="h-8 w-8 text-slate-300" /> :
+            <motion.div style={{ scaleX: -1 }}>
+              <Moon className="h-8 w-8 text-slate-300" />
+            </motion.div> :
             <Sun className="h-8 w-8 text-yellow-500" />
           }
         </motion.div>
