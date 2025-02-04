@@ -117,6 +117,8 @@ export interface UpdateVideoData {
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
   metadata?: VideoMetadata;
+  title_corrected?: boolean;
+  media_corrected?: boolean;
 }
 
 // Añadir la función determineNextStatus
@@ -269,13 +271,13 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
       const lastApproval = video.metadata?.optimization?.approvalHistory?.[
         video.metadata.optimization.approvalHistory?.length - 1
       ];
-      
+
       if (lastApproval?.action === 'rejected' || video.metadata?.secondaryStatus?.type === 'title_rejected') {
         return 'en_revision';
       }
       return 'disponible';
     }
-    
+
     if (video.status === 'title_corrections') {
       return 'en_revision';
     }
@@ -426,6 +428,22 @@ export function useVideos(projectId?: number) {
         const currentVideo = videos.find((v: Video) => v.id === videoId);
         if (currentVideo && !canUpdateVideoStatus(currentRole, currentVideo.status as VideoStatus, data.status)) {
           throw new Error("No tienes permiso para realizar esta transición de estado");
+        }
+
+        // Actualizar title_corrected cuando se pasa de title_corrections a optimize_review
+        if (currentVideo?.status === 'title_corrections' && data.status === 'optimize_review') {
+          data = {
+            ...data,
+            title_corrected: true
+          };
+        }
+
+        // Actualizar media_corrected cuando se pasa de media_corrections a youtube_ready
+        if (currentVideo?.status === 'media_corrections' && data.status === 'youtube_ready') {
+          data = {
+            ...data,
+            media_corrected: true
+          };
         }
       }
 
