@@ -1,4 +1,3 @@
-
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -23,17 +22,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
-  );
-}
-
-function AppContent() {
+function Router() {
   const { user, isLoading } = useUser();
 
+  // Show loading spinner during initial load
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -42,23 +34,35 @@ function AppContent() {
     );
   }
 
+  // If no user, show AuthPage regardless of route
   if (!user) {
     return <AuthPage />;
   }
 
+  // Authenticated user
   return (
-    <Router>
-      <Switch>
-        <Route path="/" component={() => <ProtectedRoute component={Index} />} />
-        <Route path="/perfil" component={() => <ProtectedRoute component={Profile} />} />
-        <Route path="/ajustes" component={() => <ProtectedRoute component={Settings} />} />
-        <Route path="/videos" component={() => <ProtectedRoute component={Videos} />} />
-        <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
-        <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
-        <Route component={NotFound} />
-      </Switch>
-      <Toaster />
-    </Router>
+    <Switch>
+      <Route path="/" component={() => <ProtectedRoute component={Index} />} />
+      <Route path="/perfil" component={() => <ProtectedRoute component={Profile} />} />
+      <Route path="/ajustes" component={() => <ProtectedRoute component={Settings} />} />
+      <Route path="/videos" component={() => <ProtectedRoute component={Videos} />} />
+      <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
+      <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Switch>
+          <Route path="/*" component={Layout} />
+        </Switch>
+        <Toaster />
+      </Router>
+    </QueryClientProvider>
   );
 }
 
