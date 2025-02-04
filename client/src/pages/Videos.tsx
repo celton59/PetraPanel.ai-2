@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List, Image as ImageIcon } from "lucide-react";
 import { NewVideoDialog } from "@/components/video/NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
-import { SearchInput } from "@/components/video/SearchInput";
 import {
   Table,
   TableBody,
@@ -20,8 +19,10 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VideoOptimizer } from "@/components/video/VideoOptimizer";
 import { useState, useEffect } from "react";
+import { VideoFilters } from "@/components/video/VideoFilters";
+import type { DateRange } from "react-day-picker";
+import { getStatusLabel } from '@/lib/status-labels';
 import { cn } from "@/lib/utils";
-import { useLocation } from "wouter";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -39,19 +40,22 @@ const Videos = () => {
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'list'>('table');
-  const [location] = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('new') === 'true') {
+      setNewVideoDialogOpen(true);
+      window.history.replaceState({}, '', '/videos');
+    }
+  }, []);
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Check URL parameters and open dialog if needed
-  useEffect(() => {
-    const params = new URLSearchParams(location.split('?')[1]);
-    if (params.get('new') === 'true') {
-      setNewVideoDialogOpen(true);
-    }
-  }, [location]);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const canViewVideo = (video: any) => {
     const userRole = user?.role as keyof typeof VISIBLE_STATES || 'viewer';
@@ -59,67 +63,6 @@ const Videos = () => {
     if (userRole === 'admin') return true;
     return VISIBLE_STATES[userRole]?.includes(effectiveStatus as any);
   };
-
-  const filteredVideos = videos?.filter((video: any) => {
-    if (!canViewVideo(video)) return false;
-
-    const matchesSearch =
-      searchTerm === "" ||
-      video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    return matchesSearch;
-  });
-
-  const selectedVideo = videos?.find(v => v.id === selectedVideoId);
-
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
-      <div className="rounded-full bg-primary/10 p-3 mb-4">
-        <ImageIcon className="w-6 h-6 text-primary" />
-      </div>
-      <h3 className="text-lg font-medium">No hay videos disponibles</h3>
-      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
-        {user?.role === 'optimizer'
-          ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
-          : "Comienza agregando tu primer video usando el botón superior"}
-      </p>
-      {user?.role !== 'optimizer' && (
-        <Button
-          onClick={() => setNewVideoDialogOpen(true)}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Video
-        </Button>
-      )}
-    </div>
-  );
-
-  const renderThumbnail = (video: any, className?: string) => (
-    video.thumbnailUrl ? (
-      <img
-        src={video.thumbnailUrl}
-        alt={video.title}
-        className={cn("w-full h-full object-cover", className)}
-      />
-    ) : (
-      <div className={cn("w-full h-full flex items-center justify-center bg-muted text-muted-foreground", className)}>
-        <Layout className="h-4 w-4" />
-      </div>
-    )
-  );
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando videos...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isUserLoading) {
     return (
@@ -183,16 +126,103 @@ const Videos = () => {
     }
   };
 
+  const filteredVideos = videos?.filter((video: any) => {
+    if (!canViewVideo(video)) return false;
+
+    const matchesSearch =
+      searchTerm === "" ||
+      video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesStatus =
+      status === "all" || getEffectiveStatus(video, user?.role, user) === status;
+
+    const matchesAssignee =
+      assignedTo === "all" ||
+      (assignedTo === "unassigned" && !video.currentReviewerId) ||
+      String(video.currentReviewerId) === assignedTo;
+
+    const matchesProject =
+      projectId === "all" || String(video.projectId) === projectId;
+
+    const matchesDate = !dateRange?.from || (
+      video.updatedAt &&
+      new Date(video.updatedAt) >= dateRange.from &&
+      (!dateRange.to || new Date(video.updatedAt) <= dateRange.to)
+    );
+
+    return matchesSearch && matchesStatus && matchesAssignee && matchesProject && matchesDate;
+  });
+
+  const selectedVideo = videos?.find(v => v.id === selectedVideoId);
+
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
+      <div className="rounded-full bg-primary/10 p-3 mb-4">
+        <ImageIcon className="w-6 h-6 text-primary" />
+      </div>
+      <h3 className="text-lg font-medium">No hay videos disponibles</h3>
+      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
+        {user?.role === 'optimizer' 
+          ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
+          : "Comienza agregando tu primer video usando el botón superior"}
+      </p>
+      {user?.role !== 'optimizer' && (
+        <Button 
+          onClick={() => setNewVideoDialogOpen(true)}
+          className="gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Nuevo Video
+        </Button>
+      )}
+    </div>
+  );
+
+  const renderThumbnail = (video: any, className?: string) => (
+    video.thumbnailUrl ? (
+      <img
+        src={video.thumbnailUrl}
+        alt={video.title}
+        className={cn("w-full h-full object-cover", className)}
+      />
+    ) : (
+      <div className={cn("w-full h-full flex items-center justify-center bg-muted text-muted-foreground", className)}>
+        <Layout className="h-4 w-4" />
+      </div>
+    )
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando videos...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredVideos?.map((video: any) => (
-        <div key={video.id}
+        <div key={video.id} 
           className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
           onClick={() => handleVideoClick(video)}
         >
           <div className="aspect-video bg-muted relative">
-            {renderThumbnail(video)}
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <Layout className="h-4 w-4" />
+              </div>
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Eye className="h-6 w-6 text-white" />
             </div>
@@ -220,12 +250,22 @@ const Videos = () => {
   const renderListView = () => (
     <div className="space-y-4">
       {filteredVideos?.map((video: any) => (
-        <div key={video.id}
+        <div key={video.id} 
           className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer"
           onClick={() => handleVideoClick(video)}
         >
           <div className="w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-            {renderThumbnail(video)}
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <Layout className="h-4 w-4" />
+              </div>
+            )}
           </div>
           <div className="flex-grow min-w-0">
             <h3 className="font-medium mb-1 truncate">
@@ -291,31 +331,32 @@ const Videos = () => {
               </p>
             </div>
             {user?.role !== 'optimizer' && (
-              <NewVideoDialog
-                open={newVideoDialogOpen}
-                onOpenChange={setNewVideoDialogOpen}
+              <NewVideoDialog 
+                open={newVideoDialogOpen} 
+                onOpenChange={setNewVideoDialogOpen} 
               />
             )}
           </div>
         </div>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <SearchInput
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={showFilters ? 'secondary' : 'ghost'}
-                size="icon"
-                onClick={() => setShowFilters(!showFilters)}
-                className="h-9 w-9"
-              >
-                <Filter className="h-4 w-4" />
-              </Button>
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <VideoFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              status={status}
+              onStatusChange={setStatus}
+              date={dateRange}
+              onDateChange={setDateRange}
+              assignedTo={assignedTo}
+              onAssignedToChange={setAssignedTo}
+              projectId={projectId}
+              onProjectChange={setProjectId}
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters(!showFilters)}
+              visibleStates={VISIBLE_STATES[user?.role as keyof typeof VISIBLE_STATES] || []}
+            />
+            <div className="flex items-center gap-2 ml-auto">
               <Button
                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                 size="icon"
@@ -342,208 +383,161 @@ const Videos = () => {
               </Button>
             </div>
           </div>
-          {/* {showFilters && (
-            <div className="mt-4 grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4">
-              <StatusFilter status={status} onStatusChange={setStatus} />
-              <AssigneeFilter
-                assignedTo={assignedTo}
-                onAssignedToChange={onAssignedToChange}
-              />
-              <ProjectFilter
-                projectId={projectId}
-                onProjectChange={onProjectChange}
-              />
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date?.from ? (
-                      date.to ? (
-                        <>
-                          {format(date.from, "LLL dd, y", { locale: es })} -{" "}
-                          {format(date.to, "LLL dd, y", { locale: es })}
-                        </>
-                      ) : (
-                        format(date.from, "LLL dd, y", { locale: es })
-                      )
-                    ) : (
-                      <span>Seleccionar fechas</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={date?.from}
-                    selected={date}
-                    onSelect={onDateChange}
-                    numberOfMonths={2}
-                    locale={es}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )} */}
-          <div className="rounded-lg">
-            {viewMode === 'table' ? (
-              <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="w-[100px]">Miniatura</TableHead>
-                        <TableHead className="w-[100px]">Serie</TableHead>
-                        <TableHead className="min-w-[300px]">Título</TableHead>
-                        <TableHead className="w-[150px]">Estado</TableHead>
-                        <TableHead className="w-[150px]">Asignado a</TableHead>
-                        <TableHead className="w-[150px]">Actualización</TableHead>
-                        <TableHead className="w-[100px] text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredVideos?.map((video: any) => (
-                        <TableRow key={video.id} className="group">
-                          <TableCell>
-                            <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                              {renderThumbnail(video, "w-full h-full object-cover")}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ?
-                              '(No disponible)' :
-                              (video.seriesNumber || '-')}
-                          </TableCell>
-                          <TableCell className="font-medium max-w-[300px] truncate">
-                            {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ?
-                              '(No disponible)' :
-                              (video.optimizedTitle || video.title)}
-                          </TableCell>
-                          <TableCell>
-                            {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ?
-                              <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
-                              <Badge variant="secondary" className={cn(getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus))}>
-                                {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
-                              </Badge>
-                            }
-                          </TableCell>
-                          <TableCell>
-                            {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
-                          </TableCell>
-                          <TableCell>
-                            {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ?
-                              '-' :
-                              new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={updatingVideoId === video.id}
-                                onClick={() => handleVideoClick(video)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                {updatingVideoId === video.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                              </Button>
-                              {user?.role === 'admin' && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Se eliminará permanentemente el video
-                                        <span className="font-medium"> {video.title}</span>.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleDelete(video.id)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Eliminar
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {(!filteredVideos || filteredVideos.length === 0) && (
-                        <TableRow>
-                          <TableCell colSpan={7}>
-                            {renderEmptyState()}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ) : viewMode === 'grid' ? (
-              renderGridView()
-            ) : (
-              renderListView()
-            )}
-          </div>
+        </div>
 
-          {selectedVideo && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-0">
-                <DialogHeader className="p-6 pb-0">
-                  <DialogTitle>Detalles del Video</DialogTitle>
-                </DialogHeader>
-                <div className="px-6 pb-6">
-                  {(selectedVideo.status === 'in_progress' ||
-                    selectedVideo.status === 'title_corrections' ||
-                    selectedVideo.metadata?.customStatus === 'en_revision') &&
-                    user?.role === 'optimizer' ? (
-                    <VideoOptimizer
-                      video={selectedVideo}
-                      onUpdate={(videoId, data) => updateVideo({
-                        videoId,
-                        data,
-                        currentRole: user?.role || 'viewer'
-                      })}
-                    />
-                  ) : (
-                    <VideoCard
-                      video={selectedVideo}
-                      userRole={user?.role || 'viewer'}
-                      onUpdate={(videoId, data) => updateVideo({
-                        videoId,
-                        data,
-                        currentRole: user?.role || 'viewer'
-                      })}
-                    />
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
+        <div className="rounded-lg">
+          {viewMode === 'table' ? (
+            <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="w-[100px]">Miniatura</TableHead>
+                      <TableHead className="w-[100px]">Serie</TableHead>
+                      <TableHead className="min-w-[300px]">Título</TableHead>
+                      <TableHead className="w-[150px]">Estado</TableHead>
+                      <TableHead className="w-[150px]">Asignado a</TableHead>
+                      <TableHead className="w-[150px]">Actualización</TableHead>
+                      <TableHead className="w-[100px] text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVideos?.map((video: any) => (
+                      <TableRow key={video.id} className="group">
+                        <TableCell>
+                          <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
+                            {video.thumbnailUrl ? (
+                              <img
+                                src={video.thumbnailUrl}
+                                alt={video.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                                <Layout className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                            '(No disponible)' : 
+                            (video.seriesNumber || '-')}
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[300px] truncate">
+                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                            '(No disponible)' : 
+                            (video.optimizedTitle || video.title)}
+                        </TableCell>
+                        <TableCell>
+                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                            <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
+                            <Badge variant="secondary" className={cn(getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus))}>
+                              {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
+                            </Badge>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
+                        </TableCell>
+                        <TableCell>
+                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                            '-' :
+                            new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={updatingVideoId === video.id}
+                              onClick={() => handleVideoClick(video)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              {updatingVideoId === video.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            {user?.role === 'admin' && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta acción no se puede deshacer. Se eliminará permanentemente el video
+                                      <span className="font-medium"> {video.title}</span>.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(video.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!filteredVideos || filteredVideos.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={7}>
+                          {renderEmptyState()}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ) : viewMode === 'grid' ? (
+            renderGridView()
+          ) : (
+            renderListView()
           )}
         </div>
+
+        {selectedVideo && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-0">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle>Detalles del Video</DialogTitle>
+              </DialogHeader>
+              <div className="px-6 pb-6">
+                {(selectedVideo.status === 'in_progress' || selectedVideo.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
+                  <VideoOptimizer
+                    video={selectedVideo}
+                    onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
+                    allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
+                  />
+                ) : (
+                  <VideoCard
+                    video={selectedVideo}
+                    userRole={user?.role || 'viewer'}
+                    onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
+                    allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
+                  />
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
@@ -623,9 +617,9 @@ const getEffectiveAssignment = (video: any, userRole?: string, currentUser?: any
   }
 
   if (userRole === 'optimizer' &&
-    video.metadata?.secondaryStatus?.type === 'title_approved' &&
-    video.metadata?.optimization?.reviewedBy?.approved &&
-    video.metadata?.optimization?.optimizedBy) {
+      video.metadata?.secondaryStatus?.type === 'title_approved' &&
+      video.metadata?.optimization?.reviewedBy?.approved &&
+      video.metadata?.optimization?.optimizedBy) {
     return {
       name: video.metadata.optimization.optimizedBy.username,
       id: video.metadata.optimization.optimizedBy.userId
