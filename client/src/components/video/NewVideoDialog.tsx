@@ -1,5 +1,4 @@
-
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,7 @@ export function NewVideoDialog({ autoOpen = false }: Props) {
   const [dialogOpen, setDialogOpen] = useState(autoOpen);
   const { toast } = useToast();
   const { createVideo } = useVideos(selectedProjects[0]);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   const { data: projectsResponse } = useQuery({
     queryKey: ["projects"],
@@ -125,7 +124,7 @@ export function NewVideoDialog({ autoOpen = false }: Props) {
   const selectedProject = projects.find((p: Project) => p.id === selectedProjects[0]);
 
   const handleButtonClick = () => {
-    navigate("/videos");
+    setLocation("/videos");
     setDialogOpen(true);
   };
 
