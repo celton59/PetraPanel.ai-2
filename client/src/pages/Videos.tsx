@@ -129,8 +129,7 @@ const Videos = () => {
   const [updatingVideoId, setUpdatingVideoId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
-  const location = useLocation(); // Added useLocation hook
-
+  const location = useLocation(); 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
