@@ -18,10 +18,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VideoOptimizer } from "@/components/video/VideoOptimizer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VideoFilters } from "@/components/video/VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusLabel } from '@/lib/status-labels';
+import { useLocation } from "wouter";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -38,6 +39,15 @@ const Videos = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [location] = useLocation();
+
+  // Check URL parameters and open dialog if needed
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1]);
+    if (params.get('new') === 'true') {
+      setNewVideoDialogOpen(true);
+    }
+  }, [location]);
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
@@ -174,7 +184,10 @@ const Videos = () => {
         </p>
         {user?.role !== 'optimizer' && (
           <div className="flex justify-end mt-4">
-            <NewVideoDialog open={newVideoDialogOpen} onOpenChange={setNewVideoDialogOpen} />
+            <NewVideoDialog 
+              open={newVideoDialogOpen} 
+              onOpenChange={setNewVideoDialogOpen} 
+            />
           </div>
         )}
       </div>
