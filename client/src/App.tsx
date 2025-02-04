@@ -56,9 +56,8 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Toaster />
-      </Router>
+      <Router />
+      <Toaster />
     </QueryClientProvider>
   );
 }
