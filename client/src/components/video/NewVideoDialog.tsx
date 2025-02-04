@@ -40,7 +40,8 @@ export function NewVideoDialog({ autoOpen = false }: Props) {
   const [step, setStep] = useState(1);
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(autoOpen);
+  const [location] = useLocation();
+  const [dialogOpen, setDialogOpen] = useState(location.includes('?new=true'));
   const { toast } = useToast();
   const { createVideo } = useVideos(selectedProjects[0]);
   const [, setLocation] = useLocation();
