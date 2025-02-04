@@ -3,7 +3,7 @@ import { NewVideoDialog } from "@/components/video/NewVideoDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Video, User, Settings, FolderKanban } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 
 export function DashboardActions() {
   return (
