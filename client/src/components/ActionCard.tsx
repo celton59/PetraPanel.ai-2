@@ -90,9 +90,25 @@ const ActionCard = ({
       <div className="p-4 md:p-6">
         <motion.div 
           className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center mb-4 relative",
+            "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
+            "transition-all duration-200 group-hover:scale-110",
             iconBgColor
           )}
+          whileHover={{ 
+            scale: 1.2,
+            rotate: [0, -10, 10, 0],
+            transition: { duration: 0.3, repeat: Infinity }
+          }}
+          animate={{
+            y: [0, -4, 0],
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, 0, -5, 0]
+          }}
+          transition={{
+            duration: 3,
+            ease: "easeInOut",
+            repeat: Infinity
+          }}
         >
           <IconWithParticles Icon={Icon} iconColor={iconColor} />
         </motion.div>
