@@ -31,7 +31,11 @@ interface Project {
   name: string;
 }
 
-export function NewVideoDialog() {
+interface NewVideoDialogProps {
+  autoOpen?: boolean;
+}
+
+export function NewVideoDialog({ autoOpen = false }: NewVideoDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,7 +124,7 @@ export function NewVideoDialog() {
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button data-new-video-trigger>
           <VideoIcon className="mr-2 h-4 w-4" />
           Nuevo Video
         </Button>
