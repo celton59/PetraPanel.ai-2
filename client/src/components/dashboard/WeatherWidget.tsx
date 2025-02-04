@@ -74,14 +74,22 @@ export function WeatherWidget() {
     switch(condition) {
       case "sunny": return (
         <motion.div
-          animate={{
+          animate={isNight ? {
+            y: [-2, 2, -2],
+            scale: [1, 1.1, 1],
+            filter: [
+              "brightness(1)",
+              "brightness(1.2)",
+              "brightness(1)"
+            ]
+          } : {
             rotate: [0, 180, 360],
             scale: [1, 1.2, 1]
           }}
           transition={{
-            duration: 4,
+            duration: isNight ? 3 : 4,
             repeat: Infinity,
-            ease: "linear"
+            ease: "easeInOut"
           }}
         >
           {isNight ? 
