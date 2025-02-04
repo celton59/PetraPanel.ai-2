@@ -322,17 +322,17 @@ const Videos = () => {
       <div className="container mx-auto max-w-[1200px] px-4 py-8">
         <div className="flex flex-col gap-2 mb-12">
           <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <div className="flex flex-col">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient mb-1">
+            <div className="space-y-3">
+              <h1 className="text-4xl font-bold">
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Videos
-                </h1>
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-full" />
-                  <p className="text-lg text-muted-foreground/90 font-medium">
-                    Gestiona y optimiza tus videos para YouTube
-                  </p>
-                </div>
+                </span>
+              </h1>
+              <div className="flex items-center space-x-4">
+                <div className="h-8 w-1 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full" />
+                <p className="text-lg text-muted-foreground font-medium tracking-tight">
+                  Gestiona y optimiza tus videos para YouTube
+                </p>
               </div>
             </div>
             {user?.role !== 'optimizer' && (
