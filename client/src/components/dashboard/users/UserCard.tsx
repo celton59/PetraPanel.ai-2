@@ -36,15 +36,15 @@ export function UserCard({ user, isOnline, onSelect }: UserCardProps) {
               {user.role}
             </Badge>
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Mail className="h-4 w-4" />
-              <span>{user.email}</span>
+          <div className="flex flex-col space-y-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1 overflow-hidden">
+              <Mail className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">{user.email}</span>
             </div>
             {user.phone && (
-              <div className="flex items-center gap-1">
-                <Phone className="h-4 w-4" />
-                <span>{user.phone}</span>
+              <div className="flex items-center gap-1 overflow-hidden">
+                <Phone className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{user.phone}</span>
               </div>
             )}
           </div>
