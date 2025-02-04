@@ -39,13 +39,24 @@ const ActionCard = ({
             iconBgColor
           )}
           animate={{
-            rotate: [0, -10, 10, 0],
-            scale: [1, 1.1, 1]
+            y: [0, -5, 0],
+            rotate: [0, -15, 15, 0],
+            scale: [1, 1.2, 0.9, 1],
+            filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"]
           }}
           transition={{
-            duration: 2,
+            duration: 3,
             repeat: Infinity,
-            ease: "easeInOut"
+            ease: "easeInOut",
+            times: [0, 0.2, 0.8, 1]
+          }}
+          style={{
+            position: 'relative'
+          }}
+          whileHover={{
+            scale: 1.3,
+            rotate: [0, -20, 20, 0],
+            transition: { duration: 0.3 }
           }}
         >
           <Icon className={cn("w-6 h-6", iconColor)} />
