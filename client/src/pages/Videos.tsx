@@ -358,6 +358,14 @@ const Videos = () => {
             />
             <div className="flex items-center gap-2 ml-auto">
               <Button
+                variant={showFilters ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setShowFilters(!showFilters)}
+                className="h-9 w-9"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+              <Button
                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                 size="icon"
                 onClick={() => setViewMode('table')}
