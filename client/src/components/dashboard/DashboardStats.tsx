@@ -21,6 +21,10 @@ export const DashboardStats = () => {
       change: `${pendingVideos} pendientes`,
       isPositive: true,
       icon: Video,
+      animation: {
+        rotate: [0, 10, -10, 0],
+        transition: { repeat: Infinity, duration: 2 }
+      }
     },
     {
       title: "Videos Completados",
@@ -28,6 +32,10 @@ export const DashboardStats = () => {
       change: `${Math.round((completedVideos/totalVideos || 0) * 100)}% del total`,
       isPositive: true,
       icon: CheckCircle,
+      animation: {
+        scale: [1, 1.2, 1],
+        transition: { repeat: Infinity, duration: 1.5 }
+      }
     },
     {
       title: "En Proceso",
@@ -35,6 +43,10 @@ export const DashboardStats = () => {
       change: `${inProgressVideos} en producción`,
       isPositive: true,
       icon: Clock,
+      animation: {
+        rotate: [0, 360],
+        transition: { repeat: Infinity, duration: 8, ease: "linear" }
+      }
     },
     {
       title: "Usuarios Activos",
@@ -42,6 +54,10 @@ export const DashboardStats = () => {
       change: "Últimos 7 días",
       isPositive: true,
       icon: Users,
+      animation: {
+        y: [0, -5, 0],
+        transition: { repeat: Infinity, duration: 2 }
+      }
     },
   ];
 
