@@ -460,7 +460,7 @@ const Videos = () => {
                               size="icon"
                               disabled={updatingVideoId === video.id}
                               onClick={() => handleVideoClick(video)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="transition-colors"
                             >
                               {updatingVideoId === video.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -474,7 +474,7 @@ const Videos = () => {
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="text-destructive transition-colors"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
