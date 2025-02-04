@@ -24,6 +24,14 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
+  );
+}
+
+function AppContent() {
   const { user, isLoading } = useUser();
 
   if (isLoading) {
@@ -39,20 +47,18 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Switch>
-          <Route path="/" component={() => <ProtectedRoute component={Index} />} />
-          <Route path="/perfil" component={() => <ProtectedRoute component={Profile} />} />
-          <Route path="/ajustes" component={() => <ProtectedRoute component={Settings} />} />
-          <Route path="/videos" component={() => <ProtectedRoute component={Videos} />} />
-          <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
-          <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
-          <Route component={NotFound} />
-        </Switch>
-        <Toaster />
-      </Router>
-    </QueryClientProvider>
+    <Router>
+      <Switch>
+        <Route path="/" component={() => <ProtectedRoute component={Index} />} />
+        <Route path="/perfil" component={() => <ProtectedRoute component={Profile} />} />
+        <Route path="/ajustes" component={() => <ProtectedRoute component={Settings} />} />
+        <Route path="/videos" component={() => <ProtectedRoute component={Videos} />} />
+        <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
+        <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
+        <Route component={NotFound} />
+      </Switch>
+      <Toaster />
+    </Router>
   );
 }
 
