@@ -432,9 +432,11 @@ export function useVideos(projectId?: number) {
 
         // Actualizar title_corrected cuando se pasa de title_corrections a optimize_review
         if (currentVideo?.status === 'title_corrections' && data.status === 'optimize_review') {
+          console.log('Actualizando title_corrected a true');
           data = {
             ...data,
-            title_corrected: true
+            title_corrected: true,
+            status: 'optimize_review'
           };
         }
 
@@ -442,10 +444,13 @@ export function useVideos(projectId?: number) {
         if (currentVideo?.status === 'media_corrections' && data.status === 'youtube_ready') {
           data = {
             ...data,
-            media_corrected: true
+            media_corrected: true,
+            status: 'youtube_ready'
           };
         }
       }
+
+      console.log('Datos de actualización:', data);
 
       const res = await fetch(`/api/videos/${videoId}`, {
         method: "PATCH",
