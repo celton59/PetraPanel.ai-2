@@ -457,12 +457,10 @@ const Videos = () => {
               </Button>
             </div>
           </div>
-        </div>
-
-        <div className="rounded-lg">
-          {viewMode === 'table' ? (
-            <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+          <div className="rounded-lg">
+            {viewMode === 'table' ? (
+              <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
