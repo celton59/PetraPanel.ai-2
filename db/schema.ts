@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -173,6 +173,8 @@ export const videos = pgTable("videos", {
   updatedAt: timestamp("updated_at").defaultNow(),
   publishedAt: timestamp("published_at"),
   metadata: jsonb("metadata"),
+  title_corrected: boolean("title_corrected").notNull().default(false),
+  media_corrected: boolean("media_corrected").notNull().default(false),
 });
 
 export type User = typeof users.$inferSelect;
