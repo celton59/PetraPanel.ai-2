@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List, Image as ImageIcon } from "lucide-react";
 import { NewVideoDialog } from "@/components/video/NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
+import { SearchInput } from "@/components/video/SearchInput";
 import {
   Table,
   TableBody,
@@ -19,10 +20,8 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VideoOptimizer } from "@/components/video/VideoOptimizer";
 import { useState, useEffect } from "react";
-import { VideoFilters } from "@/components/video/VideoFilters";
-import type { DateRange } from "react-day-picker";
-import { getStatusLabel } from '@/lib/status-labels';
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -40,22 +39,19 @@ const Videos = () => {
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'list'>('table');
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('new') === 'true') {
-      setNewVideoDialogOpen(true);
-      window.history.replaceState({}, '', '/videos');
-    }
-  }, []);
+  const [location] = useLocation();
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Check URL parameters and open dialog if needed
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1]);
+    if (params.get('new') === 'true') {
+      setNewVideoDialogOpen(true);
+    }
+  }, [location]);
 
   const canViewVideo = (video: any) => {
     const userRole = user?.role as keyof typeof VISIBLE_STATES || 'viewer';
@@ -63,6 +59,67 @@ const Videos = () => {
     if (userRole === 'admin') return true;
     return VISIBLE_STATES[userRole]?.includes(effectiveStatus as any);
   };
+
+  const filteredVideos = videos?.filter((video: any) => {
+    if (!canViewVideo(video)) return false;
+
+    const matchesSearch =
+      searchTerm === "" ||
+      video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    return matchesSearch;
+  });
+
+  const selectedVideo = videos?.find(v => v.id === selectedVideoId);
+
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
+      <div className="rounded-full bg-primary/10 p-3 mb-4">
+        <ImageIcon className="w-6 h-6 text-primary" />
+      </div>
+      <h3 className="text-lg font-medium">No hay videos disponibles</h3>
+      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
+        {user?.role === 'optimizer'
+          ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
+          : "Comienza agregando tu primer video usando el botón superior"}
+      </p>
+      {user?.role !== 'optimizer' && (
+        <Button
+          onClick={() => setNewVideoDialogOpen(true)}
+          className="gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Nuevo Video
+        </Button>
+      )}
+    </div>
+  );
+
+  const renderThumbnail = (video: any, className?: string) => (
+    video.thumbnailUrl ? (
+      <img
+        src={video.thumbnailUrl}
+        alt={video.title}
+        className={cn("w-full h-full object-cover", className)}
+      />
+    ) : (
+      <div className={cn("w-full h-full flex items-center justify-center bg-muted text-muted-foreground", className)}>
+        <Layout className="h-4 w-4" />
+      </div>
+    )
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando videos...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isUserLoading) {
     return (
@@ -126,83 +183,6 @@ const Videos = () => {
     }
   };
 
-  const filteredVideos = videos?.filter((video: any) => {
-    if (!canViewVideo(video)) return false;
-
-    const matchesSearch =
-      searchTerm === "" ||
-      video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesStatus =
-      status === "all" || getEffectiveStatus(video, user?.role, user) === status;
-
-    const matchesAssignee =
-      assignedTo === "all" ||
-      (assignedTo === "unassigned" && !video.currentReviewerId) ||
-      String(video.currentReviewerId) === assignedTo;
-
-    const matchesProject =
-      projectId === "all" || String(video.projectId) === projectId;
-
-    const matchesDate = !dateRange?.from || (
-      video.updatedAt &&
-      new Date(video.updatedAt) >= dateRange.from &&
-      (!dateRange.to || new Date(video.updatedAt) <= dateRange.to)
-    );
-
-    return matchesSearch && matchesStatus && matchesAssignee && matchesProject && matchesDate;
-  });
-
-  const selectedVideo = videos?.find(v => v.id === selectedVideoId);
-
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
-      <div className="rounded-full bg-primary/10 p-3 mb-4">
-        <ImageIcon className="w-6 h-6 text-primary" />
-      </div>
-      <h3 className="text-lg font-medium">No hay videos disponibles</h3>
-      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
-        {user?.role === 'optimizer'
-          ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
-          : "Comienza agregando tu primer video usando el botón superior"}
-      </p>
-      {user?.role !== 'optimizer' && (
-        <Button
-          onClick={() => setNewVideoDialogOpen(true)}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Video
-        </Button>
-      )}
-    </div>
-  );
-
-  const renderThumbnail = (video: any, className?: string) => (
-    video.thumbnailUrl ? (
-      <img
-        src={video.thumbnailUrl}
-        alt={video.title}
-        className={cn("w-full h-full object-cover", className)}
-      />
-    ) : (
-      <div className={cn("w-full h-full flex items-center justify-center bg-muted text-muted-foreground", className)}>
-        <Layout className="h-4 w-4" />
-      </div>
-    )
-  );
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando videos...</p>
-        </div>
-      </div>
-    );
-  }
 
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -212,17 +192,7 @@ const Videos = () => {
           onClick={() => handleVideoClick(video)}
         >
           <div className="aspect-video bg-muted relative">
-            {video.thumbnailUrl ? (
-              <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                <Layout className="h-4 w-4" />
-              </div>
-            )}
+            {renderThumbnail(video)}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Eye className="h-6 w-6 text-white" />
             </div>
@@ -255,17 +225,7 @@ const Videos = () => {
           onClick={() => handleVideoClick(video)}
         >
           <div className="w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-            {video.thumbnailUrl ? (
-              <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                <Layout className="h-4 w-4" />
-              </div>
-            )}
+            {renderThumbnail(video)}
           </div>
           <div className="flex-grow min-w-0">
             <h3 className="font-medium mb-1 truncate">
@@ -382,7 +342,7 @@ const Videos = () => {
               </Button>
             </div>
           </div>
-          {showFilters && (
+          {/* {showFilters && (
             <div className="mt-4 grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4">
               <StatusFilter status={status} onStatusChange={setStatus} />
               <AssigneeFilter
@@ -430,7 +390,7 @@ const Videos = () => {
                 </PopoverContent>
               </Popover>
             </div>
-          )}
+          )} */}
           <div className="rounded-lg">
             {viewMode === 'table' ? (
               <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -452,17 +412,7 @@ const Videos = () => {
                         <TableRow key={video.id} className="group">
                           <TableCell>
                             <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                              {video.thumbnailUrl ? (
-                                <img
-                                  src={video.thumbnailUrl}
-                                  alt={video.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                                  <Layout className="h-4 w-4" />
-                                </div>
-                              )}
+                              {renderThumbnail(video, "w-full h-full object-cover")}
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
