@@ -327,7 +327,7 @@ const Videos = () => {
         </p>
         {user?.role !== 'optimizer' && (
           <div className="flex justify-end mt-4">
-            <NewVideoDialog />
+            <NewVideoDialog autoOpen={true} />
           </div>
         )}
       </div>

@@ -1,7 +1,9 @@
+
+import { useNavigate } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProjectSelector } from "../ProjectSelector";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,13 +33,18 @@ interface Project {
   name: string;
 }
 
-export function NewVideoDialog() {
+interface Props {
+  autoOpen?: boolean;
+}
+
+export function NewVideoDialog({ autoOpen = false }: Props) {
   const [step, setStep] = useState(1);
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(autoOpen);
   const { toast } = useToast();
   const { createVideo } = useVideos(selectedProjects[0]);
+  const navigate = useNavigate();
 
   const { data: projectsResponse } = useQuery({
     queryKey: ["projects"],
@@ -117,10 +124,15 @@ export function NewVideoDialog() {
 
   const selectedProject = projects.find((p: Project) => p.id === selectedProjects[0]);
 
+  const handleButtonClick = () => {
+    navigate("/videos");
+    setDialogOpen(true);
+  };
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button onClick={handleButtonClick}>
           <VideoIcon className="mr-2 h-4 w-4" />
           Nuevo Video
         </Button>
