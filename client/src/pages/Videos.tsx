@@ -339,24 +339,98 @@ const Videos = () => {
           </div>
         </div>
 
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <VideoFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              status={status}
-              onStatusChange={setStatus}
-              date={dateRange}
-              onDateChange={setDateRange}
-              assignedTo={assignedTo}
-              onAssignedToChange={setAssignedTo}
-              projectId={projectId}
-              onProjectChange={setProjectId}
-              showFilters={showFilters}
-              onToggleFilters={() => setShowFilters(!showFilters)}
-              visibleStates={VISIBLE_STATES[user?.role as keyof typeof VISIBLE_STATES] || []}
-            />
-            <div className="flex items-center gap-2 ml-auto">
+        <div className="mb-8">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <SearchInput 
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showFilters ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setShowFilters(!showFilters)}
+                className="h-9 w-9"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('table')}
+                className="h-9 w-9"
+              >
+                <Layout className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('grid')}
+                className="h-9 w-9"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('list')}
+                className="h-9 w-9"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          {showFilters && (
+            <div className="mt-4 grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4">
+              <StatusFilter status={status} onStatusChange={setStatus} />
+              <AssigneeFilter
+                assignedTo={assignedTo}
+                onAssignedToChange={onAssignedToChange}
+              />
+              <ProjectFilter
+                projectId={projectId}
+                onProjectChange={onProjectChange}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "LLL dd, y", { locale: es })} -{" "}
+                          {format(date.to, "LLL dd, y", { locale: es })}
+                        </>
+                      ) : (
+                        format(date.from, "LLL dd, y", { locale: es })
+                      )
+                    ) : (
+                      <span>Seleccionar fechas</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={onDateChange}
+                    numberOfMonths={2}
+                    locale={es}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
               <Button
                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                 size="icon"
