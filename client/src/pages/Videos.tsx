@@ -322,22 +322,15 @@ const Videos = () => {
       <div className="container mx-auto max-w-[1200px] px-4 py-8">
         <div className="flex flex-col gap-2 mb-12">
           <div className="flex items-center justify-between">
-            <div className="relative space-y-4">
-              <div className="relative">
-                <h1 className="text-4xl font-bold">
-                  <span className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient-slow">
-                    Videos
-                  </span>
-                </h1>
-                <div className="absolute -bottom-2 left-0 h-[2px] w-24 bg-gradient-to-r from-blue-500/80 via-purple-500/80 to-pink-500/80 blur-sm" />
-                <div className="absolute -bottom-2 left-0 h-[1px] w-24 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-t from-blue-500 via-purple-500 to-pink-500 blur-sm opacity-50" />
-                  <div className="relative h-12 w-1 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 rounded-full" />
-                </div>
-                <p className="text-lg text-muted-foreground/90 font-medium">
+            <div className="space-y-3">
+              <h1 className="text-4xl font-bold">
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Videos
+                </span>
+              </h1>
+              <div className="flex items-center space-x-4">
+                <div className="h-8 w-1 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full" />
+                <p className="text-lg text-muted-foreground font-medium tracking-tight">
                   Gestiona y optimiza tus videos para YouTube
                 </p>
               </div>
