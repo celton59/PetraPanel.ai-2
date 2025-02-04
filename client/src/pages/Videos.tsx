@@ -323,7 +323,7 @@ const Videos = () => {
         <div className="flex flex-col gap-2 mb-12">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
                 Videos
               </h1>
               <p className="text-muted-foreground text-lg mt-2">
