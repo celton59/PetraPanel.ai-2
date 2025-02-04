@@ -1,5 +1,5 @@
 
-import { Cloud, Sun, CloudRain, Thermometer, Wind, Droplets } from "lucide-react";
+import { Cloud, Sun, Moon, CloudRain, Thermometer, Wind, Droplets } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +69,8 @@ export function WeatherWidget() {
   };
 
   const getWeatherIcon = (condition: string) => {
+    const isNight = new Date().getHours() >= 20 || new Date().getHours() <= 6;
+    
     switch(condition) {
       case "sunny": return (
         <motion.div
@@ -82,7 +84,10 @@ export function WeatherWidget() {
             ease: "linear"
           }}
         >
-          <Sun className="h-8 w-8 text-yellow-500" />
+          {isNight ? 
+            <Moon className="h-8 w-8 text-slate-300" /> :
+            <Sun className="h-8 w-8 text-yellow-500" />
+          }
         </motion.div>
       );
       case "cloudy": return (
