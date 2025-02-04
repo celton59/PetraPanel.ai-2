@@ -46,10 +46,8 @@ const Videos = () => {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get('new') === 'true') {
       setNewVideoDialogOpen(true);
-      // Limpiar el parámetro de la URL sin recargar
-      window.history.replaceState({}, '', '/videos');
     }
-  }, []);
+  }, [location]);
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
