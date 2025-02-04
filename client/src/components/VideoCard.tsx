@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Video, VideoStatus } from "@db/schema";
 import { getRoleStatus } from "@/hooks/use-videos";
-import { Clock, Edit, PlayCircle, Upload, Youtube, AlertCircle, Image, CheckCircle2, List } from "lucide-react";
+import { Clock, Edit, PlayCircle, Upload, Youtube, AlertCircle, Image, CheckCircle2, List, Layout } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -55,11 +55,17 @@ const FinalReviewContent = ({ video, userRole, onUpdate }: VideoCardProps) => {
       {video.thumbnailUrl && (
         <div className="rounded-lg overflow-hidden border bg-card">
           <div className="aspect-video relative">
-            <img
-              src={video.thumbnailUrl}
-              alt="Miniatura del video"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt="Miniatura del video"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <Layout className="h-4 w-4" />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -226,11 +232,17 @@ const YoutubeReadyContent = ({ video, userRole }: { video: Video; userRole: stri
       {video.thumbnailUrl && (
         <div className="rounded-lg overflow-hidden border bg-card">
           <div className="aspect-video relative">
-            <img
-              src={video.thumbnailUrl}
-              alt="Miniatura del video"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt="Miniatura del video"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <Layout className="h-4 w-4" />
+              </div>
+            )}
           </div>
         </div>
       )}

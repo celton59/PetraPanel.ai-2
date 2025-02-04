@@ -1,4 +1,3 @@
-
 import { VideoCard } from "@/components/VideoCard";
 import { useVideos } from "@/hooks/use-videos";
 import { Button } from "@/components/ui/button";
@@ -188,9 +187,8 @@ const Videos = () => {
         className={cn("w-full h-full object-cover", className)}
       />
     ) : (
-      <div className={cn("w-full h-full flex flex-col items-center justify-center gap-2 bg-muted/50 text-muted-foreground", className)}>
-        <ImageIcon className="w-5 h-5" />
-        <span className="text-xs">Sin miniatura</span>
+      <div className={cn("w-full h-full flex items-center justify-center bg-muted text-muted-foreground", className)}>
+        <Layout className="h-4 w-4" />
       </div>
     )
   );
@@ -214,7 +212,17 @@ const Videos = () => {
           onClick={() => handleVideoClick(video)}
         >
           <div className="aspect-video bg-muted relative">
-            {renderThumbnail(video)}
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <Layout className="h-4 w-4" />
+              </div>
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Eye className="h-6 w-6 text-white" />
             </div>
@@ -247,7 +255,17 @@ const Videos = () => {
           onClick={() => handleVideoClick(video)}
         >
           <div className="w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-            {renderThumbnail(video)}
+            {video.thumbnailUrl ? (
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <Layout className="h-4 w-4" />
+              </div>
+            )}
           </div>
           <div className="flex-grow min-w-0">
             <h3 className="font-medium mb-1 truncate">
@@ -388,7 +406,17 @@ const Videos = () => {
                       <TableRow key={video.id} className="group">
                         <TableCell>
                           <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                            {renderThumbnail(video)}
+                            {video.thumbnailUrl ? (
+                              <img
+                                src={video.thumbnailUrl}
+                                alt={video.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                                <Layout className="h-4 w-4" />
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
