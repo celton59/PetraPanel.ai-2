@@ -12,6 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getStatusLabel } from '@/lib/status-labels';
+import { Role } from '@/types/roles'; // Assuming this type is defined elsewhere
+
 
 interface VideoStatusControlProps {
   videoId: number;
@@ -52,12 +55,8 @@ const getNextStatuses = (currentRole: string, currentStatus: VideoStatus): Video
   return statusTransitions[currentRole]?.[currentStatus] || [];
 };
 
-// Expandir getStatusLabel para incluir sub-estados del reviewer
-import { getStatusLabel } from '@/lib/status-labels';
 
-// Expandir getStatusDescription para incluir sub-estados
 const getStatusDescription = (status: VideoStatus | string): string => {
-  // Descripciones para sub-estados del reviewer
   const reviewerStateDescriptions: Record<string, string> = {
     revisando_titulo: "Estás revisando el título y la optimización",
     revisando_contenido: "Estás revisando el contenido del video",
@@ -70,7 +69,6 @@ const getStatusDescription = (status: VideoStatus | string): string => {
     return reviewerStateDescriptions[status];
   }
 
-  // Otras descripciones...
   const subStateDescriptions: Record<string, string> = {
     video_disponible: "Video disponible para ser tomado por un youtuber",
     asignado: "Video asignado a un youtuber específico",
@@ -84,7 +82,6 @@ const getStatusDescription = (status: VideoStatus | string): string => {
     return subStateDescriptions[status];
   }
 
-  // Estados principales permanecen igual...
   const descriptions: Record<VideoStatus, string> = {
     pending: "Video recién creado, esperando asignación",
     in_progress: "Video en proceso de optimización de título",
@@ -169,7 +166,7 @@ export const VideoStatusControl = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {getStatusIcon(currentStatus)}
-          <span>Estado: {getStatusLabel(currentStatus, userRole)}</span>
+          <span>Estado: {getStatusLabel(currentStatus, userRole as Role, undefined, { status: currentStatus, title_corrected: true })}</span>
         </CardTitle>
         <CardDescription>
           {getStatusDescription(currentStatus)}

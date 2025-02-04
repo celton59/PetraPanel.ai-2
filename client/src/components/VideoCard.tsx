@@ -31,6 +31,9 @@ interface VideoCardProps {
   onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
+type Role = 'admin' | 'youtuber' | string;
+
+
 const statusColors: Record<VideoStatus, { bg: string; text: string }> = {
   pending: { bg: "bg-yellow-500/10", text: "text-yellow-500" },
   in_progress: { bg: "bg-blue-500/10", text: "text-blue-500" },
@@ -513,7 +516,11 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   };
 
   const statusColor = statusColors[video.status as VideoStatus] || statusColors.pending;
-  const statusLabel = statusLabels[video.status as VideoStatus] || "Pendiente";
+  const getStatusLabel = (status: VideoStatus, role: Role, correctionType?: CorrectionType, video?: Video): string => {
+    // Placeholder implementation.  Replace with your actual logic.
+    return statusLabels[status] || "Unknown Status";
+  };
+  const statusLabel = getStatusLabel(video.status as VideoStatus, userRole as Role, undefined, video);
 
   return (
     <Card>
