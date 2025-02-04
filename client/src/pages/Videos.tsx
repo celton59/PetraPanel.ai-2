@@ -39,15 +39,17 @@ const Videos = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // Check URL parameters and open dialog if needed
   useEffect(() => {
-    const params = new URLSearchParams(location.split('?')[1]);
-    if (params.get('new') === 'true') {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('new') === 'true') {
       setNewVideoDialogOpen(true);
+      // Limpiar el parámetro de la URL
+      setLocation('/videos');
     }
-  }, [location]);
+  }, [setLocation]);
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false);
