@@ -32,7 +32,7 @@ const VISIBLE_STATES = {
   admin: ['pending', 'in_progress', 'optimize_review', 'title_corrections', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision']
 } as const;
 
-const Videos = () => {
+export default function Videos () {
   const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
   const { user, isLoading: isUserLoading } = useUser();
   const [updatingVideoId, setUpdatingVideoId] = useState<number | null>(null);
@@ -179,20 +179,6 @@ const Videos = () => {
     </div>
   );
 
-  const renderThumbnail = (video: any, className?: string) => (
-    video.thumbnailUrl ? (
-      <img
-        src={video.thumbnailUrl}
-        alt={video.title}
-        className={cn("w-full h-full object-cover", className)}
-      />
-    ) : (
-      <div className={cn("w-full h-full flex items-center justify-center bg-muted text-muted-foreground", className)}>
-        <Layout className="h-4 w-4" />
-      </div>
-    )
-  );
-
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -204,8 +190,130 @@ const Videos = () => {
     );
   }
 
-  const renderGridView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  function getTableView () {
+    return <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="w-[100px]">Miniatura</TableHead>
+              <TableHead className="w-[100px]">Serie</TableHead>
+              <TableHead className="min-w-[300px]">Título</TableHead>
+              <TableHead className="w-[150px]">Estado</TableHead>
+              <TableHead className="w-[150px]">Asignado a</TableHead>
+              <TableHead className="w-[150px]">Actualización</TableHead>
+              <TableHead className="w-[100px] text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredVideos?.map((video: any) => (
+              <TableRow key={video.id} className="group">
+                <TableCell>
+                  <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                        <Layout className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                    '(No disponible)' : 
+                    (video.seriesNumber || '-')}
+                </TableCell>
+                <TableCell className="font-medium max-w-[300px] truncate">
+                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                    '(No disponible)' : 
+                    (video.optimizedTitle || video.title)}
+                </TableCell>
+                <TableCell>
+                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                    <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
+                    <Badge variant="secondary" className={cn(getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus))}>
+                      {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
+                    </Badge>
+                  }
+                </TableCell>
+                <TableCell>
+                  {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
+                </TableCell>
+                <TableCell>
+                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
+                    '-' :
+                    new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={updatingVideoId === video.id}
+                      onClick={() => handleVideoClick(video)}
+                      className="transition-colors"
+                    >
+                      {updatingVideoId === video.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                    {user?.role === 'admin' && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. Se eliminará permanentemente el video
+                              <span className="font-medium"> {video.title}</span>.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(video.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {(!filteredVideos || filteredVideos.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  {renderEmptyState()}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  }
+
+  function getGridView () {
+    return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredVideos?.map((video: any) => (
         <div key={video.id} 
           className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
@@ -245,10 +353,11 @@ const Videos = () => {
       ))}
       {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
     </div>
-  );
+  }
 
-  const renderListView = () => (
-    <div className="space-y-4">
+
+  function getListView () {
+    return <div className="space-y-4">
       {filteredVideos?.map((video: any) => (
         <div key={video.id} 
           className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer"
@@ -315,7 +424,33 @@ const Videos = () => {
       ))}
       {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
     </div>
-  );
+  }
+
+  function getVideoDialog () {
+      return <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle>Detalles del Video</DialogTitle>
+        </DialogHeader>
+        <div className="px-6 pb-6">
+          {(selectedVideo.status === 'in_progress' || selectedVideo.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
+            <VideoOptimizer
+              video={selectedVideo}
+              onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
+              allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
+            />
+          ) : (
+            <VideoCard
+              video={selectedVideo}
+              userRole={user?.role || 'viewer'}
+              onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
+              allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -399,158 +534,13 @@ const Videos = () => {
         </div>
 
         <div className="rounded-lg">
-          {viewMode === 'table' ? (
-            <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableHead className="w-[100px]">Miniatura</TableHead>
-                      <TableHead className="w-[100px]">Serie</TableHead>
-                      <TableHead className="min-w-[300px]">Título</TableHead>
-                      <TableHead className="w-[150px]">Estado</TableHead>
-                      <TableHead className="w-[150px]">Asignado a</TableHead>
-                      <TableHead className="w-[150px]">Actualización</TableHead>
-                      <TableHead className="w-[100px] text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredVideos?.map((video: any) => (
-                      <TableRow key={video.id} className="group">
-                        <TableCell>
-                          <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                            {video.thumbnailUrl ? (
-                              <img
-                                src={video.thumbnailUrl}
-                                alt={video.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                                <Layout className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                            '(No disponible)' : 
-                            (video.seriesNumber || '-')}
-                        </TableCell>
-                        <TableCell className="font-medium max-w-[300px] truncate">
-                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                            '(No disponible)' : 
-                            (video.optimizedTitle || video.title)}
-                        </TableCell>
-                        <TableCell>
-                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                            <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
-                            <Badge variant="secondary" className={cn(getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus))}>
-                              {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
-                            </Badge>
-                          }
-                        </TableCell>
-                        <TableCell>
-                          {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
-                        </TableCell>
-                        <TableCell>
-                          {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                            '-' :
-                            new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={updatingVideoId === video.id}
-                              onClick={() => handleVideoClick(video)}
-                              className="transition-colors"
-                            >
-                              {updatingVideoId === video.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                            {user?.role === 'admin' && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="text-destructive transition-colors"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta acción no se puede deshacer. Se eliminará permanentemente el video
-                                      <span className="font-medium"> {video.title}</span>.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(video.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Eliminar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {(!filteredVideos || filteredVideos.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={7}>
-                          {renderEmptyState()}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          ) : viewMode === 'grid' ? (
-            renderGridView()
-          ) : (
-            renderListView()
-          )}
+          {viewMode === 'table' ? ( getTableView() ) 
+            : viewMode === 'grid' ? ( getGridView() ) 
+            : ( getListView() )
+          }
         </div>
 
-        {selectedVideo && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-0">
-              <DialogHeader className="p-6 pb-0">
-                <DialogTitle>Detalles del Video</DialogTitle>
-              </DialogHeader>
-              <div className="px-6 pb-6">
-                {(selectedVideo.status === 'in_progress' || selectedVideo.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
-                  <VideoOptimizer
-                    video={selectedVideo}
-                    onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
-                    allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
-                  />
-                ) : (
-                  <VideoCard
-                    video={selectedVideo}
-                    userRole={user?.role || 'viewer'}
-                    onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
-                    allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        {selectedVideo && getVideoDialog()}
       </div>
     </div>
   );
@@ -679,5 +669,3 @@ const ALLOWED_TRANSITIONS = {
     en_revision: ['optimize_review', 'title_corrections', 'media_corrections', 'review', 'youtube_ready', 'completed']
   }
 } as const;
-
-export default Videos;
