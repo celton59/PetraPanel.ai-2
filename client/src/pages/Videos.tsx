@@ -13,7 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { VideoStatus } from "../../../db/schema";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +22,7 @@ import { VideoFilters } from "@/components/video/VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusLabel } from '@/lib/status-labels';
 import { cn } from "@/lib/utils";
+import type { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -592,7 +592,7 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   return video.status;
 };
 
-const getEffectiveAssignment = (video: any, userRole?: string, currentUser?: any) => {
+const getEffectiveAssignment = (video: any, userRole?: User['role'], currentUser?: any) => {
   if (userRole === 'reviewer' && video.status === 'upload_review') {
     return {
       name: 'Disponible',
