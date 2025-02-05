@@ -45,21 +45,21 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-gradient-to-br from-primary/5 via-background to-primary/5">
-      <div className="w-full max-w-lg space-y-10">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-gradient-to-br from-primary/10 via-background to-primary/5">
+      <div className="w-full max-w-lg space-y-8">
         {/* Header Section */}
-        <div className="flex flex-col items-center space-y-8 text-center">
+        <div className="flex flex-col items-center space-y-6 text-center">
           <div className="relative">
-            <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full"></div>
-            <div className="relative bg-primary/10 p-4 rounded-full">
-              <CircleUserRound className="w-12 h-12 text-primary animate-float" />
+            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
+            <div className="relative bg-gradient-to-br from-primary/10 to-primary/20 p-5 rounded-full backdrop-blur-sm ring-1 ring-primary/20">
+              <CircleUserRound className="w-14 h-14 text-primary animate-float" />
             </div>
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
               {isLogin ? "¡Bienvenido de nuevo!" : "Crear una cuenta"}
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground max-w-sm mx-auto">
+            <p className="text-base md:text-lg text-muted-foreground/80 max-w-sm mx-auto">
               {isLogin
                 ? "Inicia sesión para acceder a tu cuenta y gestionar tus videos"
                 : "Regístrate para comenzar a gestionar tus videos"}
@@ -68,11 +68,11 @@ export default function AuthPage() {
         </div>
 
         {/* Auth Form Card */}
-        <Card className="border-border/50 backdrop-blur-sm bg-card/95">
-          <CardContent className="pt-8 px-8 md:px-10">
+        <Card className="border-border/40 backdrop-blur-sm bg-card/90 shadow-xl">
+          <CardContent className="pt-10 px-8 md:px-10">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="space-y-6 mt-6">
+                <div className="space-y-6">
                   <Input
                     placeholder="Nombre de usuario"
                     {...form.register("username", { required: true })}
