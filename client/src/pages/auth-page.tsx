@@ -73,7 +73,7 @@ export default function AuthPage() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="space-y-10">
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
                       Nombre de usuario
                     </label>
