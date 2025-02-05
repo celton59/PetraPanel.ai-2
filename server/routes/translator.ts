@@ -165,7 +165,7 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
       }
     );
 
-    if (!uploadUrl.data.upload_url) {
+    if (!uploadResponse.data.upload_url) {
       throw new Error("Failed to get upload URL from AssemblyAI");
     }
 
