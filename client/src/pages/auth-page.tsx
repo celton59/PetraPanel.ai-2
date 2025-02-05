@@ -69,10 +69,10 @@ export default function AuthPage() {
 
         {/* Auth Form Card */}
         <Card className="border-border/50 backdrop-blur-sm bg-card/95">
-          <CardContent className="pt-6 px-6 md:px-8">
+          <CardContent className="pt-8 px-8 md:px-10">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-4 mt-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <div className="space-y-6 mt-6">
                   <Input
                     placeholder="Nombre de usuario"
                     {...form.register("username", { required: true })}
