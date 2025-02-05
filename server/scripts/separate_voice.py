@@ -19,10 +19,7 @@ def separate_voice(audio_path, vocals_path, instrumental_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
         URL_API = "https://www.lalal.ai/api/"
-        API_KEY = os.getenv("LALAAI_API_KEY")
-
-        if not API_KEY:
-            raise ValueError("LALAAI_API_KEY environment variable not set")
+        API_KEY = "fb664191829e4f3a"
 
         # Upload file
         print("Uploading file to LALAL.AI...")
