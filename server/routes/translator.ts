@@ -153,7 +153,7 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
 
     // First, upload the file to AssemblyAI
     const audioFile = await readFile(audioPath);
-    
+
     const uploadResponse = await axios.post(
       "https://api.assemblyai.com/v2/upload",
       audioFile,
@@ -177,11 +177,12 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
         language_code: "es",
         punctuate: true,
         format_text: true,
-        word_timestamps: true // Enable word timestamps
+        word_boost: [""],
+        auto_chapters: true
       },
       {
         headers: {
-          "Authorization": process.env.ASSEMBLYAI_API_KEY,
+          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
           "Content-Type": "application/json"
         }
       }
