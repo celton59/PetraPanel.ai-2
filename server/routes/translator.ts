@@ -39,6 +39,16 @@ async function extractAudio(videoPath: string): Promise<string> {
   console.log('Output audio path:', audioPath);
 
   try {
+    // Verificar que FFmpeg está instalado
+    await execAsync('ffmpeg -version').catch(() => {
+      throw new Error('FFmpeg no está instalado en el sistema');
+    });
+
+    // Verificar que el archivo de video existe
+    if (!fs.existsSync(videoPath)) {
+      throw new Error(`El archivo de video no existe: ${videoPath}`);
+    }
+
     const command = `ffmpeg -i "${videoPath}" -vn -acodec libmp3lame -q:a 2 "${audioPath}"`;
     console.log('Executing command:', command);
 
@@ -50,13 +60,14 @@ async function extractAudio(videoPath: string): Promise<string> {
     }
 
     if (!fs.existsSync(audioPath)) {
-      throw new Error('Audio file was not created');
+      throw new Error('El archivo de audio no fue creado');
     }
 
     return audioPath;
   } catch (error) {
     console.error('FFmpeg error:', error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    throw new Error(`Error al extraer audio: ${errorMessage}`);
   }
 }
 
