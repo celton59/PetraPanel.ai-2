@@ -69,7 +69,7 @@ export default function AuthPage() {
 
         {/* Auth Form Card */}
         <Card className="border-border/40 backdrop-blur-sm bg-card/90 shadow-xl">
-          <CardContent className="pt-10 px-8 md:px-10">
+          <CardContent className="pt-14 px-8 md:px-10">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="space-y-10">
