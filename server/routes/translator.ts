@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import axios from "axios";
 import fs from "fs";
+import FormData from "form-data";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { spawn } from "child_process";
@@ -152,14 +153,19 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
 
     // First, upload the file to AssemblyAI
     const audioFile = await readFile(audioPath);
+    const formData = new FormData();
+    formData.append('file', audioFile, { 
+      filename: path.basename(audioPath),
+      contentType: 'audio/mp3'
+    });
+    
     const uploadUrl = await axios.post(
       "https://api.assemblyai.com/v2/upload",
-      audioFile,
+      formData,
       {
         headers: {
           "Authorization": process.env.ASSEMBLYAI_API_KEY,
-          "Content-Type": "application/octet-stream",
-          "Transfer-Encoding": "chunked"
+          ...formData.getHeaders()
         }
       }
     );
