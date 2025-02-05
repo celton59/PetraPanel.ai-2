@@ -153,19 +153,14 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
 
     // First, upload the file to AssemblyAI
     const audioFile = await readFile(audioPath);
-    const formData = new FormData();
-    formData.append('file', audioFile, { 
-      filename: path.basename(audioPath),
-      contentType: 'audio/mp3'
-    });
     
-    const uploadUrl = await axios.post(
+    const uploadResponse = await axios.post(
       "https://api.assemblyai.com/v2/upload",
-      formData,
+      audioFile,
       {
         headers: {
           "Authorization": process.env.ASSEMBLYAI_API_KEY,
-          ...formData.getHeaders()
+          "Content-Type": "application/octet-stream"
         }
       }
     );
@@ -178,11 +173,11 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
     const transcript = await axios.post(
       "https://api.assemblyai.com/v2/transcript",
       {
-        audio_url: uploadUrl.data.upload_url,
+        audio_url: uploadResponse.data.upload_url,
         language_code: "es",
-        word_boost: [""], // Optional: Add words to boost recognition
         punctuate: true,
-        format_text: true
+        format_text: true,
+        word_timestamps: true // Enable word timestamps
       },
       {
         headers: {
