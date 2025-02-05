@@ -146,7 +146,7 @@ async function cloneVoice(voicePath: string): Promise<string> {
 }
 
 // Función para transcribir usando AssemblyAI
-async function transcribeAudio(audioPath: string): Promise<string> {
+async function transcribeAudio(audioPath: string): Promise<{text: string, words: Array<{text: string, start: number, end: number, confidence: number}>}> {
   try {
     console.log("Starting transcription with AssemblyAI...");
 
@@ -173,7 +173,10 @@ async function transcribeAudio(audioPath: string): Promise<string> {
       "https://api.assemblyai.com/v2/transcript",
       {
         audio_url: uploadUrl.data.upload_url,
-        language_code: "es"
+        language_code: "es",
+        word_boost: [""], // Optional: Add words to boost recognition
+        punctuate: true,
+        format_text: true
       },
       {
         headers: {
@@ -209,7 +212,10 @@ async function transcribeAudio(audioPath: string): Promise<string> {
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    return transcriptResult.data.text;
+    return {
+      text: transcriptResult.data.text,
+      words: transcriptResult.data.words
+    };
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
     throw error;
@@ -384,12 +390,13 @@ router.post("/:videoId/transcribe", async (req, res) => {
       throw new Error(`Vocals file not found: ${vocalsPath}`);
     }
 
-    const text = await transcribeAudio(vocalsPath);
+    const transcription = await transcribeAudio(vocalsPath);
     console.log("Transcription completed successfully");
 
     res.json({ 
       status: 'transcribed',
-      text 
+      text: transcription.text,
+      words: transcription.words
     });
   } catch (error) {
     console.error("Error transcribing:", error);
