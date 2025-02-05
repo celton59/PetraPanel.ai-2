@@ -177,8 +177,7 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
         language_code: "es",
         punctuate: true,
         format_text: true,
-        word_boost: [""],
-        auto_chapters: true
+        word_timestamps: true
       },
       {
         headers: {
