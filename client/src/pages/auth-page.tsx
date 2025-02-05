@@ -72,8 +72,8 @@ export default function AuthPage() {
           <CardContent className="pt-10 px-8 md:px-10">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="space-y-8">
-                  <div className="space-y-3">
+                <div className="space-y-10">
+                  <div className="space-y-4">
                     <label className="text-sm font-medium text-foreground">
                       Nombre de usuario
                     </label>
