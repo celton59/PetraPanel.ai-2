@@ -72,18 +72,28 @@ export default function AuthPage() {
           <CardContent className="pt-10 px-8 md:px-10">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="space-y-6">
-                  <Input
-                    placeholder="Nombre de usuario"
-                    {...form.register("username", { required: true })}
-                    className="h-12"
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Contraseña"
-                    {...form.register("password", { required: true })}
-                    className="h-12"
-                  />
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground">
+                      Nombre de usuario
+                    </label>
+                    <Input
+                      placeholder="Ingresa tu nombre de usuario"
+                      {...form.register("username", { required: true })}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground">
+                      Contraseña
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Ingresa tu contraseña"
+                      {...form.register("password", { required: true })}
+                      className="h-12"
+                    />
+                  </div>
                 </div>
                 <Button type="submit" size="lg" className="w-full h-12 text-base">
                   {isLogin ? "Iniciar sesión" : "Registrarse"}
