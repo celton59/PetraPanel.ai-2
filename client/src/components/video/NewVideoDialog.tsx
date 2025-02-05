@@ -1,7 +1,8 @@
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProjectSelector } from "../ProjectSelector";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,11 +32,17 @@ interface Project {
   name: string;
 }
 
-export function NewVideoDialog() {
+interface Props {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function NewVideoDialog({ open, onOpenChange }: Props) {
   const [step, setStep] = useState(1);
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [, setLocation] = useLocation();
+
   const { toast } = useToast();
   const { createVideo } = useVideos(selectedProjects[0]);
 
@@ -94,7 +101,9 @@ export function NewVideoDialog() {
 
       queryClient.invalidateQueries({ queryKey: ["videos"] });
 
-      setDialogOpen(false);
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
       resetForm();
     } catch (error: any) {
       console.error("Error creating video:", error);
@@ -118,7 +127,7 @@ export function NewVideoDialog() {
   const selectedProject = projects.find((p: Project) => p.id === selectedProjects[0]);
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <VideoIcon className="mr-2 h-4 w-4" />

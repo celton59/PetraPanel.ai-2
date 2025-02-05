@@ -1,5 +1,6 @@
 
-import { Cloud, Sun, CloudRain, Thermometer, Wind, Droplets } from "lucide-react";
+import { Cloud, Sun, Moon, CloudRain, Thermometer, Wind, Droplets } from "lucide-react";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import axios from "axios";
@@ -68,11 +69,81 @@ export function WeatherWidget() {
   };
 
   const getWeatherIcon = (condition: string) => {
+    const isNight = new Date().getHours() >= 20 || new Date().getHours() <= 6;
+    
     switch(condition) {
-      case "sunny": return <Sun className="h-8 w-8 text-yellow-500" />;
-      case "cloudy": return <Cloud className="h-8 w-8 text-gray-500" />;
-      case "rainy": return <CloudRain className="h-8 w-8 text-blue-500" />;
-      default: return <Sun className="h-8 w-8 text-yellow-500" />;
+      case "sunny": return (
+        <motion.div
+          animate={isNight ? {
+            y: [-2, 2, -2],
+            scale: [1, 1.1, 1],
+            filter: [
+              "brightness(1)",
+              "brightness(1.2)",
+              "brightness(1)"
+            ]
+          } : {
+            rotate: [0, 180, 360],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{
+            duration: isNight ? 3 : 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          {isNight ? 
+            <motion.div style={{ scaleX: -1 }}>
+              <Moon className="h-8 w-8 text-slate-300" />
+            </motion.div> :
+            <Sun className="h-8 w-8 text-yellow-500" />
+          }
+        </motion.div>
+      );
+      case "cloudy": return (
+        <motion.div
+          animate={{
+            x: [-5, 5, -5],
+            y: [-2, 2, -2]
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          <Cloud className="h-8 w-8 text-gray-500" />
+        </motion.div>
+      );
+      case "rainy": return (
+        <motion.div
+          animate={{
+            y: [-2, 2, -2],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          <CloudRain className="h-8 w-8 text-blue-500" />
+        </motion.div>
+      );
+      default: return (
+        <motion.div
+          animate={{
+            rotate: [0, 180, 360],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        >
+          <Sun className="h-8 w-8 text-yellow-500" />
+        </motion.div>
+      );
     }
   };
 

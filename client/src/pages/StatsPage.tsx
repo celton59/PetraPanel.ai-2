@@ -53,9 +53,12 @@ export default function StatsPage() {
           className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-lg shadow-sm border border-border/50"
         >
           <div className="space-y-2">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Estadísticas
-            </h1>
+            <div className="flex items-center gap-3">
+              <FileBarChart className="w-8 h-8 text-red-500" />
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Estadísticas
+              </h1>
+            </div>
             <p className="text-muted-foreground text-lg">
               Panel completo de métricas y análisis de rendimiento
             </p>

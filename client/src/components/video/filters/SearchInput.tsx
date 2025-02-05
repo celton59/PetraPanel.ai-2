@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Input } from "@/components/ui/input";
 
@@ -12,7 +13,7 @@ export const SearchInput = ({ searchTerm, onSearchChange }: SearchInputProps) =>
       placeholder="Buscar videos por título o número de serie"
       value={searchTerm}
       onChange={(e) => onSearchChange(e.target.value)}
-      className="w-full pl-4"
+      className="w-[400px] pl-4 h-9 text-base"
     />
   );
 };

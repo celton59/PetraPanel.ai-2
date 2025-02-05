@@ -56,8 +56,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <Router>
+        <Switch>
+          <Route path="/*" component={Layout} />
+        </Switch>
+        <Toaster />
+      </Router>
     </QueryClientProvider>
   );
 }

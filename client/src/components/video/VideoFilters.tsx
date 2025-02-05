@@ -43,20 +43,12 @@ export function VideoFilters({
 }: VideoFiltersProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex-1">
         <SearchInput 
           searchTerm={searchTerm} 
           onSearchChange={onSearchChange} 
         />
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onToggleFilters}
-          className={showFilters ? "bg-accent" : ""}
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
-      </div>
+    </div>
 
       {showFilters && (
         <div className="grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4">
