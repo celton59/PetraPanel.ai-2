@@ -122,7 +122,7 @@ export const users = pgTable("users", {
   email: text("email"),
   bio: text("bio"),
   phone: text("phone"),
-  role: text("role", { enum: ["uploader", "admin", "reviewer", "optimizer"] }).notNull().default("uploader"),
+  role: text("role", { enum: ["uploader", "admin", "reviewer", "optimizer", "youtuber"] }).notNull().default("uploader"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
