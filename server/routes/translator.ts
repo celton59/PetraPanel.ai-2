@@ -169,9 +169,9 @@ async function transcribeAudio(audioPath: string): Promise<TranscriptionResult> 
       audioFile,
       {
         headers: {
-          "Authorization": process.env.ASSEMBLYAI_API_KEY,
-          "Content-Type": "application/octet-stream",
-          "Transfer-Encoding": "chunked"
+          "authorization": process.env.ASSEMBLYAI_API_KEY,
+          "content-type": "application/octet-stream",
+          "transfer-encoding": "chunked"
         }
       }
     );
@@ -185,15 +185,20 @@ async function transcribeAudio(audioPath: string): Promise<TranscriptionResult> 
       "https://api.assemblyai.com/v2/transcript",
       {
         audio_url: uploadUrl.data.upload_url,
-        language_code: "es",
-        word_timestamps: true,
+        language_detection: true,
         punctuate: true,
-        format_text: true
+        format_text: true,
+        word_boost: [""],
+        auto_highlights: true,
+        content_safety: true,
+        auto_chapters: true,
+        entity_detection: true,
+        word_timestamps: true
       },
       {
         headers: {
-          "Authorization": process.env.ASSEMBLYAI_API_KEY,
-          "Content-Type": "application/json"
+          "authorization": process.env.ASSEMBLYAI_API_KEY,
+          "content-type": "application/json"
         }
       }
     );
