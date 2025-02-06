@@ -1,6 +1,19 @@
-import { VideoStatus } from "@db/schema";
+import { VideoStatus, Video } from "@db/schema";
 
 export type Role = 'optimizer' | 'reviewer' | 'youtuber' | 'uploader' | 'admin' | 'viewer';
+
+
+const statusLabels: Record<VideoStatus, string> = {
+    pending: "Disponible",
+    in_progress: "En Proceso",
+    optimize_review: "En Revisión",
+    title_corrections: "Con Correcciones",
+    completed: "Completado",
+    upload_review: "Completado",
+    media_corrections: "Completado",
+    youtube_ready: "Completado",
+    review: "En revisión"
+}
 
 // Etiquetas específicas por rol
 const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, string | ((previousStatus: string, metadata?: any, video?: any) => string)>>> = {
@@ -71,4 +84,12 @@ export const getStatusLabel = (status: VideoStatus | string, role?: Role, previo
 
   // 2. Si no hay etiqueta específica, usar la predeterminada
   return defaultLabels[status] || status;
+};
+
+export const getStatusLabelNew = (role: Role, video: Video): string => {
+
+  if( ['admin'].includes(role) ) {
+    return statusLabels[video.status]
+  }
+    
 };

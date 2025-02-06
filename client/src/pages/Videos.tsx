@@ -95,6 +95,7 @@ export default function Videos () {
       try {
         await updateVideo({
           videoId: video.id,
+          projectId: video.projectId,
           data: {
             status: 'in_progress',
             currentReviewerId: user?.id,
@@ -206,7 +207,7 @@ export default function Videos () {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredVideos?.map((video: any) => (
+            {filteredVideos?.map( video => (
               <TableRow key={video.id} className="group">
                 {/* Miniatura */}
                 <TableCell>
@@ -214,7 +215,7 @@ export default function Videos () {
                     {video.thumbnailUrl ? (
                       <img
                         src={video.thumbnailUrl}
-                        alt={video.title}
+                        alt={video.optimizedTitle ?? video.title}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -225,14 +226,10 @@ export default function Videos () {
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">
-                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                    '(No disponible)' : 
-                    (video.seriesNumber || '-')}
+                  { video.seriesNumber ?? '-'}
                 </TableCell>
                 <TableCell className="font-medium max-w-[300px] truncate">
-                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                    '(No disponible)' : 
-                    (video.optimizedTitle || video.title)}
+                  { video.optimizedTitle ?? video.title }
                 </TableCell>
                 <TableCell>
                   {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
@@ -434,17 +431,17 @@ export default function Videos () {
           <DialogTitle>Detalles del Video</DialogTitle>
         </DialogHeader>
         <div className="px-6 pb-6">
-          {(selectedVideo?.status === 'in_progress' || selectedVideo.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
+          {(selectedVideo?.status === 'in_progress' || selectedVideo!.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
             <VideoOptimizer
               video={selectedVideo}
-              onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
+              onUpdate={(videoId, data) => updateVideo({ videoId, projectId: selectedVideo!.projectId, data, currentRole: user.role })}
               allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
             />
           ) : (
             <VideoCard
-              video={selectedVideo}
-              userRole={user?.role || 'viewer'}
-              onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}
+              video={selectedVideo!}
+              userRole={user!.role}
+              onUpdate={(videoId, data) => updateVideo({ videoId, projectId: selectedVideo!.projectId, data, currentRole: user!.role })}
               allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
             />
           )}

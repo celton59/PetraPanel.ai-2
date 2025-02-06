@@ -227,7 +227,7 @@ const statusTransitions: Record<User['role'], Record<VideoStatus, VideoStatus[]>
   youtuber: {}
 };
 
-const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, newStatus: VideoStatus): boolean => {
+const canUpdateVideoStatus = (currentRole: User['role'], currentStatus: VideoStatus, newStatus: VideoStatus): boolean => {
   // Si es admin, permitir todas las transiciones
   if (currentRole === 'admin') {
     return true;
@@ -238,8 +238,8 @@ const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, n
     return true;
   }
 
-  const allowedTransitions = statusTransitions[currentRole]?.[currentStatus] || [];
-  return newStatus ? allowedTransitions.includes(newStatus) : true;
+  const allowedTransitions = statusTransitions[currentRole]?.[currentStatus] || []
+  return allowedTransitions.includes(newStatus)
 };
 
 // Función mejorada para obtener el estado efectivo considerando metadata
@@ -372,7 +372,7 @@ export function useVideos(projectId?: number): {
   videos: Video[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
-  updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData; currentRole: string; currentUser?: any }) => Promise<any>;
+  updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData; currentRole: User['role']; currentUser?: any }) => Promise<any>;
   deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
 } {
   const queryClient = useQueryClient();
@@ -431,7 +431,7 @@ export function useVideos(projectId?: number): {
   });
 
   const updateVideoMutation = useMutation({
-    mutationFn: async ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number, data: UpdateVideoData; currentRole: string; currentUser?: any }) => {
+    mutationFn: async ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number, data: UpdateVideoData; currentRole: User['role']; currentUser?: any }) => {
       if (data.status && videos) {
         const currentVideo = videos.find((v: Video) => v.id === videoId);
         if (currentVideo && !canUpdateVideoStatus(currentRole, currentVideo.status as VideoStatus, data.status)) {
