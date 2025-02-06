@@ -280,7 +280,7 @@ router.post("/upload", upload.single("video"), (req, res) => {
   }
 
   const videoId = path.basename(req.file.path, path.extname(req.file.path));
-  
+
   // Store in cache
   processedFiles[videoId] = {
     videoPath: req.file.path
@@ -296,7 +296,7 @@ router.post("/upload", upload.single("video"), (req, res) => {
 // Ruta para extraer audio
 router.post("/:videoId/extract-audio", async (req, res) => {
   const { videoId } = req.params;
-  
+
   // Check cache first
   if (processedFiles[videoId]?.audioPath) {
     return res.json({
@@ -439,6 +439,18 @@ router.post("/:videoId/transcribe", async (req, res) => {
   const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
 
   try {
+    // Check if we already have a transcription for this file
+    const transcriptionPath = path.join(process.cwd(), "uploads", `${videoId}_transcription.json`);
+
+    if (fs.existsSync(transcriptionPath)) {
+      console.log("Found existing transcription");
+      const transcription = JSON.parse(fs.readFileSync(transcriptionPath, 'utf-8'));
+      return res.json({ 
+        status: 'transcribed',
+        text: transcription
+      });
+    }
+
     console.log("Starting transcription for:", vocalsPath);
 
     if (!fs.existsSync(vocalsPath)) {
@@ -446,7 +458,8 @@ router.post("/:videoId/transcribe", async (req, res) => {
     }
 
     const text = await transcribeAudio(vocalsPath);
-    console.log("Transcription completed successfully");
+    // Save transcription for future use
+    fs.writeFileSync(transcriptionPath, JSON.stringify(text));
 
     res.json({ 
       status: 'transcribed',
