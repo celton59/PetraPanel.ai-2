@@ -224,7 +224,10 @@ async function transcribeAudio(audioPath: string): Promise<TranscriptionResult> 
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    return transcriptResult.data.text;
+    return {
+      text: transcriptResult.data.text,
+      words: transcriptResult.data.words
+    };
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
     throw error;
