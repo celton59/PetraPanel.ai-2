@@ -284,7 +284,7 @@ router.post("/upload", upload.single("video"), async (req, res) => {
     return res.status(400).json({ error: "No se subió ningún archivo" });
   }
 
-  const crypto = require('crypto');
+  import crypto from 'crypto';
   const fileBuffer = await fs.promises.readFile(req.file.path);
   const hash = crypto.createHash('md5').update(fileBuffer).digest('hex');
   
