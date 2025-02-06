@@ -77,9 +77,9 @@ export default function Videos () {
 
   if (!user) return null;
 
-  const handleDelete = async (videoId: number) => {
+  const handleDeleteVideo = async (videoId: number, projectId: number) => {
     try {
-      await deleteVideo(videoId);
+      await deleteVideo({ videoId, projectId });
       toast.success("Video eliminado correctamente");
     } catch (error) {
       console.error("Error deleting video:", error);
@@ -208,6 +208,7 @@ export default function Videos () {
           <TableBody>
             {filteredVideos?.map((video: any) => (
               <TableRow key={video.id} className="group">
+                {/* Miniatura */}
                 <TableCell>
                   <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
                     {video.thumbnailUrl ? (
@@ -286,7 +287,7 @@ export default function Videos () {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDelete(video.id)}
+                              onClick={() => handleDeleteVideo(video.id, video.projectId)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Eliminar
@@ -410,7 +411,7 @@ export default function Videos () {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => handleDelete(video.id)}
+                      onClick={() => handleDeleteVideo(video.id, video.projectId)}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       Eliminar
@@ -433,7 +434,7 @@ export default function Videos () {
           <DialogTitle>Detalles del Video</DialogTitle>
         </DialogHeader>
         <div className="px-6 pb-6">
-          {(selectedVideo.status === 'in_progress' || selectedVideo.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
+          {(selectedVideo?.status === 'in_progress' || selectedVideo.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
             <VideoOptimizer
               video={selectedVideo}
               onUpdate={(videoId, data) => updateVideo({ videoId, data, currentRole: user?.role || 'viewer' })}

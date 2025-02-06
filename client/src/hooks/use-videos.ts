@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Video, VideoStatus } from "@db/schema";
+import type { Video, VideoStatus, User } from "@db/schema";
 import { useToast } from "./use-toast";
 
 // Tipos para metadata y sub-estados
@@ -122,64 +122,64 @@ export interface UpdateVideoData {
 }
 
 // Añadir la función determineNextStatus
-export const determineNextStatus = (currentStatus: VideoStatus, userRole: string): VideoStatus | undefined => {
-  // Si el usuario es viewer o el rol no existe, no cambiamos el estado
-  if (userRole === 'viewer' || !userRole) {
-    return undefined;
-  }
+// export const determineNextStatus = (currentStatus: VideoStatus, userRole: string): VideoStatus | undefined => {
+//   // Si el usuario es viewer o el rol no existe, no cambiamos el estado
+//   if (userRole === 'viewer' || !userRole) {
+//     return undefined;
+//   }
 
-  // Mapa de transiciones automáticas al asignar un video
-  const autoTransitions: Record<string, Record<VideoStatus, VideoStatus | undefined>> = {
-    optimizer: {
-      pending: 'in_progress',  // Permitir que el optimizador cambie de pending a in_progress
-      title_corrections: 'in_progress',
-      in_progress: undefined,
-      optimize_review: undefined,
-      upload_review: undefined,
-      youtube_ready: undefined,
-      review: undefined,
-      media_corrections: undefined,
-      completed: undefined
-    },
-    reviewer: {
-      pending: undefined,
-      in_progress: undefined,
-      title_corrections: undefined,
-      optimize_review: 'youtube_ready',
-      upload_review: 'optimize_review',
-      youtube_ready: undefined,
-      review: undefined,
-      media_corrections: 'upload_review',
-      completed: undefined
-    },
-    uploader: {
-      pending: undefined,
-      in_progress: undefined,
-      title_corrections: undefined,
-      optimize_review: undefined,
-      upload_review: undefined,
-      youtube_ready: undefined,
-      review: undefined,
-      media_corrections: 'upload_review',
-      completed: undefined
-    },
-    admin: {
-      pending: 'in_progress',
-      in_progress: undefined,
-      title_corrections: 'in_progress',
-      optimize_review: 'youtube_ready',
-      upload_review: 'optimize_review',
-      youtube_ready: undefined,
-      review: undefined,
-      media_corrections: 'upload_review',
-      completed: undefined
-    }
-  };
+//   // Mapa de transiciones automáticas al asignar un video
+//   const autoTransitions: Record<string, Record<VideoStatus, VideoStatus | undefined>> = {
+//     optimizer: {
+//       pending: 'in_progress',  // Permitir que el optimizador cambie de pending a in_progress
+//       title_corrections: 'in_progress',
+//       in_progress: undefined,
+//       optimize_review: undefined,
+//       upload_review: undefined,
+//       youtube_ready: undefined,
+//       review: undefined,
+//       media_corrections: undefined,
+//       completed: undefined
+//     },
+//     reviewer: {
+//       pending: undefined,
+//       in_progress: undefined,
+//       title_corrections: undefined,
+//       optimize_review: 'youtube_ready',
+//       upload_review: 'optimize_review',
+//       youtube_ready: undefined,
+//       review: undefined,
+//       media_corrections: 'upload_review',
+//       completed: undefined
+//     },
+//     uploader: {
+//       pending: undefined,
+//       in_progress: undefined,
+//       title_corrections: undefined,
+//       optimize_review: undefined,
+//       upload_review: undefined,
+//       youtube_ready: undefined,
+//       review: undefined,
+//       media_corrections: 'upload_review',
+//       completed: undefined
+//     },
+//     admin: {
+//       pending: 'in_progress',
+//       in_progress: undefined,
+//       title_corrections: 'in_progress',
+//       optimize_review: 'youtube_ready',
+//       upload_review: 'optimize_review',
+//       youtube_ready: undefined,
+//       review: undefined,
+//       media_corrections: 'upload_review',
+//       completed: undefined
+//     }
+//   };
 
-  return autoTransitions[userRole]?.[currentStatus];
-};
+//   return autoTransitions[userRole]?.[currentStatus];
+// };
 
-const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
+const statusTransitions: Record<User['role'], Record<VideoStatus, VideoStatus[]>> = {
   optimizer: {
     pending: ["in_progress"],  // Permitir que el optimizador vea y trabaje con videos pending
     in_progress: ["optimize_review"],
@@ -223,7 +223,8 @@ const statusTransitions: Record<string, Record<VideoStatus, VideoStatus[]>> = {
     media_corrections: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready", "completed"],
     youtube_ready: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "completed"],
     completed: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready"]
-  }
+  },
+  youtuber: {}
 };
 
 const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, newStatus: VideoStatus): boolean => {
@@ -242,131 +243,138 @@ const canUpdateVideoStatus = (currentRole: string, currentStatus: VideoStatus, n
 };
 
 // Función mejorada para obtener el estado efectivo considerando metadata
-const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) => {
-  const roleStatus = getRoleStatus(video.status as VideoStatus);
+// const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) => {
+//   const roleStatus = getRoleStatus(video.status as VideoStatus);
 
-  // Verificar si el rol actual tiene acceso al video
-  if (!roleStatus[userRole as string] || roleStatus[userRole as string] === 'no_disponible') {
-    return 'no_disponible';
-  }
+//   // Verificar si el rol actual tiene acceso al video
+//   if (!roleStatus[userRole as string] || roleStatus[userRole as string] === 'no_disponible') {
+//     return 'no_disponible';
+//   }
 
-  // Verificar estados específicos por rol en metadata
-  if (video.metadata?.roleView) {
-    if (userRole === 'optimizer' && video.metadata.roleView.optimizer) {
-      return video.metadata.roleView.optimizer.status;
-    }
-    if (userRole === 'reviewer' && video.metadata.roleView.reviewer) {
-      return video.metadata.roleView.reviewer.titleReview?.status || video.metadata.roleView.reviewer.contentReview?.status || 'disponible';
-    }
-  }
+//   // Verificar estados específicos por rol en metadata
+//   if (video.metadata?.roleView) {
+//     if (userRole === 'optimizer' && video.metadata.roleView.optimizer) {
+//       return video.metadata.roleView.optimizer.status;
+//     }
+//     if (userRole === 'reviewer' && video.metadata.roleView.reviewer) {
+//       return video.metadata.roleView.reviewer.titleReview?.status || video.metadata.roleView.reviewer.contentReview?.status || 'disponible';
+//     }
+//   }
 
-  // Si el video tiene un estado personalizado en metadata, tiene prioridad
-  if (video.metadata?.customStatus) {
-    return video.metadata.customStatus;
-  }
+//   // Si el video tiene un estado personalizado en metadata, tiene prioridad
+//   if (video.metadata?.customStatus) {
+//     return video.metadata.customStatus;
+//   }
 
-  // Para el rol reviewer
-  if (userRole === 'reviewer') {
-    if (video.status === 'optimize_review') {
-      const lastApproval = video.metadata?.optimization?.approvalHistory?.[
-        video.metadata.optimization.approvalHistory?.length - 1
-      ];
+//   // Para el rol reviewer
+//   if (userRole === 'reviewer') {
+//     if (video.status === 'optimize_review') {
+//       const lastApproval = video.metadata?.optimization?.approvalHistory?.[
+//         video.metadata.optimization.approvalHistory?.length - 1
+//       ];
 
-      if (lastApproval?.action === 'rejected' || video.metadata?.secondaryStatus?.type === 'title_rejected') {
-        return 'en_revision';
-      }
-      return 'disponible';
-    }
+//       if (lastApproval?.action === 'rejected' || video.metadata?.secondaryStatus?.type === 'title_rejected') {
+//         return 'en_revision';
+//       }
+//       return 'disponible';
+//     }
 
-    if (video.status === 'title_corrections') {
-      return 'en_revision';
-    }
-  }
+//     if (video.status === 'title_corrections') {
+//       return 'en_revision';
+//     }
+//   }
 
-  // Para otros roles, mantener la lógica existente
-  switch (userRole) {
-    case 'youtuber':
-      if (video.status === 'upload_review' || video.status === 'youtube_ready') {
-        return video.currentReviewerId === currentUser?.id ? 'asignado' : 'video_disponible';
-      }
-      break;
+//   // Para otros roles, mantener la lógica existente
+//   switch (userRole) {
+//     case 'youtuber':
+//       if (video.status === 'upload_review' || video.status === 'youtube_ready') {
+//         return video.currentReviewerId === currentUser?.id ? 'asignado' : 'video_disponible';
+//       }
+//       break;
 
-    case 'optimizer':
-      if (['pending', 'in_progress', 'optimize_review', 'title_corrections'].includes(video.status)) {
-        return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id ?
-          'en_proceso' : 'disponible';
-      }
-      break;
-  }
+//     case 'optimizer':
+//       if (['pending', 'in_progress', 'optimize_review', 'title_corrections'].includes(video.status)) {
+//         return video.metadata?.optimization?.assignedTo?.userId === currentUser?.id ?
+//           'en_proceso' : 'disponible';
+//       }
+//       break;
+//   }
 
-  // Si no hay reglas específicas, usar el estado del video
-  return roleStatus[userRole as string] || video.status;
-};
+//   // Si no hay reglas específicas, usar el estado del video
+//   return roleStatus[userRole as string] || video.status;
+// };
 
-export const getRoleStatus = (status: VideoStatus): Record<string, string> => {
-  const roleStatuses = {
-    pending: {
-      admin: 'disponible',
-      optimizer: 'disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'no_disponible',
-      uploader: 'no_disponible'
-    },
-    in_progress: {
-      admin: 'disponible',
-      optimizer: 'disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'no_disponible',
-      uploader: 'no_disponible'
-    },
-    optimize_review: {
-      admin: 'disponible',
-      optimizer: 'disponible',
-      reviewer: 'disponible',
-      youtuber: 'no_disponible',
-      uploader: 'no_disponible'
-    },
-    title_corrections: {
-      admin: 'disponible',
-      optimizer: 'disponible',
-      reviewer: 'disponible',
-      youtuber: 'no_disponible',
-      uploader: 'no_disponible'
-    },
-    media_corrections: {
-      admin: 'disponible',
-      optimizer: 'no_disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
-    },
-    upload_review: {
-      admin: 'disponible',
-      optimizer: 'no_disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
-    },
-    youtube_ready: {
-      admin: 'disponible',
-      optimizer: 'no_disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
-    },
-    completed: {
-      admin: 'disponible',
-      optimizer: 'no_disponible',
-      reviewer: 'no_disponible',
-      youtuber: 'disponible',
-      uploader: 'disponible'
-    }
-  };
-  return roleStatuses[status] || {};
-};
+// export const getRoleStatus = (status: VideoStatus): Record<string, string> => {
+//   const roleStatuses = {
+//     pending: {
+//       admin: 'disponible',
+//       optimizer: 'disponible',
+//       reviewer: 'no_disponible',
+//       youtuber: 'no_disponible',
+//       uploader: 'no_disponible'
+//     },
+//     in_progress: {
+//       admin: 'disponible',
+//       optimizer: 'disponible',
+//       reviewer: 'no_disponible',
+//       youtuber: 'no_disponible',
+//       uploader: 'no_disponible'
+//     },
+//     optimize_review: {
+//       admin: 'disponible',
+//       optimizer: 'disponible',
+//       reviewer: 'disponible',
+//       youtuber: 'no_disponible',
+//       uploader: 'no_disponible'
+//     },
+//     title_corrections: {
+//       admin: 'disponible',
+//       optimizer: 'disponible',
+//       reviewer: 'disponible',
+//       youtuber: 'no_disponible',
+//       uploader: 'no_disponible'
+//     },
+//     media_corrections: {
+//       admin: 'disponible',
+//       optimizer: 'no_disponible',
+//       reviewer: 'no_disponible',
+//       youtuber: 'disponible',
+//       uploader: 'disponible'
+//     },
+//     upload_review: {
+//       admin: 'disponible',
+//       optimizer: 'no_disponible',
+//       reviewer: 'no_disponible',
+//       youtuber: 'disponible',
+//       uploader: 'disponible'
+//     },
+//     youtube_ready: {
+//       admin: 'disponible',
+//       optimizer: 'no_disponible',
+//       reviewer: 'no_disponible',
+//       youtuber: 'disponible',
+//       uploader: 'disponible'
+//     },
+//     completed: {
+//       admin: 'disponible',
+//       optimizer: 'no_disponible',
+//       reviewer: 'no_disponible',
+//       youtuber: 'disponible',
+//       uploader: 'disponible'
+//     }
+//   };
+//   return roleStatuses[status] || {};
+// };
 
+export const getRoleStatus = 1
 
-export function useVideos(projectId?: number) {
+export function useVideos(projectId?: number): {
+  videos: Video[];
+  isLoading: boolean;
+  createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
+  updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData; currentRole: string; currentUser?: any }) => Promise<any>;
+  deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
+} {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -423,7 +431,7 @@ export function useVideos(projectId?: number) {
   });
 
   const updateVideoMutation = useMutation({
-    mutationFn: async ({ videoId, data, currentRole, currentUser }: { videoId: number; data: UpdateVideoData; currentRole: string; currentUser?: any }) => {
+    mutationFn: async ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number, data: UpdateVideoData; currentRole: string; currentUser?: any }) => {
       if (data.status && videos) {
         const currentVideo = videos.find((v: Video) => v.id === videoId);
         if (currentVideo && !canUpdateVideoStatus(currentRole, currentVideo.status as VideoStatus, data.status)) {
@@ -452,7 +460,7 @@ export function useVideos(projectId?: number) {
 
       console.log('Datos de actualización:', data);
 
-      const res = await fetch(`/api/videos/${videoId}`, {
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -483,8 +491,8 @@ export function useVideos(projectId?: number) {
   });
 
   const deleteVideoMutation = useMutation({
-    mutationFn: async (videoId: number) => {
-      const res = await fetch(`/api/videos/${videoId}`, {
+    mutationFn: async ({videoId, projectId } : { videoId: number, projectId: number }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -513,7 +521,11 @@ export function useVideos(projectId?: number) {
   });
 
   return {
-    videos: videos?.map((video: any) => ({ ...video, effectiveStatus: getEffectiveStatus(video, localStorage.getItem('userRole'), JSON.parse(localStorage.getItem('currentUser') || '{}')) })),
+    // videos: videos?.map((video: any) => (
+    //   { 
+    //     ...video, 
+    //     effectiveStatus: getEffectiveStatus(video, localStorage.getItem('userRole'), JSON.parse(localStorage.getItem('currentUser') || '{}')) })) as Video[],
+    videos,
     isLoading,
     createVideo: createVideoMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,

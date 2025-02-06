@@ -347,7 +347,9 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   const [isRequestingCorrections, setIsRequestingCorrections] = useState(false);
 
   // Determinar si el usuario tiene visibilidad usando getRoleStatus
-  const hasVisibility = getRoleStatus(video.status as VideoStatus)[userRole] === 'disponible';
+  // const hasVisibility = getRoleStatus(video.status as VideoStatus)[userRole] === 'disponible';
+  // TODO
+  const hasVisibility = true;
 
   const form = useForm<UpdateVideoData>({
     defaultValues: {

@@ -11,12 +11,12 @@ import fs from "fs";
 import express from "express";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-import type { SQL } from "drizzle-orm";
 import type { InsertVideo, InsertProject } from "@db/schema";
 import { Client } from '@replit/object-storage';
 import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import translatorRouter from "./routes/translator";
+import VideoController from "./controllers/video.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -540,185 +540,9 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    app.patch("/api/videos/:videoId", requireAuth, async (req: Request, res: Response) => {
-      const videoId = parseInt(req.params.videoId);
-      const updates = req.body;
+    app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.updateVideo)
 
-      try {
-        // Obtener el video actual para preservar los datos existentes
-        const [currentVideo] = await db.select()
-          .from(videos)
-          .where(eq(videos.id, videoId))
-          .limit(1);
-
-        if (!currentVideo) {
-          return res.status(404).json({
-            success: false,
-            message: "Video no encontrado"
-          });
-        }
-
-        // Preparar la actualización de metadata
-        let updatedMetadata = currentVideo.metadata || {};
-        if (updates.metadata) {
-          updatedMetadata = {
-            ...updatedMetadata,
-            ...updates.metadata
-          };
-        }
-
-        // Actualizar el video con la metadata combinada
-        const [result] = await db.update(videos)
-          .set({
-            ...updates,
-            metadata: updatedMetadata,
-            updatedAt: new Date()
-          })
-          .where(eq(videos.id, videoId))
-          .returning();
-
-        console.log("Video actualizado con metadata:", result.metadata);
-
-        res.json({
-          success: true,
-          data: result,
-          message: "Video actualizado correctamente"
-        });
-      } catch (error) {
-        console.error("Error updating video:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al actualizar el video"
-        });
-      }
-    });
-
-    app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, async (req: Request, res: Response) => {
-      const projectId = parseInt(req.params.projectId);
-      const videoId = parseInt(req.params.videoId);
-      const updates = req.body;
-
-      try {
-        // Verify the video exists and belongs to the project
-        const existingVideo = await db.select()
-          .from(videos)
-          .where(
-            and(
-              eq(videos.id, videoId),
-              eq(videos.projectId, projectId)
-            )
-          )
-          .limit(1);
-
-        if (!existingVideo.length) {
-          return res.status(404).json({
-            success: false,
-            message: "Video no encontrado"
-          });
-        }
-
-        // Update the video with the provided data
-        const [result] = await db.update(videos)
-          .set({
-            ...updates,
-            updatedAt: new Date()
-          })
-          .where(
-            and(
-              eq(videos.id, videoId),
-              eq(videos.projectId, projectId)
-            )
-          )
-          .returning();
-
-        res.json(result);
-      } catch (error) {
-        console.error("Error updating video:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al actualizar el video"
-        });
-      }
-    });
-
-    app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, async (req: Request, res: Response) => {
-      const projectId = parseInt(req.params.projectId);
-      const videoId = parseInt(req.params.videoId);
-
-      // Verificar si el usuario es administrador
-      if (req.user!.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: "Solo los administradores pueden eliminar videos"
-        });
-      }
-
-      try {
-        const [result] = await db.delete(videos)
-          .where(
-            and(
-              eq(videos.id, videoId),
-              eq(videos.projectId, projectId)
-            )
-          )
-          .returning();
-
-        if (!result) {
-          return res.status(404).json({
-            success: false,
-            message: "Video no encontrado"
-          });
-        }
-
-        res.json({
-          success: true,
-          message: "Video eliminado correctamente"
-        });
-      } catch (error) {
-        console.error("Error deleting video:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al eliminar el video"
-        });
-      }
-    });
-
-    app.delete("/api/videos/:videoId", requireAuth, async (req: Request, res: Response) => {
-      const videoId = parseInt(req.params.videoId);
-
-      // Verificar si el usuario es administrador
-      if (req.user!.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: "Solo los administradores pueden eliminar videos"
-        });
-      }
-
-      try {
-        const [result] = await db.delete(videos)
-          .where(eq(videos.id, videoId))
-          .returning();
-
-        if (!result) {
-          return res.status(404).json({
-            success: false,
-            message: "Video no encontrado"
-          });
-        }
-
-        res.json({
-          success: true,
-          message: "Video eliminado correctamente"
-        });
-      } catch (error) {
-        console.error("Error deleting video:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al eliminar el video"
-        });
-      }
-    });
-
+    app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.deleteVideo)
 
     // Users routes
     app.post("/api/users", requireAuth, async (req: Request, res: Response) => {
