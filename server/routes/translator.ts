@@ -181,7 +181,7 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
       },
       {
         headers: {
-          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
+          "Authorization": process.env.ASSEMBLYAI_API_KEY || '',
           "Content-Type": "application/json"
         }
       }
