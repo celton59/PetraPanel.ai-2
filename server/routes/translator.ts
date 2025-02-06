@@ -352,13 +352,9 @@ router.post("/:videoId/extract-audio", async (req, res) => {
     });
   }
 
-  const videoPath = processedFiles[videoId]?.videoPath || path.join(process.cwd(), "uploads", `${videoId}.mp4`);
-  console.log('Video path:', videoPath);
-  
-  // Buscar el archivo real
   const uploadsDir = path.join(process.cwd(), 'uploads');
   const files = await fs.promises.readdir(uploadsDir);
-  const videoFile = files.find(file => file.includes(videoId));
+  const videoFile = files.find(file => file.includes(videoId) && !file.includes('_audio') && !file.includes('_vocals') && !file.includes('_instrumental'));
   
   if (!videoFile) {
     return res.status(404).json({ 
@@ -367,7 +363,8 @@ router.post("/:videoId/extract-audio", async (req, res) => {
     });
   }
 
-  const actualVideoPath = path.join(uploadsDir, videoFile);
+  const videoPath = path.join(uploadsDir, videoFile);
+  console.log('Video path:', videoPath);
 
   // Verificar que el archivo existe
   if (!fs.existsSync(videoPath)) {
