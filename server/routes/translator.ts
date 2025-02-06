@@ -353,6 +353,15 @@ router.post("/:videoId/extract-audio", async (req, res) => {
   }
 
   const videoPath = processedFiles[videoId]?.videoPath || path.join(process.cwd(), "uploads", `${videoId}.mp4`);
+  console.log('Video path:', videoPath);
+
+  // Verificar que el archivo existe
+  if (!fs.existsSync(videoPath)) {
+    return res.status(404).json({ 
+      error: "Video no encontrado",
+      details: `No se encontró el archivo en: ${videoPath}`
+    });
+  }
 
   try {
     console.log('Starting audio extraction for video:', videoId);
