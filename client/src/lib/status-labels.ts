@@ -1,22 +1,9 @@
-import { VideoStatus, Video } from "@db/schema";
-
-export type Role = 'optimizer' | 'reviewer' | 'youtuber' | 'uploader' | 'admin' | 'viewer';
+import { VideoStatus, Video, User } from "@db/schema";
 
 
-const statusLabels: Record<VideoStatus, string> = {
-    pending: "Disponible",
-    in_progress: "En Proceso",
-    optimize_review: "En Revisión",
-    title_corrections: "Con Correcciones",
-    completed: "Completado",
-    upload_review: "Completado",
-    media_corrections: "Completado",
-    youtube_ready: "Completado",
-    review: "En revisión"
-}
 
 // Etiquetas específicas por rol
-const roleSpecificLabels: Record<Role, Partial<Record<VideoStatus | string, string | ((previousStatus: string, metadata?: any, video?: any) => string)>>> = {
+const roleSpecificLabels: Record<User['role'], Partial<Record<VideoStatus | string, string | ((previousStatus: string, metadata?: any, video?: any) => string)>>> = {
   optimizer: {
     pending: "Disponible",
     in_progress: "En Proceso",
@@ -75,7 +62,7 @@ const defaultLabels: Record<VideoStatus | string, string> = {
   needs_attention: "Necesita Atención"
 };
 
-export const getStatusLabel = (status: VideoStatus | string, role?: Role, previousStatus?: string, video?: any): string => {
+export const getStatusLabel = (status: VideoStatus | string, role?: User['role'], previousStatus?: string, video?: any): string => {
   // 1. Buscar etiqueta específica del rol
   if (role && roleSpecificLabels[role]?.[status]) {
     const label = roleSpecificLabels[role][status];
@@ -86,7 +73,21 @@ export const getStatusLabel = (status: VideoStatus | string, role?: Role, previo
   return defaultLabels[status] || status;
 };
 
-export const getStatusLabelNew = (role: Role, video: Video): string => {
+
+const statusLabels: Record<VideoStatus, string> = {
+    pending: "Disponible",
+    in_progress: "En Proceso",
+    optimize_review: "En Revisión",
+    title_corrections: "Con Correcciones",
+    completed: "Completado",
+    upload_review: "Completado",
+    media_corrections: "Completado",
+    youtube_ready: "Completado",
+    review: "En revisión"
+}
+
+
+export const getStatusLabelNew = (role: User['role'], video: Video): string => {
 
   if( ['admin'].includes(role) ) {
     return statusLabels[video.status]
