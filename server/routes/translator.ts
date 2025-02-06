@@ -6,6 +6,7 @@ import fs from "fs";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { spawn } from "child_process";
+import crypto from "crypto";
 
 const execAsync = promisify(exec);
 const writeFile = promisify(fs.writeFile);
@@ -284,7 +285,6 @@ router.post("/upload", upload.single("video"), async (req, res) => {
     return res.status(400).json({ error: "No se subió ningún archivo" });
   }
 
-  import crypto from 'crypto';
   const fileBuffer = await fs.promises.readFile(req.file.path);
   const hash = crypto.createHash('md5').update(fileBuffer).digest('hex');
   
