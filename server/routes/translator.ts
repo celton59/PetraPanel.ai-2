@@ -146,7 +146,19 @@ async function cloneVoice(voicePath: string): Promise<string> {
 }
 
 // Función para transcribir usando AssemblyAI
-async function transcribeAudio(audioPath: string): Promise<string> {
+interface WordTiming {
+  text: string;
+  start: number;
+  end: number;
+  confidence: number;
+}
+
+interface TranscriptionResult {
+  text: string;
+  words?: WordTiming[];
+}
+
+async function transcribeAudio(audioPath: string): Promise<TranscriptionResult> {
   try {
     console.log("Starting transcription with AssemblyAI...");
 
@@ -173,7 +185,10 @@ async function transcribeAudio(audioPath: string): Promise<string> {
       "https://api.assemblyai.com/v2/transcript",
       {
         audio_url: uploadUrl.data.upload_url,
-        language_code: "es"
+        language_code: "es",
+        word_timestamps: true,
+        punctuate: true,
+        format_text: true
       },
       {
         headers: {
