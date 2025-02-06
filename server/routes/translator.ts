@@ -352,7 +352,7 @@ router.post("/:videoId/extract-audio", async (req, res) => {
     });
   }
 
-  const videoPath = processedFiles[videoId]?.videoPath || path.join("uploads", `${videoId}.mp4`);
+  const videoPath = processedFiles[videoId]?.videoPath || path.join(process.cwd(), "uploads", `${videoId}.mp4`);
 
   try {
     console.log('Starting audio extraction for video:', videoId);
