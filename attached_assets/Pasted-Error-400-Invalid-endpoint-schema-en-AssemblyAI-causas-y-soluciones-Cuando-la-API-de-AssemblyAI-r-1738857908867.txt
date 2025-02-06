@@ -1,0 +1,176 @@
+Error 400 “Invalid endpoint schema” en AssemblyAI: causas y soluciones
+Cuando la API de AssemblyAI responde con 400 Bad Request – Invalid endpoint schema en una integración TypeScript, típicamente indica que la solicitud HTTP no cumple el formato esperado por el endpoint. A continuación se detalla cómo estructurar correctamente la petición según la documentación oficial, los errores comunes que pueden provocarla y cómo resolverlos.
+
+Estructura correcta de la solicitud (según documentación oficial)
+Para transcribir audio con AssemblyAI, la solicitud POST debe dirigirse al endpoint correcto con los encabezados y cuerpo adecuados. Según la documentación de la API de AssemblyAI, la configuración básica es:
+
+URL del endpoint: https://api.assemblyai.com/v2/transcript (versión 2 de la API, ruta /transcript)​
+ASSEMBLYAI.COM
+. Asegúrese de usar la versión correcta (v2) y la ruta exacta (/transcript en singular).
+
+Método HTTP: POST.
+
+Encabezado de Autorización: Debe incluir su API key de AssemblyAI. Por ejemplo: Authorization: <YOUR_API_KEY>​
+ASSEMBLYAI.COM
+. Nota: Use la clave directamente, sin el prefijo "Bearer", tal como lo muestra la documentación​
+ASSEMBLYAI.COM
+.
+
+Encabezado de tipo de contenido: Content-Type: application/json​
+ASSEMBLYAI.COM
+, ya que el cuerpo se envía en formato JSON.
+
+Cuerpo (JSON): Debe ser un objeto JSON que incluya al menos el campo requerido audio_url con la URL del archivo de audio o video a transcribir​
+ASSEMBLYAI.COM
+. Por ejemplo:
+
+json
+Copiar
+{
+  "audio_url": "https://ejemplo.com/archivo_audio.mp3"
+}
+La documentación especifica que audio_url es obligatorio y debe apuntar a un archivo accesible por la API​
+ASSEMBLYAI.COM
+. Opcionalmente se pueden incluir otros parámetros (ej. speaker_labels, language_code, etc.), pero audio_url es mínimo.
+
+Un ejemplo oficial en cURL luce así, mostrando la estructura esperada de la petición:
+
+bash
+Copiar
+curl -X POST "https://api.assemblyai.com/v2/transcript" \
+     -H "Authorization: <API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{ "audio_url": "https://assembly.ai/wildfires.mp3" }'
+Como se observa, se envía la clave de API en el encabezado Authorization y un JSON con audio_url en el cuerpo​
+ASSEMBLYAI.COM
+. Si la solicitud no sigue este esquema, el servidor devolverá un error 400 indicando que el “schema” (esquema de la petición) es inválido.
+
+Posibles errores en encabezados y cuerpo de la solicitud
+Varios factores de formato pueden desencadenar el error 400 Invalid endpoint schema. Los errores más comunes son:
+
+Falta o error en el campo requerido audio_url: Si omite audio_url en el JSON, lo deja vacío o mal escrito, la API no recibe el parámetro obligatorio y responde con 400. La documentación recalca que este campo es requerido​
+ASSEMBLYAI.COM
+. Verifique que el JSON del cuerpo contenga exactamente audio_url (con ese nombre y en minúsculas) apuntando a una URL válida. Un error típico es usar otro nombre de campo incorrecto (por ejemplo, usar audio o audioUrl en lugar de audio_url); esto romperá el esquema esperado y causará el “Invalid endpoint schema”.
+
+JSON mal formado o no enviado correctamente: Un JSON inválido (por errores de sintaxis como comas de más, comillas faltantes, etc.) provocará un 400. Asegúrese de serializar el objeto JSON correctamente. Por ejemplo, si usa fetch en Node/TypeScript, debe hacer body: JSON.stringify(datos) para enviar el JSON como cadena. Si envía un objeto JavaScript directamente sin serializar, o envía texto plano, el servidor no entenderá la petición.
+
+Encabezado Content-Type ausente o incorrecto: Si no se especifica Content-Type: application/json al enviar el cuerpo, el servidor podría no interpretar el contenido como JSON, resultando en error. La documentación muestra explícitamente incluir este header​
+ASSEMBLYAI.COM
+. Verifique su configuración (por ejemplo, con Axios o fetch) para que este encabezado esté presente.
+
+API Key faltante o mal usada: Un API key inválido generalmente da error 401 Unauthorized, pero si olvidó incluir cualquier encabezado de autorización, la petición podría ser rechazada. Use la cabecera Authorization con su clave (sin "Bearer")​
+ASSEMBLYAI.COM
+. En TypeScript (por ejemplo con Axios) puede configurar la instancia con el header por defecto:
+
+js
+Copiar
+const assemblyApi = axios.create({
+  baseURL: 'https://api.assemblyai.com/v2',
+  headers: {
+    authorization: 'YOUR_API_KEY',
+    'content-type': 'application/json'
+  }
+});
+Ejemplo: En este fragmento (tomado de una integración React), se prepara un cliente Axios con la URL base de la API v2 y los encabezados necesarios​
+STACKOVERFLOW.COM
+. Asegúrese de que authorization contenga su API key correcta y que el nombre del header esté bien escrito.
+
+URL incorrecta o uso del endpoint equivocado: Confirmar que está apuntando a api.assemblyai.com/v2/transcript. Un error en la ruta (ej: .../transcripts en plural, o un typo en el dominio) resultará en un error. Por ejemplo, AssemblyAI ofrece una variante de dominio para la región de la UE (api.eu.assemblyai.com​
+ASSEMBLYAI.COM
+); use la base URL apropiada según la documentación. En caso de duda, utilice siempre la URL proporcionada en los ejemplos oficiales.
+
+En resumen, un 400 Bad Request significa que “hay un problema con el formato o contenido de la solicitud”​
+ASSEMBLYAI.COM
+. AssemblyAI señala que estos códigos 4xx ocurren cuando falta un parámetro requerido o hay información inválida en la petición​
+ASSEMBLYAI.COM
+. Por eso, es crucial revisar que todos los campos requeridos estén presentes y que la sintaxis JSON sea correcta antes de enviar la solicitud.
+
+Ejemplos de integración exitosa en TypeScript
+Afortunadamente, existen ejemplos que podemos seguir para asegurarnos de armar bien la petición en TypeScript/JavaScript:
+
+Usando Axios: El código de ejemplo a continuación muestra el proceso completo – subir un archivo local y luego iniciar la transcripción – tal como se implementaría con Axios en Node/TypeScript:
+
+js
+Copiar
+// 1. Crear instancia Axios con configuración base (API key y JSON):
+const assemblyApi = axios.create({
+  baseURL: 'https://api.assemblyai.com/v2',
+  headers: {
+    authorization: 'YOUR_API_KEY',
+    'content-type': 'application/json'
+  }
+});
+
+// 2. (Opcional) Subir archivo local al endpoint /upload:
+const audioData = fs.readFileSync('ruta/al/archivo.mp3'); // ejemplo de lectura de archivo
+const uploadResponse = await assemblyApi.post('/upload', audioData);
+const uploadedUrl = uploadResponse.data.upload_url;
+console.log("Archivo subido. URL:", uploadedUrl);
+
+// 3. Enviar solicitud de transcripción al endpoint /transcript con audio_url:
+const transcriptResponse = await assemblyApi.post('/transcript', {
+  audio_url: uploadedUrl,            // URL devuelta por /upload
+  speaker_labels: true,             // ejemplo de parámetro opcional
+  sentiment_analysis: true         // otro parámetro opcional
+});
+console.log("ID de transcripción:", transcriptResponse.data.id);
+En este flujo: primero se configura Axios con los headers (authorization y content-type), luego se usa /v2/upload para cargar un archivo local (obteniendo un upload_url), y finalmente se llama a /v2/transcript pasando ese upload_url dentro de audio_url. Este enfoque está basado en implementaciones reales​
+STACKOVERFLOW.COM
+ y asegura que la API reciba los datos en el formato correcto. La propia AssemblyAI confirma que el endpoint /upload es el medio para enviar archivos locales (hasta 2.2 GB) y obtener una URL utilizable en audio_url​
+ASSEMBLYAI.COM
+. Si en su caso el audio ya está en una URL pública accesible, puede omitir el paso de /upload y usar directamente esa URL en audio_url.
+
+Usando fetch nativo (Browser o Node): Si prefiere usar fetch, el patrón sería similar. Por ejemplo, en un entorno Node con node-fetch o en el navegador:
+
+js
+Copiar
+const response = await fetch('https://api.assemblyai.com/v2/transcript', {
+  method: 'POST',
+  headers: {
+    'authorization': API_KEY,
+    'content-type': 'application/json'
+  },
+  body: JSON.stringify({ audio_url: 'https://ejemplo.com/audio.mp3' })
+});
+const data = await response.json();
+console.log(data);
+Lo importante es construir el objeto headers con la API key y el tipo de contenido JSON, y usar JSON.stringify para el cuerpo. Asegúrese de manejar la promesa y convertir la respuesta a JSON para ver el resultado o el mensaje de error detallado que devuelve la API.
+
+Estos ejemplos demuestran una integración correcta. En uno de los casos reales, tras subir el archivo con Axios, se hace:
+
+js
+Copiar
+await assemblyApi.post("/transcript", { audio_url: uploadResponse.upload_url, ... });
+tal como se observa en el código de referencia​
+STACKOVERFLOW.COM
+. Esto cumple con el esquema que espera AssemblyAI y debería retornar un ID de transcripción en lugar de un error.
+
+Soluciones y correcciones para resolver el error
+Para solucionar el error 400 “Invalid endpoint schema” en su integración TypeScript, siga estos pasos de verificación y corrección:
+
+Verifique la URL y el método: Use exactamente POST https://api.assemblyai.com/v2/transcript. Asegúrese de incluir “/v2” y la ruta “/transcript”. Si está en la UE, considere usar la base URL https://api.eu.assemblyai.com/v2/transcript según corresponda​
+ASSEMBLYAI.COM
+.
+Incluya los encabezados requeridos: Envíe la API key en el encabezado Authorization (sin “Bearer”)​
+ASSEMBLYAI.COM
+ y establezca Content-Type: application/json​
+ASSEMBLYAI.COM
+. Esto le indica al servidor que la petición está autenticada y que el cuerpo viene en formato JSON.
+Forme correctamente el cuerpo JSON: Construya un objeto JSON válido con audio_url como clave principal. Asegúrese de que el JSON esté bien formado (puede validar con una herramienta externa si es necesario). En TypeScript/JS, cree el objeto y luego serialícelo con JSON.stringify. No use campos no documentados; por ejemplo, el campo debe ser audio_url exactamente, no audioUrl ni variantes. Incluya cualquier otro parámetro opcional solo según la documentación oficial para no introducir claves inesperadas.
+Si usa un archivo local, primero obtenga una URL accesible:
+Opción A: Suba el archivo mediante POST https://api.assemblyai.com/v2/upload con el mismo header de Authorization. Este endpoint devuelve un JSON con upload_url. Use ese valor para audio_url en la siguiente solicitud​
+STACKOVERFLOW.COM
+.
+Opción B: Aloje el archivo en algún servidor o almacenamiento público y use esa URL directa en audio_url.
+Si intenta mandar un archivo binario directamente a /transcript sin subirlo, la solicitud no coincidirá con el esquema (que espera JSON con una URL) y obtendrá un error.
+Pruebe con un ejemplo mínimo: Para depurar, puede intentar primero con la configuración mínima (solo audio_url) y un audio de prueba conocido. Si eso funciona (obtiene un ID de transcripción), incorpore luego parámetros opcionales adicionales uno por uno. Así identificará si algún parámetro extra causa el problema (por ejemplo, un valor inválido o un tipo incorrecto puede causar 400).
+Comparar con la documentación y ejemplos: Contraste su código con los ejemplos oficiales (como los proporcionados arriba o en la documentación). Asegúrese de que no haya discrepancias. La documentación de AssemblyAI indica que un 400 Bad Request típicamente significa que falta algún parámetro o hay un formato incorrecto​
+ASSEMBLYAI.COM
+, por lo que cada detalle cuenta.
+Utilice el SDK oficial si es posible: AssemblyAI ofrece un SDK para JavaScript/TypeScript (assemblyai en npm) que maneja internamente muchos detalles de la solicitud. Por ejemplo, usando el cliente del SDK, usted llamaría client.transcripts.submit({ audio_url: ... }) o incluso { audio: fileStream } y la biblioteca se encarga del upload​
+ASSEMBLYAI.COM
+. Si sigue teniendo dificultades manualmente, el SDK puede simplificar la integración y prevenir errores de formato.
+Finalmente, luego de aplicar estas correcciones, vuelva a enviar la solicitud. Si todo está en orden (endpoint correcto, headers presentes, JSON válido con audio_url), la API debería responder con un HTTP 200 y un cuerpo JSON conteniendo al menos un id de transcripción (o bien el estado inicial de la transcripción) en vez del error 400​
+ASSEMBLYAI.COM
+. En resumen, la clave está en igualar exactamente el esquema que la API espera – tal como se muestra en la documentación oficial – para que la petición sea aceptada sin problemas.
+

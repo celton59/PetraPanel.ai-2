@@ -81,7 +81,13 @@ const steps: Step[] = [
     isEnabled: (progress) => progress.step === "voice_separated" || progress.step === "transcribing",
     getResult: (progress) => progress.text ? {
       label: "Transcripción",
-      value: progress.text
+      value: progress.text,
+      words: progress.words?.map(word => ({
+        text: word.text,
+        start: (word.start / 1000).toFixed(2),
+        end: (word.end / 1000).toFixed(2),
+        confidence: (word.confidence * 100).toFixed(1)
+      }))
     } : null
   },
   {
@@ -159,7 +165,25 @@ export function TranslationSteps({
                 {result && (
                   <div className="mt-2 text-sm">
                     <p className="font-medium">{result.label}:</p>
-                    <code className="rounded bg-muted px-2 py-1">{result.value}</code>
+                    <div className="space-y-2">
+                      <code className="rounded bg-muted px-2 py-1 block">{result.value}</code>
+                      {result.words && (
+                        <div className="mt-4">
+                          <p className="font-medium mb-2">Tiempos por palabra:</p>
+                          <div className="max-h-40 overflow-y-auto space-y-1">
+                            {result.words.map((word, i) => (
+                              <div key={i} className="text-sm bg-muted/50 p-2 rounded">
+                                <span className="font-medium">{word.text}</span>
+                                <span className="text-muted-foreground ml-2">
+                                  ({word.start}s - {word.end}s) 
+                                  Confianza: {word.confidence}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Botones de descarga */}
                     {result.downloadUrls && (
