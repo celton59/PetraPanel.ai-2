@@ -246,13 +246,30 @@ async function translateText(text: string, targetLanguage: string) {
 
 
 // Rutas
+// Cache object to store processed files
+const processedFiles: {
+  [key: string]: {
+    videoPath: string;
+    audioPath?: string;
+    vocalsPath?: string;
+    instrumentalPath?: string;
+  };
+} = {};
+
 router.post("/upload", upload.single("video"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No se subió ningún archivo" });
   }
 
+  const videoId = path.basename(req.file.path, path.extname(req.file.path));
+  
+  // Store in cache
+  processedFiles[videoId] = {
+    videoPath: req.file.path
+  };
+
   res.json({
-    videoId: path.basename(req.file.path, path.extname(req.file.path)),
+    videoId,
     status: 'uploaded',
     videoPath: req.file.path
   });
@@ -261,12 +278,28 @@ router.post("/upload", upload.single("video"), (req, res) => {
 // Ruta para extraer audio
 router.post("/:videoId/extract-audio", async (req, res) => {
   const { videoId } = req.params;
-  const videoPath = path.join("uploads", `${videoId}.mp4`);
+  
+  // Check cache first
+  if (processedFiles[videoId]?.audioPath) {
+    return res.json({
+      status: 'audio_extracted',
+      audioPath: path.basename(processedFiles[videoId].audioPath!),
+      fullPath: processedFiles[videoId].audioPath
+    });
+  }
+
+  const videoPath = processedFiles[videoId]?.videoPath || path.join("uploads", `${videoId}.mp4`);
 
   try {
     console.log('Starting audio extraction for video:', videoId);
     const audioPath = await extractAudio(videoPath);
     console.log('Audio extraction completed:', audioPath);
+
+    // Store in cache
+    processedFiles[videoId] = {
+      ...processedFiles[videoId],
+      audioPath
+    };
 
     res.json({ 
       status: 'audio_extracted',
@@ -285,7 +318,17 @@ router.post("/:videoId/extract-audio", async (req, res) => {
 // Ruta para separar voz
 router.post("/:videoId/separate-voice", async (req, res) => {
   const { videoId } = req.params;
-  const audioPath = path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
+
+  // Check cache first
+  if (processedFiles[videoId]?.vocalsPath && processedFiles[videoId]?.instrumentalPath) {
+    return res.json({
+      status: 'voice_separated',
+      vocals: path.basename(processedFiles[videoId].vocalsPath!),
+      instrumental: path.basename(processedFiles[videoId].instrumentalPath!)
+    });
+  }
+
+  const audioPath = processedFiles[videoId]?.audioPath || path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
   const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
   const instrumentalPath = path.join(process.cwd(), "uploads", `${videoId}_instrumental.mp3`);
 
