@@ -274,12 +274,37 @@ const processedFiles: {
   };
 } = {};
 
-router.post("/upload", upload.single("video"), (req, res) => {
+router.post("/upload", upload.single("video"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No se subió ningún archivo" });
   }
 
-  const videoId = path.basename(req.file.path, path.extname(req.file.path));
+  const crypto = require('crypto');
+  const fileBuffer = await fs.promises.readFile(req.file.path);
+  const hash = crypto.createHash('md5').update(fileBuffer).digest('hex');
+  
+  // Buscar si ya existe un archivo con este hash
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  const files = await fs.promises.readdir(uploadsDir);
+  const existingFile = files.find(file => file.includes(hash));
+
+  if (existingFile) {
+    // Si existe, eliminar el archivo recién subido y usar el existente
+    await fs.promises.unlink(req.file.path);
+    const videoId = path.basename(existingFile, path.extname(existingFile));
+    return res.json({
+      videoId,
+      status: 'reused',
+      videoPath: path.join('uploads', existingFile)
+    });
+  }
+
+  // Si no existe, renombrar el archivo con el hash
+  const newFileName = `${hash}${path.extname(req.file.originalname)}`;
+  const newPath = path.join(uploadsDir, newFileName);
+  await fs.promises.rename(req.file.path, newPath);
+  
+  const videoId = hash;
 
   // Store in cache
   processedFiles[videoId] = {
