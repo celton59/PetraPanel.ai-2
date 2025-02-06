@@ -293,6 +293,22 @@ router.post("/upload", upload.single("video"), (req, res) => {
   });
 });
 
+// Ruta para verificar archivos existentes
+router.get("/:videoId/check-files", async (req, res) => {
+  const { videoId } = req.params;
+  const audioPath = path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
+  const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
+  const transcriptionPath = path.join(process.cwd(), "uploads", `${videoId}_transcription.json`);
+
+  res.json({
+    hasAudio: fs.existsSync(audioPath),
+    hasVocals: fs.existsSync(vocalsPath),
+    hasTranscription: fs.existsSync(transcriptionPath),
+    audioPath: fs.existsSync(audioPath) ? audioPath : null,
+    vocalsPath: fs.existsSync(vocalsPath) ? vocalsPath : null
+  });
+});
+
 // Ruta para extraer audio
 router.post("/:videoId/extract-audio", async (req, res) => {
   const { videoId } = req.params;
