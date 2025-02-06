@@ -3,7 +3,6 @@ import multer from "multer";
 import path from "path";
 import axios from "axios";
 import fs from "fs";
-import FormData from "form-data";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { spawn } from "child_process";
@@ -147,25 +146,25 @@ async function cloneVoice(voicePath: string): Promise<string> {
 }
 
 // Función para transcribir usando AssemblyAI
-async function transcribeAudio(audioPath: string): Promise<{text: string, words: Array<{text: string, start: number, end: number, confidence: number}>}> {
+async function transcribeAudio(audioPath: string): Promise<string> {
   try {
     console.log("Starting transcription with AssemblyAI...");
 
     // First, upload the file to AssemblyAI
     const audioFile = await readFile(audioPath);
-
-    const uploadResponse = await axios.post(
+    const uploadUrl = await axios.post(
       "https://api.assemblyai.com/v2/upload",
       audioFile,
       {
         headers: {
           "Authorization": process.env.ASSEMBLYAI_API_KEY,
-          "Content-Type": "application/octet-stream"
+          "Content-Type": "application/octet-stream",
+          "Transfer-Encoding": "chunked"
         }
       }
     );
 
-    if (!uploadResponse.data.upload_url) {
+    if (!uploadUrl.data.upload_url) {
       throw new Error("Failed to get upload URL from AssemblyAI");
     }
 
@@ -173,15 +172,12 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
     const transcript = await axios.post(
       "https://api.assemblyai.com/v2/transcript",
       {
-        audio_url: uploadResponse.data.upload_url,
-        language_code: "es",
-        punctuate: true,
-        format_text: true,
-        word_timestamps: true
+        audio_url: uploadUrl.data.upload_url,
+        language_code: "es"
       },
       {
         headers: {
-          "Authorization": process.env.ASSEMBLYAI_API_KEY || '',
+          "Authorization": process.env.ASSEMBLYAI_API_KEY,
           "Content-Type": "application/json"
         }
       }
@@ -213,10 +209,7 @@ async function transcribeAudio(audioPath: string): Promise<{text: string, words:
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    return {
-      text: transcriptResult.data.text,
-      words: transcriptResult.data.words
-    };
+    return transcriptResult.data.text;
   } catch (error) {
     console.error("Error in transcribeAudio:", error);
     throw error;
@@ -391,13 +384,12 @@ router.post("/:videoId/transcribe", async (req, res) => {
       throw new Error(`Vocals file not found: ${vocalsPath}`);
     }
 
-    const transcription = await transcribeAudio(vocalsPath);
+    const text = await transcribeAudio(vocalsPath);
     console.log("Transcription completed successfully");
 
     res.json({ 
       status: 'transcribed',
-      text: transcription.text,
-      words: transcription.words
+      text 
     });
   } catch (error) {
     console.error("Error transcribing:", error);
