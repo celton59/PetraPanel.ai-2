@@ -156,7 +156,7 @@ export const videos = pgTable("videos", {
     .references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  status: text("status").notNull().default("pending"),
+  status: text("status", { enum: ["pending", "in_progress", "title_corrections", "optimize_review", "upload_review", "youtube_ready", "review", "media_corrections", "completed"] }).notNull().default("pending"),
   videoUrl: text("video_url"),
   thumbnailUrl: text("thumbnail_url"),
   youtubeUrl: text("youtube_url"),
