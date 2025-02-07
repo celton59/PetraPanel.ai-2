@@ -1,6 +1,5 @@
 {pkgs}: {
   deps = [
-    pkgs.nodePackages.prisma
     pkgs.wget
     pkgs.sox
     pkgs.libsndfile
@@ -10,6 +9,5 @@
     pkgs.libxcrypt
     pkgs.ffmpeg
     pkgs.postgresql
-    pkgs.openssl
   ];
 }
