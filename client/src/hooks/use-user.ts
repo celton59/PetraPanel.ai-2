@@ -71,8 +71,7 @@ export function useUser() {
   const { data: user, error, isLoading, refetch } = useQuery({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    cacheTime: 0, // No cachear para asegurar datos frescos
+    staleTime: 0,
     retry: 1,
   });
 

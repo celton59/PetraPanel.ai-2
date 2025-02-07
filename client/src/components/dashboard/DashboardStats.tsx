@@ -1,7 +1,7 @@
 
-import { BarChart, Clock, TrendingUp, Users, Video, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, Users, Video, CheckCircle } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
-import { useVideos } from "@/hooks/use-videos";
+import { useVideos } from "@/hooks/useVideos";
 import { useUsers } from "@/hooks/useUsers";
 
 export const DashboardStats = () => {

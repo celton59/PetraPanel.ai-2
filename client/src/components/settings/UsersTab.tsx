@@ -10,11 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useUserStore } from "@/stores/userStore";
 import { useUsers } from "@/hooks/useUsers";
 import { useProjects } from "@/hooks/useProjects";
 import { toast } from "sonner";
-import { Profile } from "@/types/user";
 import {
   Dialog,
   DialogContent,
@@ -23,21 +21,19 @@ import {
 } from "@/components/ui/dialog";
 import { UserSettingsForm } from "./users/UserSettingsForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { User } from '@db/schema'
 
 export const UsersTab = () => {
-  const { deleteUser } = useUserStore();
-  const { data: users = [], isLoading } = useUsers();
-  const { data: projects = [] } = useProjects();
+  const { isLoading, users, refetch: refetchUsers } = useUsers();
+  const { projects } = useProjects();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleEditUser = (user: Profile) => {
+  const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setDialogOpen(true);
   };
-
-  const { refetch } = useUsers();
 
   const handleDeleteUser = async (id: number) => {
     setIsSubmitting(true);
@@ -51,26 +47,19 @@ export const UsersTab = () => {
         throw new Error('Error al eliminar usuario');
       }
 
-      toast({
-        title: "Usuario eliminado",
-        description: "El usuario ha sido eliminado correctamente"
-      });
+      toast.success("Usuario eliminado")
       
-      await refetch(); // Actualizar lista de usuarios
+      await refetchUsers(); // Actualizar lista de usuarios
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el usuario",
-        variant: "destructive"
-      });
+      toast.error("Error, no se pudo eliminar el usuario")
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleCloseDialog = () => {
-    setSelectedUser(null);
+    setSelectedUser(undefined);
     setDialogOpen(false);
   };
 
@@ -99,7 +88,7 @@ export const UsersTab = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <Button
             onClick={() => {
-              setSelectedUser(null);
+              setSelectedUser(undefined);
               setDialogOpen(true);
             }}
           >

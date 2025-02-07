@@ -16,7 +16,7 @@ import { Client } from '@replit/object-storage';
 import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import translatorRouter from "./routes/translator";
-import VideoController from "./controllers/video.js";
+import VideoController from "./controllers/videoController";
 
 const scryptAsync = promisify(scrypt);
 
@@ -228,89 +228,6 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    app.get("/api/videos", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const user = req.user!;
-        let videoQuery;
-
-        if (user.role === 'admin') {
-          // Admin sees all videos
-          videoQuery = db.select({
-            id: videos.id,
-            projectId: videos.projectId,
-            title: videos.title,
-            description: videos.description,
-            status: videos.status,
-            videoUrl: videos.videoUrl,
-            thumbnailUrl: videos.thumbnailUrl,
-            youtubeUrl: videos.youtubeUrl,
-            optimizedTitle: videos.optimizedTitle,
-            optimizedDescription: videos.optimizedDescription,
-            tags: videos.tags,
-            seriesNumber: videos.seriesNumber,
-            currentReviewerId: videos.currentReviewerId,
-            reviewerName: users.fullName,
-            reviewerUsername: users.username,
-            lastReviewedAt: videos.lastReviewedAt,
-            lastReviewComments: videos.lastReviewComments,
-            metadata: videos.metadata,
-            createdById: videos.createdById,
-            createdAt: videos.createdAt,
-            updatedAt: videos.updatedAt,
-            publishedAt: videos.publishedAt,
-          })
-            .from(videos)
-            .leftJoin(users, eq(videos.currentReviewerId, users.id));
-        } else {
-          // Regular users only see videos from their assigned projects
-          videoQuery = db.select({
-            id: videos.id,
-            projectId: videos.projectId,
-            title: videos.title,
-            description: videos.description,
-            status: videos.status,
-            videoUrl: videos.videoUrl,
-            thumbnailUrl: videos.thumbnailUrl,
-            youtubeUrl: videos.youtubeUrl,
-            optimizedTitle: videos.optimizedTitle,
-            optimizedDescription: videos.optimizedDescription,
-            tags: videos.tags,
-            seriesNumber: videos.seriesNumber,
-            currentReviewerId: videos.currentReviewerId,
-            reviewerName: users.fullName,
-            reviewerUsername: users.username,
-            lastReviewedAt: videos.lastReviewedAt,
-            lastReviewComments: videos.lastReviewComments,
-            metadata: videos.metadata,
-            createdById: videos.createdById,
-            createdAt: videos.createdAt,
-            updatedAt: videos.updatedAt,
-            publishedAt: videos.publishedAt,
-          })
-            .from(videos)
-            .innerJoin(projectAccess, eq(videos.projectId, projectAccess.projectId))
-            .leftJoin(users, eq(videos.currentReviewerId, users.id))
-            .where(eq(projectAccess.userId, user.id));
-        }
-
-        const result = await videoQuery.orderBy(desc(videos.updatedAt));
-
-        // Agregar logs para debugging
-        console.log("Videos fetched:", result.map(video => ({
-          id: video.id,
-          status: video.status,
-          metadata: video.metadata
-        })));
-
-        res.json(result);
-      } catch (error) {
-        console.error("Error fetching all videos:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener los videos"
-        });
-      }
-    });
     // Projects routes
     app.get("/api/projects", requireAuth, async (req: Request, res: Response) => {
       try {
@@ -330,8 +247,7 @@ export function registerRoutes(app: Express): Server {
               current_number: projects.current_number,
               description: projects.description,
               createdById: projects.createdById,
-              created_at: projects.created_at,
-              updated_at: projects.updated_at
+              created_at: projects.createdAt
             })
             .from(projects)
             .innerJoin(
@@ -466,6 +382,9 @@ export function registerRoutes(app: Express): Server {
     });
 
     // Videos routes
+    
+    app.get("/api/videos", requireAuth, async (req: Request, res: Response) => VideoController.getVideos(req, res));
+    
     app.get("/api/projects/:projectId/videos", requireAuth, async (req: Request, res: Response) => {
       const projectId = parseInt(req.params.projectId);
       try {
@@ -734,6 +653,7 @@ export function registerRoutes(app: Express): Server {
     // Get users list
     app.get("/api/users", requireAuth, async (req: Request, res: Response) => {
       try {
+        
         const usersList = await db
           .select({
             id: users.id,
@@ -767,8 +687,8 @@ export function registerRoutes(app: Express): Server {
               projectAccess: projectAccessList
             };
           })
-        );
-
+        )
+    
         res.json({
           success: true,
           data: usersWithProjects

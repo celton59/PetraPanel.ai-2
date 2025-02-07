@@ -43,8 +43,7 @@ const roleSpecificLabels: Record<User['role'], Partial<Record<VideoStatus | stri
     youtube_ready: "Listo para YouTube"
   },
   uploader: {},
-  admin: {},
-  viewer: {}
+  admin: {}
 };
 
 // Etiquetas predeterminadas
@@ -78,19 +77,21 @@ const statusLabels: Record<VideoStatus, string> = {
     pending: "Disponible",
     in_progress: "En Proceso",
     optimize_review: "En Revisión",
-    title_corrections: "Con Correcciones",
+    title_corrections: "Necesita Correcciones",
     completed: "Completado",
     upload_review: "Completado",
     media_corrections: "Completado",
     youtube_ready: "Completado",
-    review: "En revisión"
+    review: "En revisión"    
 }
 
 
 export const getStatusLabelNew = (role: User['role'], video: Video): string => {
 
-  if( ['admin'].includes(role) ) {
-    return statusLabels[video.status]
+  if ( role === 'reviewer' && video.status === 'optimize_review' && video.title_corrected) {
+      return 'Corregido'
   }
+  else 
+    return statusLabels[video.status]
     
 };

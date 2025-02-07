@@ -1,5 +1,5 @@
 import { VideoCard } from "@/components/VideoCard";
-import { useVideos } from "@/hooks/use-videos";
+import { useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List, Image as ImageIcon } from "lucide-react";
 import { NewVideoDialog } from "@/components/video/NewVideoDialog";
@@ -20,7 +20,7 @@ import { VideoOptimizer } from "@/components/video/VideoOptimizer";
 import { useState, useEffect } from "react";
 import { VideoFilters } from "@/components/video/VideoFilters";
 import type { DateRange } from "react-day-picker";
-import { getStatusLabel } from '@/lib/status-labels';
+import { getStatusLabel, getStatusLabelNew } from '@/lib/status-labels';
 import { cn } from "@/lib/utils";
 import type { User, VideoStatus } from "@db/schema";
 
@@ -235,7 +235,7 @@ export default function Videos () {
                   {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
                     <Badge variant="secondary" className="bg-gray-500/20 text-gray-600">No disponible</Badge> :
                     <Badge variant="secondary" className={cn(getStatusBadge(getEffectiveStatus(video, user?.role, user) as VideoStatus))}>
-                      {getStatusLabel(getEffectiveStatus(video, user?.role, user) as VideoStatus, user?.role)}
+                      {getStatusLabelNew(user!.role, video)}
                     </Badge>
                   }
                 </TableCell>

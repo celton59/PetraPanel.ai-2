@@ -12,7 +12,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ selectedProjects = [], setSelectedProjects }: ProjectSelectorProps) {
-  const { data: projects = [], isLoading } = useProjects();
+  const { projects, isLoading } = useProjects();
 
   const toggleProject = (projectId: number) => {
     if (!setSelectedProjects) return;

@@ -372,7 +372,7 @@ export function useVideos(projectId?: number): {
   videos: Video[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
-  updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData; currentRole: User['role']; currentUser?: any }) => Promise<any>;
+  updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData;   currentRole: User['role']; currentUser?: any }) => Promise<any>;
   deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
 } {
   const queryClient = useQueryClient();

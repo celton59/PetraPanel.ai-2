@@ -1,7 +1,7 @@
 
 import { AlertCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useVideos } from "@/hooks/use-videos";
+import { useVideos } from "@/hooks/useVideos";
 
 export function RecentActivity() {
   const { videos } = useVideos();

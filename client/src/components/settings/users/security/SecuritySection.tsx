@@ -1,9 +1,8 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { RoleSelector } from "../RoleSelector";
 import { Shield, Lock } from "lucide-react";
-import { UseFormReturn } from "react-hook-form";
-import { Profile, UserRole } from "@/types/user";
-import { ProjectSelector } from "@/components/users/project-selector/ProjectSelector";
+import { UseFormReturn } from "react-hook-form"
+import { ProjectSelector } from "./ProjectSelector";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 

@@ -2,17 +2,6 @@ import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizz
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export type VideoStatus =
-  | "pending"
-  | "in_progress"
-  | "title_corrections"
-  | "optimize_review"
-  | "upload_review"
-  | "youtube_ready"
-  | "review"
-  | "media_corrections"
-  | "completed";
-
 export type VideoMetadata = {
   roleView?: {
     optimizer?: {
@@ -156,7 +145,8 @@ export const videos = pgTable("videos", {
     .references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  status: text("status", { enum: ["pending", "in_progress", "title_corrections", "optimize_review", "upload_review", "youtube_ready", "review", "media_corrections", "completed"] }).notNull().default("pending"),
+  status: text("status", { enum: ['pending', 'in_progress', 'title_corrections', 'optimize_review', 'upload_review',
+    'youtube_ready', 'review', 'media_corrections', 'completed'] }).notNull().default('pending'),
   videoUrl: text("video_url"),
   thumbnailUrl: text("thumbnail_url"),
   youtubeUrl: text("youtube_url"),
@@ -182,6 +172,7 @@ export type InsertUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
 export type Video = typeof videos.$inferSelect & { metadata?: VideoMetadata };
+export type VideoStatus = Video['status']
 export type InsertVideo = typeof videos.$inferInsert;
 export type ProjectAccess = typeof projectAccess.$inferSelect;
 export type InsertProjectAccess = typeof projectAccess.$inferInsert;

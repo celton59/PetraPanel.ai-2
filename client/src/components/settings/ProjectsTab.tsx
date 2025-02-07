@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,22 +11,17 @@ import {
 } from "@/components/ui/table";
 import { ProjectForm } from "./projects/ProjectForm";
 import { ProjectEditDialog } from "./projects/ProjectEditDialog";
-import { useProjects } from "@/hooks/use-projects";
-import { CreateProjectDTO, UpdateProjectDTO } from "@/types/project";
-import { toast } from "sonner";
+import { useProjects } from "@/hooks/useProjects";
+import { Project } from '@db/schema'
 
 export const ProjectsTab = () => {
-  const { projects = [], isLoading, createProject, updateProject, deleteProject } = useProjects();
+  const { projects, isLoading, createProject, updateProject, deleteProject } = useProjects();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddProject = async (projectData: CreateProjectDTO) => {
+  const handleAddProject = async (projectData: Pick<Project, "name" | "description" | "prefix">) => {
     setIsSubmitting(true);
     try {
-      await createProject({
-        name: projectData.name,
-        prefix: projectData.prefix || "",
-        description: projectData.description,
-      });
+      await createProject(projectData);
     } catch (error) {
       console.error('Error creating project:', error);
     } finally {
@@ -34,7 +29,7 @@ export const ProjectsTab = () => {
     }
   };
 
-  const handleUpdateProject = async (projectData: UpdateProjectDTO) => {
+  const handleUpdateProject = async (projectData: Pick<Project, "name" | "description" | "prefix" |"id">) => {
     setIsSubmitting(true);
     try {
       await updateProject({
