@@ -1,101 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Video, VideoStatus, User } from "@db/schema";
 import { useToast } from "./use-toast";
+import { Prisma, Video, User, VideoStatus } from '@prisma/client'
 
-// Tipos para metadata y sub-estados
-export interface VideoMetadata {
-  statusHistory?: {
-    previousStatus: VideoStatus;
-    newStatus: VideoStatus;
-    timestamp: string;
-    userId: number;
-    username: string;
-  }[];
-  roleView?: {
-    youtuber?: {
-      status: 'video_disponible' | 'asignado' | 'completado';
-      hideAssignment: boolean;
-    };
-    optimizer?: {
-      status: 'disponible' | 'pendiente_revision' | 'en_revision' | 'completado';
-      lastReviewedBy?: {
-        userId: number;
-        username: string;
-        timestamp: string;
-      };
-    };
-    reviewer?: {
-      titleReview?: {
-        status: 'pendiente' | 'en_revision' | 'aprobado' | 'rechazado';
-        assignedAt?: string;
-        lastUpdated?: string;
-        comments?: string;
-        history?: {
-          status: string;
-          timestamp: string;
-          userId: number;
-          username: string;
-          comments?: string;
-        }[];
-      };
-      contentReview?: {
-        status: 'pendiente' | 'en_revision' | 'aprobado' | 'rechazado';
-        assignedAt?: string;
-        lastUpdated?: string;
-        reviewAspects?: {
-          titleQuality?: boolean;
-          descriptionQuality?: boolean;
-          thumbnailQuality?: boolean;
-          videoQuality?: boolean;
-        };
-        comments?: string;
-        history?: {
-          status: string;
-          timestamp: string;
-          userId: number;
-          username: string;
-          comments?: string;
-          changedAspects?: string[];
-        }[];
-      };
-    };
-  };
-  optimization?: {
-    assignedTo?: {
-      userId: number;
-      username: string;
-      assignedAt: string;
-    };
-    reviewedBy?: {
-      userId: number;
-      username: string;
-      approved: boolean;
-      reviewedAt: string;
-      comments?: string;
-    };
-    optimizedBy?: {
-      userId: number;
-      username: string;
-      optimizedAt: string;
-    };
-    approvalHistory?: {
-      action: 'approved' | 'rejected';
-      timestamp: string;
-      userId: number;
-      username: string;
-      comments?: string;
-    }[];
-  };
-  secondaryStatus?: {
-    type: 'title_approved' | 'needs_review' | 'in_review';
-    timestamp: string;
-    updatedBy?: {
-      userId: number;
-      username: string;
-    };
-  };
-  customStatus?: 'en_revision' | 'needs_attention';
-}
 
 interface MediaCorrections {
   needsVideoCorrection: boolean;
@@ -223,8 +129,7 @@ const statusTransitions: Record<User['role'], Record<VideoStatus, VideoStatus[]>
     media_corrections: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready", "completed"],
     youtube_ready: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "completed"],
     completed: ["pending", "in_progress", "optimize_review", "title_corrections", "upload_review", "youtube_ready"]
-  },
-  youtuber: {}
+  }
 };
 
 const canUpdateVideoStatus = (currentRole: User['role'], currentStatus: VideoStatus, newStatus: VideoStatus): boolean => {
@@ -369,7 +274,11 @@ const canUpdateVideoStatus = (currentRole: User['role'], currentStatus: VideoSta
 export const getRoleStatus = 1
 
 export function useVideos(projectId?: number): {
-  videos: Video[];
+  videos: Prisma.VideoGetPayload<{
+    include: {
+      currentReviewer: true
+    }
+  }>[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
   updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData;   currentRole: User['role']; currentUser?: any }) => Promise<any>;

@@ -63,7 +63,7 @@ model User {
   email          String?
   bio            String?
   phone          String?
-  role           Role     @default(uploader)
+  role           UserRole     @default(uploader)
   avatarUrl      String?  @map("avatar_url")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @default(now()) @map("updated_at")
@@ -74,7 +74,7 @@ model User {
   projects        Project[]
 }
 
-enum Role {
+enum UserRole {
   uploader
   admin
   reviewer
@@ -90,6 +90,7 @@ model Project {
   description   String?
   createdById   Int       @map("created_by_id")
   createdAt     DateTime  @default(now()) @map("created_at")
+  
   createdBy     User      @relation(fields: [createdById], references: [id])
   videos        VideosOnProjects[]
 }

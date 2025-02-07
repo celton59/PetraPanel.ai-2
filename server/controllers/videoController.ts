@@ -2,6 +2,9 @@ import type { Request, Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { videos, users, projectAccess } from "@db/schema";
 import { db } from "@db";
+import { getPrismaClient } from "@db/prismaClient";
+
+const prisma = getPrismaClient();
 
 async function updateVideo(req: Request, res: Response): Promise<Response> {
     const projectId = parseInt(req.params.projectId);
@@ -134,79 +137,90 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
     const user = req.user!;
-    let videoQuery;
 
-    if (user.role === 'admin') {
-      // Admin sees all videos
-      videoQuery = db.select({
-        id: videos.id,
-        projectId: videos.projectId,
-        title: videos.title,
-        description: videos.description,
-        status: videos.status,
-        videoUrl: videos.videoUrl,
-        thumbnailUrl: videos.thumbnailUrl,
-        youtubeUrl: videos.youtubeUrl,
-        optimizedTitle: videos.optimizedTitle,
-        optimizedDescription: videos.optimizedDescription,
-        tags: videos.tags,
-        seriesNumber: videos.seriesNumber,
-        currentReviewerId: videos.currentReviewerId,
-        reviewerName: users.fullName,
-        reviewerUsername: users.username,
-        lastReviewedAt: videos.lastReviewedAt,
-        lastReviewComments: videos.lastReviewComments,
-        metadata: videos.metadata,
-        createdById: videos.createdById,
-        createdAt: videos.createdAt,
-        updatedAt: videos.updatedAt,
-        publishedAt: videos.publishedAt,
-        title_corrected: videos.title_corrected,
-        media_corrected: videos.media_corrected,
-      })
-        .from(videos)
-        .leftJoin(users, eq(videos.currentReviewerId, users.id));
-    } else {
-      // Regular users only see videos from their assigned projects
-      videoQuery = db.select({
-        id: videos.id,
-        projectId: videos.projectId,
-        title: videos.title,
-        description: videos.description,
-        status: videos.status,
-        videoUrl: videos.videoUrl,
-        thumbnailUrl: videos.thumbnailUrl,
-        youtubeUrl: videos.youtubeUrl,
-        optimizedTitle: videos.optimizedTitle,
-        optimizedDescription: videos.optimizedDescription,
-        tags: videos.tags,
-        seriesNumber: videos.seriesNumber,
-        currentReviewerId: videos.currentReviewerId,
-        reviewerName: users.fullName,
-        reviewerUsername: users.username,
-        lastReviewedAt: videos.lastReviewedAt,
-        lastReviewComments: videos.lastReviewComments,
-        metadata: videos.metadata,
-        createdById: videos.createdById,
-        createdAt: videos.createdAt,
-        updatedAt: videos.updatedAt,
-        publishedAt: videos.publishedAt,
-        title_corrected: videos.title_corrected,
-        media_corrected: videos.media_corrected,
-      })
-        .from(videos)
-        .innerJoin(projectAccess, eq(videos.projectId, projectAccess.projectId))
-        .leftJoin(users, eq(videos.currentReviewerId, users.id))
-        .where(eq(projectAccess.userId, user.id));
-    }
 
-    const result = await videoQuery.orderBy(desc(videos.updatedAt));
+    const result = await prisma.video.findMany({
+      include: {
+        currentReviewer: true
+      },
+      orderBy: {
+        updatedAt: "desc"
+      }
+      
+    })
+    
+    // let videoQuery;
+
+    // if (user.role === 'admin') {
+    //   // Admin sees all videos
+    //   videoQuery = db.select({
+    //     id: videos.id,
+    //     projectId: videos.projectId,
+    //     title: videos.title,
+    //     description: videos.description,
+    //     status: videos.status,
+    //     videoUrl: videos.videoUrl,
+    //     thumbnailUrl: videos.thumbnailUrl,
+    //     youtubeUrl: videos.youtubeUrl,
+    //     optimizedTitle: videos.optimizedTitle,
+    //     optimizedDescription: videos.optimizedDescription,
+    //     tags: videos.tags,
+    //     seriesNumber: videos.seriesNumber,
+    //     currentReviewerId: videos.currentReviewerId,
+    //     reviewerName: users.fullName,
+    //     reviewerUsername: users.username,
+    //     lastReviewedAt: videos.lastReviewedAt,
+    //     lastReviewComments: videos.lastReviewComments,
+    //     metadata: videos.metadata,
+    //     createdById: videos.createdById,
+    //     createdAt: videos.createdAt,
+    //     updatedAt: videos.updatedAt,
+    //     publishedAt: videos.publishedAt,
+    //     title_corrected: videos.title_corrected,
+    //     media_corrected: videos.media_corrected,
+    //   })
+    //     .from(videos)
+    //     .leftJoin(users, eq(videos.currentReviewerId, users.id));
+    // } else {
+    //   // Regular users only see videos from their assigned projects
+    //   videoQuery = db.select({
+    //     id: videos.id,
+    //     projectId: videos.projectId,
+    //     title: videos.title,
+    //     description: videos.description,
+    //     status: videos.status,
+    //     videoUrl: videos.videoUrl,
+    //     thumbnailUrl: videos.thumbnailUrl,
+    //     youtubeUrl: videos.youtubeUrl,
+    //     optimizedTitle: videos.optimizedTitle,
+    //     optimizedDescription: videos.optimizedDescription,
+    //     tags: videos.tags,
+    //     seriesNumber: videos.seriesNumber,
+    //     currentReviewerId: videos.currentReviewerId,
+    //     reviewerName: users.fullName,
+    //     reviewerUsername: users.username,
+    //     lastReviewedAt: videos.lastReviewedAt,
+    //     lastReviewComments: videos.lastReviewComments,
+    //     metadata: videos.metadata,
+    //     createdById: videos.createdById,
+    //     createdAt: videos.createdAt,
+    //     updatedAt: videos.updatedAt,
+    //     publishedAt: videos.publishedAt,
+    //     title_corrected: videos.title_corrected,
+    //     media_corrected: videos.media_corrected,
+    //   })
+    //     .from(videos)
+    //     .innerJoin(projectAccess, eq(videos.projectId, projectAccess.projectId))
+    //     .leftJoin(users, eq(videos.currentReviewerId, users.id))
+    //     .where(eq(projectAccess.userId, user.id));
+    // }
+
+    // const result = await videoQuery.orderBy(desc(videos.updatedAt));
 
     // Agregar logs para debugging
     console.log("Videos fetched:", result.map(video => ({
       id: video.id,
       status: video.status,
-      metadata: video.metadata
     })));
 
     return res.status(200).json(result);
