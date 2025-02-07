@@ -49,7 +49,7 @@ model Video {
   titleCorrected    Boolean    @default(false) @map("title_corrected")
   mediaCorrected    Boolean    @default(false) @map("media_corrected")
   
-  project           Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projects          VideosOnProjects[]
   optimizedBy       User?      @relation("optimizedVideos", fields: [optimizedById], references: [id])
   createdBy         User       @relation("createdVideos", fields: [createdById], references: [id])
   currentReviewer   User?      @relation("reviewingVideos", fields: [currentReviewerId], references: [id])
@@ -63,6 +63,23 @@ model User {
 }
 
 model Project {
-  id      Int      @id @default(autoincrement())
-  videos  Video[]
+  id            Int       @id @default(autoincrement())
+  name          String
+  prefix        String?
+  currentNumber Int       @default(0) @map("current_number")
+  description   String?
+  createdById   Int       @map("created_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  videos        VideosOnProjects[]
+}
+
+model VideosOnProjects {
+  projectId Int
+  videoId   Int
+  project   Project @relation(fields: [projectId], references: [id])
+  video     Video   @relation(fields: [videoId], references: [id])
+
+  @@id([projectId, videoId])
+  @@map("videos_on_projects")
 }
