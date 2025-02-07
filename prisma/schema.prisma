@@ -57,9 +57,29 @@ model Video {
 
 model User {
   id             Int      @id @default(autoincrement())
+  username       String   @unique
+  password       String
+  fullName       String?  @map("full_name")
+  email          String?
+  bio            String?
+  phone          String?
+  role           Role     @default(uploader)
+  avatarUrl      String?  @map("avatar_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+  
   optimizedVideos Video[] @relation("optimizedVideos")
-  createdVideos  Video[] @relation("createdVideos")
+  createdVideos   Video[] @relation("createdVideos")
   reviewingVideos Video[] @relation("reviewingVideos")
+  projects        Project[]
+}
+
+enum Role {
+  uploader
+  admin
+  reviewer
+  optimizer
+  youtuber
 }
 
 model Project {
