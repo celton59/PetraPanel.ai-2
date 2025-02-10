@@ -123,7 +123,6 @@ export const projects = pgTable("projects", {
   prefix: text("prefix"),
   current_number: integer("current_number").default(0),
   description: text("description"),
-  createdById: integer("created_by_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

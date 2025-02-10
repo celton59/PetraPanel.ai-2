@@ -12,20 +12,20 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { CreateProjectDTO } from "@/types/project";
+import { Project } from '@db/schema'
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  prefix: z.string().min(1, "El prefijo es requerido"),
+  prefix: z.string().min(1, "El prefijo es requerido")
 });
 
 interface ProjectFormProps {
   isSubmitting: boolean;
-  onAddProject: (data: CreateProjectDTO) => Promise<void>;
+  onAddProject: (data: Pick<Project, 'name' | 'prefix' | 'description'>) => Promise<void>;
 }
 
 export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
-  const form = useForm<CreateProjectDTO>({
+  const form = useForm<Pick<Project, 'name' | 'prefix' | 'description'>>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: "",
@@ -33,7 +33,7 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
     },
   });
 
-  const onSubmit = async (data: CreateProjectDTO) => {
+  const onSubmit = async (data: Pick<Project, 'name' | 'prefix' | 'description'>) => {
     try {
       await onAddProject({
         name: data.name,
@@ -71,6 +71,19 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
                 <FormLabel>Prefijo</FormLabel>
                 <FormControl>
                   <Input placeholder="PRJ" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Descripción</FormLabel>
+                <FormControl>
+                  <Input placeholder="Descripción del Proyecto" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

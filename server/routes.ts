@@ -17,6 +17,7 @@ import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import translatorRouter from "./routes/translator";
 import VideoController from "./controllers/videoController";
+import ProjectController from "./controllers/projectController.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -229,120 +230,13 @@ export function registerRoutes(app: Express): Server {
     });
 
     // Projects routes
-    app.get("/api/projects", requireAuth, async (req: Request, res: Response) => {
-      try {
-        let result;
-        const user = req.user!;
 
-        if (user.role === 'admin') {
-          // Admin sees all projects
-          result = await db.select().from(projects);
-        } else {
-          // Regular users only see their assigned projects
-          result = await db
-            .select({
-              id: projects.id,
-              name: projects.name,
-              prefix: projects.prefix,
-              current_number: projects.current_number,
-              description: projects.description,
-              createdById: projects.createdById,
-              created_at: projects.createdAt
-            })
-            .from(projects)
-            .innerJoin(
-              projectAccess,
-              and(
-                eq(projectAccess.projectId, projects.id),
-                eq(projectAccess.userId, user.id)
-              )
-            );
-        }
-
-        res.json({
-          success: true,
-          data: result,
-          message: "Proyectos obtenidos correctamente"
-        });
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener los proyectos"
-        });
-      }
-    });
-
-    app.post("/api/projects", requireAuth, async (req: Request, res: Response) => {
-      const { name, prefix, description } = req.body;
-
-      if (!name) {
-        return res.status(400).json({
-          success: false,
-          message: "El nombre del proyecto es requerido"
-        });
-      }
-
-      try {
-        const projectData: InsertProject = {
-          name,
-          prefix: prefix || null,
-          description: description || null,
-          createdById: req.user!.id,
-          current_number: 0
-        };
-
-        const [result] = await db.insert(projects)
-          .values(projectData)
-          .returning();
-
-        console.log("Created project:", result);
-
-        res.json({
-          success: true,
-          data: result,
-          message: "Proyecto creado correctamente"
-        });
-      } catch (error) {
-        console.error("Error creating project:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al crear el proyecto"
-        });
-      }
-    });
+    app.post("/api/projects", requireAuth, async (req: Request, res: Response) => ProjectController.createProject(req, res)  );
+    
+    app.get("/api/projects", requireAuth, async (req: Request, res: Response) => ProjectController.getProjects(req, res));
 
     app.put("/api/projects/:id", requireAuth, async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const { name, description } = req.body;
-      try {
-        const [result] = await db.update(projects)
-          .set({
-            name,
-            description,
-          })
-          .where(eq(projects.id, parseInt(id)))
-          .returning();
-
-        if (!result) {
-          return res.status(404).json({
-            success: false,
-            message: "Proyecto no encontrado"
-          });
-        }
-
-        res.json({
-          success: true,
-          data: result,
-          message: "Proyecto actualizado correctamente"
-        });
-      } catch (error) {
-        console.error("Error updating project:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al actualizar el proyecto"
-        });
-      }
+      
     });
 
     app.delete("/api/projects/:id", requireAuth, async (req: Request, res: Response) => {

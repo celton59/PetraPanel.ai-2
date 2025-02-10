@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, getTableColumns } from "drizzle-orm";
 import { videos, users, projectAccess } from "@db/schema";
 import { db } from "@db";
 
@@ -134,53 +134,19 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
     const user = req.user!;
-    let videoQuery: type VideoWithReviewer = InferSelectModel<typeof videos> & {
-        reviewerName: InferSelectModel<typeof users>['fullName'];
-        reviewerUsername: InferSelectModel<typeof users>['username'];
-      };
+    // let videoQuery: type VideoWithReviewer = InferSelectModel<typeof videos> & {
+    //     reviewerName: InferSelectModel<typeof users>['fullName'];
+    //     reviewerUsername: InferSelectModel<typeof users>['username'];
+    //   };
 
-    const selectFields = {
-      id: videos.id,
-      projectId: videos.projectId,
-      title: videos.title,
-      description: videos.description,
-      status: videos.status,
-      videoUrl: videos.videoUrl,
-      thumbnailUrl: videos.thumbnailUrl,
-      youtubeUrl: videos.youtubeUrl,
-      optimizedTitle: videos.optimizedTitle,
-      optimizedDescription: videos.optimizedDescription,
-      tags: videos.tags,
-      seriesNumber: videos.seriesNumber,
-      currentReviewerId: videos.currentReviewerId,
-      reviewerName: users.fullName,
-      reviewerUsername: users.username,
-      lastReviewedAt: videos.lastReviewedAt,
-      lastReviewComments: videos.lastReviewComments,
-      metadata: videos.metadata,
-      createdById: videos.createdById,
-      createdAt: videos.createdAt,
-      updatedAt: videos.updatedAt,
-      publishedAt: videos.publishedAt,
-      title_corrected: videos.title_corrected,
-      media_corrected: videos.media_corrected,
-    };
-
-    if (user.role === 'admin') {
-      // Admin sees all videos
-      videoQuery = db.select(selectFields)
-        .from(videos)
-        .leftJoin(users, eq(videos.currentReviewerId, users.id));
-    } else {
-      // Regular users only see videos from their assigned projects
-      videoQuery = db.select(selectFields)
-        .from(videos)
-        .innerJoin(projectAccess, eq(videos.projectId, projectAccess.projectId))
-        .leftJoin(users, eq(videos.currentReviewerId, users.id))
-        .where(eq(projectAccess.userId, user.id));
-    }
-
-    const result = await videoQuery.orderBy(desc(videos.updatedAt));
+    const result = await db.select({
+        ...getTableColumns(videos),
+        reviewerName: users.fullName,
+        reviewerUsername: users.username
+      })
+      .from(videos)
+      .leftJoin(users, eq(videos.currentReviewerId, users.id))
+      .orderBy(desc(videos.updatedAt)).execute()
 
     // Agregar logs para debugging
     console.log("Videos fetched:", result.map(video => ({
