@@ -15,11 +15,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Project, UpdateProjectDTO } from "@/types/project";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Project } from '@db/schema'
 
 const projectSchema = z.object({
   id: z.number(),
@@ -47,7 +47,7 @@ export function ProjectEditDialog({
     },
   });
 
-  const onSubmit = async (data: UpdateProjectDTO) => {
+  const onSubmit = async (data: Pick<Project, 'name' | 'prefix' | 'id' | 'description'>) => {
     try {
       await onUpdateProject({
         id: data.id,
@@ -92,6 +92,19 @@ export function ProjectEditDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Prefijo</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descripción</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>

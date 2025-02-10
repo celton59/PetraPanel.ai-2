@@ -235,9 +235,7 @@ export function registerRoutes(app: Express): Server {
     
     app.get("/api/projects", requireAuth, async (req: Request, res: Response) => ProjectController.getProjects(req, res));
 
-    app.put("/api/projects/:id", requireAuth, async (req: Request, res: Response) => {
-      
-    });
+    app.put("/api/projects/:id", requireAuth, async (req: Request, res: Response) => ProjectController.updateProject(req, res) );
 
     app.delete("/api/projects/:id", requireAuth, async (req: Request, res: Response) => {
       const { id } = req.params;

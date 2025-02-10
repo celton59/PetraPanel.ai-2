@@ -28,6 +28,7 @@ export function useProjects() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (project: Pick<Project, "name" | "description" | "prefix">) => {
+
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

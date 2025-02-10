@@ -16,7 +16,8 @@ import { Project } from '@db/schema'
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  prefix: z.string().min(1, "El prefijo es requerido")
+  prefix: z.string().min(1, "El prefijo es requerido"),
+  description: z.string()
 });
 
 interface ProjectFormProps {
@@ -26,11 +27,7 @@ interface ProjectFormProps {
 
 export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
   const form = useForm<Pick<Project, 'name' | 'prefix' | 'description'>>({
-    resolver: zodResolver(projectSchema),
-    defaultValues: {
-      name: "",
-      prefix: "",
-    },
+    resolver: zodResolver(projectSchema)
   });
 
   const onSubmit = async (data: Pick<Project, 'name' | 'prefix' | 'description'>) => {
@@ -38,7 +35,7 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
       await onAddProject({
         name: data.name,
         prefix: data.prefix,
-        description: null
+        description: data.description
       });
       form.reset();
     } catch (error) {

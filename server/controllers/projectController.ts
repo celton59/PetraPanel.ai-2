@@ -89,7 +89,7 @@ async function getProjects(req: Request, res: Response): Promise<Response> {
 
 async function updateProject(req: Request, res: Response): Promise<Response> {
   const { id } = req.params;
-  const { name, description } = req.body;
+  const { name, description, prefix } = req.body;
 
   const user = req.user!;
   if (user.role !== "admin")
@@ -100,7 +100,7 @@ async function updateProject(req: Request, res: Response): Promise<Response> {
   
   try {
     const [result] = await db.update(projects)
-      .set({ name, description, })
+      .set({ name, description, prefix })
       .where(eq(projects.id, parseInt(id)))
       .returning();
 
