@@ -2,7 +2,7 @@ import { VideoCard } from "@/components/VideoCard";
 import { useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List, Image as ImageIcon } from "lucide-react";
-import { NewVideoDialog } from "@/components/video/NewVideoDialog";
+import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
 import {
   Table,
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VideoOptimizer } from "@/components/video/VideoOptimizer";
 import { useState, useEffect } from "react";
-import { VideoFilters } from "@/components/video/VideoFilters";
+import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusLabel, getStatusLabelNew } from '@/lib/status-labels';
 import { cn } from "@/lib/utils";
@@ -32,9 +32,21 @@ const VISIBLE_STATES = {
   admin: ['pending', 'in_progress', 'optimize_review', 'title_corrections', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision']
 } as const;
 
-export default function Videos () {
-  const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
+export default function VideosPage () {
   const { user, isLoading: isUserLoading } = useUser();
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center bg-background w-full">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
   const [updatingVideoId, setUpdatingVideoId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
@@ -64,16 +76,7 @@ export default function Videos () {
     return VISIBLE_STATES[userRole]?.includes(effectiveStatus as any);
   };
 
-  if (isUserLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
+  
 
   if (!user) return null;
 
@@ -352,7 +355,6 @@ export default function Videos () {
       {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
     </div>
   }
-
 
   function getListView () {
     return <div className="space-y-4">

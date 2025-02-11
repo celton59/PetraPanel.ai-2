@@ -231,125 +231,21 @@ export function registerRoutes(app: Express): Server {
 
     // Projects routes
 
-    app.post("/api/projects", requireAuth, async (req: Request, res: Response) => ProjectController.createProject(req, res)  );
+    app.post("/api/projects", requireAuth, ProjectController.createProject);
     
-    app.get("/api/projects", requireAuth, async (req: Request, res: Response) => ProjectController.getProjects(req, res));
+    app.get("/api/projects", requireAuth, ProjectController.getProjects);
 
-    app.put("/api/projects/:id", requireAuth, async (req: Request, res: Response) => ProjectController.updateProject(req, res) );
+    app.put("/api/projects/:id", requireAuth, ProjectController.updateProject);
 
-    app.delete("/api/projects/:id", requireAuth, async (req: Request, res: Response) => {
-      const { id } = req.params;
-
-      // Verificar si el usuario es administrador
-      if (req.user!.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: "Solo los administradores pueden eliminar proyectos"
-        });
-      }
-
-      try {
-        const [result] = await db.delete(projects)
-          .where(eq(projects.id, parseInt(id)))
-          .returning();
-
-        if (!result) {
-          return res.status(404).json({
-            success: false,
-            message: "Proyecto no encontrado"
-          });
-        }
-
-        res.json({
-          success: true,
-          message: "Proyecto eliminado correctamente"
-        });
-      } catch (error) {
-        console.error("Error deleting project:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al eliminar el proyecto"
-        });
-      }
-    });
+    app.delete("/api/projects/:id", requireAuth, ProjectController.deleteProject);
 
     // Videos routes
     
-    app.get("/api/videos", requireAuth, async (req: Request, res: Response) => VideoController.getVideos(req, res));
+    app.get("/api/videos", requireAuth, VideoController.getVideos);
     
-    app.get("/api/projects/:projectId/videos", requireAuth, async (req: Request, res: Response) => {
-      const projectId = parseInt(req.params.projectId);
-      try {
-        const result = await db.select()
-          .from(videos)
-          .where(eq(videos.projectId, projectId))
-          .orderBy(desc(videos.updatedAt));
+    app.get("/api/projects/:projectId/videos", requireAuth, VideoController.getVideosByProject);
 
-        res.json(result);
-      } catch (error) {
-        console.error("Error fetching videos:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener los videos"
-        });
-      }
-    });
-
-    app.post("/api/projects/:projectId/videos", requireAuth, async (req: Request, res: Response) => {
-      const projectId = parseInt(req.params.projectId);
-      const { title, description } = req.body;
-      try {
-        // Use transaction to ensure atomic operations
-        const [result] = await db.transaction(async (tx) => {
-          // Get project details
-          const [project] = await tx.select()
-            .from(projects)
-            .where(eq(projects.id, projectId))
-            .limit(1);
-
-          if (!project) {
-            throw new Error("Proyecto no encontrado");
-          }
-
-          // Generate series number
-          const newNumber = (project.current_number || 0) + 1;
-          const seriesNumber = project.prefix ?
-            `${project.prefix}-${String(newNumber).padStart(4, '0')}` :
-            String(newNumber).padStart(4, '0');
-
-          // Update project's current number
-          await tx.update(projects)
-            .set({ current_number: newNumber })
-            .where(eq(projects.id, projectId));
-
-          // Create video
-          const videoData: InsertVideo = {
-            projectId,
-            title,
-            description: description || null,
-            status: "pending",
-            createdById: req.user!.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            seriesNumber
-          };
-
-          const [video] = await tx.insert(videos)
-            .values(videoData)
-            .returning();
-
-          return [video];
-        });
-
-        res.json(result);
-      } catch (error) {
-        console.error("Error creating video:", error);
-        res.status(500).json({
-          success: false,
-          message: error instanceof Error ? error.message : "Error al crear el video"
-        });
-      }
-    });
+    app.post("/api/projects/:projectId/videos", requireAuth, VideoController.createVideo);
 
     app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.updateVideo)
 

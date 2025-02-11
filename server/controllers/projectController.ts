@@ -125,11 +125,48 @@ async function updateProject(req: Request, res: Response): Promise<Response> {
   }
 }
 
+async function deleteProject(req: Request, res: Response): Promise<Response> {
+  const { id } = req.params;
+
+  // Verificar si el usuario es administrador
+  if (req.user!.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: "Solo los administradores pueden eliminar proyectos"
+    });
+  }
+
+  try {
+    const [result] = await db.delete(projects)
+      .where(eq(projects.id, parseInt(id)))
+      .returning();
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Proyecto no encontrado"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Proyecto eliminado correctamente"
+    });
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al eliminar el proyecto"
+    });
+  }
+}
 
 
 const ProjectController = {
   createProject,
-  getProjects
+  getProjects,
+  updateProject,
+  deleteProject
 }
 
 

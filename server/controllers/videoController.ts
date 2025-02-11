@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { eq, and, desc, getTableColumns } from "drizzle-orm";
-import { videos, users, projectAccess } from "@db/schema";
+import { videos, users, projectAccess, projects, InsertVideo } from "@db/schema";
 import { db } from "@db";
 
 async function updateVideo(req: Request, res: Response): Promise<Response> {
@@ -165,11 +165,117 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   }
 }
 
+async function getVideosByProject(req: Request, res: Response): Promise<Response> {
+  
+  const projectId = parseInt(req.params.projectId);
+  
+  try {
+    const user = req.user!;
+    // let videoQuery: type VideoWithReviewer = InferSelectModel<typeof videos> & {
+    //     reviewerName: InferSelectModel<typeof users>['fullName'];
+    //     reviewerUsername: InferSelectModel<typeof users>['username'];
+    //   };
+
+    const result = await db.select({
+        ...getTableColumns(videos),
+        reviewerName: users.fullName,
+        reviewerUsername: users.username
+      })
+      .from(videos)
+      .leftJoin(users, eq(videos.currentReviewerId, users.id))
+      .where(eq(videos.projectId, projectId))
+      .orderBy(desc(videos.updatedAt)).execute()
+
+    // Agregar logs para debugging
+    console.log("Videos fetched:", result.map(video => ({
+      id: video.id,
+      status: video.status,
+      metadata: video.metadata
+    })));
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching all videos:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al obtener los videos"
+    });
+  }
+}
+
+async function createVideo(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  const { title, description } = req.body;
+
+  const user = req.user!;
+
+  if (user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: "Solo los administradores pueden crear videos"
+    });
+  }
+  
+  try {
+    // Use transaction to ensure atomic operations
+    const [result] = await db.transaction(async (tx) => {
+      // Get project details
+      const [project] = await tx.select()
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+
+      if (!project) {
+        throw new Error("Proyecto no encontrado");
+      }
+
+      // Generate series number
+      const newNumber = (project.current_number || 0) + 1;
+      const seriesNumber = project.prefix ?
+        `${project.prefix}-${String(newNumber).padStart(4, '0')}` :
+        String(newNumber).padStart(4, '0');
+
+      // Update project's current number
+      await tx.update(projects)
+        .set({ current_number: newNumber })
+        .where(eq(projects.id, projectId));
+
+      // Create video
+      const videoData: InsertVideo = {
+        projectId,
+        title,
+        description: description || null,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        seriesNumber
+      };
+
+      const [video] = await tx.insert(videos)
+        .values(videoData)
+        .returning();
+
+      return [video];
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error("Error creating video:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Error al crear el video"
+    });
+  }
+}
+
+
 
 const VideoController = {
   updateVideo,
   deleteVideo,
-  getVideos
+  getVideos,
+  getVideosByProject,
+  createVideo
 }
 
 

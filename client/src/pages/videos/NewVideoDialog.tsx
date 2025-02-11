@@ -1,9 +1,8 @@
-import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ProjectSelector } from "../ProjectSelector";
+import { ProjectSelector } from "@/components/ProjectSelector";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,7 +13,6 @@ import { queryClient } from "@/lib/queryClient";
 import { Loader2, FolderKanban, VideoIcon, FolderIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useQuery } from "@tanstack/react-query";
 
 const videoSchema = z.object({
   title: z.string()
@@ -32,32 +30,19 @@ interface Project {
   name: string;
 }
 
-interface Props {
+interface NewVideoDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function NewVideoDialog({ open, onOpenChange }: Props) {
+export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
+  
   const [step, setStep] = useState(1);
-  const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setLocation] = useLocation();
 
   const { toast } = useToast();
-  const { createVideo } = useVideos(selectedProjects[0]);
-
-  const { data: projectsResponse } = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      const response = await fetch("/api/projects");
-      if (!response.ok) {
-        throw new Error("Error al cargar los proyectos");
-      }
-      return response.json() as Promise<{ data: Project[] }>;
-    }
-  });
-
-  const projects = projectsResponse?.data || [];
+  const { createVideo } = useVideos(selectedProject?.id);
 
   const form = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),
@@ -68,13 +53,10 @@ export function NewVideoDialog({ open, onOpenChange }: Props) {
     mode: "onChange"
   });
 
-  const handleBack = () => {
-    setStep(1);
-  };
 
   const resetForm = () => {
     setStep(1);
-    setSelectedProjects([]);
+    setSelectedProject(undefined);
     form.reset({
       title: "",
       description: ""
@@ -82,7 +64,8 @@ export function NewVideoDialog({ open, onOpenChange }: Props) {
   };
 
   const onSubmit = async (data: VideoFormValues) => {
-    if (selectedProjects.length === 0) {
+    
+    if (! selectedProject) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -94,7 +77,7 @@ export function NewVideoDialog({ open, onOpenChange }: Props) {
     setIsSubmitting(true);
     try {
       await createVideo({
-        projectId: selectedProjects[0],
+        projectId: selectedProject.id,
         title: data.title,
         description: data.description || ""
       });
@@ -117,14 +100,6 @@ export function NewVideoDialog({ open, onOpenChange }: Props) {
     }
   };
 
-  const handleProjectSelection = (projects: number[]) => {
-    setSelectedProjects(projects);
-    if (projects.length > 0) {
-      setStep(2);
-    }
-  };
-
-  const selectedProject = projects.find((p: Project) => p.id === selectedProjects[0]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -178,15 +153,18 @@ export function NewVideoDialog({ open, onOpenChange }: Props) {
                   </p>
                 </div>
                 <ProjectSelector
-                  value={selectedProjects[0] || null}
-                  onChange={(value) => handleProjectSelection(value ? [value] : [])}
+                  value={selectedProject?.id || null}
+                  onChange={ project => {
+                    setSelectedProject(project)
+                    setStep(2)
+                  } }
                 />
               </div>
             </Card>
           ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {step === 2 && selectedProjects.length > 0 && (
+                {step === 2 && selectedProject && (
                   <Card className="p-4 border-primary/20 bg-primary/5 mb-4">
                     <div className="flex items-center gap-2">
                       <FolderIcon className="h-4 w-4 text-primary" />
@@ -242,7 +220,7 @@ export function NewVideoDialog({ open, onOpenChange }: Props) {
                 </Card>
 
                 <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handleBack}>
+                  <Button type="button" variant="outline" onClick={() => setStep(1)}>
                     Atrás
                   </Button>
                   <Button 

@@ -9,12 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ProjectForm } from "./projects/ProjectForm";
-import { ProjectEditDialog } from "./projects/ProjectEditDialog";
+import { ProjectForm } from "./ProjectForm";
+import { ProjectEditDialog } from "./ProjectEditDialog";
 import { useProjects } from "@/hooks/useProjects";
 import { Project } from '@db/schema'
 
-export const ProjectsTab = () => {
+export function ProjectsTab () {
   const { projects, isLoading, createProject, updateProject, deleteProject } = useProjects();
   const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -20,17 +20,19 @@ import { Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Project } from '@db/schema'
+import { useState } from "react";
 
 const projectSchema = z.object({
   id: z.number(),
   name: z.string().min(1, "El nombre es requerido"),
   prefix: z.string().min(1, "El prefijo es requerido"),
+  description: z.string()
 });
 
 interface ProjectEditDialogProps {
   project: Project;
   isSubmitting: boolean;
-  onUpdateProject: (data: UpdateProjectDTO) => Promise<void>;
+  onUpdateProject: (data: Pick<Project, 'name' | 'description' | 'prefix' | 'id'>) => Promise<void>;
 }
 
 export function ProjectEditDialog({
@@ -38,12 +40,18 @@ export function ProjectEditDialog({
   isSubmitting,
   onUpdateProject,
 }: ProjectEditDialogProps) {
-  const form = useForm<UpdateProjectDTO>({
+
+  const [opened, setOpened] = useState(false);
+
+  console.log("PROJECT", project)
+  
+  const form = useForm<Pick<Project, 'name' | 'description' | 'prefix' | 'id'>>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       id: project.id,
       name: project.name,
       prefix: project.prefix,
+      description: project.description
     },
   });
 
@@ -55,15 +63,16 @@ export function ProjectEditDialog({
         prefix: data.prefix,
         description: project.description
       });
+      setOpened(false);
     } catch (error) {
       console.error("Error updating project:", error);
     }
   };
 
   return (
-    <Dialog>
+    <Dialog open={opened} onOpenChange={ open => setOpened(open) }>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={() => setOpened( prev => !prev)}>
           <Pencil className="w-4 h-4" />
         </Button>
       </DialogTrigger>
@@ -93,7 +102,7 @@ export function ProjectEditDialog({
                 <FormItem>
                   <FormLabel>Prefijo</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input  {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

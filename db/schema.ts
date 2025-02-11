@@ -157,7 +157,6 @@ export const videos = pgTable("videos", {
   currentReviewerId: integer("current_reviewer_id"),
   lastReviewedAt: timestamp("last_reviewed_at"),
   lastReviewComments: text("last_review_comments"),
-  createdById: integer("created_by_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   publishedAt: timestamp("published_at"),

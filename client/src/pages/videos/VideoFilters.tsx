@@ -3,7 +3,6 @@ import { StatusFilter } from "./filters/StatusFilter";
 import { AssigneeFilter } from "./filters/AssigneeFilter";
 import { ProjectFilter } from "./filters/ProjectFilter";
 import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
-import { Prisma, Video, User, VideoStatus } from '@prisma/client'
+import { User, Video } from '@db/schema'
 
 
 interface MediaCorrections {
@@ -273,15 +273,18 @@ const canUpdateVideoStatus = (currentRole: User['role'], currentStatus: VideoSta
 
 export const getRoleStatus = 1
 
+type ApiVideo = {
+  [K in keyof Video]: Video[K];
+} & {
+  reviewerName: User["fullName"] | null;
+  reviewerUsername: User["username"] | null;
+}
+
 export function useVideos(projectId?: number): {
-  videos: Prisma.VideoGetPayload<{
-    include: {
-      currentReviewer: true
-    }
-  }>[];
+  videos: ApiVideo[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
-  updateVideo: ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number; data: UpdateVideoData;   currentRole: User['role']; currentUser?: any }) => Promise<any>;
+  updateVideo: ({ videoId, projectId, updateRequest, currentRole, currentUser }: { videoId: number; projectId: number; updateRequest: UpdateVideoData;   currentRole: User['role'];}) => Promise<any>;
   deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
 } {
   const queryClient = useQueryClient();
@@ -289,7 +292,7 @@ export function useVideos(projectId?: number): {
 
   const queryKey = projectId ? [`/api/projects/${projectId}/videos`] : ['/api/videos'];
 
-  const { data: videos, isLoading } = useQuery({
+  const { data: videos, isLoading } = useQuery<ApiVideo[]>({
     queryKey,
     queryFn: async () => {
       const res = await fetch(queryKey[0], {
@@ -340,39 +343,39 @@ export function useVideos(projectId?: number): {
   });
 
   const updateVideoMutation = useMutation({
-    mutationFn: async ({ videoId, projectId, data, currentRole, currentUser }: { videoId: number; projectId: number, data: UpdateVideoData; currentRole: User['role']; currentUser?: any }) => {
-      if (data.status && videos) {
-        const currentVideo = videos.find((v: Video) => v.id === videoId);
-        if (currentVideo && !canUpdateVideoStatus(currentRole, currentVideo.status as VideoStatus, data.status)) {
+    mutationFn: async ({ videoId, projectId, updateRequest, currentRole }: { videoId: number; projectId: number, updateRequest: UpdateVideoData; currentRole: User['role']}) => {
+      if (updateRequest.status && videos) {
+        const currentVideo = videos?.find( v => v.id === videoId);
+        if (currentVideo && !canUpdateVideoStatus(currentRole, currentVideo.status as Video['status'], updateRequest.status)) {
           throw new Error("No tienes permiso para realizar esta transición de estado");
         }
 
         // Actualizar title_corrected cuando se pasa de title_corrections a optimize_review
-        if (currentVideo?.status === 'title_corrections' && data.status === 'optimize_review') {
+        if (currentVideo?.status === 'title_corrections' && updateRequest.status === 'optimize_review') {
           console.log('Actualizando title_corrected a true');
-          data = {
-            ...data,
+          updateRequest = {
+            ...updateRequest,
             title_corrected: true,
             status: 'optimize_review'
           };
         }
 
         // Actualizar media_corrected cuando se pasa de media_corrections a youtube_ready
-        if (currentVideo?.status === 'media_corrections' && data.status === 'youtube_ready') {
-          data = {
-            ...data,
+        if (currentVideo?.status === 'media_corrections' && updateRequest.status === 'youtube_ready') {
+          updateRequest = {
+            ...updateRequest,
             media_corrected: true,
             status: 'youtube_ready'
           };
         }
       }
 
-      console.log('Datos de actualización:', data);
+      console.log('Datos de actualización:', updateRequest);
 
       const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(updateRequest),
         credentials: "include",
       });
 
@@ -434,7 +437,7 @@ export function useVideos(projectId?: number): {
     //   { 
     //     ...video, 
     //     effectiveStatus: getEffectiveStatus(video, localStorage.getItem('userRole'), JSON.parse(localStorage.getItem('currentUser') || '{}')) })) as Video[],
-    videos,
+    videos: videos ?? [],
     isLoading,
     createVideo: createVideoMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,

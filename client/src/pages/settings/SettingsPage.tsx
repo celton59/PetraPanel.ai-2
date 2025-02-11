@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ProjectsTab } from "@/components/settings/ProjectsTab";
+import { ProjectsTab } from "./tabs/project/ProjectsTab";
 import { UsersTab } from "@/components/settings/UsersTab";
 import { RolesTab } from "@/components/settings/RolesTab";
 import { VideoFlowTab } from "@/components/settings/VideoFlowTab";
@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Building2, Users2, Shield, GitBranch } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-const Settings = () => {
+export default function SettingsPage () {
   const isMobile = useIsMobile();
 
   return (
@@ -81,5 +81,3 @@ const Settings = () => {
     </div>
   );
 };
-
-export default Settings;

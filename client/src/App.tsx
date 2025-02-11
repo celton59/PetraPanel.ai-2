@@ -6,11 +6,11 @@ import NotFound from "@/pages/not-found";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth-page";
 import Profile from "@/pages/Profile";
-import Settings from "@/pages/settings/Settings";
+import SettingsPage from "@/pages/settings/SettingsPage";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
-import Videos from "@/pages/Videos";
+import VideosPage from "@/pages/videos/VideosPage";
 import StatsPage from "@/pages/StatsPage";
 import VideoTranslator from "@/pages/VideoTranslator";
 
@@ -44,8 +44,8 @@ function Router() {
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
       <Route path="/perfil" component={() => <ProtectedRoute component={Profile} />} />
-      <Route path="/ajustes" component={() => <ProtectedRoute component={Settings} />} />
-      <Route path="/videos" component={() => <ProtectedRoute component={Videos} />} />
+      <Route path="/ajustes" component={() => <ProtectedRoute component={SettingsPage} />} />
+      <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route component={NotFound} />
