@@ -3,7 +3,7 @@ import type { Video } from "@db/schema";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { VideoUploadFields } from "../upload/VideoUploadFields";
+import { VideoUploadFields } from "./upload/VideoUploadFields";
 
 interface UploadReviewContentProps {
   video: Video;

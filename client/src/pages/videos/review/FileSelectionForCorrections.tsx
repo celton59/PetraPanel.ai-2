@@ -2,8 +2,8 @@ import { Video } from "@db/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, Video as VideoIcon } from "lucide-react";
-import { VideoUploader } from "../upload/VideoUploader";
-import { ThumbnailUploader } from "../upload/ThumbnailUploader";
+import { VideoUploader } from "./upload/VideoUploader";
+import { ThumbnailUploader } from "./upload/ThumbnailUploader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FileSelectionForCorrectionsProps {

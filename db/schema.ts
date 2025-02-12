@@ -151,27 +151,30 @@ export const videos = pgTable("videos", {
   youtubeUrl: text("youtube_url"),
   optimizedTitle: text("optimized_title"),
   optimizedDescription: text("optimized_description"),
-  optimizedById: integer("optimized_by_id").references(() => users.id),
+  createdBy: integer("created_by").references(() => users.id),
+  optimizedBy: integer("optimized_by").references(() => users.id),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
   tags: text("tags"),
   seriesNumber: text("series_number"),
-  currentReviewerId: integer("current_reviewer_id"),
   lastReviewedAt: timestamp("last_reviewed_at"),
   lastReviewComments: text("last_review_comments"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   publishedAt: timestamp("published_at"),
-  metadata: jsonb("metadata"),
   title_corrected: boolean("title_corrected").notNull().default(false),
   media_corrected: boolean("media_corrected").notNull().default(false),
 });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
+
 export type Video = typeof videos.$inferSelect & { metadata?: VideoMetadata };
 export type VideoStatus = Video['status']
 export type InsertVideo = typeof videos.$inferInsert;
+
 export type ProjectAccess = typeof projectAccess.$inferSelect;
 export type InsertProjectAccess = typeof projectAccess.$inferInsert;
 

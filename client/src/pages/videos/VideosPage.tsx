@@ -1,4 +1,4 @@
-import { VideoCard } from "@/components/VideoCard";
+import { VideoCard } from "./VideoCard";
 import { useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Loader2, Plus, Filter, Layout, Grid, List, Image as ImageIcon } from "lucide-react";
@@ -16,13 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { VideoOptimizer } from "@/components/video/VideoOptimizer";
 import { useState, useEffect } from "react";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusLabel, getStatusLabelNew } from '@/lib/status-labels';
 import { cn } from "@/lib/utils";
-import type { User, VideoStatus } from "@db/schema";
+import type { User, VideoStatus, Video } from "@db/schema";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -47,8 +46,8 @@ export default function VideosPage () {
   }
   
   const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'list'>('table');
@@ -69,18 +68,12 @@ export default function VideosPage () {
   const [projectId, setProjectId] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  const canViewVideo = (video: any) => {
-    const userRole = user?.role as keyof typeof VISIBLE_STATES || 'viewer';
-    const effectiveStatus = getEffectiveStatus(video, userRole, user);
-    if (userRole === 'admin') return true;
-    return VISIBLE_STATES[userRole]?.includes(effectiveStatus as any);
-  };
 
   
 
   if (!user) return null;
 
-  const handleDeleteVideo = async (videoId: number, projectId: number) => {
+  async function handleDeleteVideo (videoId: number, projectId: number) {
     try {
       await deleteVideo({ videoId, projectId });
       toast.success("Video eliminado correctamente");
@@ -88,75 +81,72 @@ export default function VideosPage () {
       console.error("Error deleting video:", error);
       toast.error("Error al eliminar el video");
     }
+  }
+
+  async function handleVideoClick (video: Video) {
+
+    setSelectedVideoId(video.id);
+    setVideoDialogOpen(true);
+
+    // if ((userRole === 'optimizer' || userRole === 'admin') && video.status === 'pending') {
+    //   setUpdatingVideoId(video.id);
+    //   try {
+    //     await updateVideo({
+    //       videoId: video.id,
+    //       projectId: video.projectId,
+    //       updateRequest: {
+    //         status: 'in_progress',
+    //       }
+    //     });
+    //     setSelectedVideoId(video.id);
+    //     setDialogOpen(true);
+    //   } catch (error) {
+    //     console.error('Error al actualizar el video:', error);
+    //     toast.error("Error al actualizar el estado del video");
+    //   } finally {
+    //     setUpdatingVideoId(undefined);
+    //   }
+    // } else {
+    //   setSelectedVideoId(video.id);
+    //   setDialogOpen(true);
+    // }
   };
 
-  const handleVideoClick = async (video: any) => {
-    const userRole = user?.role || 'viewer';
+  // const canViewVideo = (video: any) => {
+  //   const userRole = user?.role as keyof typeof VISIBLE_STATES || 'viewer';
+  //   const effectiveStatus = getEffectiveStatus(video, userRole, user);
+  //   if (userRole === 'admin') return true;
+  //   return VISIBLE_STATES[userRole]?.includes(effectiveStatus as any);
+  // };
 
-    if ((userRole === 'optimizer' || userRole === 'admin') && video.status === 'pending') {
-      setUpdatingVideoId(video.id);
-      try {
-        await updateVideo({
-          videoId: video.id,
-          projectId: video.projectId,
-          data: {
-            status: 'in_progress',
-            currentReviewerId: user?.id,
-            metadata: {
-              ...video.metadata,
-              optimization: {
-                ...video.metadata?.optimization,
-                assignedTo: {
-                  userId: user?.id,
-                  username: user?.username || '',
-                  assignedAt: new Date().toISOString()
-                }
-              }
-            }
-          },
-          currentRole: userRole
-        });
-        setSelectedVideoId(video.id);
-        setDialogOpen(true);
-      } catch (error) {
-        console.error('Error al actualizar el video:', error);
-        toast.error("Error al actualizar el estado del video");
-      } finally {
-        setUpdatingVideoId(null);
-      }
-    } else {
-      setSelectedVideoId(video.id);
-      setDialogOpen(true);
-    }
-  };
+  
+  // const filteredVideos = videos?.filter((video: any) => {
+  //   if (!canViewVideo(video)) return false;
 
-  const filteredVideos = videos?.filter((video: any) => {
-    if (!canViewVideo(video)) return false;
+  //   const matchesSearch =
+  //     searchTerm === "" ||
+  //     video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesSearch =
-      searchTerm === "" ||
-      video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+  //   const matchesStatus =
+  //     status === "all" || getEffectiveStatus(video, user?.role, user) === status;
 
-    const matchesStatus =
-      status === "all" || getEffectiveStatus(video, user?.role, user) === status;
+  //   const matchesAssignee =
+  //     assignedTo === "all" ||
+  //     (assignedTo === "unassigned" && !video.currentReviewerId) ||
+  //     String(video.currentReviewerId) === assignedTo;
 
-    const matchesAssignee =
-      assignedTo === "all" ||
-      (assignedTo === "unassigned" && !video.currentReviewerId) ||
-      String(video.currentReviewerId) === assignedTo;
+  //   const matchesProject =
+  //     projectId === "all" || String(video.projectId) === projectId;
 
-    const matchesProject =
-      projectId === "all" || String(video.projectId) === projectId;
+  //   const matchesDate = !dateRange?.from || (
+  //     video.updatedAt &&
+  //     new Date(video.updatedAt) >= dateRange.from &&
+  //     (!dateRange.to || new Date(video.updatedAt) <= dateRange.to)
+  //   );
 
-    const matchesDate = !dateRange?.from || (
-      video.updatedAt &&
-      new Date(video.updatedAt) >= dateRange.from &&
-      (!dateRange.to || new Date(video.updatedAt) <= dateRange.to)
-    );
-
-    return matchesSearch && matchesStatus && matchesAssignee && matchesProject && matchesDate;
-  });
+  //   return matchesSearch && matchesStatus && matchesAssignee && matchesProject && matchesDate;
+  // });
 
   const selectedVideo = videos?.find(v => v.id === selectedVideoId);
 
@@ -200,17 +190,19 @@ export default function VideosPage () {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[100px]">Miniatura</TableHead>
-              <TableHead className="w-[100px]">Serie</TableHead>
-              <TableHead className="min-w-[300px]">Título</TableHead>
-              <TableHead className="w-[150px]">Estado</TableHead>
-              <TableHead className="w-[150px]">Asignado a</TableHead>
-              <TableHead className="w-[150px]">Actualización</TableHead>
-              <TableHead className="w-[100px] text-right">Acciones</TableHead>
+              <TableHead className="">Miniatura</TableHead>
+              <TableHead className="">Serie</TableHead>
+              <TableHead className="">Título</TableHead>
+              <TableHead className="">Estado</TableHead>
+              <TableHead className="">Creador</TableHead>
+              <TableHead className="">Optimizador</TableHead>
+              <TableHead className="">Revisor</TableHead>
+              <TableHead className="">Actualización</TableHead>
+              <TableHead className=" text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredVideos?.map( video => (
+            {videos?.map( video => (
               <TableRow key={video.id} className="group">
                 {/* Miniatura */}
                 <TableCell>
@@ -243,12 +235,16 @@ export default function VideosPage () {
                   }
                 </TableCell>
                 <TableCell>
-                  {getEffectiveAssignment(video, user?.role, user)?.name || 'Sin asignar'}
+                  { video.creatorName ? `${video.creatorName} (${video.creatorUsername})` : video.creatorUsername }
                 </TableCell>
                 <TableCell>
-                  {getEffectiveAssignment(video, user?.role, user)?.name === 'No disponible' ? 
-                    '-' :
-                    new Date(video.updatedAt || video.createdAt).toLocaleDateString()}
+                  { video.optimizerName ? `${video.optimizerName} (${video.optimizerUsername})` : video.optimizerUsername }
+                </TableCell>
+                <TableCell>
+                  { video.reviewerName ? `${video.reviewerName} (${video.reviewerUsername})` : video.reviewerUsername }
+                </TableCell>
+                <TableCell>
+                  { video.updatedAt ? new Date(video.updatedAt).toLocaleDateString() : '' }
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -300,13 +296,13 @@ export default function VideosPage () {
                 </TableCell>
               </TableRow>
             ))}
-            {(!filteredVideos || filteredVideos.length === 0) && (
+            {(!videos || videos.length === 0) && 
               <TableRow>
                 <TableCell colSpan={7}>
                   {renderEmptyState()}
                 </TableCell>
               </TableRow>
-            )}
+            }
           </TableBody>
         </Table>
       </div>
@@ -315,7 +311,7 @@ export default function VideosPage () {
 
   function getGridView () {
     return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredVideos?.map((video: any) => (
+      {videos?.map((video: any) => (
         <div key={video.id} 
           className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
           onClick={() => handleVideoClick(video)}
@@ -352,13 +348,13 @@ export default function VideosPage () {
           </div>
         </div>
       ))}
-      {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
+      {(!videos || videos.length === 0) && renderEmptyState()}
     </div>
   }
 
   function getListView () {
     return <div className="space-y-4">
-      {filteredVideos?.map((video: any) => (
+      {videos?.map((video: any) => (
         <div key={video.id} 
           className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer"
           onClick={() => handleVideoClick(video)}
@@ -422,38 +418,28 @@ export default function VideosPage () {
           </div>
         </div>
       ))}
-      {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()}
+      {(!videos || videos.length === 0) && renderEmptyState()}
     </div>
   }
 
   function getVideoDialog () {
-      return <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      return <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
       <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>Detalles del Video</DialogTitle>
         </DialogHeader>
         <div className="px-6 pb-6">
-          {(selectedVideo?.status === 'in_progress' || selectedVideo!.status === 'title_corrections' || selectedVideo.metadata?.customStatus === 'en_revision') && user?.role === 'optimizer' ? (
-            <VideoOptimizer
-              video={selectedVideo}
-              onUpdate={(videoId, data) => updateVideo({ videoId, projectId: selectedVideo!.projectId, data, currentRole: user.role })}
-              allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
-            />
-          ) : (
-            <VideoCard
-              video={selectedVideo!}
-              userRole={user!.role}
-              onUpdate={(videoId, data) => updateVideo({ videoId, projectId: selectedVideo!.projectId, data, currentRole: user!.role })}
-              allowedTransitions={ALLOWED_TRANSITIONS[user?.role as keyof typeof ALLOWED_TRANSITIONS]?.[selectedVideo.status as keyof (typeof ALLOWED_TRANSITIONS)[keyof typeof ALLOWED_TRANSITIONS]] || []}
-            />
-          )}
+          <VideoCard
+            video={selectedVideo!}
+            userRole={user!.role}
+            onUpdate={(videoId, data) => updateVideo({ videoId, projectId: selectedVideo!.projectId, data, currentRole:   user!.role })}
+          />
         </div>
       </DialogContent>
     </Dialog>
   }
 
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="container mx-auto max-w-[1200px] px-4 py-8">
         <div className="flex flex-col gap-2 mb-12">
           <div className="flex items-center justify-between">
@@ -543,10 +529,9 @@ export default function VideosPage () {
         {selectedVideo && getVideoDialog()}
       </div>
     </div>
-  );
 };
 
-const getStatusBadge = (status: VideoStatus) => {
+function getStatusBadge (status: VideoStatus)  {
   const styles = {
     pending: "bg-yellow-500/20 text-yellow-600",
     in_progress: "bg-blue-500/20 text-blue-600",
@@ -561,7 +546,7 @@ const getStatusBadge = (status: VideoStatus) => {
   return styles[status] || "bg-gray-500/20 text-gray-600";
 };
 
-const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) => {
+function getEffectiveStatus (video: any, userRole?: string, currentUser?: any) {
   if (video.metadata?.customStatus) {
     return video.metadata.customStatus;
   }
@@ -592,7 +577,7 @@ const getEffectiveStatus = (video: any, userRole?: string, currentUser?: any) =>
   return video.status;
 };
 
-const getEffectiveAssignment = (video: any, userRole?: User['role'], currentUser?: any) => {
+function getEffectiveAssignment (video: any, userRole?: User['role'], currentUser?: any) {
   if (userRole === 'reviewer' && video.status === 'upload_review') {
     return {
       name: 'Disponible',
@@ -634,38 +619,3 @@ const getEffectiveAssignment = (video: any, userRole?: User['role'], currentUser
     id: video.currentReviewerId
   };
 };
-
-const ALLOWED_TRANSITIONS = {
-  optimizer: {
-    pending: ['in_progress'],
-    in_progress: ['optimize_review'],
-    title_corrections: ['optimize_review'],
-    en_revision: ['optimize_review']
-  },
-  youtuber: {
-    youtube_ready: ['completed']
-  },
-  reviewer: {
-    optimize_review: ['title_corrections', 'upload_review'],
-    upload_review: ['optimize_review'],
-    review: [],
-    media_corrections: ["upload_review"],
-    title_corrections: [],
-    pending: [],
-    in_progress: [],
-    completed: [],
-    en_revision: ['optimize_review', 'title_corrections', 'media_corrections']
-  },
-  admin: {
-    pending: ['in_progress', 'optimize_review', 'title_corrections', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision'],
-    in_progress: ['optimize_review', 'title_corrections', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision'],
-    optimize_review: ['title_corrections', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision'],
-    title_corrections: ['optimize_review', 'upload_review', 'media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision'],
-    upload_review: ['media_corrections', 'review', 'youtube_ready', 'completed', 'en_revision'],
-    media_corrections: ['upload_review', 'review', 'youtube_ready', 'completed', 'en_revision'],
-    review: ['youtube_ready', 'title_corrections', 'media_corrections', 'completed', 'en_revision'],
-    youtube_ready: ['completed'],
-    completed: [],
-    en_revision: ['optimize_review', 'title_corrections', 'media_corrections', 'review', 'youtube_ready', 'completed']
-  }
-} as const;

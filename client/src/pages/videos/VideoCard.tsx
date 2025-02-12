@@ -1,8 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Video, VideoStatus } from "@db/schema";
-import { getRoleStatus } from "@/hooks/use-videos";
+import { Video, VideoStatus, User } from "@db/schema";
 import { Clock, Edit, PlayCircle, Upload, Youtube, AlertCircle, Image, CheckCircle2, List, Layout } from "lucide-react";
 import {
   Dialog,
@@ -16,22 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { UpdateVideoData } from "@/hooks/use-videos";
-import { VideoStatusControl } from "@/components/video/VideoStatusControl";
-import { VideoOptimizer } from "@/components/video/VideoOptimizer";
-import { OptimizeReviewContent } from "@/components/video/review/OptimizeReviewContent";
-import { UploadReviewContent } from "@/components/video/review/UploadReviewContent";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { MediaCorrectionsDialog } from "./video/review/MediaCorrectionsDialog";
-import { MediaCorrectionsContent } from "./video/review/MediaCorrectionsContent";
-
-interface VideoCardProps {
-  video: Video;
-  userRole: string;
-  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
-}
-
-type Role = 'admin' | 'youtuber' | string;
+import { UpdateVideoData } from "@/hooks/useVideos";
+import { VideoStatusControl } from "./VideoStatusControl";
+import { VideoOptimizer } from "./VideoOptimizer";
+import { OptimizeReviewContent } from "./review/OptimizeReviewContent";
+import { UploadReviewContent } from "./review/UploadReviewContent";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MediaCorrectionsDialog } from "./review/MediaCorrectionsDialog";
+import { MediaCorrectionsContent } from "./review/MediaCorrectionsContent";
 
 
 const statusColors: Record<VideoStatus, { bg: string; text: string }> = {
@@ -46,7 +37,19 @@ const statusColors: Record<VideoStatus, { bg: string; text: string }> = {
   completed: { bg: "bg-emerald-500/10", text: "text-emerald-500" }
 };
 
-const FinalReviewContent = ({ video, userRole, onUpdate }: VideoCardProps) => {
+const statusLabels: Record<VideoStatus, string> = {
+  pending: "Pendiente",
+  in_progress: "En Optimización",
+  title_corrections: "Correcciones de Título",
+  optimize_review: "Revisión de Optimización",
+  upload_review: "Subir Archivos",
+  youtube_ready: "Listo para YouTube",
+  review: "Rev. Final",
+  media_corrections: "Correcciones de Archivos",
+  completed: "Completado"
+};
+
+function FinalReviewContent ({ video, userRole, onUpdate }: VideoCardProps) {
   const [isRequestingCorrections, setIsRequestingCorrections] = useState(false);
 
   return (
@@ -225,7 +228,7 @@ const FinalReviewContent = ({ video, userRole, onUpdate }: VideoCardProps) => {
   );
 };
 
-const YoutubeReadyContent = ({ video, userRole }: { video: Video; userRole: string }) => {
+function YoutubeReadyContent ({ video, userRole }: { video: Video; userRole: string }) {
   return (
     <div className="space-y-6">
       {/* Previsualización de Miniatura */}
@@ -351,6 +354,15 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   // TODO
   const hasVisibility = true;
 
+  if (! hasVisibility) {
+    return <Alert>
+      <AlertCircle className="h-4 w-4" />
+      <AlertDescription>
+        No tienes acceso a ver el contenido de este video en este momento.
+      </AlertDescription>
+    </Alert>
+  }
+
   const form = useForm<UpdateVideoData>({
     defaultValues: {
       title: video.title,
@@ -366,7 +378,7 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
     setIsEditing(false);
   };
 
-  const renderContent = () => {
+  function renderCardContent () {
     switch (video.status) {
       case 'in_progress':
       case 'title_corrections':
@@ -379,23 +391,17 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
       case 'upload_review':
         // Para youtubers, mostrar el formulario de subida si el video está asignado a ellos
         if (userRole === 'youtuber') {
-          return (
-            <UploadReviewContent
-              video={video}
-              onUpdate={(videoId, data) => onUpdate(videoId, data)}
-            />
-          );
+          return <UploadReviewContent
+            video={video}
+            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+          />
         }
-        // Para otros roles, mostrar el contenido normal de upload_review
-        if (userRole !== 'youtuber') {
-          return (
-            <UploadReviewContent
-              video={video}
-              onUpdate={(videoId, data) => onUpdate(videoId, data)}
-            />
-          );
+        else { // Para otros roles, mostrar el contenido normal de upload_review
+          return <UploadReviewContent
+            video={video}
+            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+          />
         }
-        return null;
       case 'media_corrections':
         return (
           <MediaCorrectionsContent
@@ -415,8 +421,7 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
       case 'review':
         return <FinalReviewContent video={video} userRole={userRole} onUpdate={onUpdate} />;
       default:
-        return (
-          <div className="space-y-4">
+        return <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {video.optimizedDescription || video.description}
             </p>
@@ -525,62 +530,38 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
               </div>
             </div>
           </div>
-        );
     }
   };
 
-  const statusColor = statusColors[video.status as VideoStatus] || statusColors.pending;
-  const getStatusLabel = (status: VideoStatus, role: Role, correctionType?: CorrectionType, video?: Video): string => {
-    // Placeholder implementation.  Replace with your actual logic.
-    return statusLabels[status] || "Unknown Status";
-  };
-  const statusLabel = getStatusLabel(video.status as VideoStatus, userRole as Role, undefined, video);
+  const statusColor = statusColors[video.status] || statusColors.pending;
+  const statusLabel = statusLabels[video.status] || "Unknown Status"
 
   return (
     <Card className="transition-all duration-300 ease-in-out">
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg">
-            {hasVisibility ? (
-              video.optimizedTitle || video.title
-            ) : (
+            {hasVisibility ? ( video.optimizedTitle ?? video.title ) : (
               <span className="text-muted-foreground italic">Título no disponible</span>
             )}
           </CardTitle>
-          <Badge
-            variant="outline"
-            className={`${statusColor.bg} ${statusColor.text} border-0`}
-          >
+          <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text} border-0`} >
             {statusLabel}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        {hasVisibility ? (
-          renderContent()
-        ) : (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No tienes acceso a ver el contenido de este video en este momento.
-            </AlertDescription>
-          </Alert>
-        )}
+        { renderCardContent() }
       </CardContent>
     </Card>
   );
 }
 
-const statusLabels: Record<VideoStatus, string> = {
-  pending: "Pendiente",
-  in_progress: "En Optimización",
-  title_corrections: "Correcciones de Título",
-  optimize_review: "Revisión de Optimización",
-  upload_review: "Subir Archivos",
-  youtube_ready: "Listo para YouTube",
-  review: "Rev. Final",
-  media_corrections: "Correcciones de Archivos",
-  completed: "Completado"
-};
+interface VideoCardProps {
+  video: Video;
+  userRole: User['role'];
+  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
+}
 
-type CorrectionType = 'video' | 'thumbnail' | 'both';
+
+

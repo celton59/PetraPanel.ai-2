@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getStatusLabel } from '@/lib/status-labels';
-import { Role } from '@/types/roles'; // Assuming this type is defined elsewhere
 
 
 interface VideoStatusControlProps {

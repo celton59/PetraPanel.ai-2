@@ -1,5 +1,4 @@
 import type { Video } from "@db/schema";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Sparkles, FileText, ArrowRight, Smile, Wand2 } from "lucide-react";
