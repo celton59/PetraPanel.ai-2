@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth-page";
-import Profile from "@/pages/Profile";
+import ProfilePage from "@/pages/profile/ProfilePage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
@@ -43,7 +43,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
-      <Route path="/perfil" component={() => <ProtectedRoute component={Profile} />} />
+      <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
       <Route path="/ajustes" component={() => <ProtectedRoute component={SettingsPage} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />

@@ -16,13 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
-import { VideoStatusControl } from "./VideoStatusControl";
 import { VideoOptimizer } from "./VideoOptimizer";
 import { OptimizeReviewContent } from "./review/OptimizeReviewContent";
 import { UploadReviewContent } from "./review/UploadReviewContent";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MediaCorrectionsDialog } from "./review/MediaCorrectionsDialog";
 import { MediaCorrectionsContent } from "./review/MediaCorrectionsContent";
+import { useUser } from '@/hooks/use-user'
+import { getStatusLabelNew } from "@/lib/status-labels";
 
 
 const statusColors: Record<VideoStatus, { bg: string; text: string }> = {
@@ -37,16 +38,17 @@ const statusColors: Record<VideoStatus, { bg: string; text: string }> = {
   completed: { bg: "bg-emerald-500/10", text: "text-emerald-500" }
 };
 
-const statusLabels: Record<VideoStatus, string> = {
-  pending: "Pendiente",
-  in_progress: "En Optimización",
-  title_corrections: "Correcciones de Título",
-  optimize_review: "Revisión de Optimización",
-  upload_review: "Subir Archivos",
-  youtube_ready: "Listo para YouTube",
-  review: "Rev. Final",
-  media_corrections: "Correcciones de Archivos",
-  completed: "Completado"
+
+const statusDescriptions: Record<VideoStatus, string> = {
+  pending: "Video recién creado, esperando asignación",
+  in_progress: "Video en proceso de optimización de título",
+  title_corrections: "Se han solicitado correcciones al título",
+  optimize_review: "En revisión por el equipo de optimización",
+  upload_review: "En revisión de archivos (video y miniatura)",
+  youtube_ready: "Listo para subir a YouTube",
+  review: "En revisión final antes de publicación",
+  media_corrections: "Se han solicitado correcciones al video o miniatura",
+  completed: "Video publicado en YouTube"
 };
 
 function FinalReviewContent ({ video, userRole, onUpdate }: VideoCardProps) {
@@ -345,9 +347,10 @@ function YoutubeReadyContent ({ video, userRole }: { video: Video; userRole: str
   );
 };
 
-export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
+export function VideoCard({ video, onUpdate }: VideoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isRequestingCorrections, setIsRequestingCorrections] = useState(false);
+  const { user } = useUser();
 
   // Determinar si el usuario tiene visibilidad usando getRoleStatus
   // const hasVisibility = getRoleStatus(video.status as VideoStatus)[userRole] === 'disponible';
@@ -373,7 +376,7 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
     },
   });
 
-  const handleSubmit = async (data: UpdateVideoData) => {
+  async function handleAdminEdit (data: UpdateVideoData) {
     await onUpdate(video.id, data);
     setIsEditing(false);
   };
@@ -382,15 +385,18 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
     switch (video.status) {
       case 'in_progress':
       case 'title_corrections':
-        return (
-          <VideoOptimizer
+        return <VideoOptimizer
             video={video}
             onUpdate={(videoId, data) => onUpdate(videoId, data)}
           />
-        );
+      case 'optimize_review':
+        return <OptimizeReviewContent
+            video={video}
+            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+          />
       case 'upload_review':
         // Para youtubers, mostrar el formulario de subida si el video está asignado a ellos
-        if (userRole === 'youtuber') {
+        if (user?.role === 'youtuber') {
           return <UploadReviewContent
             video={video}
             onUpdate={(videoId, data) => onUpdate(videoId, data)}
@@ -409,18 +415,11 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
             onUpdate={onUpdate}
           />
         );
-      case 'optimize_review':
-        return (
-          <OptimizeReviewContent
-            video={video}
-            onUpdate={(videoId, data) => onUpdate(videoId, data)}
-          />
-        );
       case 'youtube_ready':
-        return <YoutubeReadyContent video={video} userRole={userRole} />;
+        return <YoutubeReadyContent video={video} userRole={user!.role} />;
       case 'review':
-        return <FinalReviewContent video={video} userRole={userRole} onUpdate={onUpdate} />;
-      default:
+        return <FinalReviewContent video={video} userRole={user!.role} onUpdate={onUpdate} />;
+      case 'pending':
         return <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {video.optimizedDescription || video.description}
@@ -452,55 +451,71 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
             </div>
 
             <div className="space-y-4">
-              <VideoStatusControl
+              {/* <VideoStatusControl
                 videoId={video.id}
                 currentStatus={video.status as VideoStatus}
                 userRole={userRole}
                 onUpdateStatus={(videoId, data) => onUpdate(videoId, data)}
-              />
+              /> */}
 
               <div className="flex flex-wrap gap-2">
-                <Dialog open={isEditing} onOpenChange={setIsEditing}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Editar Video</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Título Original</label>
-                          <Input {...form.register("title")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Descripción Original</label>
-                          <Textarea {...form.register("description")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Título Optimizado</label>
-                          <Input {...form.register("optimizedTitle")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Descripción Optimizada</label>
-                          <Textarea {...form.register("optimizedDescription")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Tags (separados por comas)</label>
-                          <Input {...form.register("tags")} />
-                        </div>
-                        <Button type="submit" className="w-full">
-                          Guardar Cambios
-                        </Button>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
 
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    await onUpdate(video.id, {
+                      status: 'in_progress',
+                      optimizedBy: user?.id,
+                    });
+                  }}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Optimizar
+                </Button>
+                
+                { user?.role === 'admin' && 
+                  <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar (Admin)
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Editar Video</DialogTitle>
+                      </DialogHeader>
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleAdminEdit)} className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Título Original</label>
+                            <Input {...form.register("title")} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Descripción Original</label>
+                            <Textarea {...form.register("description")} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Título Optimizado</label>
+                            <Input {...form.register("optimizedTitle")} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Descripción Optimizada</label>
+                            <Textarea {...form.register("optimizedDescription")} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Tags (separados por comas)</label>
+                            <Input {...form.register("tags")} />
+                          </div>
+                          <Button type="submit" className="w-full">
+                            Guardar Cambios
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                }
+                
                 {video.videoUrl && (
                   <Button variant="outline" size="sm" asChild>
                     <a href={video.videoUrl} target="_blank" rel="noopener noreferrer">
@@ -534,32 +549,51 @@ export function VideoCard({ video, userRole, onUpdate }: VideoCardProps) {
   };
 
   const statusColor = statusColors[video.status] || statusColors.pending;
-  const statusLabel = statusLabels[video.status] || "Unknown Status"
+  const statusLabel = getStatusLabelNew(user!.role, video)
 
   return (
-    <Card className="transition-all duration-300 ease-in-out">
-      <CardHeader>
+    <DialogContent className="w-[95vw] max-w-3xl p-6">
+      <DialogHeader >
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">
+          <DialogTitle className="text-xl">
             {hasVisibility ? ( video.optimizedTitle ?? video.title ) : (
               <span className="text-muted-foreground italic">Título no disponible</span>
             )}
-          </CardTitle>
-          <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text} border-0`} >
-            {statusLabel}
-          </Badge>
+            </DialogTitle>
+          <div className="pe-6">
+            <div className="flex justify-end">
+              <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text} border-0 text-lg py-1 px-2`} >
+                {statusLabel}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">{statusDescriptions[video.status]}</p>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        { renderCardContent() }
-      </CardContent>
-    </Card>
+        
+      </DialogHeader>
+
+
+      { renderCardContent() }
+      
+      </DialogContent>
+    // <Card className="transition-all duration-300 ease-in-out">
+    //   <CardHeader>
+    //     <div className="flex justify-between items-start">
+    //       <CardTitle className="text-lg">
+            
+    //       </CardTitle>
+          
+    //     </div>
+    //   </CardHeader>
+    //   <CardContent>
+        
+    //   </CardContent>
+    // </Card>
   );
 }
 
 interface VideoCardProps {
   video: Video;
-  userRole: User['role'];
   onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 

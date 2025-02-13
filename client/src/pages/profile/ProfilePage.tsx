@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
-import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { AvatarUpload } from "./AvatarUpload";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
@@ -25,7 +25,7 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-export default function Profile() {
+export default function ProfilePage() {
   const { user, refetch } = useUser();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);

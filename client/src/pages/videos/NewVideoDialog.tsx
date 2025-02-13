@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ProjectSelector } from "@/components/ProjectSelector";
+import { ProjectSelector } from "./ProjectSelector";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -54,7 +54,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   });
 
 
-  const resetForm = () => {
+  function resetForm ()  {
     setStep(1);
     setSelectedProject(undefined);
     form.reset({
@@ -63,7 +63,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
     });
   };
 
-  const onSubmit = async (data: VideoFormValues) => {
+  async function onSubmit (data: VideoFormValues) {
     
     if (! selectedProject) {
       toast({

@@ -20,9 +20,8 @@ export function AvatarUpload({
 }: AvatarUploadProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
-  const uploadAvatar = async (file: File) => {
+  async function uploadAvatar (file: File) {
     try {
       setUploading(true);
 
@@ -58,17 +57,8 @@ export function AvatarUpload({
     }
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
 
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      await uploadAvatar(file);
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  async function handleFileChange (e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
       await uploadAvatar(file);

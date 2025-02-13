@@ -1,66 +1,63 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/hooks/use-user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Video } from "@db/schema";
 import { useForm } from "react-hook-form";
-import { ProjectSelector } from "@/components/ProjectSelector";
-import { OptimizationReviewSection } from "./review/OptimizationReviewSection";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { UpdateVideoData } from "@/hooks/useVideos";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Sparkles, FileText, ArrowRight, Smile, Wand2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { EmojiPicker } from "@/components/emoji/EmojiPicker";
 
 interface VideoOptimizerProps {
   video: Video;
-  onUpdate: (videoId: number, data: any) => Promise<void>;
+  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
 type FormValues = {
   optimizedDescription: string;
   tags: string;
+  optimizedTitle: string
 };
 
-export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
-  const { user } = useUser();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(video.projectId);
-  const [optimizedTitle, setOptimizedTitle] = useState(video.optimizedTitle || video.title || "");
+const MAX_TITLE_LENGTH = 100;
 
-  // Si el video no está en in_progress o title_corrections, no mostramos el optimizador
-  if (video.status !== "in_progress" && video.status !== "title_corrections") {
-    return null;
-  }
+export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
     defaultValues: {
       optimizedDescription: video.optimizedDescription || video.description || "",
-      tags: video.tags || ""
+      tags: video.tags || "",
+      optimizedTitle: video.optimizedTitle || video.title || "",
     }
   });
 
-  const handleSubmit = async (formData: FormValues) => {
-    if (!selectedProjectId) {
-      return;
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  function handleEmojiSelect(emoji: string) {
+    const currentOptimizedTitle = form.getValues("optimizedTitle");
+    
+    if (currentOptimizedTitle.length + emoji.length <= MAX_TITLE_LENGTH) {
+      // setOptimizedTitle(optimizedTitle + emoji);
+      form.setValue('optimizedTitle', currentOptimizedTitle + emoji)
     }
+  };
+
+  
+
+  async function handleSubmit (formData: FormValues) {
 
     setIsSubmitting(true);
     try {
       await onUpdate(video.id, {
-        ...formData,
-        projectId: selectedProjectId,
-        optimizedTitle,
-        status: "optimize_review" as const,
-        updatedAt: new Date().toISOString(),
-        metadata: {
-          ...video.metadata,
-          optimization: {
-            ...video.metadata?.optimization,
-            optimizedBy: {
-              userId: user?.id,
-              username: user?.username,
-              optimizedAt: new Date().toISOString()
-            }
-          }
-        }
+        optimizedDescription: formData.optimizedDescription,
+        tags: formData.tags,
+        optimizedTitle: formData.optimizedTitle,
+        status: "optimize_review",
       });
     } catch (error) {
       console.error("Error al actualizar el video:", error);
@@ -78,19 +75,106 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
           </CardHeader>
           <CardContent className="px-0 sm:px-6">
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Proyecto</label>
-                <ProjectSelector
-                  value={selectedProjectId}
-                  onChange={setSelectedProjectId}
+
+              <div className="space-y-8" translate="no">
+                {video.lastReviewComments && video.status === "title_corrections" && (
+                  <Alert className="border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <AlertDescription className="text-red-700 dark:text-red-300">
+                      <p className="font-medium mb-1">Se han solicitado las siguientes correcciones:</p>
+                      <p className="text-sm whitespace-pre-wrap">{video.lastReviewComments}</p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="grid gap-8">
+                  <Card className="overflow-hidden border-2">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                          <h3 className="font-semibold">Título Original</h3>
+                        </div>
+                        <Badge variant="outline" className="bg-background/50">Original</Badge>
+                      </div>
+                      <div className="space-y-4">
+                        <ScrollArea className="h-[80px] rounded-md border bg-muted/5">
+                          <div className="p-4">
+                            <p className="text-lg leading-relaxed">{video.title}</p>
+                          </div>
+                        </ScrollArea>
+                        {video.seriesNumber && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/5 p-3 rounded-lg">
+                            <ArrowRight className="w-4 h-4" />
+                            <span>Serie: {video.seriesNumber}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="overflow-hidden border-2 border-purple-200 dark:border-purple-800/50">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Wand2 className="h-5 w-5 text-purple-500" />
+                          <h3 className="font-semibold text-purple-700 dark:text-purple-300">
+                            Título Optimizado
+                          </h3>
+                        </div>
+                        <div className="text-sm text-purple-500 dark:text-purple-400 font-medium">
+                          {form.getValues('optimizedTitle').length}/{MAX_TITLE_LENGTH}
+                        </div>
+                      </div>
+
+                      <div className="relative">
+                        <Textarea                          
+                            {...form.register("optimizedTitle")} 
+                          placeholder="Escribe el título optimizado..."
+                          className={cn(
+                            "min-h-[80px] pr-12 resize-none",
+                            "bg-white/50 dark:bg-gray-900/50",
+                            "border-purple-200 dark:border-purple-800/50",
+                            "focus-visible:ring-purple-500/20",
+                            "placeholder:text-purple-400/50",
+                            "text-lg"
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 bottom-2 text-purple-400 hover:text-purple-600 dark:hover:text-purple-300"
+                          onClick={() => setShowEmojiPicker(true)}
+                        >
+                          <Smile className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <Alert className="bg-gradient-to-r from-purple-50/50 to-transparent dark:from-purple-950/20">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  <AlertDescription className="text-purple-700 dark:text-purple-300 text-sm">
+                    Optimiza el título manteniendo la esencia del contenido y mejorando su visibilidad.
+                    {video.status === "title_corrections" && (
+                      <p className="mt-1 text-purple-500 dark:text-purple-400 font-medium">
+                        Por favor, revisa las correcciones solicitadas antes de volver a enviar.
+                      </p>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <EmojiPicker
+                  isOpen={showEmojiPicker}
+                  onClose={() => setShowEmojiPicker(false)}
+                  onEmojiSelect={handleEmojiSelect}
+                  maxLength={MAX_TITLE_LENGTH}
+                  currentLength={form.getValues('optimizedTitle').length}
                 />
               </div>
-
-              <OptimizationReviewSection
-                video={video}
-                optimizedTitle={optimizedTitle}
-                setOptimizedTitle={setOptimizedTitle}
-              />
+              
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Descripción Original</label>
@@ -121,7 +205,7 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
 
               <Button 
                 type="submit" 
-                disabled={isSubmitting || !selectedProjectId} 
+                disabled={isSubmitting} 
                 className="w-full mt-6"
               >
                 {isSubmitting ? "Enviando..." : "Enviar a Revisión"}

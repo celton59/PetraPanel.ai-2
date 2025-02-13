@@ -86,7 +86,7 @@ const statusLabels: Record<VideoStatus, string> = {
 }
 
 
-export const getStatusLabelNew = (role: User['role'], video: Video): string => {
+export function getStatusLabelNew (role: User['role'], video: Video): string {
 
   if ( role === 'reviewer' && video.status === 'optimize_review' && video.title_corrected) {
       return 'Corregido'

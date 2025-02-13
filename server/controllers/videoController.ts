@@ -68,10 +68,11 @@ const statusTransitions: Record<User['role'], Record<Video['status'], Video['sta
 
 
 const updateVideoSchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
   status: z.enum(['pending', 'in_progress', 'title_corrections', 'optimize_review', 'upload_review',
-    'youtube_ready', 'review', 'media_corrections', 'completed'])
+    'youtube_ready', 'review', 'media_corrections', 'completed']).optional(),
+  optimizedBy: z.number().optional()
 })  
 
 type UpdateVideoSchema = z.infer<typeof updateVideoSchema>;
@@ -91,6 +92,7 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
     return res.status(400).json({ success: false, message: validationResult.error.message })
   }
 
+  console.log("PUT DATA", updates)
 
   try {
     // Obtener el video actual para preservar los datos existentes
@@ -128,7 +130,8 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         title: updates.title,
         description: updates.description,
         status: updates.status,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        optimizedBy: updates.optimizedBy
       })
       .where(
         and(

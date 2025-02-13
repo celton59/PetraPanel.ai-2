@@ -150,8 +150,8 @@ export default function VideosPage () {
 
   const selectedVideo = videos?.find(v => v.id === selectedVideoId);
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
+  function renderEmptyState () { 
+    return <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed">
       <div className="rounded-full bg-primary/10 p-3 mb-4">
         <ImageIcon className="w-6 h-6 text-primary" />
       </div>
@@ -171,7 +171,7 @@ export default function VideosPage () {
         </Button>
       )}
     </div>
-  );
+  }
 
   if (isLoading) {
     return (
@@ -424,18 +424,23 @@ export default function VideosPage () {
 
   function getVideoDialog () {
       return <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle>Detalles del Video</DialogTitle>
-        </DialogHeader>
-        <div className="px-6 pb-6">
-          <VideoCard
-            video={selectedVideo!}
-            userRole={user!.role}
-            onUpdate={(videoId, data) => updateVideo({ videoId, projectId: selectedVideo!.projectId, data, currentRole:   user!.role })}
-          />
-        </div>
-      </DialogContent>
+        <VideoCard
+          video={selectedVideo!}
+          onUpdate={ async (videoId, data) => {
+
+            setUpdatingVideoId(videoId);
+            try {
+              await updateVideo({ videoId, projectId: selectedVideo!.projectId, updateRequest: data })
+            }
+            catch(err) {
+              console.log(err)
+              toast.error('Error al actualizar el video')
+            }
+            finally {
+              setUpdatingVideoId(undefined);
+            } 
+          }}
+        />
     </Dialog>
   }
 
