@@ -53,7 +53,6 @@ export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProp
     try {
       let videoUrl = video.videoUrl;
       let thumbnailUrl = video.thumbnailUrl;
-      const currentTimestamp = new Date().toISOString();
 
       if (videoFile) {
         videoUrl = await uploadFile(videoFile, 'video');
@@ -68,38 +67,7 @@ export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProp
       const updatedVideoData = {
         status: "youtube_ready",
         videoUrl: videoFile ? videoUrl : video.videoUrl,
-        thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl,
-        metadata: {
-          ...video.metadata,
-          roleView: {
-            ...video.metadata?.roleView,
-            youtuber: {
-              ...video.metadata?.roleView?.youtuber,
-              uploads: {
-                ...(videoFile ? {
-                  video: {
-                    uploadedAt: currentTimestamp,
-                    uploadedBy: {
-                      userId: video.currentReviewerId,
-                      username: video.reviewerUsername || 'Unknown'
-                    },
-                    status: 'pending'
-                  }
-                } : {}),
-                ...(thumbnailFile ? {
-                  thumbnail: {
-                    uploadedAt: currentTimestamp,
-                    uploadedBy: {
-                      userId: video.currentReviewerId,
-                      username: video.reviewerUsername || 'Unknown'
-                    },
-                    status: 'pending'
-                  }
-                } : {})
-              }
-            }
-          }
-        }
+        thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl
       };
 
       await onUpdate(video.id, updatedVideoData);

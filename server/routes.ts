@@ -11,7 +11,6 @@ import fs from "fs";
 import express from "express";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-import type { InsertVideo, InsertProject } from "@db/schema";
 import { Client } from '@replit/object-storage';
 import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
@@ -169,6 +168,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
+    
     app.delete("/api/users/:id", requireAuth, async (req: Request, res: Response) => {
       const { id } = req.params;
 
@@ -250,6 +250,79 @@ export function registerRoutes(app: Express): Server {
     app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.updateVideo)
 
     app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.deleteVideo)
+
+    // Video upload endpoint
+    app.post("/api/projects/:projectId/videos/:videoId/upload", requireAuth, videoUpload.single('file'), async (req: Request, res: Response) => {
+      const file = req.file;
+      const { type, videoId } = req.body;
+
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          message: "No se subió ningún archivo"
+        });
+      }
+
+      try {
+        let processedFilePath = file.path;
+        const fileExt = path.extname(file.path);
+        const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+        const objectKey = `videos/${type}/${uniqueFilename}`; // Ruta simple y organizada
+
+        // Si es una miniatura, procesarla con sharp
+        if (type === 'thumbnail') {
+          const processedPath = file.path.replace(fileExt, '_processed' + fileExt);
+          await sharp(file.path)
+            .resize(1280, 720)
+            .toFile(processedPath);
+
+          // Subir la miniatura procesada al bucket
+          const { ok, error } = await client.uploadFromFilename(objectKey, processedPath);
+          if (!ok) {
+            throw new Error(`Error al subir la miniatura: ${error}`);
+          }
+
+          // Limpiar archivos temporales
+          fs.unlinkSync(file.path);
+          fs.unlinkSync(processedPath);
+        } else {
+          // Subir el video directamente
+          const { ok, error } = await client.uploadFromFilename(objectKey, file.path);
+          if (!ok) {
+            throw new Error(`Error al subir el video: ${error}`);
+          }
+
+          // Limpiar archivo temporal
+          fs.unlinkSync(file.path);
+        }
+
+        // Construir la URL del archivo
+        const fileUrl = `/api/videos/stream/${type}/${uniqueFilename}`;
+
+        // Actualizar la URL en la base de datos si se proporciona videoId
+        if (videoId) {
+          const urlField = type === 'video' ? 'videoUrl' : 'thumbnailUrl';
+          await db.update(videos)
+            .set({ [urlField]: fileUrl })
+            .where(eq(videos.id, parseInt(videoId)));
+        }
+
+        res.json({
+          success: true,
+          url: fileUrl,
+          message: `${type === 'video' ? 'Video' : 'Miniatura'} subido correctamente`
+        });
+      } catch (error: any) {
+        console.error("Error processing file:", error);
+        if (file && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+        res.status(500).json({
+          success: false,
+          message: error.message || `Error al procesar el ${type === 'video' ? 'video' : 'miniatura'}`
+        });
+      }
+    });
 
     // Users routes
     app.post("/api/users", requireAuth, async (req: Request, res: Response) => {
@@ -666,79 +739,6 @@ export function registerRoutes(app: Express): Server {
         res.status(500).json({
           success: false,
           message: "Error al procesar el avatar"
-        });
-      }
-    });
-
-    // Video upload endpoint
-    app.post("/api/videos/upload", requireAuth, videoUpload.single('file'), async (req: Request, res: Response) => {
-      const file = req.file;
-      const { type, videoId } = req.body;
-
-      if (!file) {
-        return res.status(400).json({
-          success: false,
-          message: "No se subió ningún archivo"
-        });
-      }
-
-      try {
-        let processedFilePath = file.path;
-        const fileExt = path.extname(file.path);
-        const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
-        const objectKey = `videos/${type}/${uniqueFilename}`; // Ruta simple y organizada
-
-        // Si es una miniatura, procesarla con sharp
-        if (type === 'thumbnail') {
-          const processedPath = file.path.replace(fileExt, '_processed' + fileExt);
-          await sharp(file.path)
-            .resize(1280, 720)
-            .toFile(processedPath);
-
-          // Subir la miniatura procesada al bucket
-          const { ok, error } = await client.uploadFromFilename(objectKey, processedPath);
-          if (!ok) {
-            throw new Error(`Error al subir la miniatura: ${error}`);
-          }
-
-          // Limpiar archivos temporales
-          fs.unlinkSync(file.path);
-          fs.unlinkSync(processedPath);
-        } else {
-          // Subir el video directamente
-          const { ok, error } = await client.uploadFromFilename(objectKey, file.path);
-          if (!ok) {
-            throw new Error(`Error al subir el video: ${error}`);
-          }
-
-          // Limpiar archivo temporal
-          fs.unlinkSync(file.path);
-        }
-
-        // Construir la URL del archivo
-        const fileUrl = `/api/videos/stream/${type}/${uniqueFilename}`;
-
-        // Actualizar la URL en la base de datos si se proporciona videoId
-        if (videoId) {
-          const urlField = type === 'video' ? 'videoUrl' : 'thumbnailUrl';
-          await db.update(videos)
-            .set({ [urlField]: fileUrl })
-            .where(eq(videos.id, parseInt(videoId)));
-        }
-
-        res.json({
-          success: true,
-          url: fileUrl,
-          message: `${type === 'video' ? 'Video' : 'Miniatura'} subido correctamente`
-        });
-      } catch (error: any) {
-        console.error("Error processing file:", error);
-        if (file && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-        res.status(500).json({
-          success: false,
-          message: error.message || `Error al procesar el ${type === 'video' ? 'video' : 'miniatura'}`
         });
       }
     });

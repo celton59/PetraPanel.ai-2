@@ -3,7 +3,7 @@ import { useToast } from "./use-toast";
 import { User, Video } from '@db/schema'
 
 
-export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' >
+export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'lastReviewedAt' | 'updatedAt' >
 
 export const getRoleStatus = 1
 

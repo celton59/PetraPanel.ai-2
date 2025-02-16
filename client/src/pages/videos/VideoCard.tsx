@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
-import { VideoOptimizer } from "./VideoOptimizer";
+import { VideoOptimizer } from "./review/VideoOptimizer";
 import { OptimizeReviewContent } from "./review/OptimizeReviewContent";
 import { UploadReviewContent } from "./review/UploadReviewContent";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -349,7 +349,6 @@ function YoutubeReadyContent ({ video, userRole }: { video: Video; userRole: str
 
 export function VideoCard({ video, onUpdate }: VideoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [isRequestingCorrections, setIsRequestingCorrections] = useState(false);
   const { user } = useUser();
 
   // Determinar si el usuario tiene visibilidad usando getRoleStatus
@@ -395,19 +394,10 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
             onUpdate={(videoId, data) => onUpdate(videoId, data)}
           />
       case 'upload_review':
-        // Para youtubers, mostrar el formulario de subida si el video está asignado a ellos
-        if (user?.role === 'youtuber') {
-          return <UploadReviewContent
-            video={video}
-            onUpdate={(videoId, data) => onUpdate(videoId, data)}
-          />
-        }
-        else { // Para otros roles, mostrar el contenido normal de upload_review
-          return <UploadReviewContent
-            video={video}
-            onUpdate={(videoId, data) => onUpdate(videoId, data)}
-          />
-        }
+        return <UploadReviewContent
+          video={video}
+          onUpdate={(videoId, data) => onUpdate(videoId, data)}
+        />
       case 'media_corrections':
         return (
           <MediaCorrectionsContent
@@ -576,19 +566,7 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
       { renderCardContent() }
       
       </DialogContent>
-    // <Card className="transition-all duration-300 ease-in-out">
-    //   <CardHeader>
-    //     <div className="flex justify-between items-start">
-    //       <CardTitle className="text-lg">
-            
-    //       </CardTitle>
-          
-    //     </div>
-    //   </CardHeader>
-    //   <CardContent>
-        
-    //   </CardContent>
-    // </Card>
+
   );
 }
 

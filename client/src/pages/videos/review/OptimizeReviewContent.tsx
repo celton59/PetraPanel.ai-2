@@ -8,95 +8,36 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { Video } from "@db/schema";
 import { useUser } from "@/hooks/use-user";
+import { UpdateVideoData } from "@/hooks/useVideos";
 
 interface OptimizeReviewContentProps {
   video: Video;
-  onUpdate: (videoId: number, data: any) => Promise<void>;
+  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
 export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContentProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [titleCorrections, setTitleCorrections] = useState("");
+  const [titleCorrections, setTitleCorrections] = useState<string | undefined>(undefined);
   const { user } = useUser();
 
-  const handleApprove = async (status = 'title_approved') => {
-    setIsSubmitting(true);
+  async function handleSubmit (approve: boolean) {
+
+    if (!approve && !titleCorrections?.trim()) return;
+    
+    setIsSubmitting(true)
+
     try {
       await onUpdate(video.id, {
-        status: "upload_review",
-        metadata: {
-          ...video.metadata,
-          secondaryStatus: {
-            type: 'title_approved',
-            updatedAt: new Date().toISOString()
-          },
-          optimization: {
-            ...video.metadata?.optimization,
-            reviewedBy: {
-              userId: user?.id,
-              username: user?.username,
-              reviewedAt: new Date().toISOString(),
-              approved: true
-            },
-            approvalHistory: [
-              ...(video.metadata?.optimization?.approvalHistory || []),
-              {
-                action: 'approved',
-                by: {
-                  userId: user?.id,
-                  username: user?.username
-                },
-                timestamp: new Date().toISOString()
-              }
-            ]
-          }
-        }
+        status: approve ? "upload_review" : 'title_corrections',
+        reviewedBy: user?.id,
+        lastReviewComments: titleCorrections?.trim(),
       });
     } catch (error) {
-      console.error("Error al aprobar:", error);
+      console.error("Error al enviar los cambios:", error);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleReject = async () => {
-    if (!titleCorrections.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      await onUpdate(video.id, {
-        status: "title_corrections",
-        lastReviewComments: titleCorrections.trim(),
-        metadata: {
-          ...video.metadata,
-          secondaryStatus: {
-            type: 'title_rejected',
-            updatedAt: new Date().toISOString(),
-            comment: titleCorrections.trim()
-          },
-          optimization: {
-            ...video.metadata?.optimization,
-            approvalHistory: [
-              ...(video.metadata?.optimization?.approvalHistory || []),
-              {
-                action: 'rejected',
-                by: {
-                  userId: user?.id,
-                  username: user?.username || ''
-                },
-                timestamp: new Date().toISOString(),
-                comment: titleCorrections.trim()
-              }
-            ]
-          }
-        }
-      });
-    } catch (error) {
-      console.error("Error al rechazar:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -151,7 +92,7 @@ export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContent
             <h3 className="text-lg font-semibold">Decisión</h3>
             <div className="flex items-center gap-2">
               <Button
-                onClick={handleApprove}
+                onClick={() => handleSubmit(true)}
                 disabled={isSubmitting}
                 className="bg-green-600 hover:bg-green-700"
               >
@@ -160,8 +101,8 @@ export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContent
               </Button>
               <Button
                 variant="destructive"
-                onClick={handleReject}
-                disabled={isSubmitting || !titleCorrections.trim()}
+                onClick={() => handleSubmit(false)}
+                disabled={isSubmitting || !titleCorrections?.trim()}
               >
                 <XCircle className="w-4 h-4 mr-2" />
                 Rechazar

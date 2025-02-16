@@ -7,10 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { CorrectionUploadFields } from "./CorrectionUploadFields";
+import { UpdateVideoData } from "@/hooks/useVideos";
 
 interface MediaCorrectionsContentProps {
   video: Video;
-  onUpdate: (videoId: number, data: any) => Promise<void>;
+  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
 export function MediaCorrectionsContent({ video, onUpdate }: MediaCorrectionsContentProps) {
@@ -76,28 +77,6 @@ export function MediaCorrectionsContent({ video, onUpdate }: MediaCorrectionsCon
         setUploadProgress(100);
       }
 
-      const updatedMetadata = {
-        ...video.metadata,
-        corrections: {
-          ...corrections,
-          files: {
-            ...files,
-            ...(needsVideoCorrection && videoFile ? {
-              video: {
-                needsCorrection: false,
-                originalUrl: files.video?.originalUrl
-              }
-            } : {}),
-            ...(needsThumbnailCorrection && thumbnailFile ? {
-              thumbnail: {
-                needsCorrection: false,
-                originalUrl: files.thumbnail?.originalUrl
-              }
-            } : {})
-          }
-        }
-      };
-
       const allCorrectionsDone = 
         (!needsVideoCorrection || (needsVideoCorrection && videoFile)) &&
         (!needsThumbnailCorrection || (needsThumbnailCorrection && thumbnailFile));
@@ -106,7 +85,6 @@ export function MediaCorrectionsContent({ video, onUpdate }: MediaCorrectionsCon
         status: allCorrectionsDone ? "review" : "media_corrections",
         videoUrl: videoFile ? videoUrl : video.videoUrl,
         thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl,
-        metadata: updatedMetadata
       });
 
       toast.success("Archivos subidos correctamente");

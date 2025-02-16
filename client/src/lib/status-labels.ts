@@ -79,9 +79,9 @@ const statusLabels: Record<VideoStatus, string> = {
     optimize_review: "En Revisión",
     title_corrections: "Necesita Correcciones",
     completed: "Completado",
-    upload_review: "Completado",
-    media_corrections: "Completado",
-    youtube_ready: "Completado",
+    upload_review: "Revisión de subida",
+    media_corrections: "Necesita Correcciones",
+    youtube_ready: "Listo para Youtube",
     review: "En revisión"    
 }
 

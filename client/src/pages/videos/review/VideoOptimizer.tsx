@@ -17,11 +17,7 @@ interface VideoOptimizerProps {
   onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
-type FormValues = {
-  optimizedDescription: string;
-  tags: string;
-  optimizedTitle: string
-};
+type FormValues = Partial<UpdateVideoData>;
 
 const MAX_TITLE_LENGTH = 100;
 
@@ -41,8 +37,7 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
   function handleEmojiSelect(emoji: string) {
     const currentOptimizedTitle = form.getValues("optimizedTitle");
     
-    if (currentOptimizedTitle.length + emoji.length <= MAX_TITLE_LENGTH) {
-      // setOptimizedTitle(optimizedTitle + emoji);
+    if (currentOptimizedTitle && currentOptimizedTitle.length + emoji.length <= MAX_TITLE_LENGTH) {
       form.setValue('optimizedTitle', currentOptimizedTitle + emoji)
     }
   };
@@ -57,7 +52,7 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
         optimizedDescription: formData.optimizedDescription,
         tags: formData.tags,
         optimizedTitle: formData.optimizedTitle,
-        status: "optimize_review",
+        status: "optimize_review"
       });
     } catch (error) {
       console.error("Error al actualizar el video:", error);
@@ -123,7 +118,7 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
                           </h3>
                         </div>
                         <div className="text-sm text-purple-500 dark:text-purple-400 font-medium">
-                          {form.getValues('optimizedTitle').length}/{MAX_TITLE_LENGTH}
+                          {form.getValues('optimizedTitle')?.length}/{MAX_TITLE_LENGTH}
                         </div>
                       </div>
 
@@ -171,7 +166,7 @@ export function VideoOptimizer({ video, onUpdate }: VideoOptimizerProps) {
                   onClose={() => setShowEmojiPicker(false)}
                   onEmojiSelect={handleEmojiSelect}
                   maxLength={MAX_TITLE_LENGTH}
-                  currentLength={form.getValues('optimizedTitle').length}
+                  currentLength={form.getValues('optimizedTitle')?.length ?? 0}
                 />
               </div>
               

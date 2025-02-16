@@ -112,42 +112,6 @@ export default function VideosPage () {
     // }
   };
 
-  // const canViewVideo = (video: any) => {
-  //   const userRole = user?.role as keyof typeof VISIBLE_STATES || 'viewer';
-  //   const effectiveStatus = getEffectiveStatus(video, userRole, user);
-  //   if (userRole === 'admin') return true;
-  //   return VISIBLE_STATES[userRole]?.includes(effectiveStatus as any);
-  // };
-
-  
-  // const filteredVideos = videos?.filter((video: any) => {
-  //   if (!canViewVideo(video)) return false;
-
-  //   const matchesSearch =
-  //     searchTerm === "" ||
-  //     video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     (video.seriesNumber && video.seriesNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  //   const matchesStatus =
-  //     status === "all" || getEffectiveStatus(video, user?.role, user) === status;
-
-  //   const matchesAssignee =
-  //     assignedTo === "all" ||
-  //     (assignedTo === "unassigned" && !video.currentReviewerId) ||
-  //     String(video.currentReviewerId) === assignedTo;
-
-  //   const matchesProject =
-  //     projectId === "all" || String(video.projectId) === projectId;
-
-  //   const matchesDate = !dateRange?.from || (
-  //     video.updatedAt &&
-  //     new Date(video.updatedAt) >= dateRange.from &&
-  //     (!dateRange.to || new Date(video.updatedAt) <= dateRange.to)
-  //   );
-
-  //   return matchesSearch && matchesStatus && matchesAssignee && matchesProject && matchesDate;
-  // });
-
   const selectedVideo = videos?.find(v => v.id === selectedVideoId);
 
   function renderEmptyState () { 
