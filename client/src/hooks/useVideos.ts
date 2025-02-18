@@ -7,7 +7,7 @@ export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'lastRe
 
 export const getRoleStatus = 1
 
-type ApiVideo = {
+export type ApiVideo = {
   [K in keyof Video]: Video[K];
 } & {
   reviewerName: User["fullName"] | null;

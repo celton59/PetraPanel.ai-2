@@ -402,6 +402,7 @@ export default function VideosPage () {
             }
             finally {
               setUpdatingVideoId(undefined);
+              setVideoDialogOpen(false)
             } 
           }}
         />
@@ -425,7 +426,7 @@ export default function VideosPage () {
                 </p>
               </div>
             </div>
-            {user?.role !== 'optimizer' && (
+            {user?.role === 'admin' && (
               <NewVideoDialog 
                 open={newVideoDialogOpen} 
                 onOpenChange={setNewVideoDialogOpen} 

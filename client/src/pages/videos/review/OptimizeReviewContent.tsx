@@ -6,12 +6,11 @@ import { AlertTriangle, MessageSquare, CheckCircle2, XCircle, FileText } from "l
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import type { Video } from "@db/schema";
 import { useUser } from "@/hooks/use-user";
-import { UpdateVideoData } from "@/hooks/useVideos";
+import { UpdateVideoData, ApiVideo } from "@/hooks/useVideos";
 
 interface OptimizeReviewContentProps {
-  video: Video;
+  video: ApiVideo;
   onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
@@ -40,8 +39,11 @@ export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContent
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mt-4">
+      
+      {/* Title */}
       <div className="grid gap-6 lg:grid-cols-2">
+        
         <Card className="overflow-hidden border-2 bg-gradient-to-br from-muted/50 to-transparent">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -74,11 +76,9 @@ export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContent
               <ScrollArea className="h-[100px]">
                 <div className="p-4">
                   <p className="text-lg leading-relaxed text-primary">{video.optimizedTitle}</p>
-                  {video.metadata?.optimization?.optimizedBy && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Optimizado por: {video.metadata.optimization.optimizedBy.username}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Optimizado por: {video.optimizerUsername}
+                  </p>
                 </div>
               </ScrollArea>
             </Card>
@@ -86,7 +86,52 @@ export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContent
         </Card>
       </div>
 
-      <Card className="p-6">
+      {/* Description */}
+      <div className="mt-4 grid gap-6 lg:grid-cols-2">
+
+        <Card className="overflow-hidden border-2 bg-gradient-to-br from-muted/50 to-transparent">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-semibold">Descripción Original</h3>
+              </div>
+              <Badge variant="outline" className="bg-background/50">Original</Badge>
+            </div>
+            <Card className="bg-card/50 border-none">
+              <ScrollArea className="h-[100px]">
+                <div className="p-4">
+                  <p className="text-lg leading-relaxed">{video.description}</p>
+                </div>
+              </ScrollArea>
+            </Card>
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Descripción Optimizada</h3>
+              </div>
+              <Badge variant="outline" className="border-primary/20 text-primary">Propuesta</Badge>
+            </div>
+            <Card className="bg-card/50 border-none">
+              <ScrollArea className="h-[100px]">
+                <div className="p-4">
+                  <p className="text-lg leading-relaxed text-primary">{video.optimizedDescription}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Optimizado por: {video.optimizerUsername}
+                  </p>
+                </div>
+              </ScrollArea>
+            </Card>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="mt-4 p-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Decisión</h3>
@@ -127,7 +172,7 @@ export function OptimizeReviewContent({ video, onUpdate }: OptimizeReviewContent
       </Card>
 
       {video.lastReviewComments && (
-        <Card className="p-6 border-destructive/20 bg-destructive/5">
+        <Card className="mt-4 p-6 border-destructive/20 bg-destructive/5">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
               <AlertTriangle className="h-5 w-5 text-destructive" />

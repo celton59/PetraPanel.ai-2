@@ -1,107 +1,6 @@
-import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, PgArray } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-
-export type VideoMetadata = {
-  roleView?: {
-    optimizer?: {
-      status: 'disponible' | 'en_proceso' | 'en_revision' | 'con_correcciones' | 'completado';
-      assignedAt?: string;
-      lastUpdated?: string;
-    };
-    reviewer?: {
-      status: 'disponible' | 'en_proceso' | 'con_correcciones' | 'completado';
-      assignedAt?: string;
-      lastUpdated?: string;
-      comments?: string;
-    };
-  };
-  corrections?: {
-    status: string;
-    requestedAt: string;
-    files: {
-      video?: {
-        needsCorrection: boolean;
-        originalUrl: string | null;
-      };
-      thumbnail?: {
-        needsCorrection: boolean;
-        originalUrl: string | null;
-      };
-    };
-    history: Array<{
-      timestamp: string;
-      comment: string;
-      requestedBy: number;
-      files: {
-        videoRequested: boolean;
-        thumbnailRequested: boolean;
-      };
-    }>;
-  };
-  customStatus?: 'en_revision';
-  secondaryStatus?: {
-    type: 'title_approved' | 'title_rejected' | 'media_approved' | 'media_rejected';
-    updatedAt: string;
-    comment?: string;
-  };
-  optimization?: {
-    assignedTo?: {
-      userId: number;
-      username: string;
-      assignedAt: string;
-    };
-    optimizedBy?: {
-      userId: number;
-      username: string;
-      optimizedAt: string;
-    };
-    approvalHistory?: Array<{
-      action: 'approved' | 'rejected';
-      by: {
-        userId: number;
-        username: string;
-      };
-      timestamp: string;
-      comment?: string;
-    }>;
-  };
-  roleView?: {
-    youtuber?: {
-      status: string;
-      hideAssignment?: boolean;
-      uploads?: {
-        video?: {
-          uploadedAt: string;
-          uploadedBy: {
-            userId: number;
-            username: string;
-          };
-          status: 'pending' | 'approved' | 'rejected';
-        };
-        thumbnail?: {
-          uploadedAt: string;
-          uploadedBy: {
-            userId: number;
-            username: string;
-          };
-          status: 'pending' | 'approved' | 'rejected';
-        };
-      };
-    };
-    reviewer?: {
-      lastReview?: {
-        timestamp: string;
-        comment?: string;
-        userId: number;
-        username: string;
-        status: 'approved' | 'rejected';
-      };
-      assignedAt?: string;
-      currentReviewStage?: 'media' | 'content' | 'final';
-    };
-  };
-};
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -161,8 +60,8 @@ export const videos = pgTable("videos", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   publishedAt: timestamp("published_at"),
-  title_corrected: boolean("title_corrected").notNull().default(false),
-  media_corrected: boolean("media_corrected").notNull().default(false),
+  titleCorrected: boolean("title_corrected").notNull().default(false),
+  mediaCorrected: boolean("media_corrected").notNull().default(false),
 });
 
 export type User = typeof users.$inferSelect;
@@ -171,7 +70,7 @@ export type InsertUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
 
-export type Video = typeof videos.$inferSelect & { metadata?: VideoMetadata };
+export type Video = typeof videos.$inferSelect
 export type VideoStatus = Video['status']
 export type InsertVideo = typeof videos.$inferInsert;
 

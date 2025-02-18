@@ -4,10 +4,11 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { VideoUploadFields } from "./upload/VideoUploadFields";
+import { UpdateVideoData } from "@/hooks/useVideos";
 
 interface UploadReviewContentProps {
   video: Video;
-  onUpdate: (videoId: number, data: any) => Promise<void>;
+  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
 }
 
 export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProps) {
@@ -16,7 +17,7 @@ export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProp
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const uploadFile = async (file: File, type: 'video' | 'thumbnail') => {
+  async function uploadFile (file: File, type: 'video' | 'thumbnail') {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
@@ -24,7 +25,7 @@ export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProp
     formData.append('bucket', 'videos');
 
     try {
-      const response = await fetch('/api/videos/upload', {
+      const response = await fetch(`/api/projects/${video.projectId}/videos/${video.id}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -42,7 +43,7 @@ export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProp
     }
   };
 
-  const handleUpload = async () => {
+  async function handleUpload () {
     if (!videoFile && !thumbnailFile) {
       toast.error("Se requiere al menos un archivo para subir");
       return;
@@ -64,13 +65,11 @@ export function UploadReviewContent({ video, onUpdate }: UploadReviewContentProp
         setUploadProgress(100);
       }
 
-      const updatedVideoData = {
+      await onUpdate(video.id, {
         status: "youtube_ready",
         videoUrl: videoFile ? videoUrl : video.videoUrl,
         thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl
-      };
-
-      await onUpdate(video.id, updatedVideoData);
+      });
       toast.success("Archivos subidos correctamente");
     } catch (error: any) {
       console.error("Error al subir:", error);

@@ -2,7 +2,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 interface VideoUploadFieldsProps {
@@ -20,17 +19,23 @@ export function VideoUploadFields({
   onVideoFileChange,
   onThumbnailFileChange,
   isUploading,
-  uploadProgress = 0
+  uploadProgress = 0,
 }: VideoUploadFieldsProps) {
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
 
-  const handleDragOver = (e: React.DragEvent, setIsDragging: (value: boolean) => void) => {
+  const handleDragOver = (
+    e: React.DragEvent,
+    setIsDragging: (value: boolean) => void,
+  ) => {
     e.preventDefault();
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent, setIsDragging: (value: boolean) => void) => {
+  const handleDragLeave = (
+    e: React.DragEvent,
+    setIsDragging: (value: boolean) => void,
+  ) => {
     e.preventDefault();
     setIsDragging(false);
   };
@@ -39,7 +44,7 @@ export function VideoUploadFields({
     e: React.DragEvent,
     setIsDragging: (value: boolean) => void,
     setFile: (file: File | null) => void,
-    fileType: 'video' | 'image'
+    fileType: "video" | "image",
   ) => {
     e.preventDefault();
     setIsDragging(false);
@@ -47,30 +52,30 @@ export function VideoUploadFields({
     const file = e.dataTransfer.files[0];
     if (!file) return;
 
-    if (fileType === 'video' && !file.type.startsWith('video/')) {
-      alert('Por favor, sube un archivo de video válido');
+    if (fileType === "video" && !file.type.startsWith("video/")) {
+      alert("Por favor, sube un archivo de video válido");
       return;
     }
 
-    if (fileType === 'image' && !file.type.startsWith('image/')) {
-      alert('Por favor, sube un archivo de imagen válido');
+    if (fileType === "image" && !file.type.startsWith("image/")) {
+      alert("Por favor, sube un archivo de imagen válido");
       return;
     }
 
     setFile(file);
   };
 
-  const FileUploadZone = ({ 
-    file, 
-    isDragging, 
-    onDragOver, 
-    onDragLeave, 
-    onDrop, 
+  const FileUploadZone = ({
+    file,
+    isDragging,
+    onDragOver,
+    onDragLeave,
+    onDrop,
     onFileChange,
     accept,
     type,
     isUploading,
-    uploadProgress
+    uploadProgress,
   }: {
     file: File | null;
     isDragging: boolean;
@@ -79,7 +84,7 @@ export function VideoUploadFields({
     onDrop: (e: React.DragEvent) => void;
     onFileChange: (file: File | null) => void;
     accept: string;
-    type: 'video' | 'image';
+    type: "video" | "image";
     isUploading?: boolean;
     uploadProgress?: number;
   }) => (
@@ -89,8 +94,8 @@ export function VideoUploadFields({
       onDrop={onDrop}
       className={`
         relative border-2 border-dashed rounded-lg p-6 text-center
-        ${isDragging ? 'border-primary bg-primary/5' : 'border-border'}
-        ${isUploading ? 'bg-muted/50' : ''}
+        ${isDragging ? "border-primary bg-primary/5" : "border-border"}
+        ${isUploading ? "bg-muted/50" : ""}
         transition-colors
       `}
     >
@@ -104,19 +109,17 @@ export function VideoUploadFields({
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         disabled={isUploading}
       />
-      
+
       {file ? (
         <div className="space-y-2">
           <p className="text-sm font-medium">Archivo seleccionado:</p>
           <p className="text-sm text-muted-foreground">{file.name}</p>
-          {isUploading && (
-            <Progress value={uploadProgress} className="h-1" />
-          )}
+          {isUploading && <Progress value={uploadProgress} className="h-1" />}
         </div>
       ) : (
         <div className="space-y-2">
           <p className="text-sm font-medium">
-            Arrastra y suelta tu {type === 'video' ? 'video' : 'imagen'} aquí
+            Arrastra y suelta tu {type === "video" ? "video" : "imagen"} aquí
           </p>
           <p className="text-sm text-muted-foreground">
             O haz clic para seleccionar un archivo
@@ -135,7 +138,9 @@ export function VideoUploadFields({
           isDragging={isDraggingVideo}
           onDragOver={(e) => handleDragOver(e, setIsDraggingVideo)}
           onDragLeave={(e) => handleDragLeave(e, setIsDraggingVideo)}
-          onDrop={(e) => handleDrop(e, setIsDraggingVideo, onVideoFileChange, 'video')}
+          onDrop={(e) =>
+            handleDrop(e, setIsDraggingVideo, onVideoFileChange, "video")
+          }
           onFileChange={onVideoFileChange}
           accept="video/*"
           type="video"
@@ -159,7 +164,14 @@ export function VideoUploadFields({
           isDragging={isDraggingThumbnail}
           onDragOver={(e) => handleDragOver(e, setIsDraggingThumbnail)}
           onDragLeave={(e) => handleDragLeave(e, setIsDraggingThumbnail)}
-          onDrop={(e) => handleDrop(e, setIsDraggingThumbnail, onThumbnailFileChange, 'image')}
+          onDrop={(e) =>
+            handleDrop(
+              e,
+              setIsDraggingThumbnail,
+              onThumbnailFileChange,
+              "image",
+            )
+          }
           onFileChange={onThumbnailFileChange}
           accept="image/*"
           type="image"
