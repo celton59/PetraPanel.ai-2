@@ -3,15 +3,17 @@ import { useToast } from "./use-toast";
 import { User, Video } from '@db/schema'
 
 
-export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'lastReviewedAt' | 'updatedAt' >
+export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' >
 
 export const getRoleStatus = 1
 
 export type ApiVideo = {
   [K in keyof Video]: Video[K];
 } & {
-  reviewerName: User["fullName"] | null;
-  reviewerUsername: User["username"];
+  contentReviewerName: User["fullName"] | null;
+  contentReviewerUsername: User["username"];
+  mediaReviewerName: User["fullName"] | null;
+  mediaReviewerUsername: User["username"];
   creatorName: User["fullName"] | null,
   creatorUsername: User["username"],
   optimizerName:User["fullName"] | null,

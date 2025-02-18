@@ -11,7 +11,8 @@ import path from 'path'
 
 const client = new Client();
 
-const reviewer = aliasedTable(users, "reviewer");
+const contentReviewer = aliasedTable(users, "contentReviewer");
+const mediaReviewer = aliasedTable(users, "mediaReviewer");
 const optimizer = aliasedTable(users, "optimizer");
 const creator = aliasedTable(users, "creator");
 
@@ -79,12 +80,14 @@ const updateVideoSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['pending', 'in_progress', 'title_corrections', 'optimize_review', 'upload_review',
     'youtube_ready', 'review', 'media_corrections', 'completed']).optional(),
+  tags: z.string().optional(),
   optimizedBy: z.number().optional(),
   optimizedDescription: z.string().optional(),
-  tags: z.string().optional(),
   optimizedTitle: z.string().optional(),
-  lastReviewComments: z.string().optional(),
-  reviewedBy: z.number().optional(),
+  contentReviewComments: z.string().array().optional(),
+  contentReviewedBy: z.number().optional(),
+  mediaReviewComments: z.string().array().optional(),
+  mediaReviewedBy: z.number().optional(),
 })  
 
 type UpdateVideoSchema = z.infer<typeof updateVideoSchema>;
@@ -141,9 +144,12 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         optimizedDescription: updates.optimizedDescription,
         tags: updates.tags,
         optimizedTitle: updates.optimizedTitle,
-        lastReviewComments: updates.lastReviewComments,
-        reviewedBy: updates.reviewedBy,
-        lastReviewedAt: updates.reviewedBy ? new Date() : null
+        contentReviewComments: updates.contentReviewComments,
+        contentReviewedBy: updates.contentReviewedBy,
+        contentLastReviewedAt: updates.contentReviewedBy ? new Date() : null,
+        mediaReviewComments: updates.mediaReviewComments,
+        mediaReviewedBy: updates.mediaReviewedBy,
+        mediaLastReviewedAt: updates.mediaReviewedBy ? new Date() : null
       })
       .where(
         and(
@@ -213,9 +219,13 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
     .select({
       ...getTableColumns(videos),
 
-      // Datos del reviewer
-      reviewerName: reviewer.fullName,
-      reviewerUsername: reviewer.username,
+      // Datos del content reviewer
+      contentReviewerName: contentReviewer.fullName,
+      contentReviewerUsername: contentReviewer.username,
+
+      // Datos del media reviewer
+      mediaReviewerName: mediaReviewer.fullName,
+      mediaReviewerUsername: mediaReviewer.username,
 
       // Datos del creador
       creatorName: creator.fullName,
@@ -226,7 +236,8 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       optimizerUsername: optimizer.username,
     })
     .from(videos)
-    .leftJoin(reviewer, eq(videos.reviewedBy, reviewer.id))
+    .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
+    .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
     .leftJoin(creator, eq(videos.createdBy, creator.id))
     .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
     .orderBy(desc(videos.updatedAt))
@@ -258,8 +269,8 @@ async function getVideosByProject(req: Request, res: Response): Promise<Response
       ...getTableColumns(videos),
 
       // Datos del reviewer
-      reviewerName: reviewer.fullName,
-      reviewerUsername: reviewer.username,
+      reviewerName: contentReviewer.fullName,
+      reviewerUsername: contentReviewer.username,
 
       // Datos del creador
       creatorName: creator.fullName,
@@ -270,7 +281,7 @@ async function getVideosByProject(req: Request, res: Response): Promise<Response
       optimizerUsername: optimizer.username,
     })
     .from(videos)
-    .leftJoin(reviewer, eq(videos.reviewedBy, reviewer.id))
+    .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
     .leftJoin(creator, eq(videos.createdBy, creator.id))
     .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
     .where(eq(videos.projectId, projectId))

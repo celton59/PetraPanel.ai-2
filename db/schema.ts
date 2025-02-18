@@ -48,20 +48,25 @@ export const videos = pgTable("videos", {
   videoUrl: text("video_url"),
   thumbnailUrl: text("thumbnail_url"),
   youtubeUrl: text("youtube_url"),
-  optimizedTitle: text("optimized_title"),
-  optimizedDescription: text("optimized_description"),
   createdBy: integer("created_by").references(() => users.id),
-  optimizedBy: integer("optimized_by").references(() => users.id),
-  reviewedBy: integer("reviewed_by").references(() => users.id),
   tags: text("tags"),
   seriesNumber: text("series_number"),
-  lastReviewedAt: timestamp("last_reviewed_at"),
-  lastReviewComments: text("last_review_comments"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  publishedAt: timestamp("published_at"),
-  titleCorrected: boolean("title_corrected").notNull().default(false),
-  mediaCorrected: boolean("media_corrected").notNull().default(false),
+  
+  optimizedTitle: text("optimized_title"),
+  optimizedDescription: text("optimized_description"),
+  optimizedBy: integer("optimized_by").references(() => users.id),
+  
+  contentReviewedBy: integer("content_reviewed_by").references(() => users.id),
+  contentLastReviewedAt: timestamp("content_last_reviewed_at"),
+  contentReviewComments: text("content_review_comments").array(),
+
+  mediaReviewedBy: integer("media_reviewed_by").references(() => users.id),
+  mediaLastReviewedAt: timestamp("media_last_reviewed_at"),
+  mediaReviewComments: text("media_review_comments").array(),
+  
+  publishedAt: timestamp("published_at")
 });
 
 export type User = typeof users.$inferSelect;

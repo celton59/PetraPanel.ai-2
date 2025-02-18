@@ -18,6 +18,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/emoji/EmojiPicker";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 interface VideoOptimizerContentProps {
   video: Video;
@@ -72,8 +78,8 @@ export function VideoOptimizerContent({
   }
 
   return (
-    <ScrollArea className="h-[80vh] sm:h-[70vh] p-5">
-      <Card className="border-0 shadow-none">
+    <ScrollArea className="h-[80vh] sm:h-[70vh]">
+      <Card className="border-0 shadow-none p-5">
         <CardHeader className="px-0 sm:px-6">
           <CardTitle>Optimización de Contenido</CardTitle>
         </CardHeader>
@@ -83,19 +89,39 @@ export function VideoOptimizerContent({
             className="space-y-4"
           >
             <div className="space-y-8" translate="no">
-              {video.lastReviewComments &&
-                video.status === "title_corrections" && (
-                  <Alert className="border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
-                    <AlertCircle className="h-5 w-5 text-red-500" />
-                    <AlertDescription className="text-red-700 dark:text-red-300">
-                      <p className="font-medium mb-1">
-                        Se han solicitado las siguientes correcciones:
-                      </p>
-                      <p className="text-sm whitespace-pre-wrap">
-                        {video.lastReviewComments}
-                      </p>
-                    </AlertDescription>
-                  </Alert>
+              {video.contentReviewComments &&
+                video.contentReviewComments.length > 0 && (
+                  <>
+                    <Alert className="border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
+                      <AlertCircle className="h-5 w-5 text-red-500" />
+                      <AlertDescription className="text-red-700 dark:text-red-300">
+                        <p className="font-medium mb-1">
+                          Se han solicitado las siguientes correcciones:
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {video.contentReviewComments.at(-1)}
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+
+                    <Accordion type="single" collapsible className="space-y-4">
+                      <AccordionItem value="item-1">
+                        <AccordionTrigger>
+                          Historial de correciones
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {video.contentReviewComments?.map((comment) => (
+                            <Alert className="mb-1 border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
+                              <AlertCircle className="h-5 w-5 text-red-500" />
+                              <AlertDescription className="text-red-700 dark:text-red-300">
+                                <p className="font-medium">{comment}</p>
+                              </AlertDescription>
+                            </Alert>
+                          ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </>
                 )}
 
               <div className="grid gap-8">
