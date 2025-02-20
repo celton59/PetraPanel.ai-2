@@ -1,5 +1,5 @@
-import { VideoCard } from "./VideoCard";
-import { useVideos } from "@/hooks/useVideos";
+import { VideoDetailDialog } from "./VideoDetailDialog";
+import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import {
   Eye,
@@ -37,16 +37,12 @@ import {
 import { toast } from "sonner";
 import {
   Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
-import { getStatusLabel, getStatusLabelNew } from "@/lib/status-labels";
+import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn } from "@/lib/utils";
-import type { User, VideoStatus, Video } from "@db/schema";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -94,12 +90,9 @@ export default function VideosPage() {
   }
 
   const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
-    undefined,
-  );
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
 
   useEffect(() => {
@@ -120,45 +113,9 @@ export default function VideosPage() {
 
   if (!user) return null;
 
-  async function handleDeleteVideo(videoId: number, projectId: number) {
-    try {
-      await deleteVideo({ videoId, projectId });
-      toast.success("Video eliminado correctamente");
-    } catch (error) {
-      console.error("Error deleting video:", error);
-      toast.error("Error al eliminar el video");
-    }
+  async function handleVideoClick(video: ApiVideo) {
+    setSelectedVideo(video)
   }
-
-  async function handleVideoClick(video: Video) {
-    setSelectedVideoId(video.id);
-    setVideoDialogOpen(true);
-
-    // if ((userRole === 'optimizer' || userRole === 'admin') && video.status === 'pending') {
-    //   setUpdatingVideoId(video.id);
-    //   try {
-    //     await updateVideo({
-    //       videoId: video.id,
-    //       projectId: video.projectId,
-    //       updateRequest: {
-    //         status: 'in_progress',
-    //       }
-    //     });
-    //     setSelectedVideoId(video.id);
-    //     setDialogOpen(true);
-    //   } catch (error) {
-    //     console.error('Error al actualizar el video:', error);
-    //     toast.error("Error al actualizar el estado del video");
-    //   } finally {
-    //     setUpdatingVideoId(undefined);
-    //   }
-    // } else {
-    //   setSelectedVideoId(video.id);
-    //   setDialogOpen(true);
-    // }
-  }
-
-  const selectedVideo = videos?.find((v) => v.id === selectedVideoId);
 
   function renderEmptyState() {
     return (
@@ -238,30 +195,14 @@ export default function VideosPage() {
                     {video.optimizedTitle ?? video.title}
                   </TableCell>
                   <TableCell>
-                    {getEffectiveAssignment(video, user?.role, user)?.name ===
-                    "No disponible" ? (
-                      <Badge
-                        variant="secondary"
-                        className="bg-gray-500/20 text-gray-600"
-                      >
-                        No disponible
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          getStatusBadge(
-                            getEffectiveStatus(
-                              video,
-                              user?.role,
-                              user,
-                            ) as VideoStatus,
-                          ),
-                        )}
-                      >
-                        {getStatusLabelNew(user!.role, video)}
-                      </Badge>
-                    )}
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        getStatusBadgeColor(video.status),
+                      )}
+                    >
+                      {getStatusLabel(user!.role, video)}
+                    </Badge>  
                   </TableCell>
                   <TableCell>
                     {video.creatorName
@@ -332,9 +273,7 @@ export default function VideosPage() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() =>
-                                  handleDeleteVideo(video.id, video.projectId)
-                                }
+                                onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId }) }
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
                                 Eliminar
@@ -362,11 +301,10 @@ export default function VideosPage() {
   function getGridView() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {videos?.map((video: any) => (
+        {videos?.map((video) => (
           <div
             key={video.id}
             className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
-            onClick={() => handleVideoClick(video)}
           >
             <div className="aspect-video bg-muted relative">
               {video.thumbnailUrl ? (
@@ -380,30 +318,56 @@ export default function VideosPage() {
                   <Layout className="h-4 w-4" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div
+                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                onClick={() => handleVideoClick(video)}
+              >
                 <Eye className="h-6 w-6 text-white" />
               </div>
             </div>
             <div className="p-4">
-              <div className="mb-2">
+              <div className="mb-2 flex justify-between items-center">
                 <Badge
                   variant="secondary"
                   className={cn(
                     "text-xs",
-                    getStatusBadge(
-                      getEffectiveStatus(
-                        video,
-                        user?.role,
-                        user,
-                      ) as VideoStatus,
-                    ),
+                    getStatusBadgeColor(video.status),
                   )}
                 >
-                  {getStatusLabel(
-                    getEffectiveStatus(video, user?.role, user) as VideoStatus,
-                    user?.role,
-                  )}
+                  {getStatusLabel(user!.role, video)}
                 </Badge>
+                {user?.role === "admin" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminará
+                          permanentemente el video
+                          <span className="font-medium"> {video.title}</span>.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId })}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
               <h3 className="font-medium text-sm mb-1 truncate">
                 {video.optimizedTitle || video.title}
@@ -411,9 +375,24 @@ export default function VideosPage() {
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{video.seriesNumber || "Sin serie"}</span>
                 <span>
-                  {new Date(
-                    video.updatedAt || video.createdAt,
-                  ).toLocaleDateString()}
+                  { video.updatedAt && new Date(video.updatedAt).toLocaleDateString() }
+                  { !video.updatedAt && video.createdAt && new Date(video.createdAt).toLocaleDateString() }
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                <span>
+                  <strong>Creador: </strong>{video.creatorName ? `${video.creatorName} (${video.creatorUsername})` : video.creatorUsername}
+                </span>
+                <span>
+                  <strong>Optimizador: </strong>{video.optimizerName ? `${video.optimizerName} (${video.optimizerUsername})` : video.optimizerUsername}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                <span>
+                  <strong>Revisor Cont.: </strong>{video.contentReviewerName ? `${video.contentReviewerName} (${video.contentReviewerUsername})` : video.contentReviewerUsername}
+                </span>
+                <span>
+                  <strong>Revisor Media: </strong>{video.mediaReviewerName ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})` : video.mediaReviewerUsername}
                 </span>
               </div>
             </div>
@@ -455,24 +434,27 @@ export default function VideosPage() {
                   variant="secondary"
                   className={cn(
                     "text-xs",
-                    getStatusBadge(
-                      getEffectiveStatus(
-                        video,
-                        user?.role,
-                        user,
-                      ) as VideoStatus,
-                    ),
+                    getStatusBadgeColor(video.status),
                   )}
                 >
-                  {getStatusLabel(
-                    getEffectiveStatus(video, user?.role, user) as VideoStatus,
-                    user?.role,
-                  )}
+                  {getStatusLabel(user!.role, video)}
                 </Badge>
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">
                   {video.seriesNumber || "Sin serie"}
                 </span>
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                <strong>Creador: </strong>{video.creatorName ? `${video.creatorName} (${video.creatorUsername})` : video.creatorUsername}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <strong>Optimizador: </strong>{video.optimizerName ? `${video.optimizerName} (${video.optimizerUsername})` : video.optimizerUsername}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <strong>Revisor Cont.: </strong>{video.contentReviewerName ? `${video.contentReviewerName} (${video.contentReviewerUsername})` : video.contentReviewerUsername}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <strong>Revisor Media: </strong>{video.mediaReviewerName ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})` : video.mediaReviewerUsername}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -504,9 +486,7 @@ export default function VideosPage() {
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() =>
-                          handleDeleteVideo(video.id, video.projectId)
-                        }
+                        onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId }) }
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Eliminar
@@ -525,14 +505,14 @@ export default function VideosPage() {
 
   function getVideoDialog() {
     return (
-      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        <VideoCard
+      <Dialog open={Boolean(selectedVideo)} onOpenChange={() => setSelectedVideo(undefined)}>
+        <VideoDetailDialog
           video={selectedVideo!}
-          onUpdate={async (videoId, data) => {
-            setUpdatingVideoId(videoId);
+          onUpdate={async (data) => {
+            setUpdatingVideoId(selectedVideo!.id);
             try {
               await updateVideo({
-                videoId,
+                videoId: selectedVideo!.id,
                 projectId: selectedVideo!.projectId,
                 updateRequest: data,
               });
@@ -541,7 +521,7 @@ export default function VideosPage() {
               toast.error("Error al actualizar el video");
             } finally {
               setUpdatingVideoId(undefined);
-              setVideoDialogOpen(false);
+              setSelectedVideo(undefined)
             }
           }}
         />
@@ -640,107 +620,9 @@ export default function VideosPage() {
             : getListView()}
       </div>
 
-      <Button onClick={() => {
-      console.log('test')
-      toast('test')
-      }}>Test</Button>
-
       {selectedVideo && getVideoDialog()}
     </div>
   );
 }
 
-function getStatusBadge(status: VideoStatus) {
-  const styles = {
-    pending: "bg-yellow-500/20 text-yellow-600",
-    in_progress: "bg-blue-500/20 text-blue-600",
-    title_corrections: "bg-red-500/20 text-red-600",
-    optimize_review: "bg-pink-500/20 text-pink-600",
-    upload_review: "bg-purple-500/20 text-purple-600",
-    youtube_ready: "bg-green-500/20 text-green-600",
-    review: "bg-indigo-500/20 text-indigo-600",
-    media_corrections: "bg-red-500/20 text-red-600",
-    completed: "bg-emerald-500/20 text-emerald-600",
-  };
-  return styles[status] || "bg-gray-500/20 text-gray-600";
-}
 
-function getEffectiveStatus(video: any, userRole?: string, currentUser?: any) {
-  if (video.metadata?.customStatus) {
-    return video.metadata.customStatus;
-  }
-
-  switch (userRole) {
-    case "youtuber":
-      if (video.status === "upload_review") {
-        if (video.currentReviewerId === currentUser?.id) {
-          return "asignado";
-        }
-        return "video_disponible";
-      }
-      break;
-
-    case "reviewer":
-      if (video.status === "upload_review") {
-        return "video_disponible";
-      }
-      break;
-
-    case "optimizer":
-      if (video.status === "pending") {
-        return "disponible";
-      }
-      break;
-  }
-
-  return video.status;
-}
-
-function getEffectiveAssignment(
-  video: any,
-  userRole?: User["role"],
-  currentUser?: any,
-) {
-  if (userRole === "reviewer" && video.status === "upload_review") {
-    return {
-      name: "Disponible",
-      id: null,
-    };
-  }
-
-  if (userRole === "youtuber" && video.status === "upload_review") {
-    if (video.currentReviewerId === currentUser?.id) {
-      return {
-        name: currentUser?.username || "Tú",
-        id: video.currentReviewerId,
-      };
-    }
-    if (video.currentReviewerId) {
-      return {
-        name: "No disponible",
-        id: video.currentReviewerId,
-      };
-    }
-    return {
-      name: "Disponible",
-      id: null,
-    };
-  }
-
-  if (
-    userRole === "optimizer" &&
-    video.metadata?.secondaryStatus?.type === "title_approved" &&
-    video.metadata?.optimization?.reviewedBy?.approved &&
-    video.metadata?.optimization?.optimizedBy
-  ) {
-    return {
-      name: video.metadata.optimization.optimizedBy.username,
-      id: video.metadata.optimization.optimizedBy.userId,
-    };
-  }
-
-  return {
-    name: video.reviewerName || video.reviewerUsername,
-    id: video.currentReviewerId,
-  };
-}

@@ -2,9 +2,9 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { User, UserRound, Mail, Phone, Type, Loader2, Check, X } from "lucide-react";
+import { User as UserIcon, UserRound, Mail, Phone, Type, Loader2, Check, X } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
-import { UserRole } from "@/types/user";
+import { User } from "@db/schema";
 
 interface PersonalInfoSectionProps {
   formData: {
@@ -23,7 +23,7 @@ interface PersonalInfoSectionProps {
     email: string;
     phone?: string;
     bio?: string;
-    role: UserRole;
+    role: User['role'];
     password?: string;
   }>;
 }
@@ -68,7 +68,7 @@ export const PersonalInfoSection = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-muted-foreground" />
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
                 <span>Nombre completo *</span>
               </FormLabel>
               <FormControl>
@@ -88,7 +88,7 @@ export const PersonalInfoSection = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-muted-foreground" />
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
                 <span>Nombre de usuario *</span>
               </FormLabel>
               <div className="relative">

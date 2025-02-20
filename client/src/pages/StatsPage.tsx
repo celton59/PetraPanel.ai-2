@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { Download, FileBarChart, FileSpreadsheet, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,14 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function StatsPage() {
-  const { toast } = useToast();
+
   const [dateRange, setDateRange] = useState("7d");
 
   const handleExport = (format: string) => {
-    toast({
-      title: "Exportación iniciada",
+    toast("Exportación iniciada", {
       description: `Preparando exportación en formato ${format}...`,
       duration: 3000,
     });
@@ -29,8 +28,7 @@ export default function StatsPage() {
 
   const handleDateRangeChange = (range: string) => {
     setDateRange(range);
-    toast({
-      title: "Rango actualizado",
+    toast("Rango actualizado", {
       description: `Mostrando datos de los últimos ${
         range === "7d" ? "7 días" : 
         range === "30d" ? "30 días" : "12 meses"

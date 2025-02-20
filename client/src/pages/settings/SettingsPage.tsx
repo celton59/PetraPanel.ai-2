@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProjectsTab } from "./tabs/project/ProjectsTab";
-import { UsersTab } from "@/components/settings/UsersTab";
+import { UsersTab } from "./tabs/users/UsersTab";
 import { RolesTab } from "@/components/settings/RolesTab";
 import { VideoFlowTab } from "@/components/settings/VideoFlowTab";
 import { useIsMobile } from "@/hooks/use-mobile";

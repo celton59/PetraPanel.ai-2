@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Lock } from "lucide-react"; // Import the Lock icon
+import { toast } from "sonner";
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "El nombre es requerido"),
@@ -27,7 +27,6 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const { user, refetch } = useUser();
-  const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -72,8 +71,7 @@ export default function ProfilePage() {
       const responseData = await response.json();
       await refetch();
 
-      toast({
-        title: "Perfil actualizado",
+      toast("Perfil actualizado", {
         description: "Tu información ha sido actualizada correctamente",
       });
 
@@ -81,9 +79,7 @@ export default function ProfilePage() {
       form.reset(data);
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
+      toast.error("Error", {
         description: error.message || "No se pudo actualizar el perfil. Por favor, intenta de nuevo.",
       });
     } finally {
@@ -264,15 +260,12 @@ export default function ProfilePage() {
 
                 if (!response.ok) throw new Error('Error al cambiar la contraseña');
 
-                toast({
-                  title: "Contraseña actualizada",
+                toast("Contraseña actualizada", {
                   description: "Tu contraseña ha sido cambiada correctamente",
                 });
               } catch (error) {
-                toast({
-                  title: "Error",
+                toast.error("Error", {
                   description: "No se pudo actualizar la contraseña",
-                  variant: "destructive",
                 });
               }
             }} className="space-y-4">

@@ -1,7 +1,6 @@
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth-page";
@@ -13,6 +12,7 @@ import { Layout } from "@/components/layout/Layout";
 import VideosPage from "@/pages/videos/VideosPage";
 import StatsPage from "@/pages/StatsPage";
 import VideoTranslator from "@/pages/VideoTranslator";
+import { Toaster } from "sonner";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -56,11 +56,11 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster expand />
       <Router>
         <Switch>
           <Route path="/*" component={Layout} />
         </Switch>
-        <Toaster />
       </Router>
     </QueryClientProvider>
   );

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Profile, UserRole } from "@/types/user";
 import { useUserStore } from "@/stores/userStore";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -22,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { User } from "@db/schema";
 
 const userFormSchema = z.object({
   full_name: z.string().min(1, "El nombre es requerido"),
@@ -36,7 +36,7 @@ const userFormSchema = z.object({
 type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserSettingsFormProps {
-  user: Profile | null;
+  user: User | null;
   onClose: () => void;
 }
 
@@ -61,7 +61,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       email: user?.email || "",
       phone: user?.phone || "",
       bio: user?.bio || "",
-      role: (user?.role as UserRole) || "uploader",
+      role: (user?.role) || "uploader",
       password: "",
     },
   });

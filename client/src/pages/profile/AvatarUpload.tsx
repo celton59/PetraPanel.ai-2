@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, User } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface AvatarUploadProps {
   url?: string | null;
@@ -18,7 +18,6 @@ export function AvatarUpload({
   editable = true,
   onUploadComplete 
 }: AvatarUploadProps) {
-  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
 
   async function uploadAvatar (file: File) {
@@ -41,15 +40,12 @@ export function AvatarUpload({
       const data = await response.json();
       onUploadComplete?.();
 
-      toast({
-        title: "Avatar actualizado",
+      toast("Avatar actualizado", {
         description: "Tu foto de perfil se ha actualizado correctamente.",
       });
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al subir avatar",
+      toast.error("Error al subir avatar", {
         description: "No se pudo actualizar tu foto de perfil. Por favor, intenta de nuevo.",
       });
     } finally {

@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OptimizeReviewContentProps {
   video: ApiVideo;
-  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
+  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
 export function OptimizeReviewContent({
@@ -39,12 +39,12 @@ export function OptimizeReviewContent({
     setIsSubmitting(true);
 
     try {
-      onUpdate(video.id, {
+      onUpdate({
         status: approve ? "upload_review" : "title_corrections",
         contentReviewedBy: user?.id,
         contentReviewComments: titleCorrections
           ? [...(video.contentReviewComments ?? []), titleCorrections.trim()]
-          : video.contentReviewComments,
+          : video.contentReviewComments ?? [],
       });
     } catch (error) {
       console.error("Error al enviar los cambios:", error);

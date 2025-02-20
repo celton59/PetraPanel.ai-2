@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "./use-toast";
 import { User, Video } from '@db/schema'
+import { toast } from "sonner";
 
 
 export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' >
@@ -28,7 +28,6 @@ export function useVideos(projectId?: number): {
   deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
 } {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const queryKey = projectId ? [`/api/projects/${projectId}/videos`] : ['/api/videos'];
 
@@ -68,16 +67,13 @@ export function useVideos(projectId?: number): {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
-      toast({
-        title: "Video creado",
+      toast.success("Video creado", {
         description: "El video se ha creado correctamente",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error.message || "No se pudo crear el video",
-        variant: "destructive",
       });
     },
   });
@@ -104,16 +100,13 @@ export function useVideos(projectId?: number): {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({
-        title: "Video actualizado",
+      toast.success("Video actualizado", {
         description: "El video se ha actualizado correctamente",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error.message || "No se pudo actualizar el video",
-        variant: "destructive",
       });
     },
   });
@@ -134,16 +127,13 @@ export function useVideos(projectId?: number): {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({
-        title: "Video eliminado",
+      toast.success("Video eliminado", {
         description: "El video se ha eliminado correctamente",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
+      toast("Error", {
         description: error.message || "No se pudo eliminar el video",
-        variant: "destructive",
       });
     },
   });

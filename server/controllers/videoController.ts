@@ -88,6 +88,8 @@ const updateVideoSchema = z.object({
   contentReviewedBy: z.number().optional(),
   mediaReviewComments: z.string().array().optional(),
   mediaReviewedBy: z.number().optional(),
+  mediaVideoNeedsCorrection: z.boolean().optional(),
+  mediaThumbnailNeedsCorrection: z.boolean().optional()
 })  
 
 type UpdateVideoSchema = z.infer<typeof updateVideoSchema>;
@@ -149,7 +151,9 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         contentLastReviewedAt: updates.contentReviewedBy ? new Date() : null,
         mediaReviewComments: updates.mediaReviewComments,
         mediaReviewedBy: updates.mediaReviewedBy,
-        mediaLastReviewedAt: updates.mediaReviewedBy ? new Date() : null
+        mediaLastReviewedAt: updates.mediaReviewedBy ? new Date() : null,
+        mediaVideoNeedsCorrection: updates.mediaVideoNeedsCorrection,
+        mediaThumbnailNeedsCorrection: updates.mediaThumbnailNeedsCorrection
       })
       .where(
         and(

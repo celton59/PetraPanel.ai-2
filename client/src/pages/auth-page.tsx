@@ -2,17 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { CircleUserRound } from "lucide-react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const { login, register } = useUser();
-  const { toast } = useToast();
   const [, setLocation] = useLocation();
 
   const form = useForm({
@@ -31,15 +30,12 @@ export default function AuthPage() {
         await register(data);
         setLocation("/");
       }
-      toast({
-        title: isLogin ? "¡Bienvenido!" : "Registro exitoso",
+      toast.success(isLogin ? "¡Bienvenido!" : "Registro exitoso", {
         description: isLogin ? "Has iniciado sesión correctamente" : "Tu cuenta ha sido creada",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+      toast.error("Error", {
+        description: error.message
       });
     }
   };

@@ -27,7 +27,7 @@ import {
 
 interface VideoOptimizerContentProps {
   video: Video;
-  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
+  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
 type FormValues = Partial<UpdateVideoData>;
@@ -64,7 +64,7 @@ export function VideoOptimizerContent({
   async function handleSubmit(formData: FormValues) {
     setIsSubmitting(true);
     try {
-      await onUpdate(video.id, {
+      await onUpdate({
         optimizedDescription: formData.optimizedDescription,
         tags: formData.tags,
         optimizedTitle: formData.optimizedTitle,
@@ -89,6 +89,7 @@ export function VideoOptimizerContent({
             className="space-y-4"
           >
             <div className="space-y-8" translate="no">
+              
               {video.contentReviewComments &&
                 video.contentReviewComments.length > 0 && (
                   <>
@@ -122,7 +123,8 @@ export function VideoOptimizerContent({
                       </AccordionItem>
                     </Accordion>
                   </>
-                )}
+                )
+              }
 
               <div className="grid gap-8">
                 <Card className="overflow-hidden border-2">

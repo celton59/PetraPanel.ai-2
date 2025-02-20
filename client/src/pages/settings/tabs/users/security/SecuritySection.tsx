@@ -5,15 +5,16 @@ import { UseFormReturn } from "react-hook-form"
 import { ProjectSelector } from "./ProjectSelector";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { User } from "@db/schema";
 
 interface SecuritySectionProps {
   formData: {
-    role: UserRole;
+    role: User["role"];
     password?: string;
   };
   setFormData: (data: Partial<SecuritySectionProps['formData']>) => void;
   isEditing: boolean;
-  currentUser: Profile | null;
+  currentUser: User | null;
   selectedProjects: number[];
   setSelectedProjects: (projects: number[]) => void;
   form: UseFormReturn<{
@@ -22,7 +23,7 @@ interface SecuritySectionProps {
     email: string;
     phone?: string;
     bio?: string;
-    role: UserRole;
+    role: User["role"];
     password?: string;
   }>;
 }

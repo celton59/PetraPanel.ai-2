@@ -6,7 +6,8 @@ import {
   Upload,
   AlertCircle,
   Image,
-  Layout,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -33,57 +34,79 @@ export default function YoutubeReadyContent({
   const [contentApproved, setContentApproved] = useState<boolean>(false);
 
   function handleApprove() {
-    onUpdate(video.id, {
-      status: "review",
-      mediaReviewedBy: user?.id,
-    });
+    if ( video.status === 'youtube_ready') {
+        onUpdate({
+          status: "review",
+          mediaReviewedBy: user?.id,
+          mediaVideoNeedsCorrection: false,
+          mediaThumbnailNeedsCorrection: false
+        })
+    }
+    else {
+      onUpdate({
+        status: 'completed'
+      })
+    }
+    
   }
 
   function handleReject() {
-
-    if (! reviewComments) {
-      console.log("Debes de escribir un comentario para rechazar el video")
-      toast("Debes de escribir un comentario para rechazar el video");
-      return
+    if (!reviewComments) {
+      toast.error("Debes de escribir un comentario para rechazar el video");
+      return;
     }
-    
-    onUpdate(video.id, {
+
+    onUpdate({
       status: "media_corrections",
       mediaReviewedBy: user?.id,
-      mediaReviewComments: [...(video.mediaReviewComments ?? []), reviewComments]
+      mediaReviewComments: [
+        ...(video.mediaReviewComments ?? []),
+        reviewComments,
+      ],
+      mediaVideoNeedsCorrection: !videoApproved,
+      mediaThumbnailNeedsCorrection: !thumbnailsApproved,
     });
   }
 
   return (
     <ScrollArea className="h-[80vh] sm:h-[70vh]">
       <div className="space-y-6 p-5">
-        {/* Previsualización de Miniatura */}
-        {video.thumbnailUrl && (
-          <div className="rounded-lg overflow-hidden border bg-card">
-            <div className="aspect-video relative">
-              {video.thumbnailUrl ? (
-                <img
-                  src={video.thumbnailUrl}
-                  alt="Miniatura del video"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                  <Layout className="h-4 w-4" />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        
+        {/* Actual Thumbnail */}
+        <div>
+          {video.thumbnailUrl && (
+            <>
+              <h2 className="text-2xl font-semibold">Miniatura Actual</h2>
+              <img
+                src={video.thumbnailUrl}
+                alt="Miniatura del video"
+                className="w-full mt-2 rounded-md"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Actual Video */}
+        <div>
+          {video.videoUrl && (
+            <>
+              <h2 className="text-2xl font-semibold">Video Actual</h2>
+              <video controls className="w-full mt-2 rounded-md">
+                <source src={video.videoUrl} type="video/mp4" />
+                Tu navegador no soporta la visualización del video.
+              </video>
+            </>
+          )}
+        </div>
 
         {/* Información Optimizada */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <List className="h-4 w-4" />
-              Contenido Optimizado
-            </div>
-            <div className="rounded-lg border bg-card p-4 space-y-4">
+            <Card className="p-4 space-y-4">
+              <div className="flex items-baseline gap-2 text-2xl font-medium">
+                <List className="h-4 w-4" />
+                <h2 className="font-semibold">Contenido Optimizado</h2>
+              </div>
               <div>
                 <h4 className="text-sm font-medium mb-1">Título</h4>
                 <p className="text-sm">{video.optimizedTitle || video.title}</p>
@@ -106,134 +129,142 @@ export default function YoutubeReadyContent({
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
         </div>
 
-        {/* Botones de Acción */}
-        <div className="flex justify-evenly">
-          {video.videoUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={video.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <PlayCircle className="mr-2 h-4 w-4" />
-                Ver Video
-              </a>
-            </Button>
-          )}
-
-          {video.thumbnailUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={video.thumbnailUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Image className="mr-2 h-4 w-4" />
-                Ver Miniatura
-              </a>
-            </Button>
-          )}
-        </div>
-
-        <Card className="mt-4 p-6">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        {/* Youtube ready decision */}
+        { video.status === "youtube_ready" && 
+          <Card className="mt-4 p-6">
+            <div className="space-y-6">
               <h3 className="text-lg font-semibold">Decisión</h3>
-              <div className="flex items-center gap-2">
-                {/* <Button
-                  onClick={() => handleSubmit(true)}
-                  disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+
+              <Separator />
+
+              <div>
+                <Checkbox
+                  onCheckedChange={(cheked) =>
+                    setVideoApproved(cheked as boolean)
+                  }
+                />
+                <label className="ms-3 text-sm font-medium">Video correcto</label>
+              </div>
+
+              <div>
+                <Checkbox
+                  onCheckedChange={(cheked) =>
+                    setThumbnailsApproved(cheked as boolean)
+                  }
+                />
+                <label className="ms-3 text-sm font-medium">
+                  Miniatura correcta
+                </label>
+              </div>
+
+              <div>
+                <Checkbox
+                  onCheckedChange={(cheked) =>
+                    setContentApproved(cheked as boolean)
+                  }
+                />
+                <label className="ms-3 text-sm font-medium">
+                  Contenido correcto
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Comentarios de Revisión
+                </label>
+                <Textarea
+                  placeholder="Escribe aquí los motivos del rechazo o sugerencias de mejora..."
+                  value={reviewComments}
+                  disabled={
+                    videoApproved && thumbnailsApproved && contentApproved
+                  }
+                  onChange={(e) => setReviewComments(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                />            
+              </div>
+
+              {/* Buttons */}
+              <div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={handleApprove}
                 >
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   Aprobar
-                 </Button> */}
-                {/*<Button
+                </Button>
+                <Button
                   variant="destructive"
-                  onClick={() => handleSubmit(false)}
-                  disabled={isSubmitting || !titleCorrections?.trim()}
+                  size="sm"
+                  className="ms-2 bg-red-600 hover:bg-red-700"
+                  onClick={handleReject}
+                  disabled={
+                    videoApproved && thumbnailsApproved && contentApproved
+                  }
                 >
                   <XCircle className="w-4 h-4 mr-2" />
                   Rechazar
-                </Button> */}
+                </Button>
               </div>
+
             </div>
+          </Card>
+        }
 
-            <Separator />
+        {/* Final Review Decision */}
+        { video.status === "review" && 
+          <Card className="mt-4 p-6">
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Decisión</h3>
 
-            <div>
-              <Checkbox
-                onCheckedChange={(cheked) =>
-                  setVideoApproved(cheked as boolean)
-                }
-              />
-              <label className="ms-3 text-sm font-medium">Video correcto</label>
+              <Separator />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Comentarios de Revisión
+                </label>
+                <Textarea
+                  placeholder="Escribe aquí los motivos del rechazo o sugerencias de mejora..."
+                  value={reviewComments}
+                  onChange={(e) => setReviewComments(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                />            
+              </div>
+
+              {/* Buttons */}
+              <div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={handleApprove}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Aprobar
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="ms-2 bg-red-600 hover:bg-red-700"
+                  onClick={handleReject}
+                  disabled={
+                    videoApproved && thumbnailsApproved && contentApproved
+                  }
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Rechazar
+                </Button>
+              </div>
+
             </div>
-
-            <div>
-              <Checkbox
-                onCheckedChange={(cheked) =>
-                  setThumbnailsApproved(cheked as boolean)
-                }
-              />
-              <label className="ms-3 text-sm font-medium">
-                Miniatura correcta
-              </label>
-            </div>
-
-            <div>
-              <Checkbox
-                onCheckedChange={(cheked) =>
-                  setContentApproved(cheked as boolean)
-                }
-              />
-              <label className="ms-3 text-sm font-medium">
-                Contenido correcto
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Comentarios de Revisión
-              </label>
-              <Textarea
-                placeholder="Escribe aquí los motivos del rechazo o sugerencias de mejora..."
-                value={reviewComments}
-                disabled={
-                  videoApproved && thumbnailsApproved && contentApproved
-                }
-                onChange={(e) => setReviewComments(e.target.value)}
-                className="min-h-[100px] resize-none"
-              />
-
-              <Button
-                variant="default"
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
-                onClick={handleApprove}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Listo para YouTube
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive ms-2"
-                onClick={handleReject}
-                disabled={
-                  videoApproved && thumbnailsApproved && contentApproved
-                }
-              >
-                <AlertCircle className="mr-2 h-4 w-4" />
-                Solicitar Correcciones
-              </Button>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        }
+        
       </div>
     </ScrollArea>
   );
@@ -241,5 +272,5 @@ export default function YoutubeReadyContent({
 
 export interface YoutubeReadyContentProps {
   video: Video;
-  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
+  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }

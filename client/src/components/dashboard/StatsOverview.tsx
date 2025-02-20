@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658'];
 
@@ -53,7 +52,6 @@ export function StatsOverview({
   showTables = false,
   showExportOptions = false
 }: StatsOverviewProps) {
-  const { toast } = useToast();
 
   const { data: overallStats, isLoading: loadingOverall } = useQuery<{success: boolean, data: Stats}>({
     queryKey: ['/api/stats/overall'],

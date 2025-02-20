@@ -43,6 +43,13 @@
       "when": 1739902882543,
       "tag": "0005_burly_wild_child",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1739992743363,
+      "tag": "0006_slow_glorian",
+      "breakpoints": true
     }
   ]
 }

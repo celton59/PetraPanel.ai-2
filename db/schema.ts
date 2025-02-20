@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, PgArray } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -65,6 +65,8 @@ export const videos = pgTable("videos", {
   mediaReviewedBy: integer("media_reviewed_by").references(() => users.id),
   mediaLastReviewedAt: timestamp("media_last_reviewed_at"),
   mediaReviewComments: text("media_review_comments").array(),
+  mediaVideoNeedsCorrection: boolean("media_video_needs_correction"),
+  mediaThumbnailNeedsCorrection: boolean("media_thumbnail_needs_correction"),
   
   publishedAt: timestamp("published_at")
 });

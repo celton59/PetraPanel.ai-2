@@ -3,6 +3,7 @@ import { AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { ApiVideo } from "@/hooks/useVideos";
 
 interface VideoUploadFieldsProps {
   videoFile: File | null;
@@ -11,6 +12,7 @@ interface VideoUploadFieldsProps {
   onThumbnailFileChange: (file: File | null) => void;
   isUploading?: boolean;
   uploadProgress?: number;
+  video: ApiVideo
 }
 
 export function VideoUploadFields({
@@ -20,32 +22,27 @@ export function VideoUploadFields({
   onThumbnailFileChange,
   isUploading,
   uploadProgress = 0,
+  video
 }: VideoUploadFieldsProps) {
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
   const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
 
-  const handleDragOver = (
-    e: React.DragEvent,
-    setIsDragging: (value: boolean) => void,
-  ) => {
+  function handleDragOver(e: React.DragEvent, setIsDragging: (value: boolean) => void) {
     e.preventDefault();
     setIsDragging(true);
-  };
+  }
 
-  const handleDragLeave = (
-    e: React.DragEvent,
-    setIsDragging: (value: boolean) => void,
-  ) => {
+  function handleDragLeave(e: React.DragEvent, setIsDragging: (value: boolean) => void) {
     e.preventDefault();
     setIsDragging(false);
-  };
+  }
 
-  const handleDrop = async (
+  async function handleDrop(
     e: React.DragEvent,
     setIsDragging: (value: boolean) => void,
     setFile: (file: File | null) => void,
     fileType: "video" | "image",
-  ) => {
+  ) {
     e.preventDefault();
     setIsDragging(false);
 
@@ -63,9 +60,9 @@ export function VideoUploadFields({
     }
 
     setFile(file);
-  };
+  }
 
-  const FileUploadZone = ({
+  function FileUploadZone({
     file,
     isDragging,
     onDragOver,
@@ -87,52 +84,67 @@ export function VideoUploadFields({
     type: "video" | "image";
     isUploading?: boolean;
     uploadProgress?: number;
-  }) => (
-    <div
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      className={`
-        relative border-2 border-dashed rounded-lg p-6 text-center
-        ${isDragging ? "border-primary bg-primary/5" : "border-border"}
-        ${isUploading ? "bg-muted/50" : ""}
-        transition-colors
-      `}
-    >
-      <input
-        type="file"
-        accept={accept}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onFileChange(file);
-        }}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        disabled={isUploading}
-      />
-
-      {file ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Archivo seleccionado:</p>
-          <p className="text-sm text-muted-foreground">{file.name}</p>
-          {isUploading && <Progress value={uploadProgress} className="h-1" />}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">
-            Arrastra y suelta tu {type === "video" ? "video" : "imagen"} aquí
-          </p>
-          <p className="text-sm text-muted-foreground">
-            O haz clic para seleccionar un archivo
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  }) {
+    return (
+      <div
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={`
+          relative border-2 border-dashed rounded-lg p-6 text-center
+          ${isDragging ? "border-primary bg-primary/5" : "border-border"}
+          ${isUploading ? "bg-muted/50" : ""}
+          transition-colors
+        `}
+      >
+        <input
+          type="file"
+          accept={accept}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onFileChange(file);
+          }}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          disabled={isUploading}
+        />
+  
+        {file ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Archivo seleccionado:</p>
+            <p className="text-sm text-muted-foreground">{file.name}</p>
+            {isUploading && <Progress value={uploadProgress} className="h-1" />}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">
+              Arrastra y suelta tu {type === "video" ? "video" : "imagen"} aquí
+            </p>
+            <p className="text-sm text-muted-foreground">
+              O haz clic para seleccionar un archivo
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
+
+      {/* Actual Video */}
       <div>
-        <Label className="mb-2 block">Video</Label>
+        { video.videoUrl && <>
+          <h2 className="text-2xl font-semibold">Video Actual</h2>
+          <video controls className="w-full mt-2 rounded-md">
+            <source src={video.videoUrl} type="video/mp4" />
+            Tu navegador no soporta la visualización del video.
+          </video>          
+        </>}
+      </div>
+
+      {/* New Video */}
+      <div>                
+        <h2 className="text-2xl font-semibold">Nuevo Video</h2>
         <FileUploadZone
           file={videoFile}
           isDragging={isDraggingVideo}
@@ -157,8 +169,17 @@ export function VideoUploadFields({
         )}
       </div>
 
+      {/* Actual Thumbnail */}
       <div>
-        <Label className="mb-2 block">Miniatura</Label>
+        { video.thumbnailUrl && <>
+          <h2 className="text-2xl font-semibold">Miniatura Actual</h2>
+          <img src={video.thumbnailUrl} className="w-full mt-2 rounded-md" />
+        </>}
+      </div>
+      
+      {/* New Thumbnail */}
+      <div>
+        <h2 className="text-2xl font-semibold">Nueva Miniatura</h2>
         <FileUploadZone
           file={thumbnailFile}
           isDragging={isDraggingThumbnail}

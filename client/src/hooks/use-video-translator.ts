@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useToast } from "./use-toast";
+import { toast } from "sonner";
 
 export type TranslationStep = 
   | "uploading"
@@ -33,7 +33,6 @@ export interface TranslationProgress {
 export function useVideoTranslator() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<TranslationProgress | null>(null);
-  const { toast } = useToast();
 
   const uploadVideo = async (file: File) => {
     try {
@@ -59,17 +58,14 @@ export function useVideoTranslator() {
       const { videoId, status } = await uploadResponse.json();
       setProgress({ step: status, videoId });
 
-      toast({
-        title: "Video subido",
+      toast("Video subido", {
         description: "El video se ha subido correctamente. Puedes continuar con el siguiente paso.",
       });
 
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error desconocido",
-        variant: "destructive",
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Error desconocido"
       });
       setProgress({ step: "error", error: error instanceof Error ? error.message : "Error desconocido" });
     } finally {
@@ -108,17 +104,14 @@ export function useVideoTranslator() {
       const result = await response.json();
       setProgress(prev => ({ ...prev!, ...result, step: "audio_extracted" }));
 
-      toast({
-        title: "Audio extraído",
+      toast("Audio extraído", {
         description: "El audio se ha extraído correctamente. Puedes continuar con el siguiente paso.",
       });
 
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error al extraer el audio",
-        variant: "destructive",
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Error al extraer el audio"
       });
       setProgress({step: "error", error: error instanceof Error ? error.message : "Error al extraer el audio"})
     } finally {
@@ -145,17 +138,14 @@ export function useVideoTranslator() {
       const result = await response.json();
       setProgress(prev => ({ ...prev!, ...result, step: "voice_separated" }));
 
-      toast({
-        title: "Voz separada",
+      toast("Voz separada", {
         description: "La voz se ha separado correctamente. Puedes continuar con el siguiente paso.",
       });
 
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Error al separar la voz",
-        variant: "destructive",
       });
       setProgress({step: "error", error: error instanceof Error ? error.message : "Error al separar la voz"})
     } finally {
@@ -182,17 +172,14 @@ export function useVideoTranslator() {
       const result = await response.json();
       setProgress(prev => ({ ...prev!, ...result, step: "transcribed" }));
 
-      toast({
-        title: "Transcripción completada",
+      toast("Transcripción completada", {
         description: "El audio se ha transcrito correctamente.",
       });
 
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Error al transcribir",
-        variant: "destructive",
       });
       setProgress({step: "error", error: error instanceof Error ? error.message : "Error al transcribir"})
     } finally {
@@ -219,17 +206,14 @@ export function useVideoTranslator() {
       const result = await response.json();
       setProgress(prev => ({ ...prev!, ...result, step: "voice_cloned" }));
 
-      toast({
-        title: "Voz clonada",
+      toast("Voz clonada", {
         description: "La voz se ha clonado correctamente. Puedes continuar con el siguiente paso.",
       });
 
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Error al clonar la voz",
-        variant: "destructive",
       });
       setProgress({step: "error", error: error instanceof Error ? error.message : "Error al clonar la voz"})
     } finally {
@@ -271,18 +255,16 @@ export function useVideoTranslator() {
       const result = await response.json() as T;
       setProgress(prev => ({ ...prev!, ...result, step: successStep }));
 
-      toast({
-        ...successToast
+      toast(successToast.title, {
+        description: successToast.description,
       });
 
       return result;
 
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : errorMessage,
-        variant: "destructive",
       });
       setProgress({ step: "error", error: error instanceof Error ? error.message : errorMessage });
       return null;

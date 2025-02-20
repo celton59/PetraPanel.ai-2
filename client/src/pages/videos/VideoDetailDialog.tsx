@@ -27,23 +27,9 @@ import { OptimizeReviewContent } from "./review/OptimizeReviewContent";
 import { UploadReviewContent } from "./review/UploadReviewContent";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/hooks/use-user";
-import { getStatusLabelNew } from "@/lib/status-labels";
+import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import YoutubeReadyContent from "./review/YoutubeReadyContent";
-import { MediaCorrectionsContent } from "./review/MediaCorrectionsContent";
-import FinalReviewContent from "./review/FinalReviewContent";
 import { ApiVideo } from "@/hooks/useVideos";
-
-const statusColors: Record<VideoStatus, { bg: string; text: string }> = {
-  pending: { bg: "bg-yellow-500/10", text: "text-yellow-500" },
-  in_progress: { bg: "bg-blue-500/10", text: "text-blue-500" },
-  title_corrections: { bg: "bg-red-500/10", text: "text-red-500" },
-  optimize_review: { bg: "bg-pink-500/10", text: "text-pink-500" },
-  upload_review: { bg: "bg-indigo-500/10", text: "text-indigo-500" },
-  youtube_ready: { bg: "bg-green-500/10", text: "text-green-500" },
-  review: { bg: "bg-purple-500/10", text: "text-purple-500" },
-  media_corrections: { bg: "bg-red-500/10", text: "text-red-500" },
-  completed: { bg: "bg-emerald-500/10", text: "text-emerald-500" },
-};
 
 const statusDescriptions: Record<VideoStatus, string> = {
   pending: "Video recién creado, esperando asignación",
@@ -57,7 +43,7 @@ const statusDescriptions: Record<VideoStatus, string> = {
   completed: "Video publicado en YouTube",
 };
 
-export function VideoCard({ video, onUpdate }: VideoCardProps) {
+export function VideoDetailDialog({ video, onUpdate }: VideoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useUser();
 
@@ -88,7 +74,7 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
   });
 
   async function handleAdminEdit(data: UpdateVideoData) {
-    await onUpdate(video.id, data);
+    await onUpdate(data);
     setIsEditing(false);
   }
 
@@ -99,14 +85,14 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
         return (
           <VideoOptimizerContent
             video={video}
-            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+            onUpdate={onUpdate}
           />
         );
       case "optimize_review":
         return (
           <OptimizeReviewContent
             video={video}
-            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+            onUpdate={onUpdate}
           />
         );
       case "upload_review":
@@ -114,15 +100,12 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
         return (
           <UploadReviewContent
             video={video}
-            onUpdate={(videoId, data) => onUpdate(videoId, data)}
+            onUpdate={onUpdate}
           />
         );
-      // case "media_corrections":
-      //   return <MediaCorrectionsContent video={video} onUpdate={onUpdate} />;
       case "youtube_ready":
-        return <YoutubeReadyContent video={video} onUpdate={onUpdate} />;
       case "review":
-        return <FinalReviewContent video={video} onUpdate={onUpdate} />;
+        return <YoutubeReadyContent video={video} onUpdate={onUpdate} />;      
       case "pending":
         return (
           <div className="space-y-4">
@@ -159,7 +142,7 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
                 size="sm"
                 className="w-full flex items-center justify-center"
                 onClick={async () => {
-                  onUpdate(video.id, {
+                  onUpdate({
                     status: "in_progress",
                     optimizedBy: user?.id,
                   });
@@ -275,14 +258,14 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
     }
   }
 
-  const statusColor = statusColors[video.status] || statusColors.pending;
-  const statusLabel = getStatusLabelNew(user!.role, video);
+  const statusColor = getStatusBadgeColor(video.status)
+  const statusLabel = getStatusLabel(user!.role, video);
 
   return (
     <DialogContent className="w-[95vw] max-w-3xl p-6">
       <DialogHeader>
         <div className="flex justify-between items-start">
-          <DialogTitle className="text-xl">
+          <DialogTitle className="text-2xl">
             {hasVisibility ? (
               (video.optimizedTitle ?? video.title)
             ) : (
@@ -295,7 +278,7 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
             <div className="flex justify-end">
               <Badge
                 variant="outline"
-                className={`${statusColor.bg} ${statusColor.text} border-0 text-lg py-1 px-2`}
+                className={`${statusColor} border-0 text-lg py-1 px-2`}
               >
                 {statusLabel}
               </Badge>
@@ -314,5 +297,5 @@ export function VideoCard({ video, onUpdate }: VideoCardProps) {
 
 interface VideoCardProps {
   video: ApiVideo;
-  onUpdate: (videoId: number, data: UpdateVideoData) => Promise<void>;
+  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }

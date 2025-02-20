@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Building2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Project } from "@/types/project";
+import { Project } from "@db/schema";
 
 interface ProjectBadgesProps {
   selectedProjects: number[];

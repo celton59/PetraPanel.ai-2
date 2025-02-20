@@ -21,12 +21,12 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
 import { useVideos } from "@/hooks/useVideos";
 import { queryClient } from "@/lib/queryClient";
 import { Loader2, FolderKanban, VideoIcon, FolderIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 const videoSchema = z.object({
   title: z
@@ -58,7 +58,6 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { toast } = useToast();
   const { createVideo } = useVideos(selectedProject?.id);
 
   const form = useForm<VideoFormValues>({
@@ -182,9 +181,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
 
   async function onSubmit(data: VideoFormValues) {
     if (!selectedProject) {
-      toast({
-        variant: "destructive",
-        title: "Error",
+      toast.error("Error", {
         description: "Debes seleccionar un proyecto",
       });
       return;
@@ -206,9 +203,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       resetForm();
     } catch (error: any) {
       console.error("Error creating video:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
+      toast.error("Error", {
         description: error.message || "No se pudo crear el video",
       });
     } finally {
