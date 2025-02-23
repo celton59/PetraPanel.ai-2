@@ -10,7 +10,7 @@ import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import VideosPage from "@/pages/videos/VideosPage";
-import StatsPage from "@/pages/StatsPage";
+import StatsPage from "@/pages/stats/StatsPage";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
 
@@ -44,7 +44,7 @@ function Router() {
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
       <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
-      <Route path="/ajustes" component={() => <ProtectedRoute component={SettingsPage} />} />
+      { user.role === 'admin' && <Route path="/ajustes" component={() => <ProtectedRoute component={SettingsPage} />} />}      
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
@@ -58,9 +58,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Toaster expand />
       <Router>
-        <Switch>
+        {/* <Switch>
           <Route path="/*" component={Layout} />
-        </Switch>
+        </Switch> */}
       </Router>
     </QueryClientProvider>
   );

@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useUser } from "@/hooks/use-user";
 
 interface SidebarProps {
   className?: string;
@@ -12,13 +13,9 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useUser()
 
-  // Simulated profile data
-  const profile = {
-    role: 'admin'
-  };
-
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   const menuItems = [
     { icon: Home, label: "Dashboard", path: "/" },

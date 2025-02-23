@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useUserStore } from "@/stores/userStore";
-import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,10 +19,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ApiUser, useUsers } from "@/hooks/useUsers";
 import { User } from "@db/schema";
 
 const userFormSchema = z.object({
-  full_name: z.string().min(1, "El nombre es requerido"),
+  full_name: z.string().min(1, "El nombre es requerido").optional(),
   username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
   email: z.string().email("Email inválido"),
   phone: z.string().optional(),
@@ -36,12 +35,13 @@ const userFormSchema = z.object({
 type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserSettingsFormProps {
-  user: User | null;
+  user: ApiUser | undefined;
   onClose: () => void;
 }
 
 export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
-  const { createUser, updateUser } = useUserStore();
+  // const { createUser, updateUser } = useUserStore();
+  const { createUser, updateUser } = useUsers()
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -56,11 +56,11 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      full_name: user?.fullName || "",
-      username: user?.username || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      bio: user?.bio || "",
+      full_name: user?.fullName ? user.fullName : undefined,
+      username: user?.username,
+      email: user?.email ?? '',
+      phone: user?.phone ? user.phone : undefined,
+      bio: user?.bio ? user.bio : undefined,
       role: (user?.role) || "uploader",
       password: "",
     },
@@ -83,73 +83,44 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
     setError(null);
 
     try {
-      const userData = {
+      const userData: Partial<User> & { projectIds: number[] } = {
         fullName: formDataToSubmit.full_name,
         username: formDataToSubmit.username,
         email: formDataToSubmit.email,
-        phone: formDataToSubmit.phone || "",
-        bio: formDataToSubmit.bio || "",
+        phone: formDataToSubmit.phone,
+        bio: formDataToSubmit.bio,
         role: formDataToSubmit.role,
         projectIds: selectedProjects,
         ...(formDataToSubmit.password && { password: formDataToSubmit.password }),
       };
 
-      let success = false;
 
       if (user) {
-        try {
-          success = await updateUser(user.id, userData);
-          if (!success) {
-            throw new Error("Error al actualizar el usuario");
-          }
-        } catch (error) {
-          console.error("Error updating user:", error);
-          throw error;
-        }
+        await updateUser({ user: userData, userId: user.id});
       } else {
         if (!formDataToSubmit.password) {
           setError("La contraseña es requerida para nuevos usuarios");
           return;
         }
 
-        try {
-          await createUser({
-            ...userData,
-            password: formDataToSubmit.password,
-          });
-          success = true;
-        } catch (error) {
-          console.error("Error creating user:", error);
-          throw error;
-        }
+        // TODO fix this
+        await createUser(userData as unknown as User);
       }
 
-      if (success) {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["users"] }),
-          queryClient.invalidateQueries({ queryKey: ["projects"] }),
-          queryClient.invalidateQueries({ queryKey: ["user-projects"] }),
-        ]);
+      setIsSubmitting(false);
+      setShowConfirmDialog(false);
+      onClose()
 
-        toast.success(
-          user ? "Usuario actualizado correctamente" : "Usuario creado correctamente"
-        );
-
-        setTimeout(() => {
-          onClose();
-        }, 500);
-      }
     } catch (error: any) {
       console.error("Error en el formulario:", error);
       setError(error.message || (user ? "Error al actualizar usuario" : "Error al crear usuario"));
-    } finally {
       setIsSubmitting(false);
       setShowConfirmDialog(false);
     }
   };
 
   return (
-    <>
+    <div className="p-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" noValidate>
           {error && (
@@ -194,7 +165,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                   form.trigger();
                 }}
                 isEditing={!!user}
-                currentUser={user}
                 selectedProjects={selectedProjects}
                 setSelectedProjects={setSelectedProjects}
               />
@@ -249,6 +219,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

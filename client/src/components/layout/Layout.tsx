@@ -1,5 +1,5 @@
 import { Sidebar } from "./Sidebar"
-import { UserMenu } from "../UserMenu"
+import { UserMenu } from "./UserMenu"
 
 interface LayoutProps {
   children: React.ReactNode

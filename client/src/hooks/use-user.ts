@@ -92,6 +92,7 @@ export function useUser() {
       return response.json();
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries()
       queryClient.setQueryData(['/api/user'], data);
     },
   });

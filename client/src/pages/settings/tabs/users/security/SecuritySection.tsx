@@ -14,7 +14,6 @@ interface SecuritySectionProps {
   };
   setFormData: (data: Partial<SecuritySectionProps['formData']>) => void;
   isEditing: boolean;
-  currentUser: User | null;
   selectedProjects: number[];
   setSelectedProjects: (projects: number[]) => void;
   form: UseFormReturn<{
@@ -32,7 +31,6 @@ export const SecuritySection = ({
   formData,
   setFormData,
   isEditing,
-  currentUser,
   selectedProjects,
   setSelectedProjects,
   form,
@@ -86,7 +84,7 @@ export const SecuritySection = ({
             <FormControl>
               <RoleSelector 
                 value={field.value}
-                onChange={(value: UserRole) => {
+                onChange={(value: User['role']) => {
                   field.onChange(value);
                   setFormData({ ...formData, role: value });
                 }}

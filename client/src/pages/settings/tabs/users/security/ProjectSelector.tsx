@@ -65,11 +65,12 @@ export function ProjectSelector({ selectedProjects = [], setSelectedProjects }: 
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.15, delay: index * 0.05 }}
                       layout
+                      
                     >
                       <Command.Item
                         value={project.name}
                         onSelect={() => toggleProject(project.id)}
-                        className="group flex items-center justify-between px-4 py-3 cursor-pointer rounded-md hover:bg-accent data-[selected]:bg-accent transition-colors"
+                        className="group flex items-center justify-between px-4 py-3 cursor-pointer rounded-md hover:bg-accent data-[selected]:bg-accent transition-colors mb-3"
                       >
                         <div className="flex items-center gap-3">
                           <div className={cn(

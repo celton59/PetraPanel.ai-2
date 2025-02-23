@@ -50,6 +50,13 @@
       "when": 1739992743363,
       "tag": "0006_slow_glorian",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1740309645158,
+      "tag": "0007_new_riptide",
+      "breakpoints": true
     }
   ]
 }

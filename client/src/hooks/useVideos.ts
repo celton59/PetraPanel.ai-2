@@ -16,8 +16,10 @@ export type ApiVideo = {
   mediaReviewerUsername: User["username"];
   creatorName: User["fullName"] | null,
   creatorUsername: User["username"],
-  optimizerName:User["fullName"] | null,
+  optimizerName: User["fullName"] | null,
   optimizerUsername: User["username"]
+  uploaderName: User["fullName"] | null,
+  uploaderUsername: User["username"]
 }
 
 export function useVideos(projectId?: number): {

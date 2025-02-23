@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, desc, getTableColumns, aliasedTable } from "drizzle-orm";
+import { eq, and, or, desc, getTableColumns, aliasedTable } from "drizzle-orm";
 import { videos, users, projects, InsertVideo, User, Video } from "@db/schema";
 import { db } from "@db";
 import { z } from "zod";
@@ -11,10 +11,11 @@ import path from 'path'
 
 const client = new Client();
 
-const contentReviewer = aliasedTable(users, "contentReviewer");
-const mediaReviewer = aliasedTable(users, "mediaReviewer");
-const optimizer = aliasedTable(users, "optimizer");
-const creator = aliasedTable(users, "creator");
+const contentReviewer = aliasedTable(users, "contentReviewer")
+const mediaReviewer = aliasedTable(users, "mediaReviewer")
+const optimizer = aliasedTable(users, "optimizer")
+const creator = aliasedTable(users, "creator")
+const uploader = aliasedTable(users, "uploader")
 
 const statusTransitions: Record<User['role'], Record<Video['status'], Video['status'][]>> = {
   optimizer: {
@@ -31,12 +32,12 @@ const statusTransitions: Record<User['role'], Record<Video['status'], Video['sta
   reviewer: {
     pending: [],
     in_progress: [],
+    optimize_review: ["title_corrections", "upload_review"],
     title_corrections: ["optimize_review"],
-    optimize_review: ["title_corrections", "upload_review", "completed"],
-    upload_review: ["optimize_review", "completed"],
-    youtube_ready: ["completed"],
+    upload_review: [],
+    youtube_ready: ["media_corrections","review"],
+    media_corrections: [],
     review: [],
-    media_corrections: ["upload_review"],
     completed: []
   },
   uploader: {
@@ -64,12 +65,12 @@ const statusTransitions: Record<User['role'], Record<Video['status'], Video['sta
   youtuber: {
     completed: [],
     in_progress: [],
-    media_corrections: [],
+    media_corrections: ["youtube_ready"],
     optimize_review: [],
     pending: [],
     review: [],
     title_corrections: [],
-    upload_review: [],
+    upload_review: ["youtube_ready"],
     youtube_ready: []
   }
 };
@@ -89,7 +90,8 @@ const updateVideoSchema = z.object({
   mediaReviewComments: z.string().array().optional(),
   mediaReviewedBy: z.number().optional(),
   mediaVideoNeedsCorrection: z.boolean().optional(),
-  mediaThumbnailNeedsCorrection: z.boolean().optional()
+  mediaThumbnailNeedsCorrection: z.boolean().optional(),
+  contentUploadedBy: z.number().optional(),
 })  
 
 type UpdateVideoSchema = z.infer<typeof updateVideoSchema>;
@@ -125,10 +127,6 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
       return res.status(404).json({ success: false, message: "Video no encontrado" });
     }
 
-    // Verificar si el rol del usuario está permitido
-    if (req.user.role !== 'admin' && req.user.role !== 'optimizer' && req.user.role !== 'reviewer') {
-      return res.status(403).json({ success: false, message: "Este rol no puede actualizar videos" })
-    }
 
     if (updates.status && req.user.role !== 'admin' && !statusTransitions[req.user.role][currentVideo.status].includes(updates.status)) {
       return res.status(400).json({ success: false, message: "No se puede actualizar a este estado" })
@@ -153,7 +151,8 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         mediaReviewedBy: updates.mediaReviewedBy,
         mediaLastReviewedAt: updates.mediaReviewedBy ? new Date() : null,
         mediaVideoNeedsCorrection: updates.mediaVideoNeedsCorrection,
-        mediaThumbnailNeedsCorrection: updates.mediaThumbnailNeedsCorrection
+        mediaThumbnailNeedsCorrection: updates.mediaThumbnailNeedsCorrection,
+        contentUploadedBy: updates.contentUploadedBy,
       })
       .where(
         and(
@@ -214,39 +213,55 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
-    // let videoQuery: type VideoWithReviewer = InferSelectModel<typeof videos> & {
-    //     reviewerName: InferSelectModel<typeof users>['fullName'];
-    //     reviewerUsername: InferSelectModel<typeof users>['username'];
-    //   };
 
-    const result = await db
-    .select({
-      ...getTableColumns(videos),
+    const query = db
+      .select({
+        ...getTableColumns(videos),
 
-      // Datos del content reviewer
-      contentReviewerName: contentReviewer.fullName,
-      contentReviewerUsername: contentReviewer.username,
+        // Datos del content reviewer
+        contentReviewerName: contentReviewer.fullName,
+        contentReviewerUsername: contentReviewer.username,
 
-      // Datos del media reviewer
-      mediaReviewerName: mediaReviewer.fullName,
-      mediaReviewerUsername: mediaReviewer.username,
+        // Datos del media reviewer
+        mediaReviewerName: mediaReviewer.fullName,
+        mediaReviewerUsername: mediaReviewer.username,
 
-      // Datos del creador
-      creatorName: creator.fullName,
-      creatorUsername: creator.username,
+        // Datos del uploader
+        uploaderName: uploader.fullName,
+        uploaderUsername: uploader.username,
 
-      // Datos del optimizador
-      optimizerName: optimizer.fullName,
-      optimizerUsername: optimizer.username,
-    })
-    .from(videos)
-    .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
-    .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
-    .leftJoin(creator, eq(videos.createdBy, creator.id))
-    .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
-    .orderBy(desc(videos.updatedAt))
-    .execute();
+        // Datos del creador
+        creatorName: creator.fullName,
+        creatorUsername: creator.username,
 
+        // Datos del optimizador
+        optimizerName: optimizer.fullName,
+        optimizerUsername: optimizer.username,
+      })
+      .from(videos)
+      .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
+      .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
+      .leftJoin(creator, eq(videos.createdBy, creator.id))
+      .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
+      .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
+      .orderBy(desc(videos.updatedAt))
+      .where(
+        or(
+          req.user?.role === 'optimizer' ? eq(videos.status, 'pending') : undefined,
+          req.user?.role === 'optimizer' ? eq(videos.status, 'in_progress') : undefined,
+          req.user?.role === 'optimizer' ? eq(videos.status, 'title_corrections') : undefined,
+          req.user?.role === 'optimizer' ? eq(videos.optimizedBy, req.user!.id!) : undefined,
+          req.user?.role === 'reviewer' ? eq(videos.status, 'optimize_review') : undefined,
+          req.user?.role === 'reviewer' ? eq(videos.contentReviewedBy, req.user!.id!) : undefined,
+          req.user?.role === 'youtuber' ? eq(videos.status, 'upload_review') : undefined,
+          req.user?.role === 'youtuber' ? eq(videos.status, 'media_corrections') : undefined,
+          req.user?.role === 'youtuber' ? eq(videos.contentUploadedBy, req.user!.id!) : undefined,
+          req.user?.role === 'reviewer' ? eq(videos.status, 'youtube_ready') : undefined,
+          req.user?.role === 'reviewer' ? eq(videos.mediaReviewedBy, req.user!.id!) : undefined,
+        ),
+      )
+
+    const result = await query.execute()
 
     return res.status(200).json(result);
   } catch (error) {

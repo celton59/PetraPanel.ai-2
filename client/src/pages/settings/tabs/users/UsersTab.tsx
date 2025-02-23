@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useUsers } from "@/hooks/useUsers";
+import { ApiUser, useUsers } from "@/hooks/useUsers";
 import { useProjects } from "@/hooks/useProjects";
 import { toast } from "sonner";
 import {
@@ -21,31 +21,24 @@ import {
 } from "@/components/ui/dialog";
 import { UserSettingsForm } from "./UserSettingsForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { User } from '@db/schema'
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const UsersTab = () => {
-  const { isLoading, users, refetch: refetchUsers } = useUsers();
+  const { isLoading, users, refetch: refetchUsers, deleteUser } = useUsers();
   const { projects } = useProjects();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
+  const [selectedUser, setSelectedUser] = useState<ApiUser | undefined>(undefined);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleEditUser = (user: User) => {
+  function handleEditUser(user: ApiUser){
     setSelectedUser(user);
     setDialogOpen(true);
   };
 
-  const handleDeleteUser = async (id: number) => {
+  async function handleDeleteUser (id: number)  {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/users/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al eliminar usuario');
-      }
+      await deleteUser(id);
 
       toast.success("Usuario eliminado")
       
@@ -101,10 +94,13 @@ export const UsersTab = () => {
                 {selectedUser ? "Editar Usuario" : "Nuevo Usuario"}
               </DialogTitle>
             </DialogHeader>
-            <UserSettingsForm 
-              user={selectedUser} 
-              onClose={handleCloseDialog}
-            />
+            <ScrollArea className="h-[80vh] sm:h-[70vh]">
+              <UserSettingsForm 
+                user={selectedUser} 
+                onClose={handleCloseDialog}
+              />
+            </ScrollArea>
+            
           </DialogContent>
         </Dialog>
       </div>

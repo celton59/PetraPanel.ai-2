@@ -45,8 +45,6 @@ export const videos = pgTable("videos", {
   description: text("description"),
   status: text("status", { enum: ['pending', 'in_progress', 'title_corrections', 'optimize_review', 'upload_review',
     'youtube_ready', 'review', 'media_corrections', 'completed'] }).notNull().default('pending'),
-  videoUrl: text("video_url"),
-  thumbnailUrl: text("thumbnail_url"),
   youtubeUrl: text("youtube_url"),
   createdBy: integer("created_by").references(() => users.id),
   tags: text("tags"),
@@ -61,6 +59,10 @@ export const videos = pgTable("videos", {
   contentReviewedBy: integer("content_reviewed_by").references(() => users.id),
   contentLastReviewedAt: timestamp("content_last_reviewed_at"),
   contentReviewComments: text("content_review_comments").array(),
+
+  contentUploadedBy: integer("content_uploaded_by").references(() => users.id),
+  videoUrl: text("video_url"),
+  thumbnailUrl: text("thumbnail_url"),
 
   mediaReviewedBy: integer("media_reviewed_by").references(() => users.id),
   mediaLastReviewedAt: timestamp("media_last_reviewed_at"),

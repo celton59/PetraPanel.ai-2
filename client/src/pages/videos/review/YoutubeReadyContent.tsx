@@ -1,14 +1,6 @@
 import { Video } from "@db/schema";
 import { Badge } from "@/components/ui/badge";
-import {
-  List,
-  PlayCircle,
-  Upload,
-  AlertCircle,
-  Image,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { List, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -194,6 +186,7 @@ export default function YoutubeReadyContent({
                   size="sm"
                   className="bg-purple-600 hover:bg-purple-700"
                   onClick={handleApprove}
+                  disabled={!videoApproved || !thumbnailsApproved || !contentApproved}
                 >
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   Aprobar

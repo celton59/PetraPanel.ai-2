@@ -35,14 +35,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import {
-  Dialog,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn } from "@/lib/utils";
+import { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -75,6 +74,14 @@ const VISIBLE_STATES = {
   ],
 } as const;
 
+const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
+  admin: [],
+  optimizer: ["pending", "in_progress", "title_corrections"],
+  reviewer: ["optimize_review", "youtube_ready"],
+  youtuber: ["upload_review", "media_corrections"],
+  uploader: [],
+};
+
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
 
@@ -90,9 +97,13 @@ export default function VideosPage() {
   }
 
   const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
+    undefined,
+  );
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
+    undefined,
+  );
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
 
   useEffect(() => {
@@ -113,8 +124,14 @@ export default function VideosPage() {
 
   if (!user) return null;
 
+  function canSeeVideoDetails(video: ApiVideo): boolean {
+    if (user?.role === "admin") return true;
+
+    return DETAILS_PERMISSION[user!.role].includes(video.status);
+  }
+
   async function handleVideoClick(video: ApiVideo) {
-    setSelectedVideo(video)
+    setSelectedVideo(video);
   }
 
   function renderEmptyState() {
@@ -129,7 +146,7 @@ export default function VideosPage() {
             ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
             : "Comienza agregando tu primer video usando el botón superior"}
         </p>
-        {user?.role !== "optimizer" && (
+        {user?.role === "admin" && (
           <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Nuevo Video
@@ -164,6 +181,7 @@ export default function VideosPage() {
                 <TableHead className="">Creador</TableHead>
                 <TableHead className="">Optimizador</TableHead>
                 <TableHead className="">Revisor Cont.</TableHead>
+                <TableHead className="">Uploader</TableHead>
                 <TableHead className="">Revisor Media</TableHead>
                 <TableHead className="">Actualización</TableHead>
                 <TableHead className=" text-right">Acciones</TableHead>
@@ -197,12 +215,10 @@ export default function VideosPage() {
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className={cn(
-                        getStatusBadgeColor(video.status),
-                      )}
+                      className={cn(getStatusBadgeColor(video.status))}
                     >
                       {getStatusLabel(user!.role, video)}
-                    </Badge>  
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {video.creatorName
@@ -220,6 +236,11 @@ export default function VideosPage() {
                       : video.contentReviewerUsername}
                   </TableCell>
                   <TableCell>
+                    {video.uploaderName
+                      ? `${video.uploaderName} (${video.uploaderUsername})`
+                      : video.uploaderUsername}
+                  </TableCell>
+                  <TableCell>
                     {video.mediaReviewerName
                       ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
                       : video.mediaReviewerUsername}
@@ -231,19 +252,21 @@ export default function VideosPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={updatingVideoId === video.id}
-                        onClick={() => handleVideoClick(video)}
-                        className="transition-colors"
-                      >
-                        {updatingVideoId === video.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {canSeeVideoDetails(video) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={updatingVideoId === video.id}
+                          onClick={() => handleVideoClick(video)}
+                          className="transition-colors"
+                        >
+                          {updatingVideoId === video.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                       {user?.role === "admin" && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -273,7 +296,12 @@ export default function VideosPage() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId }) }
+                                onClick={() =>
+                                  deleteVideo({
+                                    videoId: video.id,
+                                    projectId: video.projectId,
+                                  })
+                                }
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
                                 Eliminar
@@ -329,10 +357,7 @@ export default function VideosPage() {
               <div className="mb-2 flex justify-between items-center">
                 <Badge
                   variant="secondary"
-                  className={cn(
-                    "text-xs",
-                    getStatusBadgeColor(video.status),
-                  )}
+                  className={cn("text-xs", getStatusBadgeColor(video.status))}
                 >
                   {getStatusLabel(user!.role, video)}
                 </Badge>
@@ -359,7 +384,12 @@ export default function VideosPage() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId })}
+                          onClick={() =>
+                            deleteVideo({
+                              videoId: video.id,
+                              projectId: video.projectId,
+                            })
+                          }
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Eliminar
@@ -375,24 +405,39 @@ export default function VideosPage() {
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{video.seriesNumber || "Sin serie"}</span>
                 <span>
-                  { video.updatedAt && new Date(video.updatedAt).toLocaleDateString() }
-                  { !video.updatedAt && video.createdAt && new Date(video.createdAt).toLocaleDateString() }
+                  {video.updatedAt &&
+                    new Date(video.updatedAt).toLocaleDateString()}
+                  {!video.updatedAt &&
+                    video.createdAt &&
+                    new Date(video.createdAt).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
                 <span>
-                  <strong>Creador: </strong>{video.creatorName ? `${video.creatorName} (${video.creatorUsername})` : video.creatorUsername}
+                  <strong>Creador: </strong>
+                  {video.creatorName
+                    ? `${video.creatorName} (${video.creatorUsername})`
+                    : video.creatorUsername}
                 </span>
                 <span>
-                  <strong>Optimizador: </strong>{video.optimizerName ? `${video.optimizerName} (${video.optimizerUsername})` : video.optimizerUsername}
+                  <strong>Optimizador: </strong>
+                  {video.optimizerName
+                    ? `${video.optimizerName} (${video.optimizerUsername})`
+                    : video.optimizerUsername}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
                 <span>
-                  <strong>Revisor Cont.: </strong>{video.contentReviewerName ? `${video.contentReviewerName} (${video.contentReviewerUsername})` : video.contentReviewerUsername}
+                  <strong>Revisor Cont.: </strong>
+                  {video.contentReviewerName
+                    ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
+                    : video.contentReviewerUsername}
                 </span>
                 <span>
-                  <strong>Revisor Media: </strong>{video.mediaReviewerName ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})` : video.mediaReviewerUsername}
+                  <strong>Revisor Media: </strong>
+                  {video.mediaReviewerName
+                    ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
+                    : video.mediaReviewerUsername}
                 </span>
               </div>
             </div>
@@ -432,10 +477,7 @@ export default function VideosPage() {
               <div className="flex items-center gap-2">
                 <Badge
                   variant="secondary"
-                  className={cn(
-                    "text-xs",
-                    getStatusBadgeColor(video.status),
-                  )}
+                  className={cn("text-xs", getStatusBadgeColor(video.status))}
                 >
                   {getStatusLabel(user!.role, video)}
                 </Badge>
@@ -445,16 +487,28 @@ export default function VideosPage() {
                 </span>
               </div>
               <div className="text-sm text-muted-foreground mt-1">
-                <strong>Creador: </strong>{video.creatorName ? `${video.creatorName} (${video.creatorUsername})` : video.creatorUsername}
+                <strong>Creador: </strong>
+                {video.creatorName
+                  ? `${video.creatorName} (${video.creatorUsername})`
+                  : video.creatorUsername}
               </div>
               <div className="text-sm text-muted-foreground">
-                <strong>Optimizador: </strong>{video.optimizerName ? `${video.optimizerName} (${video.optimizerUsername})` : video.optimizerUsername}
+                <strong>Optimizador: </strong>
+                {video.optimizerName
+                  ? `${video.optimizerName} (${video.optimizerUsername})`
+                  : video.optimizerUsername}
               </div>
               <div className="text-sm text-muted-foreground">
-                <strong>Revisor Cont.: </strong>{video.contentReviewerName ? `${video.contentReviewerName} (${video.contentReviewerUsername})` : video.contentReviewerUsername}
+                <strong>Revisor Cont.: </strong>
+                {video.contentReviewerName
+                  ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
+                  : video.contentReviewerUsername}
               </div>
               <div className="text-sm text-muted-foreground">
-                <strong>Revisor Media: </strong>{video.mediaReviewerName ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})` : video.mediaReviewerUsername}
+                <strong>Revisor Media: </strong>
+                {video.mediaReviewerName
+                  ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
+                  : video.mediaReviewerUsername}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -486,7 +540,12 @@ export default function VideosPage() {
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId }) }
+                        onClick={() =>
+                          deleteVideo({
+                            videoId: video.id,
+                            projectId: video.projectId,
+                          })
+                        }
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Eliminar
@@ -505,7 +564,10 @@ export default function VideosPage() {
 
   function getVideoDialog() {
     return (
-      <Dialog open={Boolean(selectedVideo)} onOpenChange={() => setSelectedVideo(undefined)}>
+      <Dialog
+        open={Boolean(selectedVideo)}
+        onOpenChange={() => setSelectedVideo(undefined)}
+      >
         <VideoDetailDialog
           video={selectedVideo!}
           onUpdate={async (data) => {
@@ -521,7 +583,7 @@ export default function VideosPage() {
               toast.error("Error al actualizar el video");
             } finally {
               setUpdatingVideoId(undefined);
-              setSelectedVideo(undefined)
+              setSelectedVideo(undefined);
             }
           }}
         />
@@ -531,7 +593,6 @@ export default function VideosPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      
       <div className="flex flex-col gap-2 mb-12">
         <div className="flex items-center justify-between">
           <div className="space-y-3">
@@ -624,5 +685,3 @@ export default function VideosPage() {
     </div>
   );
 }
-
-

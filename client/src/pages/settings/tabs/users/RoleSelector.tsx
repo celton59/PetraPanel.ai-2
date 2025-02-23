@@ -29,7 +29,7 @@ export const RoleSelector = ({ value, onChange }: RoleSelectorProps) => {
       </SelectTrigger>
       <SelectContent>
         {Object.entries(roles).map( ([key, value]) => (
-          <SelectItem key={key} value={value}>
+          <SelectItem key={key} value={key}>
             {value}
           </SelectItem>
         ))}

@@ -12,6 +12,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useUser } from "@/hooks/use-user";
 
 interface UploadReviewContentProps {
   video: ApiVideo;
@@ -26,6 +27,8 @@ export function UploadReviewContent({
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const { user } = useUser();
 
   async function uploadFile(file: File, type: "video" | "thumbnail") {
     const formData = new FormData();
@@ -82,6 +85,7 @@ export function UploadReviewContent({
         status: "youtube_ready",
         videoUrl: videoFile ? videoUrl : video.videoUrl,
         thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl,
+        contentUploadedBy: user.id,
       });
       toast.success("Archivos subidos correctamente");
     } catch (error: any) {
