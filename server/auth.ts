@@ -42,7 +42,7 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: app.get("env") === "production" && process.env.REPL_SLUG ? "auto" : false,
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
@@ -51,13 +51,8 @@ export function setupAuth(app: Express) {
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
     }),
+    proxy: true // Enable proxy support for secure cookies
   };
-
-  // Configuración de producción
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-    sessionSettings.cookie!.secure = true;
-  }
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
@@ -126,7 +121,6 @@ export function setupAuth(app: Express) {
       const { username, password } = req.body;
       console.log("Registering user:", username);
 
-      // Verificar si el usuario ya existe
       const [existingUser] = await db
         .select()
         .from(users)

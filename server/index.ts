@@ -9,6 +9,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Trust proxy - important for proper SSL handling
+app.set('trust proxy', 1);
+
 // Crear carpeta de uploads si no existe
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
@@ -20,6 +23,13 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  // Log request details for debugging
+  console.log(`[${new Date().toISOString()}] ${req.method} ${path}`);
+  console.log('Headers:', req.headers);
+  console.log('Protocol:', req.protocol);
+  console.log('Secure:', req.secure);
+  console.log('X-Forwarded-Proto:', req.get('x-forwarded-proto'));
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -71,10 +81,14 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Iniciar el servidor
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on http://0.0.0.0:${PORT}`);
+    // Iniciar el servidor en el puerto 5000 como requerido
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+      const actualPort = (server.address() as any)?.port || PORT;
+      console.log(`Server started on port ${actualPort}`);
+      log(`Server running on http://0.0.0.0:${actualPort}`);
+      console.log('Environment:', app.get('env'));
+      console.log('Trust proxy setting:', app.get('trust proxy'));
     });
   } catch (error) {
     console.error("Failed to start server:", error);
