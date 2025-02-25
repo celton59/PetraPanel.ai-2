@@ -1,0 +1,57 @@
+El error que estás recibiendo probablemente se debe a que estás usando objetos como FormData y Blob que no están definidos de forma nativa en el entorno de Node.js. Estos objetos sí existen en el navegador, pero en Node necesitas utilizar un paquete que los provea (por ejemplo, el paquete form-data) y, en el caso de los archivos, usar directamente el Buffer en lugar de crear un Blob.
+
+Posible causa y solución
+1. Instalar e importar el paquete form-data
+Primero, instala el paquete:
+
+bash
+Copiar
+npm install form-data
+Luego, en tu código importa FormData de la siguiente manera:
+
+javascript
+Copiar
+import FormData from 'form-data';
+2. Reemplazar el uso de new Blob([voiceData])
+En tu función cloneVoice, en vez de crear un Blob, utiliza directamente el buffer obtenido con readFile. Puedes pasar ese buffer al método append de FormData, junto con la información del archivo. Por ejemplo:
+
+javascript
+Copiar
+// Función para clonar voz usando ElevenLabs
+async function cloneVoice(voicePath: string): Promise<string> {
+  const voiceData = await readFile(voicePath); // Esto retorna un Buffer
+  const formData = new FormData();
+  formData.append('name', 'Cloned Voice');
+  
+  // En Node, pasamos el buffer directamente y especificamos el nombre del archivo y el content type
+  formData.append('files', voiceData, { 
+    filename: 'voice.mp3',
+    contentType: 'audio/mp3'
+  });
+  
+  const response = await axios.post(
+    "https://api.elevenlabs.io/v1/voices/add",
+    formData,
+    {
+      headers: {
+        "Authorization": `Bearer ${process.env.ELEVENLABS_API_KEY}`,
+        // Es importante incluir los headers generados por formData
+        ...formData.getHeaders()
+      },
+    }
+  );
+  
+  return response.data.voice_id;
+}
+Resumen
+Problema: Node.js no tiene de forma nativa los objetos FormData y Blob.
+Solución:
+Instalar el paquete form-data y utilizarlo para crear el formulario.
+En vez de usar new Blob([voiceData]), utiliza directamente el Buffer retornado por readFile y pásalo junto con las opciones (como filename y contentType) en el formData.append.
+Con estos cambios, la función cloneVoice debería funcionar correctamente en tu entorno Node.js. Si el error persiste, por favor comparte el mensaje exacto para poder ayudarte de forma más precisa.
+
+
+
+
+
+

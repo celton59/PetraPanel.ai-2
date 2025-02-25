@@ -3,10 +3,10 @@ import multer from "multer";
 import path from "path";
 import axios from "axios";
 import fs from "fs";
+import FormData from "form-data";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { spawn } from "child_process";
-import crypto from "crypto";
 
 const execAsync = promisify(exec);
 const writeFile = promisify(fs.writeFile);
@@ -147,37 +147,25 @@ async function cloneVoice(voicePath: string): Promise<string> {
 }
 
 // Función para transcribir usando AssemblyAI
-interface WordTiming {
-  text: string;
-  start: number;
-  end: number;
-  confidence: number;
-}
-
-interface TranscriptionResult {
-  text: string;
-  words?: WordTiming[];
-}
-
-async function transcribeAudio(audioPath: string): Promise<TranscriptionResult> {
+async function transcribeAudio(audioPath: string): Promise<{text: string, words: Array<{text: string, start: number, end: number, confidence: number}>}> {
   try {
     console.log("Starting transcription with AssemblyAI...");
 
     // First, upload the file to AssemblyAI
     const audioFile = await readFile(audioPath);
-    const uploadUrl = await axios.post(
+
+    const uploadResponse = await axios.post(
       "https://api.assemblyai.com/v2/upload",
       audioFile,
       {
         headers: {
-          "authorization": process.env.ASSEMBLYAI_API_KEY,
-          "content-type": "application/octet-stream",
-          "transfer-encoding": "chunked"
+          "Authorization": process.env.ASSEMBLYAI_API_KEY,
+          "Content-Type": "application/octet-stream"
         }
       }
     );
 
-    if (!uploadUrl.data.upload_url) {
+    if (!uploadResponse.data.upload_url) {
       throw new Error("Failed to get upload URL from AssemblyAI");
     }
 
@@ -185,21 +173,16 @@ async function transcribeAudio(audioPath: string): Promise<TranscriptionResult> 
     const transcript = await axios.post(
       "https://api.assemblyai.com/v2/transcript",
       {
-        audio_url: uploadUrl.data.upload_url,
-        language_detection: true,
+        audio_url: uploadResponse.data.upload_url,
+        language_code: "es",
         punctuate: true,
         format_text: true,
-        word_boost: [""],
-        auto_highlights: true,
-        content_safety: true,
-        auto_chapters: true,
-        entity_detection: true,
         word_timestamps: true
       },
       {
         headers: {
-          "authorization": process.env.ASSEMBLYAI_API_KEY,
-          "content-type": "application/json"
+          "Authorization": `${process.env.ASSEMBLYAI_API_KEY}`,
+          "Content-Type": "application/json"
         }
       }
     );
@@ -270,120 +253,27 @@ async function translateText(text: string, targetLanguage: string) {
 
 
 // Rutas
-// Cache object to store processed files
-const processedFiles: {
-  [key: string]: {
-    videoPath: string;
-    audioPath?: string;
-    vocalsPath?: string;
-    instrumentalPath?: string;
-  };
-} = {};
-
-router.post("/upload", upload.single("video"), async (req, res) => {
+router.post("/upload", upload.single("video"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No se subió ningún archivo" });
   }
 
-  const fileBuffer = await fs.promises.readFile(req.file.path);
-  const hash = crypto.createHash('md5').update(fileBuffer).digest('hex');
-  
-  // Buscar si ya existe un archivo con este hash
-  const uploadsDir = path.join(process.cwd(), 'uploads');
-  const files = await fs.promises.readdir(uploadsDir);
-  const existingFile = files.find(file => file.includes(hash));
-
-  if (existingFile) {
-    // Si existe, eliminar el archivo recién subido y usar el existente
-    await fs.promises.unlink(req.file.path);
-    const videoId = path.basename(existingFile, path.extname(existingFile));
-    return res.json({
-      videoId,
-      status: 'reused',
-      videoPath: path.join('uploads', existingFile)
-    });
-  }
-
-  // Si no existe, renombrar el archivo con el hash
-  const newFileName = `${hash}${path.extname(req.file.originalname)}`;
-  const newPath = path.join(uploadsDir, newFileName);
-  await fs.promises.rename(req.file.path, newPath);
-  
-  const videoId = hash;
-
-  // Store in cache
-  processedFiles[videoId] = {
-    videoPath: req.file.path
-  };
-
   res.json({
-    videoId,
+    videoId: path.basename(req.file.path, path.extname(req.file.path)),
     status: 'uploaded',
     videoPath: req.file.path
-  });
-});
-
-// Ruta para verificar archivos existentes
-router.get("/:videoId/check-files", async (req, res) => {
-  const { videoId } = req.params;
-  const audioPath = path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
-  const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
-  const transcriptionPath = path.join(process.cwd(), "uploads", `${videoId}_transcription.json`);
-
-  res.json({
-    hasAudio: fs.existsSync(audioPath),
-    hasVocals: fs.existsSync(vocalsPath),
-    hasTranscription: fs.existsSync(transcriptionPath),
-    audioPath: fs.existsSync(audioPath) ? audioPath : null,
-    vocalsPath: fs.existsSync(vocalsPath) ? vocalsPath : null
   });
 });
 
 // Ruta para extraer audio
 router.post("/:videoId/extract-audio", async (req, res) => {
   const { videoId } = req.params;
-
-  // Check cache first
-  if (processedFiles[videoId]?.audioPath) {
-    return res.json({
-      status: 'audio_extracted',
-      audioPath: path.basename(processedFiles[videoId].audioPath!),
-      fullPath: processedFiles[videoId].audioPath
-    });
-  }
-
-  const uploadsDir = path.join(process.cwd(), 'uploads');
-  const files = await fs.promises.readdir(uploadsDir);
-  const videoFile = files.find(file => file.includes(videoId) && !file.includes('_audio') && !file.includes('_vocals') && !file.includes('_instrumental'));
-  
-  if (!videoFile) {
-    return res.status(404).json({ 
-      error: "Video no encontrado",
-      details: `No se encontró ningún archivo con ID ${videoId}`
-    });
-  }
-
-  const videoPath = path.join(uploadsDir, videoFile);
-  console.log('Video path:', videoPath);
-
-  // Verificar que el archivo existe
-  if (!fs.existsSync(videoPath)) {
-    return res.status(404).json({ 
-      error: "Video no encontrado",
-      details: `No se encontró el archivo en: ${videoPath}`
-    });
-  }
+  const videoPath = path.join("uploads", `${videoId}.mp4`);
 
   try {
     console.log('Starting audio extraction for video:', videoId);
-    const audioPath = await extractAudio(actualVideoPath);
+    const audioPath = await extractAudio(videoPath);
     console.log('Audio extraction completed:', audioPath);
-
-    // Store in cache
-    processedFiles[videoId] = {
-      ...processedFiles[videoId],
-      audioPath
-    };
 
     res.json({ 
       status: 'audio_extracted',
@@ -402,17 +292,7 @@ router.post("/:videoId/extract-audio", async (req, res) => {
 // Ruta para separar voz
 router.post("/:videoId/separate-voice", async (req, res) => {
   const { videoId } = req.params;
-
-  // Check cache first
-  if (processedFiles[videoId]?.vocalsPath && processedFiles[videoId]?.instrumentalPath) {
-    return res.json({
-      status: 'voice_separated',
-      vocals: path.basename(processedFiles[videoId].vocalsPath!),
-      instrumental: path.basename(processedFiles[videoId].instrumentalPath!)
-    });
-  }
-
-  const audioPath = processedFiles[videoId]?.audioPath || path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
+  const audioPath = path.join(process.cwd(), "uploads", `${videoId}_audio.mp3`);
   const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
   const instrumentalPath = path.join(process.cwd(), "uploads", `${videoId}_instrumental.mp3`);
 
@@ -505,31 +385,19 @@ router.post("/:videoId/transcribe", async (req, res) => {
   const vocalsPath = path.join(process.cwd(), "uploads", `${videoId}_vocals.mp3`);
 
   try {
-    // Check if we already have a transcription for this file
-    const transcriptionPath = path.join(process.cwd(), "uploads", `${videoId}_transcription.json`);
-
-    if (fs.existsSync(transcriptionPath)) {
-      console.log("Found existing transcription");
-      const transcription = JSON.parse(fs.readFileSync(transcriptionPath, 'utf-8'));
-      return res.json({ 
-        status: 'transcribed',
-        text: transcription
-      });
-    }
-
     console.log("Starting transcription for:", vocalsPath);
 
     if (!fs.existsSync(vocalsPath)) {
       throw new Error(`Vocals file not found: ${vocalsPath}`);
     }
 
-    const text = await transcribeAudio(vocalsPath);
-    // Save transcription for future use
-    fs.writeFileSync(transcriptionPath, JSON.stringify(text));
+    const transcription = await transcribeAudio(vocalsPath);
+    console.log("Transcription completed successfully");
 
     res.json({ 
       status: 'transcribed',
-      text 
+      text: transcription.text,
+      words: transcription.words
     });
   } catch (error) {
     console.error("Error transcribing:", error);
