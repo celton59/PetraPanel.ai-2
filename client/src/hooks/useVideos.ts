@@ -22,7 +22,7 @@ export type ApiVideo = {
   uploaderUsername: User["username"]
 }
 
-export function useVideos(projectId?: number): {
+export function useVideos(): {
   videos: ApiVideo[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
@@ -31,7 +31,7 @@ export function useVideos(projectId?: number): {
 } {
   const queryClient = useQueryClient();
 
-  const queryKey = projectId ? [`/api/projects/${projectId}/videos`] : ['/api/videos'];
+  const queryKey = ['/api/videos']
 
   const { data: videos, isLoading } = useQuery<ApiVideo[]>({
     queryKey,

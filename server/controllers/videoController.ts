@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { eq, and, or, desc, getTableColumns, aliasedTable } from "drizzle-orm";
-import { videos, users, projects, InsertVideo, User, Video } from "@db/schema";
+import { videos, users, projects, InsertVideo, User, Video, projectAccess } from "@db/schema";
 import { db } from "@db";
 import { z } from "zod";
 import fs from "fs";
@@ -215,7 +215,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
 
     const query = db
-      .select({
+      .selectDistinct({
         ...getTableColumns(videos),
 
         // Datos del content reviewer
@@ -244,68 +244,28 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .leftJoin(creator, eq(videos.createdBy, creator.id))
       .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
       .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
-      .orderBy(desc(videos.updatedAt))
+      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId)) // Join with projectAccess table
       .where(
-        or(
-          req.user?.role === 'optimizer' ? eq(videos.status, 'pending') : undefined,
-          req.user?.role === 'optimizer' ? eq(videos.status, 'in_progress') : undefined,
-          req.user?.role === 'optimizer' ? eq(videos.status, 'title_corrections') : undefined,
-          req.user?.role === 'optimizer' ? eq(videos.optimizedBy, req.user!.id!) : undefined,
-          req.user?.role === 'reviewer' ? eq(videos.status, 'optimize_review') : undefined,
-          req.user?.role === 'reviewer' ? eq(videos.contentReviewedBy, req.user!.id!) : undefined,
-          req.user?.role === 'youtuber' ? eq(videos.status, 'upload_review') : undefined,
-          req.user?.role === 'youtuber' ? eq(videos.status, 'media_corrections') : undefined,
-          req.user?.role === 'youtuber' ? eq(videos.contentUploadedBy, req.user!.id!) : undefined,
-          req.user?.role === 'reviewer' ? eq(videos.status, 'youtube_ready') : undefined,
-          req.user?.role === 'reviewer' ? eq(videos.mediaReviewedBy, req.user!.id!) : undefined,
-        ),
+        and(
+          or(            
+            req.user?.role === 'optimizer' ? eq(videos.status, 'pending') : undefined,
+            req.user?.role === 'optimizer' ? eq(videos.status, 'in_progress') : undefined,
+            req.user?.role === 'optimizer' ? eq(videos.status, 'title_corrections') : undefined,
+            req.user?.role === 'optimizer' ? eq(videos.optimizedBy, req.user!.id!) : undefined,
+            req.user?.role === 'reviewer' ? eq(videos.status, 'optimize_review') : undefined,
+            req.user?.role === 'reviewer' ? eq(videos.contentReviewedBy, req.user!.id!) : undefined,
+            req.user?.role === 'youtuber' ? eq(videos.status, 'upload_review') : undefined,
+            req.user?.role === 'youtuber' ? eq(videos.status, 'media_corrections') : undefined,
+            req.user?.role === 'youtuber' ? eq(videos.contentUploadedBy, req.user!.id!) : undefined,
+            req.user?.role === 'reviewer' ? eq(videos.status, 'youtube_ready') : undefined,
+            req.user?.role === 'reviewer' ? eq(videos.mediaReviewedBy, req.user!.id!) : undefined,
+          ),
+          ( req.user?.role === 'admin' ? undefined : eq(projectAccess.userId, req.user!.id!) )
+        )
       )
+      .orderBy(desc(videos.updatedAt));  // Moved orderBy after where
 
     const result = await query.execute()
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Error fetching all videos:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al obtener los videos"
-    });
-  }
-}
-
-async function getVideosByProject(req: Request, res: Response): Promise<Response> {
-  
-  const projectId = parseInt(req.params.projectId);
-  
-  try {
-    // let videoQuery: type VideoWithReviewer = InferSelectModel<typeof videos> & {
-    //     reviewerName: InferSelectModel<typeof users>['fullName'];
-    //     reviewerUsername: InferSelectModel<typeof users>['username'];
-    //   };
-
-    const result = await db
-    .select({
-      ...getTableColumns(videos),
-
-      // Datos del reviewer
-      reviewerName: contentReviewer.fullName,
-      reviewerUsername: contentReviewer.username,
-
-      // Datos del creador
-      creatorName: creator.fullName,
-      creatorUsername: creator.username,
-
-      // Datos del optimizador
-      optimizerName: optimizer.fullName,
-      optimizerUsername: optimizer.username,
-    })
-    .from(videos)
-    .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
-    .leftJoin(creator, eq(videos.createdBy, creator.id))
-    .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
-    .where(eq(videos.projectId, projectId))
-    .orderBy(desc(videos.updatedAt))
-    .execute();
 
     return res.status(200).json(result);
   } catch (error) {
@@ -465,7 +425,6 @@ const VideoController = {
   updateVideo,
   deleteVideo,
   getVideos,
-  getVideosByProject,
   createVideo,
   uploadContentVideo
 }

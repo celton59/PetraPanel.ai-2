@@ -58,7 +58,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { createVideo } = useVideos(selectedProject?.id);
+  const { createVideo } = useVideos();
 
   const form = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),

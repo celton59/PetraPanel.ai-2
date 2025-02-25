@@ -83,9 +83,6 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    // Serve uploaded files
-    app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
     // Middleware to check authentication
     const requireAuth = (req: Request, res: Response, next: NextFunction) => {
       if (!req.isAuthenticated()) {
@@ -93,6 +90,13 @@ export function registerRoutes(app: Express): Server {
       }
       next();
     };
+
+    setupAuth(app); // Authentication setup moved here
+    console.log("Authentication setup complete");
+    console.log("Routes registered successfully");
+
+    // Serve uploaded files
+    app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
     // Register translator routes. Requiring authentication.
     app.use('/api/translator', requireAuth, translatorRouter);
@@ -184,8 +188,6 @@ export function registerRoutes(app: Express): Server {
     
     app.get("/api/videos", requireAuth, VideoController.getVideos);
     
-    app.get("/api/projects/:projectId/videos", requireAuth, VideoController.getVideosByProject);
-
     app.post("/api/projects/:projectId/videos", requireAuth, VideoController.createVideo);
 
     app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.updateVideo)
@@ -499,9 +501,6 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    setupAuth(app); // Authentication setup moved here
-    console.log("Authentication setup complete");
-    console.log("Routes registered successfully");
     // Stats routes
     app.get("/api/stats/overall", requireAuth, async (req: Request, res: Response) => {
       try {
