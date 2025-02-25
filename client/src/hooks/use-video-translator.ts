@@ -84,18 +84,6 @@ export function useVideoTranslator() {
       setIsProcessing(true);
       setProgress(prev => ({ ...prev!, step: "extracting_audio" }));
 
-      const checkResponse = await fetch(`/api/translator/${progress.videoId}/check-files`);
-      const existingFiles = await checkResponse.json();
-
-      if (existingFiles.hasAudio) {
-        setProgress(prev => ({
-          ...prev,
-          step: 'audio_extracted',
-          audioPath: existingFiles.audioPath
-        }));
-        return;
-      }
-
       const response = await fetch(`/api/translator/${progress.videoId}/extract-audio`, {
         method: "POST",
         credentials: 'include'
