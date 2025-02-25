@@ -42,11 +42,11 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: app.get("env") === "production" && process.env.REPL_SLUG ? "auto" : false,
+      secure: true, // Always use secure cookies with Cloudflare
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
-      sameSite: 'lax'
+      sameSite: 'none' // Required for cross-site cookies with Cloudflare
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
