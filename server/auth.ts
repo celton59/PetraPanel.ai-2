@@ -42,16 +42,15 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, // Always use secure cookies with Cloudflare
+      secure: false, // Allow HTTP for Cloudflare Flexible SSL
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
-      path: '/',
-      sameSite: 'none' // Required for cross-site cookies with Cloudflare
+      path: '/'
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
     }),
-    proxy: true // Enable proxy support for secure cookies
+    proxy: true // Keep proxy support for header handling
   };
 
   app.use(session(sessionSettings));
