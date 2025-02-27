@@ -37,24 +37,25 @@ const crypto = {
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  // Dynamically set cookie security based on the request
+  // Configuración específica para Cloudflare Flexible SSL
+  // En este modo, Cloudflare-to-Origin es HTTP pero User-to-Cloudflare es HTTPS
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || "petra-panel-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: 'auto', // Automatically set secure based on request protocol
+      // Para Cloudflare Flexible, las cookies seguras deben estar
+      // habilitadas para que funcionen con petrapanel.ai
+      secure: true,
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
-      sameSite: isProduction ? 'none' : 'lax' // Important for cross-site cookies in production
+      sameSite: 'none' // Necesario para dominios personalizados y Cloudflare
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
     }),
-    proxy: true // Keep proxy support for header handling
+    proxy: true // Requerido para detectar correctamente el protocolo a través de Cloudflare
   };
 
   app.use(session(sessionSettings));

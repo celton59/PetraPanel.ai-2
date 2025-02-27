@@ -17,15 +17,25 @@ if (app.get('env') !== 'development') {
   process.env.NODE_ENV = 'production';
 }
 
-// Security middleware to handle HTTPS
+// Middleware específico para Cloudflare Flexible SSL
 app.use((req, res, next) => {
-  // Log the protocol detection details
-  console.log('Protocol detection:', {
+  // Importante para la depuración
+  console.log('Cloudflare detection:', {
+    'cf-visitor': req.headers['cf-visitor'],
     'x-forwarded-proto': req.headers['x-forwarded-proto'],
+    'cf-connecting-ip': req.headers['cf-connecting-ip'],
     protocol: req.protocol,
     secure: req.secure,
     originalUrl: req.originalUrl
   });
+  
+  // Con Cloudflare Flexible, el tráfico llega a Replit como HTTP
+  // pero necesitamos tratar todas las solicitudes como HTTPS 
+  if (req.headers['x-forwarded-proto'] === 'https' || 
+      (req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor'] as string).scheme === 'https')) {
+    // Forzar el protocolo a HTTPS para la detección automática de cookies
+    req.headers['x-forwarded-proto'] = 'https';
+  }
   
   next();
 });
@@ -40,8 +50,7 @@ if (!fs.existsSync(uploadsDir)) {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
+  
   // Log request details for debugging
   console.log(`[${new Date().toISOString()}] ${req.method} ${path}`);
   console.log('Headers:', req.headers);
@@ -49,35 +58,10 @@ app.use((req, res, next) => {
   console.log('Secure:', req.secure);
   console.log('X-Forwarded-Proto:', req.get('x-forwarded-proto'));
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  // Track redirects
-  const originalRedirect = res.redirect;
-  res.redirect = function (...args) {
-    console.log('Redirect detected:', {
-      from: req.originalUrl,
-      to: args[args.length - 1],
-      status: typeof args[0] === 'number' ? args[0] : 302
-    });
-    return originalRedirect.apply(res, args);
-  };
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+      const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       log(logLine);
     }
   });
