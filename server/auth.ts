@@ -37,15 +37,19 @@ const crypto = {
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Dynamically set cookie security based on the request
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || "petra-panel-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Allow HTTP for Cloudflare Flexible SSL
+      secure: 'auto', // Automatically set secure based on request protocol
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
-      path: '/'
+      path: '/',
+      sameSite: isProduction ? 'none' : 'lax' // Important for cross-site cookies in production
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas

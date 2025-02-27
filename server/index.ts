@@ -9,8 +9,26 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Trust proxy - important for proper SSL handling
-app.set('trust proxy', 1);
+// Trust proxy settings for proper SSL handling
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
+
+// Set environment variable to production in non-development environments
+if (app.get('env') !== 'development') {
+  process.env.NODE_ENV = 'production';
+}
+
+// Security middleware to handle HTTPS
+app.use((req, res, next) => {
+  // Log the protocol detection details
+  console.log('Protocol detection:', {
+    'x-forwarded-proto': req.headers['x-forwarded-proto'],
+    protocol: req.protocol,
+    secure: req.secure,
+    originalUrl: req.originalUrl
+  });
+  
+  next();
+});
 
 // Crear carpeta de uploads si no existe
 const uploadsDir = path.join(process.cwd(), "uploads");
