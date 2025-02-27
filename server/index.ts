@@ -9,32 +9,58 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Trust proxy settings for proper SSL handling
-app.set('trust proxy', 'loopback, linklocal, uniquelocal');
+// Trust proxy settings específico para Cloudflare
+// Esto le dice a Express que confíe en todas las cabeceras de proxy
+// Es necesario para que Cloudflare pueda pasar las cabeceras correctamente
+app.set('trust proxy', true);
 
 // Set environment variable to production in non-development environments
 if (app.get('env') !== 'development') {
   process.env.NODE_ENV = 'production';
 }
 
-// Middleware específico para Cloudflare Flexible SSL
+// ======================================================
+// SOLUCIÓN DEFINITIVA PARA CLOUDFLARE FLEXIBLE SSL
+// ======================================================
 app.use((req, res, next) => {
-  // Importante para la depuración
-  console.log('Cloudflare detection:', {
-    'cf-visitor': req.headers['cf-visitor'],
-    'x-forwarded-proto': req.headers['x-forwarded-proto'],
-    'cf-connecting-ip': req.headers['cf-connecting-ip'],
+  // Información de diagnóstico completa
+  const host = req.get('host') || '';
+  const cfIp = req.headers['cf-connecting-ip'];
+  const cfRay = req.headers['cf-ray'];
+  const cfVisitor = req.headers['cf-visitor'];
+  const xForwardedProto = req.headers['x-forwarded-proto'];
+  
+  // Log completo para diagnóstico
+  console.log('Diagnóstico de conexión:', {
+    host,
+    cfIp,
+    cfRay,
+    cfVisitor,
+    xForwardedProto,
     protocol: req.protocol,
     secure: req.secure,
     originalUrl: req.originalUrl
   });
   
-  // Con Cloudflare Flexible, el tráfico llega a Replit como HTTP
-  // pero necesitamos tratar todas las solicitudes como HTTPS 
-  if (req.headers['x-forwarded-proto'] === 'https' || 
-      (req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor'] as string).scheme === 'https')) {
-    // Forzar el protocolo a HTTPS para la detección automática de cookies
-    req.headers['x-forwarded-proto'] = 'https';
+  // Detección específica para petrapanel.ai con Cloudflare Flexible SSL
+  const isPetraPanelDomain = host === 'petrapanel.ai';
+  const isCloudflare = cfRay || cfIp || cfVisitor;
+  
+  if (isPetraPanelDomain) {
+    console.log('Detectado dominio petrapanel.ai - Aplicando configuración Cloudflare Flexible SSL');
+    
+    // SOLUCIÓN PARA EL ERROR ERR_TOO_MANY_REDIRECTS:
+    // Con Cloudflare Flexible SSL, Cloudflare termina SSL pero se conecta a Replit por HTTP
+    // Express ve la cabecera X-Forwarded-Proto: https y trata de redirigir a HTTPS
+    // causando un bucle infinito. La solución es forzar el protocolo a HTTP.
+    
+    // SOLO para el dominio petrapanel.ai forzamos HTTP para evitar el bucle de redirecciones
+    req.headers['x-forwarded-proto'] = 'http';
+    
+    console.log('Configuración de protocolo HTTP para petrapanel.ai aplicada');
+  } else if (isCloudflare) {
+    // Para otros dominios de Cloudflare (no petrapanel.ai), respetamos el protocolo original
+    console.log('Detectada conexión desde Cloudflare (no petrapanel.ai)');
   }
   
   next();
