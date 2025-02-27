@@ -37,6 +37,17 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
+  // Track redirects
+  const originalRedirect = res.redirect;
+  res.redirect = function (...args) {
+    console.log('Redirect detected:', {
+      from: req.originalUrl,
+      to: args[args.length - 1],
+      status: typeof args[0] === 'number' ? args[0] : 302
+    });
+    return originalRedirect.apply(res, args);
+  };
+
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
