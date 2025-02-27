@@ -121,39 +121,39 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      console.log("Registering user:", username);
+  // app.post("/api/register", async (req, res) => {
+  //   try {
+  //     const { username, password } = req.body;
+  //     console.log("Registering user:", username);
 
-      // Verificar si el usuario ya existe
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
+  //     // Verificar si el usuario ya existe
+  //     const [existingUser] = await db
+  //       .select()
+  //       .from(users)
+  //       .where(eq(users.username, username))
+  //       .limit(1);
 
-      if (existingUser) {
-        return res.status(400).send("Username already taken");
-      }
+  //     if (existingUser) {
+  //       return res.status(400).send("Username already taken");
+  //     }
 
-      const hashedPassword = await crypto.hash(password);
-      const [user] = await db
-        .insert(users)
-        .values({ username, password: hashedPassword })
-        .returning();
+  //     const hashedPassword = await crypto.hash(password);
+  //     const [user] = await db
+  //       .insert(users)
+  //       .values({ username, password: hashedPassword, role: "youtuber" })
+  //       .returning();
 
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).send(err.message);
-        }
-        res.json(user);
-      });
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      res.status(500).send(error.message);
-    }
-  });
+  //     req.login(user, (err) => {
+  //       if (err) {
+  //         return res.status(500).send(err.message);
+  //       }
+  //       res.json(user);
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Registration error:", error);
+  //     res.status(500).send(error.message);
+  //   }
+  // });
 
   app.post("/api/logout", (req, res) => {
     const username = req.user?.username;

@@ -3,23 +3,22 @@ import { VideoStatus, Video, User } from "@db/schema";
 
 
 const statusLabels: Record<VideoStatus, string> = {
-    pending: "Disponible",
-    in_progress: "En Proceso",
-    optimize_review: "En Revisión",
-    title_corrections: "Necesita Correcciones",
+    available: "Disponible",
+    content_review: "En Revisión",
+    content_corrections: "Necesita Correcciones",
     completed: "Completado",
-    upload_review: "Revisión de subida",
+    upload_media: "Subida de medios",
     media_corrections: "Necesita Correcciones",
-    youtube_ready: "Listo para Youtube",
-    review: "Revisión final"    
+    media_review: "Listo para Youtube",
+    final_review: "Revisión final"    
 }
 
 export function getStatusLabel (role: User['role'], video: Video): string {
 
-  if (video.status === 'optimize_review' && video.contentReviewComments?.at(0)) {
+  if (video.status === 'content_review' && video.contentReviewComments?.at(0)) {
       return 'Corregido'
   }
-  else if(video.status === 'youtube_ready' && video.mediaReviewComments?.at(0)) {
+  else if(video.status === 'media_review' && video.mediaReviewComments?.at(0)) {
     return 'Corregido'
   }
   else 
@@ -27,14 +26,13 @@ export function getStatusLabel (role: User['role'], video: Video): string {
     
 };
 
-const statusColors = {
-  pending: "bg-yellow-500/20 text-yellow-600",
-  in_progress: "bg-blue-500/20 text-blue-600",
-  title_corrections: "bg-red-500/20 text-red-600",
-  optimize_review: "bg-pink-500/20 text-pink-600",
-  upload_review: "bg-purple-500/20 text-purple-600",
-  youtube_ready: "bg-green-500/20 text-green-600",
-  review: "bg-indigo-500/20 text-indigo-600",
+const statusColors: Record<VideoStatus, string> = {
+  available: "bg-yellow-500/20 text-yellow-600",
+  content_corrections: "bg-red-500/20 text-red-600",
+  content_review: "bg-pink-500/20 text-pink-600",
+  upload_media: "bg-purple-500/20 text-purple-600",
+  media_review: "bg-green-500/20 text-green-600",
+  final_review: "bg-indigo-500/20 text-indigo-600",
   media_corrections: "bg-red-500/20 text-red-600",
   completed: "bg-emerald-500/20 text-emerald-600",
 };

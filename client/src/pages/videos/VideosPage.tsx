@@ -76,12 +76,11 @@ const VISIBLE_STATES = {
 
 const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   admin: [],
-  optimizer: ["pending", "in_progress", "title_corrections"],
-  reviewer: ["optimize_review", "youtube_ready"],
-  youtuber: ["upload_review", "media_corrections"],
-  uploader: [],
-  content_reviewer: ['optimize_review'],
-  media_reviewer: ['youtube_ready']
+  optimizer: ["available", "content_corrections"],
+  reviewer: ["content_review", "media_review"],
+  content_reviewer: ['content_review'],
+  media_reviewer: ['media_review'],
+  youtuber: ["upload_media", "media_corrections"],
 };
 
 export default function VideosPage() {

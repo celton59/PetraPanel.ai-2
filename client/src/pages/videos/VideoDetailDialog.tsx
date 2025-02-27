@@ -1,45 +1,33 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { VideoStatus } from "@db/schema";
 import {
-  Clock,
-  Edit,
-  PlayCircle,
-  Youtube,
-  AlertCircle,
-  Image,
+  AlertCircle,  
 } from "lucide-react";
-import {
-  Dialog,
+import {  
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle,  
 } from "@/components/ui/dialog";
-import { Form } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
-import { VideoOptimizerContent } from "./review/VideoOptimizerContent";
-import { OptimizeReviewContent } from "./review/OptimizeReviewContent";
-import { UploadReviewContent } from "./review/UploadReviewContent";
+import { OptimizeContentDetail } from "./detail/OptimizeContentDetail";
+import { ContentReviewDetail } from "./detail/OptimizeReviewContent";
+import { UploadContentDetail } from "./detail/UploadContentDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/hooks/use-user";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
-import YoutubeReadyContent from "./review/YoutubeReadyContent";
+import MediaReviewDetail from "./detail/MediaReviewDetail";
 import { ApiVideo } from "@/hooks/useVideos";
 
 const statusDescriptions: Record<VideoStatus, string> = {
-  pending: "Video recién creado, esperando asignación",
-  in_progress: "Video en proceso de optimización de título",
-  title_corrections: "Se han solicitado correcciones al título",
-  optimize_review: "En revisión por el equipo de optimización",
-  upload_review: "En revisión de archivos (video y miniatura)",
-  youtube_ready: "Listo para subir a YouTube",
-  review: "En revisión final antes de publicación",
+  available: "Video recién creado, esperando asignación",
+  content_corrections: "Se han solicitado correcciones al título",
+  content_review: "En revisión por el equipo de optimización",
+  upload_media: "En revisión de archivos (video y miniatura)",
+  media_review: "Listo para subir a YouTube",
   media_corrections: "Se han solicitado correcciones al video o miniatura",
+  final_review: "En revisión final antes de publicación",
   completed: "Video publicado en YouTube",
 };
 
@@ -76,33 +64,32 @@ export function VideoDetailDialog({ video, onUpdate }: VideoCardProps) {
 
   function renderCardContent() {
     switch (video.status) {
-      case "pending":
-      case "in_progress":
-      case "title_corrections":
+      case "available":
+      case "content_corrections":
         return (
-          <VideoOptimizerContent
+          <OptimizeContentDetail
             video={video}
             onUpdate={onUpdate}
           />
         );
-      case "optimize_review":
+      case "content_review":
         return (
-          <OptimizeReviewContent
+          <ContentReviewDetail
             video={video}
             onUpdate={onUpdate}
           />
         );
-      case "upload_review":
+      case "upload_media":
       case "media_corrections":
         return (
-          <UploadReviewContent
+          <UploadContentDetail
             video={video}
             onUpdate={onUpdate}
           />
         );
-      case "youtube_ready":
-      case "review":
-        return <YoutubeReadyContent video={video} onUpdate={onUpdate} />;      
+      case "media_review":
+      case "final_review":
+        return <MediaReviewDetail video={video} onUpdate={onUpdate} />;      
     }
   }
 

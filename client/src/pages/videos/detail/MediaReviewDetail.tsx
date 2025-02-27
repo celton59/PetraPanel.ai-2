@@ -12,23 +12,22 @@ import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
 import { toast } from "sonner";
 
-export default function YoutubeReadyContent({
+export default function MediaReviewDetail({
   video,
   onUpdate,
-}: YoutubeReadyContentProps) {
+}: MediaReviewDetailProps) {
   const { user } = useUser();
 
   const [reviewComments, setReviewComments] = useState<string | undefined>(
     undefined,
   );
-  const [videoApproved, setVideoApproved] = useState<boolean>(false);
-  const [thumbnailsApproved, setThumbnailsApproved] = useState<boolean>(false);
-  const [contentApproved, setContentApproved] = useState<boolean>(false);
+  const [videoNeedsCorrection, setVideoNeedsCorrection] = useState<boolean>(false);
+  const [thumbnailNeedsCorrection, setThumbnailNeedsCorrection] = useState<boolean>(false);
 
   function handleApprove() {
-    if ( video.status === 'youtube_ready') {
+    if ( video.status === 'media_review') {
         onUpdate({
-          status: "review",
+          status: "final_review",
           mediaReviewedBy: user?.id,
           mediaVideoNeedsCorrection: false,
           mediaThumbnailNeedsCorrection: false
@@ -55,8 +54,8 @@ export default function YoutubeReadyContent({
         ...(video.mediaReviewComments ?? []),
         reviewComments,
       ],
-      mediaVideoNeedsCorrection: !videoApproved,
-      mediaThumbnailNeedsCorrection: !thumbnailsApproved,
+      mediaVideoNeedsCorrection: videoNeedsCorrection,
+      mediaThumbnailNeedsCorrection: thumbnailNeedsCorrection,
     });
   }
 
@@ -126,7 +125,7 @@ export default function YoutubeReadyContent({
         </div>
 
         {/* Youtube ready decision */}
-        { video.status === "youtube_ready" && 
+        { video.status === "media_review" && 
           <Card className="mt-4 p-6">
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Decisión</h3>
@@ -136,31 +135,20 @@ export default function YoutubeReadyContent({
               <div>
                 <Checkbox
                   onCheckedChange={(cheked) =>
-                    setVideoApproved(cheked as boolean)
+                    setVideoNeedsCorrection(cheked as boolean)
                   }
                 />
-                <label className="ms-3 text-sm font-medium">Video correcto</label>
+                <label className="ms-3 text-sm font-medium">Necesita corregir Vídeo</label>
               </div>
 
               <div>
                 <Checkbox
                   onCheckedChange={(cheked) =>
-                    setThumbnailsApproved(cheked as boolean)
+                    setThumbnailNeedsCorrection(cheked as boolean)
                   }
                 />
                 <label className="ms-3 text-sm font-medium">
-                  Miniatura correcta
-                </label>
-              </div>
-
-              <div>
-                <Checkbox
-                  onCheckedChange={(cheked) =>
-                    setContentApproved(cheked as boolean)
-                  }
-                />
-                <label className="ms-3 text-sm font-medium">
-                  Contenido correcto
+                  Necesita corregir Miniatura
                 </label>
               </div>
 
@@ -171,9 +159,7 @@ export default function YoutubeReadyContent({
                 <Textarea
                   placeholder="Escribe aquí los motivos del rechazo o sugerencias de mejora..."
                   value={reviewComments}
-                  disabled={
-                    videoApproved && thumbnailsApproved && contentApproved
-                  }
+                  disabled={ !videoNeedsCorrection && !thumbnailNeedsCorrection }
                   onChange={(e) => setReviewComments(e.target.value)}
                   className="min-h-[100px] resize-none"
                 />            
@@ -186,7 +172,7 @@ export default function YoutubeReadyContent({
                   size="sm"
                   className="bg-purple-600 hover:bg-purple-700"
                   onClick={handleApprove}
-                  disabled={!videoApproved || !thumbnailsApproved || !contentApproved}
+                  disabled={videoNeedsCorrection || thumbnailNeedsCorrection}
                 >
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   Aprobar
@@ -197,7 +183,7 @@ export default function YoutubeReadyContent({
                   className="ms-2 bg-red-600 hover:bg-red-700"
                   onClick={handleReject}
                   disabled={
-                    videoApproved && thumbnailsApproved && contentApproved
+                    !videoNeedsCorrection && !thumbnailNeedsCorrection
                   }
                 >
                   <XCircle className="w-4 h-4 mr-2" />
@@ -210,7 +196,7 @@ export default function YoutubeReadyContent({
         }
 
         {/* Final Review Decision */}
-        { video.status === "review" && 
+        { video.status === "final_review" && 
           <Card className="mt-4 p-6">
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Decisión</h3>
@@ -246,7 +232,7 @@ export default function YoutubeReadyContent({
                   className="ms-2 bg-red-600 hover:bg-red-700"
                   onClick={handleReject}
                   disabled={
-                    videoApproved && thumbnailsApproved && contentApproved
+                    videoNeedsCorrection || thumbnailNeedsCorrection
                   }
                 >
                   <XCircle className="w-4 h-4 mr-2" />
@@ -263,7 +249,7 @@ export default function YoutubeReadyContent({
   );
 }
 
-export interface YoutubeReadyContentProps {
+export interface MediaReviewDetailProps {
   video: Video;
   onUpdate: (data: UpdateVideoData) => Promise<void>;
 }

@@ -18,15 +18,15 @@ import { UpdateVideoData, ApiVideo } from "@/hooks/useVideos";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface OptimizeReviewContentProps {
+interface ContentReviewDetailProps {
   video: ApiVideo;
   onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
-export function OptimizeReviewContent({
+export function ContentReviewDetail({
   video,
   onUpdate,
-}: OptimizeReviewContentProps) {
+}: ContentReviewDetailProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [titleCorrections, setTitleCorrections] = useState<string | undefined>(
     undefined,
@@ -40,7 +40,7 @@ export function OptimizeReviewContent({
 
     try {
       onUpdate({
-        status: approve ? "upload_review" : "title_corrections",
+        status: approve ? "upload_media" : "content_corrections",
         contentReviewedBy: user?.id,
         contentReviewComments: titleCorrections
           ? [...(video.contentReviewComments ?? []), titleCorrections.trim()]

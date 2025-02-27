@@ -25,7 +25,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 
-interface VideoOptimizerContentProps {
+interface OptimizeContentDetailProps {
   video: Video;
   onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
@@ -34,10 +34,10 @@ type FormValues = Partial<UpdateVideoData>;
 
 const MAX_TITLE_LENGTH = 100;
 
-export function VideoOptimizerContent({
+export function OptimizeContentDetail({
   video,
   onUpdate,
-}: VideoOptimizerContentProps) {
+}: OptimizeContentDetailProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
@@ -68,7 +68,7 @@ export function VideoOptimizerContent({
         optimizedDescription: formData.optimizedDescription,
         tags: formData.tags,
         optimizedTitle: formData.optimizedTitle,
-        status: "optimize_review",
+        status: "content_review"
       });
     } catch (error) {
       console.error("Error al actualizar el video:", error);
@@ -203,7 +203,7 @@ export function VideoOptimizerContent({
                 <AlertDescription className="text-purple-700 dark:text-purple-300 text-sm">
                   Optimiza el título manteniendo la esencia del contenido y
                   mejorando su visibilidad.
-                  {video.status === "title_corrections" && (
+                  {video.status === "media_corrections" && (
                     <p className="mt-1 text-purple-500 dark:text-purple-400 font-medium">
                       Por favor, revisa las correcciones solicitadas antes de
                       volver a enviar.

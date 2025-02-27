@@ -4,14 +4,12 @@ import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useUser } from "@/hooks/use-user";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
 import { CircleUserRound } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const { login, register } = useUser();
+  const { login } = useUser();
   const [, setLocation] = useLocation();
 
   const form = useForm({
@@ -23,16 +21,9 @@ export default function AuthPage() {
 
   const onSubmit = async (data: { username: string; password: string }) => {
     try {
-      if (isLogin) {
-        await login(data);
-        setLocation("/");
-      } else {
-        await register(data);
-        setLocation("/");
-      }
-      toast.success(isLogin ? "¡Bienvenido!" : "Registro exitoso", {
-        description: isLogin ? "Has iniciado sesión correctamente" : "Tu cuenta ha sido creada",
-      });
+      await login(data);
+      setLocation("/");
+      toast.success("¡Bienvenido!", { description: "Has iniciado sesión correctamente" });
     } catch (error: any) {
       toast.error("Error", {
         description: error.message
@@ -53,12 +44,10 @@ export default function AuthPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              {isLogin ? "¡Bienvenido de nuevo!" : "Crear una cuenta"}
+              ¡Bienvenido de nuevo!
             </h1>
             <p className="text-base md:text-lg text-muted-foreground/80 max-w-sm mx-auto">
-              {isLogin
-                ? "Inicia sesión para acceder a tu cuenta y gestionar tus videos"
-                : "Regístrate para comenzar a gestionar tus videos"}
+              Inicia sesión para acceder a tu cuenta y gestionar tus videos
             </p>
           </div>
         </div>
@@ -92,21 +81,10 @@ export default function AuthPage() {
                   </div>
                 </div>
                 <Button type="submit" size="lg" className="w-full h-12 text-base">
-                  {isLogin ? "Iniciar sesión" : "Registrarse"}
+                  Iniciar sesión
                 </Button>
               </form>
             </Form>
-            <div className="mt-6 text-center">
-              <Button
-                variant="ghost"
-                className="text-sm text-muted-foreground hover:text-primary"
-                onClick={() => setIsLogin(!isLogin)}
-              >
-                {isLogin
-                  ? "¿No tienes una cuenta? Regístrate"
-                  : "¿Ya tienes una cuenta? Inicia sesión"}
-              </Button>
-            </div>
           </CardContent>
         </Card>
 

@@ -110,26 +110,26 @@ export function useUser() {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string; }) => {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-        credentials: 'include',
-      });
+  // const registerMutation = useMutation({
+  //   mutationFn: async (userData: { username: string; password: string; }) => {
+  //     const response = await fetch('/api/register', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify(userData),
+  //       credentials: 'include',
+  //     });
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text);
-      }
+  //     if (!response.ok) {
+  //       const text = await response.text();
+  //       throw new Error(text);
+  //     }
 
-      return response.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['/api/user'], data);
-    },
-  });
+  //     return response.json();
+  //   },
+  //   onSuccess: (data) => {
+  //     queryClient.setQueryData(['/api/user'], data);
+  //   },
+  // });
 
   return {
     user,
@@ -137,7 +137,6 @@ export function useUser() {
     isLoading,
     refetch,
     login: loginMutation.mutateAsync,
-    logout: logoutMutation.mutateAsync,
-    register: registerMutation.mutateAsync,
+    logout: logoutMutation.mutateAsync
   };
 }

@@ -14,15 +14,15 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "@/hooks/use-user";
 
-interface UploadReviewContentProps {
+interface UploadContentDetailProps {
   video: ApiVideo;
   onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
-export function UploadReviewContent({
+export function UploadContentDetail({
   video,
   onUpdate,
-}: UploadReviewContentProps) {
+}: UploadContentDetailProps) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -82,7 +82,7 @@ export function UploadReviewContent({
       }
 
       await onUpdate({
-        status: "youtube_ready",
+        status: "media_review",
         videoUrl: videoFile ? videoUrl : video.videoUrl,
         thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl,
         contentUploadedBy: user?.id,
@@ -168,14 +168,9 @@ export function UploadReviewContent({
             onClick={handleUpload}
             className="min-w-[200px]"
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Subiendo...
-              </>
-            ) : (
-              "Subir Archivos"
-            )}
+            {isUploading ? (<> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Subiendo... </>) : 
+              !videoFile && !thumbnailFile ? 'Enviar archivos' : "Subir Archivos"
+            }
           </Button>
         </div>
       </div>

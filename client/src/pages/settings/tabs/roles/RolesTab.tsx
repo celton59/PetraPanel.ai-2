@@ -1,4 +1,3 @@
-import { UserRole } from "@/types/user";
 import {
   Table,
   TableBody,
@@ -16,16 +15,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { User } from "@db/schema";
 
-const roleDescriptions: Record<UserRole, string> = {
+const roleDescriptions: Record<User['role'], string> = {
   admin: "Control total del sistema",
   reviewer: "Revisa y aprueba videos",
   optimizer: "Optimiza títulos y metadatos",
   youtuber: "Gestiona el canal de YouTube",
-  uploader: "Sube y organiza videos",
+  content_reviewer: "Revisa y aprueba contenido",
+  media_reviewer: "Revisa y aprueba medios",
 };
 
-const rolePermissions: Record<UserRole, string[]> = {
+const rolePermissions: Record<User['role'], string[]> = {
   admin: [
     "Gestionar usuarios y roles",
     "Gestionar proyectos",
@@ -46,15 +47,20 @@ const rolePermissions: Record<UserRole, string[]> = {
     "Gestionar playlists",
     "Ver analytics de YouTube",
   ],
-  uploader: [
-    "Subir nuevos videos",
-    "Organizar videos por proyecto",
-    "Asignar videos a revisores",
+  content_reviewer: [
+    "Ver videos pendientes de revisión",
+    "Aprobar o rechazar videos",
+    "Añadir comentarios de revisión",
   ],
+  media_reviewer: [
+    "Ver videos pendientes de revisión",
+    "Aprobar o rechazar videos",
+    "Añadir comentarios de revisión",
+  ]
 };
 
 export const RolesTab = () => {
-  const roles: UserRole[] = ["admin", "reviewer", "optimizer", "youtuber", "uploader"];
+  const roles: User['role'][] = ["admin", "reviewer", "optimizer", "youtuber"];
 
   return (
     <div className="space-y-6">
