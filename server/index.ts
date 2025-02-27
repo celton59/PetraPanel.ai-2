@@ -14,44 +14,54 @@ app.use(express.urlencoded({ extended: false }));
 // Es necesario para que Cloudflare pueda pasar las cabeceras correctamente
 app.set('trust proxy', true);
 
-// Middleware específico para detectar y corregir problemas de HTTPS y redirecciones en Cloudflare Flexible SSL
+// CORRECCIÓN CRÍTICA: Middleware de redirección universal para Cloudflare con Flexible SSL
 app.use((req, res, next) => {
   const host = req.get('host') || '';
   
-  // Específicamente para petrapanel.ai o su dominio de Replit
-  if (host === 'petrapanel.ai' || 
-      host === 'www.petrapanel.ai' || 
-      host === 'petra-panel-ai-celton59.replit.app') {
-    
-    // 1. Sobrescribir el método redirect para evitar bucles de redirección
-    const originalRedirect = res.redirect;
-    res.redirect = function(url: string | number): any {
-      console.log('INTERCEPCIÓN DE REDIRECCIÓN EN PETRAPANEL:', typeof url === 'number' ? 'código: ' + url : url);
-      
-      // Si es una redirección a HTTPS y estamos en Cloudflare Flexible, evitarla
-      if (typeof url === 'string' && url.startsWith('https://')) {
-        console.log('BLOQUEANDO redirección a HTTPS para evitar bucle en Cloudflare Flexible');
-        return next(); // Continuar sin redirección
-      }
-      
-      // Si es 301/302 a HTTPS, mejor no redirigir en Cloudflare Flexible
-      if (typeof url === 'number' && (url === 301 || url === 302)) {
-        console.log('BLOQUEANDO redirección de código', url, 'para evitar bucle');
-        return next(); // Continuar sin redirección
-      }
-      
-      return originalRedirect.apply(this, arguments as any);
-    };
-    
-    // 2. Forzar protocolo HTTP para este dominio específico
-    Object.defineProperty(req, 'protocol', {
-      value: 'http',
-      configurable: true
-    });
-    
-    console.log('Aplicada prevención de bucles de redirección para', host);
-  }
+  // SOLUCIÓN RADICAL: Para CUALQUIER dominio, deshabilitar redirecciones y forzar HTTP siempre
   
+  // 1. Sobrescribir el método redirect para TODAS las redirecciones
+  const originalRedirect = res.redirect;
+  res.redirect = function(url: string | number): any {
+    console.log('⚠️ INTERCEPTANDO TODAS LAS REDIRECCIONES:', typeof url === 'number' ? 'código: ' + url : url);
+    
+    // BLOQUEAR TODAS las redirecciones, sin importar el tipo o destino
+    console.log('⛔ TODAS LAS REDIRECCIONES BLOQUEADAS - Continuando sin redirigir');
+    
+    // Si hay un request HTTPS, simplemente continuar sin redirección
+    if ((req.secure || req.get('x-forwarded-proto') === 'https') && 
+        (typeof url === 'string' && url.startsWith('https://'))) {
+      console.log('🔒 → 🔓 Petición HTTPS detectada sin redirección');
+      return next();
+    }
+    
+    // Si es un código de redirección, ignorarlo completamente
+    if (typeof url === 'number') {
+      return res.status(200).send('Redirección bloqueada por configuración de Cloudflare Flexible SSL');
+    }
+    
+    // Para cualquier otra redirección, continuar normalmente
+    return next();
+  };
+  
+  // 2. Forzar protocolo para TODOS los dominios como solución extrema
+  Object.defineProperty(req, 'protocol', {
+    value: 'http',
+    configurable: true,
+    writable: true
+  });
+  
+  // 3. Forzar el valor de secure
+  Object.defineProperty(req, 'secure', {
+    value: false,
+    configurable: true,
+    writable: true
+  });
+  
+  // 4. Modificar headers para garantizar consistencia
+  req.headers['x-forwarded-proto'] = 'http';
+  
+  console.log('🔧 Aplicada prevención RADICAL de bucles de redirección para TODOS los hosts');
   next();
 });
 
