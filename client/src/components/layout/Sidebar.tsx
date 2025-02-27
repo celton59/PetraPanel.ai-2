@@ -15,7 +15,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser()
 
-  const isAdmin = user?.role === 'admin' || false;
+  const isAdmin = user?.role === 'admin';
 
   const menuItems = [
     { icon: Home, label: "Dashboard", path: "/" },

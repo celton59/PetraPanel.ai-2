@@ -37,9 +37,9 @@ export function UserMenu({ className }: UserMenuProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar>
-                <AvatarImage src={user?.avatarUrl || undefined} />
+                <AvatarImage src={user.avatarUrl || undefined} />
                 <AvatarFallback>
-                  {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                  {user.username.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -53,9 +53,9 @@ export function UserMenu({ className }: UserMenuProps) {
           >
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.username || 'Usuario'}</p>
+                <p className="text-sm font-medium leading-none">{user.username}</p>
                 <p className="text-xs leading-none text-muted-foreground capitalize">
-                  {user?.role || 'usuario'}
+                  {user.role}
                 </p>
               </div>
             </DropdownMenuLabel>
