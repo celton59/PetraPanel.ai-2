@@ -73,7 +73,7 @@ app.use((req, res, next) => {
 
     // Iniciar el servidor
     const PORT = process.env.PORT || 3000;
-    server.listen(Number(PORT), "0.0.0.0", () => {
+    server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on http://0.0.0.0:${PORT}`);
     });
   } catch (error) {

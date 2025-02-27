@@ -29,7 +29,7 @@ const uploader = aliasedTable(users, "uploader");
 
 const statusTransitions: Record<
   User["role"],
-  Partial<Record<VideoStatus, VideoStatus[]>>
+  Record<VideoStatus, VideoStatus[]>
 > = {
   optimizer: {
     available: ["content_review"],
@@ -43,54 +43,58 @@ const statusTransitions: Record<
   },
   reviewer: {
     available: [],
-    content_corrections: [],
-    content_review: ["upload_media", "content_corrections"],
-    upload_media: [],
-    media_corrections: ["media_review"],
-    media_review: ["final_review", "media_corrections"],
-    final_review: [],
+    optimize_review: ["title_corrections", "upload_review"],
+    title_corrections: ["optimize_review"],
+    upload_review: [],
+    youtube_ready: ["media_corrections", "review"],
+    media_corrections: [],
+    review: [],
     completed: [],
   },
   content_reviewer: {
-    available: [],
-    content_corrections: ["content_review"],
-    content_review: ["upload_media", "content_corrections"],
-    upload_media: [],
+    pending: [],
+    in_progress: [],
+    optimize_review: ["title_corrections", "upload_review"],
+    title_corrections: ["optimize_review"],
+    upload_review: [],
+    youtube_ready: [],
     media_corrections: [],
-    media_review: [],
-    final_review: [],
+    review: [],
     completed: [],
   },
   media_reviewer: {
-    available: [],
-    content_corrections: [],
-    content_review: [],
-    upload_media: ["media_review"],
-    media_corrections: ["media_review"],
-    media_review: ["final_review", "media_corrections"],
-    final_review: [],
+    pending: [],
+    in_progress: [],
+    optimize_review: [],
+    title_corrections: [],
+    upload_review: [],
+    youtube_ready: ["media_corrections", "review"],
+    media_corrections: [],
+    review: [],
     completed: [],
   },
   admin: {
     // Validation not applied to admins
-    available: [],
-    content_corrections: [],
-    content_review: [],
-    upload_media: [],
+    pending: [],
+    in_progress: [],
+    title_corrections: [],
+    optimize_review: [],
+    upload_review: [],
+    review: [],
     media_corrections: [],
-    media_review: [],
-    final_review: [],
+    youtube_ready: [],
     completed: [],
   },
   youtuber: {
-    available: [],
-    content_corrections: [],
-    content_review: [],
-    upload_media: ["media_review"],
-    media_corrections: ["media_review"],
-    media_review: [],
-    final_review: [],
     completed: [],
+    in_progress: [],
+    media_corrections: ["youtube_ready"],
+    optimize_review: [],
+    pending: [],
+    review: [],
+    title_corrections: [],
+    upload_review: ["youtube_ready"],
+    youtube_ready: [],
   },
 };
 
@@ -152,20 +156,17 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
 
     if (
       updates.status &&
-      req.user.role !== "admin" && 
-      currentVideo.status && 
-      statusTransitions[req.user.role] && 
-      statusTransitions[req.user.role][currentVideo.status as VideoStatus]
+      req.user.role !== "admin" &&
+      !statusTransitions[req.user.role][currentVideo.status].includes(
+        updates.status,
+      )
     ) {
-      const allowedStatuses = statusTransitions[req.user.role][currentVideo.status as VideoStatus] || [];
-      if (!allowedStatuses.includes(updates.status as VideoStatus)) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "No se puede actualizar a este estado",
-          });
-      }
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "No se puede actualizar a este estado",
+        });
     }
 
     // Actualizar el video con la metadata combinada

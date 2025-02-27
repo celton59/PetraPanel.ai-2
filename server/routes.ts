@@ -127,15 +127,15 @@ export function registerRoutes(app: Express): Server {
       try {
         const stats = await db
           .select({
-            userId: videos.optimizedBy,
+            userId: videos.currentReviewerId,
             username: users.username,
             fullName: users.fullName,
             optimizations: count(),
           })
           .from(videos)
-          .innerJoin(users, eq(users.id, videos.optimizedBy))
+          .innerJoin(users, eq(users.id, videos.currentReviewerId))
           .where(sql`${videos.optimizedTitle} is not null`)
-          .groupBy(videos.optimizedBy, users.username, users.fullName);
+          .groupBy(videos.currentReviewerId, users.username, users.fullName);
 
         res.json(stats);
       } catch (error) {
@@ -147,7 +147,29 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    // This route has been replaced by the one at the bottom of the file using StatsService
+    app.get("/api/stats/uploads", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const stats = await db
+          .select({
+            userId: videos.createdById,
+            username: users.username,
+            fullName: users.fullName,
+            uploads: count(),
+          })
+          .from(videos)
+          .innerJoin(users, eq(users.id, videos.createdById))
+          .where(sql`${videos.videoUrl} is not null`)
+          .groupBy(videos.createdById, users.username, users.fullName);
+
+        res.json(stats);
+      } catch (error) {
+        console.error("Error fetching upload stats:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener estadísticas de subidas"
+        });
+      }
+    });
 
     // Projects routes
 
@@ -215,7 +237,7 @@ export function registerRoutes(app: Express): Server {
         // Verificar contraseña actual
         const user = await db.select()
           .from(users)
-          .where(eq(users.id, req.user!.id as number))
+          .where(eq(users.id, req.user!.id))
           .limit(1);
 
         if (!user.length) {
@@ -240,7 +262,7 @@ export function registerRoutes(app: Express): Server {
         const newHashedPassword = await hashPassword(newPassword);
         await db.update(users)
           .set({ password: newHashedPassword})
-          .where(eq(users.id, req.user!.id as number));
+          .where(eq(users.id, req.user!.id));
 
         res.json({
           success: true,

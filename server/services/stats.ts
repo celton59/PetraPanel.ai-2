@@ -10,7 +10,7 @@ export class StatsService {
         uploads: count(videos.videoUrl),
       })
       .from(videos)
-      .where(eq(videos.createdBy, userId));
+      .where(eq(videos.createdById, userId));
 
     return stats;
   }
@@ -18,15 +18,15 @@ export class StatsService {
   static async getOptimizationStats() {
     const stats = await db
       .select({
-        userId: videos.optimizedBy,
+        userId: videos.currentReviewerId,
         username: users.username,
         fullName: users.fullName,
         optimizations: count(),
       })
       .from(videos)
-      .innerJoin(users, eq(users.id, videos.optimizedBy))
+      .innerJoin(users, eq(users.id, videos.currentReviewerId))
       .where(sql`${videos.optimizedTitle} is not null`)
-      .groupBy(videos.optimizedBy, users.username, users.fullName);
+      .groupBy(videos.currentReviewerId, users.username, users.fullName);
 
     return stats;
   }
@@ -34,15 +34,15 @@ export class StatsService {
   static async getUploadStats() {
     const stats = await db
       .select({
-        userId: videos.createdBy,
+        userId: videos.createdById,
         username: users.username,
         fullName: users.fullName,
         uploads: count(),
       })
       .from(videos)
-      .innerJoin(users, eq(users.id, videos.createdBy))
+      .innerJoin(users, eq(users.id, videos.createdById))
       .where(sql`${videos.videoUrl} is not null`)
-      .groupBy(videos.createdBy, users.username, users.fullName);
+      .groupBy(videos.createdById, users.username, users.fullName);
 
     return stats;
   }
