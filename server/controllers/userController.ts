@@ -12,7 +12,7 @@ const createUserSchema = z.object({
   username: z.string().min(3).max(30),
   email: z.string().email(),
   password: z.string().min(6).max(30),
-  role: z.enum(["admin", "uploader", "reviewer", "optimizer", "youtuber"]),
+  role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"]),
   fullName: z.string().min(3).max(30),
   phone: z.string().min(10).max(10).optional(),
   bio: z.string().min(3).max(30).optional(),
@@ -28,7 +28,7 @@ const updateUserSchema = z.object({
   projectIds: z.array(z.number()).min(1).optional(),
   email: z.string().email().optional(),
   role: z
-    .enum(["admin", "uploader", "reviewer", "optimizer", "youtuber"])
+    .enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"])
     .optional(),
 });
 

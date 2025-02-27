@@ -12,14 +12,15 @@ interface RoleSelectorProps {
   onChange: (value: User['role']) => void;
 }
 
-export const RoleSelector = ({ value, onChange }: RoleSelectorProps) => {
+export function RoleSelector ({ value, onChange }: RoleSelectorProps) {
 
   const roles: Record<User['role'], string> = {
     youtuber: "Youtuber",
     reviewer: "Reviewer",
     optimizer: "Optimizer",
     admin: 'Admin',
-    uploader: 'Uploader'
+    content_reviewer: 'Content Reviewer',
+    media_reviewer: 'Media Reviewer',
   }
   
   return (

@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.awscli2
     pkgs.wget
     pkgs.sox
     pkgs.libsndfile

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { PersonalInfoSection } from "./info/PersonalInfoSection";
 import { SecuritySection } from "./security/SecuritySection";
-import { useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -28,11 +27,11 @@ const userFormSchema = z.object({
   email: z.string().email("Email inválido"),
   phone: z.string().optional(),
   bio: z.string().optional(),
-  role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "uploader"] as const),
+  role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer" ] as const).optional(),
   password: z.string().optional(),
 });
 
-type UserFormData = z.infer<typeof userFormSchema>;
+export type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserSettingsFormProps {
   user: ApiUser | undefined;
@@ -51,7 +50,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       ? user.projectAccess.map((p) => p.projectId)
       : []
   );
-  const queryClient = useQueryClient();
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
@@ -61,7 +59,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       email: user?.email ?? '',
       phone: user?.phone ? user.phone : undefined,
       bio: user?.bio ? user.bio : undefined,
-      role: (user?.role) || "uploader",
+      role: user?.role ?? undefined,
       password: "",
     },
   });
@@ -134,6 +132,8 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
               <PersonalInfoSection
                 form={form}
                 formData={{
+                  role: user?.role,
+                  password: "",
                   full_name: form.watch("full_name"),
                   username: form.watch("username"),
                   email: form.watch("email"),
@@ -155,8 +155,13 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
               <SecuritySection
                 form={form}
                 formData={{
-                  role: form.watch("role"),
-                  password: form.watch("password") || "",
+                  role: user?.role,
+                  password: "",
+                  full_name: form.watch("full_name"),
+                  username: form.watch("username"),
+                  email: form.watch("email"),
+                  phone: form.watch("phone") || "",
+                  bio: form.watch("bio") || "",
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {

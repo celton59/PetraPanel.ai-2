@@ -73,13 +73,10 @@ export function VideoDetailDialog({ video, onUpdate }: VideoCardProps) {
     },
   });
 
-  async function handleAdminEdit(data: UpdateVideoData) {
-    await onUpdate(data);
-    setIsEditing(false);
-  }
 
   function renderCardContent() {
     switch (video.status) {
+      case "pending":
       case "in_progress":
       case "title_corrections":
         return (
@@ -106,155 +103,6 @@ export function VideoDetailDialog({ video, onUpdate }: VideoCardProps) {
       case "youtube_ready":
       case "review":
         return <YoutubeReadyContent video={video} onUpdate={onUpdate} />;      
-      case "pending":
-        return (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {video.optimizedDescription || video.description}
-            </p>
-
-            {video.tags && (
-              <div className="flex flex-wrap gap-2">
-                {video.tags.split(",").map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag.trim()}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              {new Date(
-                video.updatedAt || video.createdAt || Date.now(),
-              ).toLocaleDateString()}
-            </div>
-
-            <div className="space-y-4">
-              {/* <VideoStatusControl
-                videoId={video.id}
-                currentStatus={video.status as VideoStatus}
-                userRole={userRole}
-                onUpdateStatus={(videoId, data) => onUpdate(videoId, data)}
-              /> */}
-
-              <Button
-                size="sm"
-                className="w-full flex items-center justify-center"
-                onClick={async () => {
-                  onUpdate({
-                    status: "in_progress",
-                    optimizedBy: user?.id,
-                  });
-                }}
-              >
-                <PlayCircle className="mr-2 h-4 w-4" />
-                <span>Optimizar</span>
-              </Button>
-
-              {user?.role === "admin" && (
-                <Dialog open={isEditing} onOpenChange={setIsEditing}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full flex items-center justify-center"
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar (Admin)
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Editar Video</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                      <form
-                        onSubmit={form.handleSubmit(handleAdminEdit)}
-                        className="space-y-4"
-                      >
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Título Original
-                          </label>
-                          <Input {...form.register("title")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Descripción Original
-                          </label>
-                          <Textarea {...form.register("description")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Título Optimizado
-                          </label>
-                          <Input {...form.register("optimizedTitle")} />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Descripción Optimizada
-                          </label>
-                          <Textarea
-                            {...form.register("optimizedDescription")}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Tags (separados por comas)
-                          </label>
-                          <Input {...form.register("tags")} />
-                        </div>
-                        <Button type="submit" className="w-full">
-                          Guardar Cambios
-                        </Button>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              )}
-
-              {video.videoUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a
-                    href={video.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                    Ver Video
-                  </a>
-                </Button>
-              )}
-
-              {video.thumbnailUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a
-                    href={video.thumbnailUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Image className="mr-2 h-4 w-4" />
-                    Ver Miniatura
-                  </a>
-                </Button>
-              )}
-
-              {video.youtubeUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a
-                    href={video.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Youtube className="mr-2 h-4 w-4" />
-                    Ver en YouTube
-                  </a>
-                </Button>
-              )}
-            </div>
-          </div>
-        );
     }
   }
 

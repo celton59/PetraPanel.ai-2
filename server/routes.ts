@@ -2,8 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
-import { users, projects, videos, projectAccess } from "@db/schema"; 
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { users, videos } from "@db/schema"; 
+import { eq, count, sql } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import sharp from "sharp";
@@ -11,8 +11,7 @@ import fs from "fs";
 import express from "express";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-import { Client } from '@replit/object-storage';
-import { BackupService } from "./services/backup";
+// import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import translatorRouter from "./routes/translator";
 import VideoController from "./controllers/videoController";
@@ -58,8 +57,6 @@ const videoUpload = multer({
     fileSize: 1024 * 1024 * 1024 // 1GB limit
   }
 });
-
-const client = new Client();
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -386,120 +383,74 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    // Video streaming endpoint
-    app.get("/api/videos/stream/:type/:filename", requireAuth, async (req: Request, res: Response) => {
-      const { type, filename } = req.params;
-      const objectKey = `videos/${type}/${filename}`;
-
-      try {
-        // Configurar headers de caché para miniaturas
-        if (type === 'thumbnail') {
-          res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache por 1 año
-          res.setHeader('Content-Type', 'image/jpeg');
-        } else {
-          res.setHeader('Content-Type', 'video/mp4');
-        }
-
-        const stream = await client.downloadAsStream(objectKey);
-
-        if (!stream) {
-          console.error("Error downloading file: stream is null");
-          return res.status(404).json({
-            success: false,
-            message: "Archivo no encontrado"
-          });
-        }
-
-        // Manejar errores en el stream
-        stream.on('error', (err) => {
-          console.error("Stream error:", err);
-          if (!res.headersSent) {
-            res.status(500).json({
-              success: false,
-              message: "Error al transmitir el archivo"
-            });
-          }
-        });
-
-        // Pipe el stream a la respuesta
-        stream.pipe(res);
-      } catch (error: any) {
-        console.error("Error streaming file:", error);
-        return res.status(500).json({
-          success: false,
-          message: error.message || "Error al obtener el archivo"
-        });
-      }
-    });
-
     // Initialize backup service
-    const backupService = new BackupService();
+    // const backupService = new BackupService();
 
     // Backup routes
-    app.post("/api/projects/:id/backup", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const projectId = parseInt(req.params.id);
-        const metadata = await backupService.createBackup(projectId);
+    // app.post("/api/projects/:id/backup", requireAuth, async (req: Request, res: Response) => {
+    //   try {
+    //     const projectId = parseInt(req.params.id);
+    //     const metadata = await backupService.createBackup(projectId);
 
-        res.json({
-          success: true,
-          data: metadata,
-          message: "Backup created successfully"
-        });
-      } catch (error) {
-        console.error("Error creating backup:", error);
-        res.status(500).json({
-          success: false,
-          message: error instanceof Error ? error.message : "Error creating backup"
-        });
-      }
-    });
+    //     res.json({
+    //       success: true,
+    //       data: metadata,
+    //       message: "Backup created successfully"
+    //     });
+    //   } catch (error) {
+    //     console.error("Error creating backup:", error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error instanceof Error ? error.message : "Error creating backup"
+    //     });
+    //   }
+    // });
 
-    app.get("/api/projects/:id/backups", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const projectId = parseInt(req.params.id);
-        const backups = await backupService.listBackups(projectId);
+    // app.get("/api/projects/:id/backups", requireAuth, async (req: Request, res: Response) => {
+    //   try {
+    //     const projectId = parseInt(req.params.id);
+    //     const backups = await backupService.listBackups(projectId);
 
-        res.json({
-          success: true,
-          data: backups,
-          message: "Backups retrieved successfully"
-        });
-      } catch (error) {
-        console.error("Error listing backups:", error);
-        res.status(500).json({
-          success: false,
-          message: error instanceof Error ? error.message : "Error listing backups"
-        });
-      }
-    });
+    //     res.json({
+    //       success: true,
+    //       data: backups,
+    //       message: "Backups retrieved successfully"
+    //     });
+    //   } catch (error) {
+    //     console.error("Error listing backups:", error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error instanceof Error ? error.message : "Error listing backups"
+    //     });
+    //   }
+    // });
 
-    app.post("/api/projects/:id/restore", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const projectId = parseInt(req.params.id);
-        const { timestamp } = req.body;
+    // app.post("/api/projects/:id/restore", requireAuth, async (req: Request, res: Response) => {
+    //   try {
+    //     const projectId = parseInt(req.params.id);
+    //     const { timestamp } = req.body;
 
-        if (!timestamp) {
-          return res.status(400).json({
-            success: false,
-            message: "Timestamp is required for restoration"
-          });
-        }
+    //     if (!timestamp) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: "Timestamp is required for restoration"
+    //       });
+    //     }
 
-        await backupService.restoreFromBackup(projectId, timestamp);
+    //     await backupService.restoreFromBackup(projectId, timestamp);
 
-        res.json({
-          success: true,
-          message: "Project restored successfully"
-        });
-      } catch (error) {
-        console.error("Error restoring backup:", error);
-        res.status(500).json({
-          success: false,
-          message: error instanceof Error ? error.message : "Error restoring backup"
-        });
-      }
-    });
+    //     res.json({
+    //       success: true,
+    //       message: "Project restored successfully"
+    //     });
+    //   } catch (error) {
+    //     console.error("Error restoring backup:", error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error instanceof Error ? error.message : "Error restoring backup"
+    //     });
+    //   }
+    // });
 
     // Stats routes
     app.get("/api/stats/overall", requireAuth, async (req: Request, res: Response) => {
@@ -556,50 +507,6 @@ export function registerRoutes(app: Express): Server {
         res.status(500).json({
           success: false,
           message: "Error al obtener estadísticas del usuario"
-        });
-      }
-    });
-
-    // Ruta para subir miniaturas
-    app.post("/api/upload/thumbnail", requireAuth, videoUpload.single('thumbnail'), async (req: Request, res: Response) => {
-      try {
-        if (!req.file) {
-          return res.status(400).json({
-            success: false,
-            message: "No se proporcionó ningún archivo"
-          });
-        }
-
-        const fileName = `thumbnail-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
-
-        // Subir al object storage usando la API correcta
-        await client.putObject(
-          BUCKET_ID,
-          fileName,
-          req.file.buffer || fs.readFileSync(req.file.path),
-          {
-            accessControl: 'public-read',
-          }
-        );
-
-        // Si el archivo se guardó temporalmente en el disco, eliminarlo
-        if (req.file.path) {
-          fs.unlinkSync(req.file.path);
-        }
-
-        // Obtener la URL pública
-        const fileUrl = await client.getSignedUrl(BUCKET_ID, fileName, { expiresIn: 3600 * 24 * 365 }); // URL válida por 1 año
-
-        res.json({
-          success: true,
-          url: fileUrl,
-          message: "Miniatura subida correctamente"
-        });
-      } catch (error) {
-        console.error("Error uploading thumbnail:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al subir la miniatura"
         });
       }
     });

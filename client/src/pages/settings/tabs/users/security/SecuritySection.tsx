@@ -1,40 +1,30 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
-import { RoleSelector } from "../RoleSelector";
+import { RoleSelector } from "./RoleSelector";
 import { Shield, Lock } from "lucide-react";
 import { UseFormReturn } from "react-hook-form"
 import { ProjectSelector } from "./ProjectSelector";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { User } from "@db/schema";
+import { UserFormData } from "../UserSettingsForm";
 
 interface SecuritySectionProps {
-  formData: {
-    role: User["role"];
-    password?: string;
-  };
+  formData: UserFormData;
   setFormData: (data: Partial<SecuritySectionProps['formData']>) => void;
   isEditing: boolean;
   selectedProjects: number[];
   setSelectedProjects: (projects: number[]) => void;
-  form: UseFormReturn<{
-    full_name: string;
-    username: string;
-    email: string;
-    phone?: string;
-    bio?: string;
-    role: User["role"];
-    password?: string;
-  }>;
+  form: UseFormReturn<UserFormData>;
 }
 
-export const SecuritySection = ({
+export function SecuritySection ({
   formData,
   setFormData,
   isEditing,
   selectedProjects,
   setSelectedProjects,
   form,
-}: SecuritySectionProps) => {
+}: SecuritySectionProps) {
   return (
     <Card className="p-6 space-y-6">
       <div className="space-y-2">

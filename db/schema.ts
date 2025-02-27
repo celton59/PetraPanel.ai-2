@@ -10,7 +10,7 @@ export const users = pgTable("users", {
   email: text("email"),
   bio: text("bio"),
   phone: text("phone"),
-  role: text("role", { enum: ["uploader", "admin", "reviewer", "optimizer", "youtuber"] }).notNull().default("uploader"),
+  role: text("role", { enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"] }).notNull(),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -36,6 +36,9 @@ export const projectAccess = pgTable("project_access", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// This has to be equal to the 'status' attribute, this is only used for other code
+export const VIDEO_STATUSES_ARRAY: readonly [string, ...string[]] = ['available', 'content_corrections', 'content_review', 'upload_media', 'media_corrections', 'media_review', 'final_review', 'completed'];
+
 export const videos = pgTable("videos", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
@@ -43,8 +46,7 @@ export const videos = pgTable("videos", {
     .references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  status: text("status", { enum: ['pending', 'in_progress', 'title_corrections', 'optimize_review', 'upload_review',
-    'youtube_ready', 'review', 'media_corrections', 'completed'] }).notNull().default('pending'),
+  status: text("status", { enum: ['available', 'content_corrections', 'content_review', 'upload_media', 'media_corrections', 'media_review', 'final_review', 'completed'] }).notNull().default('available'),
   youtubeUrl: text("youtube_url"),
   createdBy: integer("created_by").references(() => users.id),
   tags: text("tags"),

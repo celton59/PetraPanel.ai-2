@@ -80,6 +80,8 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   reviewer: ["optimize_review", "youtube_ready"],
   youtuber: ["upload_review", "media_corrections"],
   uploader: [],
+  content_reviewer: ['optimize_review'],
+  media_reviewer: ['youtube_ready']
 };
 
 export default function VideosPage() {

@@ -4,35 +4,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { User as UserIcon, UserRound, Mail, Phone, Type, Loader2, Check, X } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
-import { User } from "@db/schema";
+import { UserFormData } from "../UserSettingsForm";
 
 interface PersonalInfoSectionProps {
-  formData: {
-    full_name: string;
-    username: string;
-    email: string;
-    phone?: string;
-    bio?: string;
-  };
+  formData: UserFormData;
   setFormData: (data: Partial<PersonalInfoSectionProps['formData']>) => void;
   isCheckingUsername: boolean;
   isCheckingEmail: boolean;
-  form: UseFormReturn<{
-    full_name: string;
-    username: string;
-    email: string;
-    phone?: string;
-    bio?: string;
-    role: User['role'];
-    password?: string;
-  }>;
+  form: UseFormReturn<UserFormData>;
 }
 
-export const PersonalInfoSection = ({
+export function PersonalInfoSection ({
   form,
   isCheckingUsername,
   isCheckingEmail,
-}: PersonalInfoSectionProps) => {
+}: PersonalInfoSectionProps) {
   const getFieldIcon = (fieldName: "username" | "email") => {
     const isChecking = fieldName === "username" ? isCheckingUsername : isCheckingEmail;
     const hasError = !!form.formState.errors[fieldName];

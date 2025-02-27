@@ -85,7 +85,7 @@ export function UploadReviewContent({
         status: "youtube_ready",
         videoUrl: videoFile ? videoUrl : video.videoUrl,
         thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl,
-        contentUploadedBy: user.id,
+        contentUploadedBy: user?.id,
       });
       toast.success("Archivos subidos correctamente");
     } catch (error: any) {
