@@ -47,26 +47,41 @@ export function setupAuth(app: Express) {
       checkPeriod: 86400000, // 24 horas
     }),
     proxy: true, // Esencial para entornos con proxies como Cloudflare
-    // Configuración de cookie que se aplicará dinámicamente
+    // Configuración de cookie diseñada ESPECÍFICAMENTE para funcionar con Cloudflare Flexible SSL
     cookie: {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
       sameSite: 'lax',
-      secure: false // Por defecto FALSE para todos los casos
+      secure: false, // IMPORTANTE: siempre FALSE para Cloudflare Flexible
     }
   };
+  
+  // Actualización importante: log de nuestra configuración final de cookie
+  console.log('Configuración de cookie de sesión:', {
+    httpOnly: sessionSettings.cookie?.httpOnly,
+    secure: sessionSettings.cookie?.secure,
+    sameSite: sessionSettings.cookie?.sameSite,
+    proxy: sessionSettings.proxy
+  });
   
   // Middleware especial para configurar las cookies según el dominio
   // En lugar de modificar sessionOptions que no está disponible en el tipo Request,
   // modificaremos la configuración global según el dominio identificado
   app.use((req, res, next) => {
     const host = req.get('host') || '';
-    const isPetraPanelDomain = host === 'petrapanel.ai' || host === 'www.petrapanel.ai';
-    const isCloudflare = req.headers['cf-ray'] || req.headers['cf-connecting-ip'] || req.headers['cf-visitor'];
+    const isPetraPanelDomain = host === 'petrapanel.ai' || 
+                            host === 'www.petrapanel.ai' || 
+                            host === 'petra-panel-ai-celton59.replit.app';
     
-    // Aplicamos configuración especial para el dominio de petrapanel.ai
-    if (isPetraPanelDomain && isCloudflare) {
+    const isCloudflare = req.headers['cf-ray'] || 
+                        req.headers['cf-connecting-ip'] || 
+                        req.headers['cf-visitor'] ||
+                        host === 'petrapanel.ai' || 
+                        host === 'www.petrapanel.ai';
+    
+    // Aplicamos configuración especial para el dominio de petrapanel.ai o replit
+    if (isPetraPanelDomain) {
       console.log('Configurando sesión para dominio:', host, '(Cloudflare Flexible SSL)');
       
       // Para Cloudflare Flexible SSL: asegurar que secure=false, incluso en HTTPS

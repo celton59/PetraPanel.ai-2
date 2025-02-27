@@ -15,6 +15,20 @@ async function handleRequest(
   body?: { username: string; password: string; }
 ): Promise<RequestResult> {
   try {
+    // Detectar dominio petrapanel.ai para manejar Cloudflare Flexible SSL
+    const isPetraPanelDomain = 
+      window.location.host === 'petrapanel.ai' || 
+      window.location.host === 'www.petrapanel.ai' ||
+      window.location.host === 'petra-panel-ai-celton59.replit.app';
+
+    // Log información para depuración
+    console.log('Realizando solicitud API:', {
+      url,
+      host: window.location.host,
+      protocol: window.location.protocol,
+      isPetraPanelDomain
+    });
+
     const response = await fetch(url, {
       method,
       headers: body ? { "Content-Type": "application/json" } : undefined,
@@ -34,6 +48,11 @@ async function handleRequest(
       } catch {
         message = text;
       }
+      console.error('API error:', {
+        status: response.status,
+        url,
+        message
+      });
       return { ok: false, message };
     }
 
@@ -46,21 +65,48 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   try {
+    // Detectar entorno petrapanel.ai para diagnóstico
+    const isPetraPanelDomain = 
+      window.location.host === 'petrapanel.ai' || 
+      window.location.host === 'www.petrapanel.ai' ||
+      window.location.host === 'petra-panel-ai-celton59.replit.app';
+    
+    console.log('Verificando usuario en:', {
+      host: window.location.host,
+      protocol: window.location.protocol,
+      isPetraPanelDomain
+    });
+    
     const response = await fetch('/api/user', {
       credentials: 'include'
     });
 
     if (!response.ok) {
       if (response.status === 401) {
+        console.log('No autenticado, redirigiendo a login', {
+          status: response.status,
+          host: window.location.host
+        });
         return null;
       }
-      throw new Error(await response.text());
+      const errorText = await response.text();
+      console.error('Error obteniendo usuario:', {
+        status: response.status,
+        error: errorText,
+        host: window.location.host
+      });
+      throw new Error(errorText);
     }
 
     const data = await response.json();
+    console.log('Usuario autenticado correctamente:', {
+      username: data.username,
+      role: data.role,
+      host: window.location.host
+    });
     return data;
   } catch (error) {
-    console.error("Error fetching user:", error);
+    console.error("Error fetchUser:", error);
     throw error;
   }
 }
@@ -77,6 +123,19 @@ export function useUser() {
 
   const loginMutation = useMutation({
     mutationFn: async (userData: { username: string; password: string; }) => {
+      // Detectar dominio petrapanel.ai para manejar Cloudflare Flexible SSL
+      const isPetraPanelDomain = 
+        window.location.host === 'petrapanel.ai' || 
+        window.location.host === 'www.petrapanel.ai' ||
+        window.location.host === 'petra-panel-ai-celton59.replit.app';
+        
+      console.log('Intentando login en:', {
+        host: window.location.host,
+        protocol: window.location.protocol,
+        isPetraPanelDomain,
+        username: userData.username
+      });
+      
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,12 +145,19 @@ export function useUser() {
 
       if (!response.ok) {
         const text = await response.text();
+        console.error('Error de login:', {
+          status: response.status,
+          error: text,
+          host: window.location.host
+        });
         throw new Error(text);
       }
 
+      console.log('Login exitoso para usuario:', userData.username);
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Estableciendo datos de usuario tras login exitoso:', data.username);
       queryClient.invalidateQueries()
       queryClient.setQueryData(['/api/user'], data);
     },
@@ -112,6 +178,19 @@ export function useUser() {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: { username: string; password: string; }) => {
+      // Detectar dominio petrapanel.ai para manejar Cloudflare Flexible SSL
+      const isPetraPanelDomain = 
+        window.location.host === 'petrapanel.ai' || 
+        window.location.host === 'www.petrapanel.ai' ||
+        window.location.host === 'petra-panel-ai-celton59.replit.app';
+        
+      console.log('Intentando registro en:', {
+        host: window.location.host,
+        protocol: window.location.protocol,
+        isPetraPanelDomain,
+        username: userData.username
+      });
+      
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,12 +200,20 @@ export function useUser() {
 
       if (!response.ok) {
         const text = await response.text();
+        console.error('Error de registro:', {
+          status: response.status,
+          error: text,
+          host: window.location.host
+        });
         throw new Error(text);
       }
 
+      console.log('Registro exitoso para usuario:', userData.username);
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Estableciendo datos de usuario tras registro exitoso:', data.username);
+      queryClient.invalidateQueries()
       queryClient.setQueryData(['/api/user'], data);
     },
   });

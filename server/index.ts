@@ -14,6 +14,47 @@ app.use(express.urlencoded({ extended: false }));
 // Es necesario para que Cloudflare pueda pasar las cabeceras correctamente
 app.set('trust proxy', true);
 
+// Middleware específico para detectar y corregir problemas de HTTPS y redirecciones en Cloudflare Flexible SSL
+app.use((req, res, next) => {
+  const host = req.get('host') || '';
+  
+  // Específicamente para petrapanel.ai o su dominio de Replit
+  if (host === 'petrapanel.ai' || 
+      host === 'www.petrapanel.ai' || 
+      host === 'petra-panel-ai-celton59.replit.app') {
+    
+    // 1. Sobrescribir el método redirect para evitar bucles de redirección
+    const originalRedirect = res.redirect;
+    res.redirect = function(url: string | number): any {
+      console.log('INTERCEPCIÓN DE REDIRECCIÓN EN PETRAPANEL:', typeof url === 'number' ? 'código: ' + url : url);
+      
+      // Si es una redirección a HTTPS y estamos en Cloudflare Flexible, evitarla
+      if (typeof url === 'string' && url.startsWith('https://')) {
+        console.log('BLOQUEANDO redirección a HTTPS para evitar bucle en Cloudflare Flexible');
+        return next(); // Continuar sin redirección
+      }
+      
+      // Si es 301/302 a HTTPS, mejor no redirigir en Cloudflare Flexible
+      if (typeof url === 'number' && (url === 301 || url === 302)) {
+        console.log('BLOQUEANDO redirección de código', url, 'para evitar bucle');
+        return next(); // Continuar sin redirección
+      }
+      
+      return originalRedirect.apply(this, arguments as any);
+    };
+    
+    // 2. Forzar protocolo HTTP para este dominio específico
+    Object.defineProperty(req, 'protocol', {
+      value: 'http',
+      configurable: true
+    });
+    
+    console.log('Aplicada prevención de bucles de redirección para', host);
+  }
+  
+  next();
+});
+
 // Set environment variable to production in non-development environments
 if (app.get('env') !== 'development') {
   process.env.NODE_ENV = 'production';
@@ -50,8 +91,14 @@ app.use((req, res, next) => {
   });
   
   // Detección específica para petrapanel.ai y dominios relacionados con Cloudflare Flexible SSL
-  const isPetraPanelDomain = host === 'petrapanel.ai' || host === 'www.petrapanel.ai';
-  const isCloudflare = cfRay || cfIp || cfVisitor;
+  // También incluir el dominio de Replit específico para este proyecto
+  const isPetraPanelDomain = host === 'petrapanel.ai' || 
+                            host === 'www.petrapanel.ai' || 
+                            host === 'petra-panel-ai-celton59.replit.app';
+  
+  // Detectar si la solicitud viene a través de Cloudflare
+  const isCloudflare = cfRay || cfIp || cfVisitor || 
+                      (host === 'petrapanel.ai' || host === 'www.petrapanel.ai');
   
   if (isPetraPanelDomain && isCloudflare) {
     console.log('>>> Detectado dominio petrapanel.ai con Cloudflare - Aplicando configuración especial <<<');
