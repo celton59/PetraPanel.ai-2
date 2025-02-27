@@ -26,9 +26,9 @@ export default function YoutubeReadyContent({
   const [contentApproved, setContentApproved] = useState<boolean>(false);
 
   function handleApprove() {
-    if ( video.status === 'youtube_ready') {
+    if ( video.status === 'media_review') {
         onUpdate({
-          status: "review",
+          status: "final_review",
           mediaReviewedBy: user?.id,
           mediaVideoNeedsCorrection: false,
           mediaThumbnailNeedsCorrection: false
@@ -125,8 +125,8 @@ export default function YoutubeReadyContent({
           </div>
         </div>
 
-        {/* Youtube ready decision */}
-        { video.status === "youtube_ready" && 
+        {/* Media review decision */}
+        { video.status === "media_review" && 
           <Card className="mt-4 p-6">
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Decisión</h3>
@@ -210,7 +210,7 @@ export default function YoutubeReadyContent({
         }
 
         {/* Final Review Decision */}
-        { video.status === "review" && 
+        { video.status === "final_review" && 
           <Card className="mt-4 p-6">
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Decisión</h3>

@@ -140,7 +140,15 @@ export function setupAuth(app: Express) {
       const hashedPassword = await crypto.hash(password);
       const [user] = await db
         .insert(users)
-        .values({ username, password: hashedPassword })
+        .values({ 
+          username, 
+          password: hashedPassword, 
+          role: "optimizer", // Default role for new users
+          fullName: username, // Default full name
+          email: `${username}@example.com`, // Default email
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
 
       req.login(user, (err) => {
