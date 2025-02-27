@@ -38,37 +38,63 @@ const crypto = {
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
   
-  // Para Cloudflare Flexible, necesitamos un middleware que configure las cookies dinámicamente
-  app.use((req, res, next) => {
-    const host = req.get('host') || '';
-    const isCloudflareFlexible = host === 'petrapanel.ai';
-    
-    // La cookie la establecemos a través de un middleware en vez de en la configuración
-    if (isCloudflareFlexible) {
-      console.log('Configuración para petrapanel.ai (Cloudflare Flexible) aplicada');
-    }
-    
-    next();
-  });
-  
-  // La configuración base debe ser lo más simple posible para evitar problemas
+  // La configuración base para todos los dominios
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || "petra-panel-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      // SIEMPRE poner secure: false para Cloudflare Flexible SSL
-      secure: false,
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
-      path: '/',
-      sameSite: 'lax' // 'none' puede causar problemas, usamos 'lax'
-    },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
     }),
-    proxy: true // Mantener proxy para manejar las cabeceras correctamente
+    proxy: true, // Esencial para entornos con proxies como Cloudflare
+    // Configuración de cookie que se aplicará dinámicamente
+    cookie: {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+      path: '/',
+      sameSite: 'lax',
+      secure: false // Por defecto FALSE para todos los casos
+    }
   };
+  
+  // Middleware especial para configurar las cookies según el dominio
+  // En lugar de modificar sessionOptions que no está disponible en el tipo Request,
+  // modificaremos la configuración global según el dominio identificado
+  app.use((req, res, next) => {
+    const host = req.get('host') || '';
+    const isPetraPanelDomain = host === 'petrapanel.ai' || host === 'www.petrapanel.ai';
+    const isCloudflare = req.headers['cf-ray'] || req.headers['cf-connecting-ip'] || req.headers['cf-visitor'];
+    
+    // Aplicamos configuración especial para el dominio de petrapanel.ai
+    if (isPetraPanelDomain && isCloudflare) {
+      console.log('Configurando sesión para dominio:', host, '(Cloudflare Flexible SSL)');
+      
+      // Para Cloudflare Flexible SSL: asegurar que secure=false, incluso en HTTPS
+      if (sessionSettings.cookie) {
+        sessionSettings.cookie.secure = false;
+        
+        // Configurar el dominio correctamente para que funcione con/sin www
+        sessionSettings.cookie.domain = host.includes('www.') 
+          ? host.substring(4) 
+          : host;
+        
+        console.log('Configuración especial de cookie aplicada para:', host, {
+          domain: sessionSettings.cookie.domain,
+          secure: sessionSettings.cookie.secure,
+          sameSite: sessionSettings.cookie.sameSite
+        });
+      }
+      
+      // Para el dominio de petrapanel.ai, configuramos cookies no seguras
+      // La implementación específica se maneja en el middleware del servidor
+      console.log('Configuración especial para cookies en petrapanel.ai');
+    } else {
+      // Para desarrollo en Replit u otros entornos
+      console.log('Usando configuración estándar de cookies para:', host);
+    }
+    
+    next();
+  });
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());

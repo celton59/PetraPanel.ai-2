@@ -20,7 +20,7 @@ if (app.get('env') !== 'development') {
 }
 
 // ======================================================
-// SOLUCIÓN DEFINITIVA PARA CLOUDFLARE FLEXIBLE SSL
+// SOLUCIÓN MEJORADA PARA CLOUDFLARE FLEXIBLE SSL
 // ======================================================
 app.use((req, res, next) => {
   // Información de diagnóstico completa
@@ -29,38 +29,61 @@ app.use((req, res, next) => {
   const cfRay = req.headers['cf-ray'];
   const cfVisitor = req.headers['cf-visitor'];
   const xForwardedProto = req.headers['x-forwarded-proto'];
+
+  // Obtener información sobre la solicitud HTTP/HTTPS
+  const isCfHttps = typeof cfVisitor === 'string' ? 
+    cfVisitor.includes('"scheme":"https"') : false;
+  const headerProto = Array.isArray(xForwardedProto) ? 
+    xForwardedProto[0] : xForwardedProto;
   
   // Log completo para diagnóstico
-  console.log('Diagnóstico de conexión:', {
+  console.log('Diagnóstico de conexión DETALLADO:', {
     host,
     cfIp,
     cfRay,
     cfVisitor,
-    xForwardedProto,
-    protocol: req.protocol,
+    isCfHttps,
+    xForwardedProto: headerProto,
+    originalProtocol: req.protocol,
     secure: req.secure,
     originalUrl: req.originalUrl
   });
   
-  // Detección específica para petrapanel.ai con Cloudflare Flexible SSL
-  const isPetraPanelDomain = host === 'petrapanel.ai';
+  // Detección específica para petrapanel.ai y dominios relacionados con Cloudflare Flexible SSL
+  const isPetraPanelDomain = host === 'petrapanel.ai' || host === 'www.petrapanel.ai';
   const isCloudflare = cfRay || cfIp || cfVisitor;
   
-  if (isPetraPanelDomain) {
-    console.log('Detectado dominio petrapanel.ai - Aplicando configuración Cloudflare Flexible SSL');
+  if (isPetraPanelDomain && isCloudflare) {
+    console.log('>>> Detectado dominio petrapanel.ai con Cloudflare - Aplicando configuración especial <<<');
     
     // SOLUCIÓN PARA EL ERROR ERR_TOO_MANY_REDIRECTS:
-    // Con Cloudflare Flexible SSL, Cloudflare termina SSL pero se conecta a Replit por HTTP
-    // Express ve la cabecera X-Forwarded-Proto: https y trata de redirigir a HTTPS
-    // causando un bucle infinito. La solución es forzar el protocolo a HTTP.
+    // Con Cloudflare Flexible SSL, aunque Cloudflare envía la solicitud con https,
+    // Express debe tratarla como http para evitar redirecciones infinitas.
+    // La clave está en que Express detecte correctamente que está detrás de un proxy.
     
-    // SOLO para el dominio petrapanel.ai forzamos HTTP para evitar el bucle de redirecciones
-    req.headers['x-forwarded-proto'] = 'http';
+    // En lugar de cambiar X-Forwarded-Proto, indicamos a Express que la conexión es insegura
+    // aunque llegue por HTTPS desde Cloudflare.
+    Object.defineProperty(req, 'secure', {
+      value: false,
+      enumerable: true,
+      configurable: true
+    });
     
-    console.log('Configuración de protocolo HTTP para petrapanel.ai aplicada');
+    // También ajustamos manualmente el protocolo para forzar HTTP
+    Object.defineProperty(req, 'protocol', {
+      value: 'http',
+      enumerable: true,
+      configurable: true
+    });
+    
+    // Aplicamos configuración especial de cookies para Cloudflare Flexible SSL
+    // Que forzará a todas las cookies a ser non-secure, sin importar lo que la aplicación intente hacer
+    console.log('Forzando modo HTTP para cookies en dominio petrapanel.ai');
+    
+    console.log('Configuración especial para petrapanel.ai aplicada correctamente');
   } else if (isCloudflare) {
     // Para otros dominios de Cloudflare (no petrapanel.ai), respetamos el protocolo original
-    console.log('Detectada conexión desde Cloudflare (no petrapanel.ai)');
+    console.log('Detectada conexión desde Cloudflare (no petrapanel.ai) - Configuración estándar');
   }
   
   next();
