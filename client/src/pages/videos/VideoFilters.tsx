@@ -1,4 +1,3 @@
-import { SearchInput } from "./filters/SearchInput";
 import { StatusFilter } from "./filters/StatusFilter";
 import { AssigneeFilter } from "./filters/AssigneeFilter";
 import { ProjectFilter } from "./filters/ProjectFilter";
@@ -10,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface VideoFiltersProps {
   searchTerm: string;
@@ -43,9 +43,11 @@ export function VideoFilters({
   return (
     <div className="space-y-4">
       <div className="flex-1">
-        <SearchInput 
-          searchTerm={searchTerm} 
-          onSearchChange={onSearchChange} 
+        <Input
+          placeholder="Buscar videos por título o número de serie"
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-[400px] pl-4 h-9 text-base"
         />
     </div>
 

@@ -20,7 +20,7 @@ import UserController from "./controllers/userController.js";
 
 const scryptAsync = promisify(scrypt);
 
-const storage = multer.diskStorage({
+const avatarStorage = multer.diskStorage({
   destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
     const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
     if (!fs.existsSync(uploadDir)) {
@@ -31,30 +31,13 @@ const storage = multer.diskStorage({
   filename: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage: storage });
-
-// Configuración de multer para videos
-const videoStorage = multer.diskStorage({
-  destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'videos');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
   },
-  filename: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
 });
 
-const videoUpload = multer({
-  storage: videoStorage,
+const avatarUpload = multer({ 
+  storage: avatarStorage,
   limits: {
-    fileSize: 1024 * 1024 * 1024 // 1GB limit
+    fileSize: 1024 * 1024 * 10,
   }
 });
 
@@ -192,7 +175,13 @@ export function registerRoutes(app: Express): Server {
     app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.deleteVideo)
 
     // Video upload endpoint
-    app.post("/api/projects/:projectId/videos/:videoId/upload", requireAuth, videoUpload.single('file'), VideoController.uploadContentVideo);
+    const videoUpload = multer({ 
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 1024 * 1024 * 1024 // 1GB limit
+      }
+    })
+    app.post("/api/projects/:projectId/videos/:videoId/upload", requireAuth, videoUpload.single('file'),VideoController.uploadContentVideo);
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);
@@ -262,7 +251,7 @@ export function registerRoutes(app: Express): Server {
         const newHashedPassword = await hashPassword(newPassword);
         await db.update(users)
           .set({ password: newHashedPassword})
-          .where(eq(users.id, req.user!.id));
+          .where(eq(users.id, req.user!.id!));
 
         res.json({
           success: true,
@@ -337,7 +326,7 @@ export function registerRoutes(app: Express): Server {
     });
 
     // Avatar upload route
-    app.post("/api/upload-avatar", requireAuth, upload.single('avatar'), async (req: Request, res: Response) => {
+    app.post("/api/upload-avatar", requireAuth, avatarUpload.single('avatar'), async (req: Request, res: Response) => {
       const file = req.file;
       if (!file) {
         return res.status(400).json({

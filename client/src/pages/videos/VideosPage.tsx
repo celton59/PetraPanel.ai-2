@@ -116,8 +116,8 @@ export default function VideosPage() {
   }, []);
 
   // Estados para filtros
-  const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [status, setStatus] = useState("all");
   const [assignedTo, setAssignedTo] = useState("all");
   const [projectId, setProjectId] = useState("all");
@@ -168,6 +168,36 @@ export default function VideosPage() {
     );
   }
 
+  const filteredVideos = videos.filter((video) => {
+    if (searchTerm) {
+      return (
+        video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // if (status !== "all") {
+    //   return video.status === status;
+    // }
+
+    // if (assignedTo !== "all") {
+    //   return video.assigned_to === assignedTo;
+    // }
+
+    // if (projectId !== "all") {
+    //   return video.project_id === projectId;
+    // }
+
+    // if (dateRange) {
+    //   return (
+    //     video.created_at >= dateRange.startDate &&
+    //     video.created_at <= dateRange.endDate
+    //   );
+    // }
+
+    return true;
+  })
+
   function getTableView() {
     return (
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -189,7 +219,7 @@ export default function VideosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {videos?.map((video) => (
+              {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="group">
                   {/* Miniatura */}
                   <TableCell>

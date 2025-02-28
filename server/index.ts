@@ -31,16 +31,16 @@ app.use((req, res, next) => {
   const xForwardedProto = req.headers['x-forwarded-proto'];
   
   // Log completo para diagnóstico
-  console.log('Diagnóstico de conexión:', {
-    host,
-    cfIp,
-    cfRay,
-    cfVisitor,
-    xForwardedProto,
-    protocol: req.protocol,
-    secure: req.secure,
-    originalUrl: req.originalUrl
-  });
+  // console.log('Diagnóstico de conexión:', {
+  //   host,
+  //   cfIp,
+  //   cfRay,
+  //   cfVisitor,
+  //   xForwardedProto,
+  //   protocol: req.protocol,
+  //   secure: req.secure,
+  //   originalUrl: req.originalUrl
+  // });
   
   // Detección específica para petrapanel.ai con Cloudflare Flexible SSL
   const isPetraPanelDomain = host === 'petrapanel.ai';
@@ -78,11 +78,11 @@ app.use((req, res, next) => {
   const path = req.path;
   
   // Log request details for debugging
-  console.log(`[${new Date().toISOString()}] ${req.method} ${path}`);
-  console.log('Headers:', req.headers);
-  console.log('Protocol:', req.protocol);
-  console.log('Secure:', req.secure);
-  console.log('X-Forwarded-Proto:', req.get('x-forwarded-proto'));
+  // console.log(`[${new Date().toISOString()}] ${req.method} ${path}`);
+  // console.log('Headers:', req.headers);
+  // console.log('Protocol:', req.protocol);
+  // console.log('Secure:', req.secure);
+  // console.log('X-Forwarded-Proto:', req.get('x-forwarded-proto'));
 
   res.on("finish", () => {
     const duration = Date.now() - start;

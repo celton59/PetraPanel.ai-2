@@ -413,6 +413,8 @@ async function uploadContentVideo(
   const file = req.file;
   const { type } = req.body;
 
+  console.log("FILE:", file)
+
   if (!file) {
     return res
       .status(400)
@@ -420,35 +422,35 @@ async function uploadContentVideo(
   }
 
   try {
-    const fileExt = path.extname(file.path);
-    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExt}`;
+    // Fix to handle filenames with multiple dots by taking the last part as extension
+    const fileExtension = file.originalname.substring(file.originalname.lastIndexOf('.') + 1);
+    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExtension}`;
     const objectKey = `videos/${type}/${uniqueFilename}`; // Ruta simple y organizada
 
     // Si es una miniatura, procesarla con sharp
     if (type === "thumbnail") {
-      const processedPath = file.path.replace(fileExt, "_processed" + fileExt);
-      await sharp(file.path).resize(1280, 720).toFile(processedPath);
+      const processedImage = await sharp(file.buffer).resize(1280, 720).toBuffer();
 
       // Subir la miniatura procesada al bucket
       await s3.send(new PutObjectCommand({
         Bucket: bucketName,
         Key: objectKey,
-        Body: fs.createReadStream(processedPath)
+        Body: processedImage
       }));
             
       // Limpiar archivos temporales
-      fs.unlinkSync(file.path);
-      fs.unlinkSync(processedPath);
+      // fs.unlinkSync(file.path);
+      // fs.unlinkSync(processedPath);
     } else {
       // Subir el video directamente 
       await s3.send(new PutObjectCommand({
         Bucket: bucketName,
         Key: objectKey,
-        Body: fs.createReadStream(file.path)
+        Body: file.buffer
       }))
 
       // Limpiar archivo temporal
-      fs.unlinkSync(file.path);
+      // fs.unlinkSync(file.path);
     }
 
     const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
