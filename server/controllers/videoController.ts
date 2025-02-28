@@ -13,10 +13,8 @@ import {
 } from "@db/schema";
 import { db } from "@db";
 import { z } from "zod";
-import fs from "fs";
 import sharp from "sharp";
-import path from "path";
-import { s3, PutObjectCommand } from "../lib/s3"
+import { s3, PutObjectCommand, getSignedUrl } from "../lib/s3"
 
 const bucketName = process.env.AWS_BUCKET_NAME!;
 const awsRegion = process.env.AWS_REGION!;
@@ -111,6 +109,7 @@ const updateVideoSchema = z.object({
   mediaVideoNeedsCorrection: z.boolean().optional(),
   mediaThumbnailNeedsCorrection: z.boolean().optional(),
   contentUploadedBy: z.number().optional(),
+  videoUrl: z.string().optional(),
 });
 
 type UpdateVideoSchema = z.infer<typeof updateVideoSchema>;
@@ -186,6 +185,7 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         mediaVideoNeedsCorrection: updates.mediaVideoNeedsCorrection,
         mediaThumbnailNeedsCorrection: updates.mediaThumbnailNeedsCorrection,
         contentUploadedBy: updates.contentUploadedBy,
+        videoUrl: updates.videoUrl,
       })
       .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
       .returning();
@@ -395,100 +395,113 @@ async function createVideo(req: Request, res: Response): Promise<Response> {
   }
 }
 
-async function uploadContentVideo(
+async function uploadThumbnail(
   req: Request,
   res: Response,
 ): Promise<Response> {
   if (!req.user?.role)
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message: "No tienes permisos para editar videos",
-      });
+    return res.status(403).json({ success: false, message: "No tienes permisos para editar videos" })
 
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
-
+  
   const file = req.file;
-  const { type } = req.body;
-
-  console.log("FILE:", file)
 
   if (!file) {
-    return res
-      .status(400)
-      .json({ success: false, message: "No se subió ningún archivo" });
+    return res.status(400).json({ success: false, message: "No se subió ningún archivo" });
   }
 
   try {
-    // Fix to handle filenames with multiple dots by taking the last part as extension
+    
     const fileExtension = file.originalname.substring(file.originalname.lastIndexOf('.') + 1);
     const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExtension}`;
-    const objectKey = `videos/${type}/${uniqueFilename}`; // Ruta simple y organizada
-
-    // Si es una miniatura, procesarla con sharp
-    if (type === "thumbnail") {
-      const processedImage = await sharp(file.buffer).resize(1280, 720).toBuffer();
-
-      // Subir la miniatura procesada al bucket
-      await s3.send(new PutObjectCommand({
-        Bucket: bucketName,
-        Key: objectKey,
-        Body: processedImage
-      }));
-            
-      // Limpiar archivos temporales
-      // fs.unlinkSync(file.path);
-      // fs.unlinkSync(processedPath);
-    } else {
-      // Subir el video directamente 
-      await s3.send(new PutObjectCommand({
-        Bucket: bucketName,
-        Key: objectKey,
-        Body: file.buffer
-      }))
-
-      // Limpiar archivo temporal
-      // fs.unlinkSync(file.path);
-    }
+    const objectKey = `videos/thumbnail/${uniqueFilename}`; // Ruta simple y organizada
 
     const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
-    
-    // Actualizar la URL en la base de datos si se proporciona videoId
-    if (videoId) {
-      const urlField = type === "video" ? "videoUrl" : "thumbnailUrl";
-      await db
-        .update(videos)
-        .set({ [urlField]: fileUrl })
-        .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)));
-    }
+
+    // Si es una miniatura, procesarla con sharp
+    const processedImage = await sharp(file.buffer).resize(1280, 720).toBuffer();
+
+    // Subir la miniatura procesada al bucket
+    await s3.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      Body: processedImage
+    }));
+
+    await db
+    .update(videos)
+    .set({ thumbnailUrl: fileUrl })
+    .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)));
 
     return res.json({
       success: true,
       url: fileUrl,
-      message: `${type === "video" ? "Video" : "Miniatura"} subido correctamente`,
+      message: 'Miniatura subida correctamente'
     });
+    
   } catch (error: any) {
-    console.error("Error processing file:", error);
-    if (file && fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
+    console.error("Error processing file:", error)
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Error al procesar la miniatura'
+    });
+  }
+}
+
+async function getVideoUploadUrl(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  if (!req.user?.role)
+    return res.status(403).json({ success: false, message: "No tienes permisos para editar videos" })
+
+  const { originalName } = req.body
+
+  if (!originalName)
+    return res.status(400).json({ success: false, message: "No se subió ningún archivo" })
+
+  try {
+    // Fix to handle filenames with multiple dots by taking the last part as extension
+    const fileExtension = originalName.substring(originalName.lastIndexOf('.') + 1);
+    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExtension}`;
+    const objectKey = `videos/video/${uniqueFilename}`;
+
+    const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: objectKey
+    });
+    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 5 });
+
+    return res.json({
+      success: true,
+      url: fileUrl,
+      uploadUrl: signedUrl,
+      message: 'Presigned URL generada',
+    });
+
+  } catch (error: any) {
+    console.error("Error processing file:", error)
     return res.status(500).json({
       success: false,
       message:
         error?.message ||
-        `Error al procesar el ${type === "video" ? "video" : "miniatura"}`,
+        'Error al procesar el video',
     });
   }
 }
+
+
 
 const VideoController = {
   updateVideo,
   deleteVideo,
   getVideos,
   createVideo,
-  uploadContentVideo,
+  uploadThumbnail,
+  getVideoUploadUrl,
 };
 
 export default VideoController;

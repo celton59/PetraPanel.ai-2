@@ -175,13 +175,15 @@ export function registerRoutes(app: Express): Server {
     app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.deleteVideo)
 
     // Video upload endpoint
-    const videoUpload = multer({ 
+    const thumbailUpload = multer({ 
       storage: multer.memoryStorage(),
       limits: {
         fileSize: 1024 * 1024 * 1024 // 1GB limit
       }
     })
-    app.post("/api/projects/:projectId/videos/:videoId/upload", requireAuth, videoUpload.single('file'),VideoController.uploadContentVideo);
+    app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", requireAuth, thumbailUpload.single('file'),VideoController.uploadThumbnail);
+
+    app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", requireAuth, VideoController.getVideoUploadUrl);
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);

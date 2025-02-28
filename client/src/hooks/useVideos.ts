@@ -3,7 +3,7 @@ import { User, Video } from '@db/schema'
 import { toast } from "sonner";
 
 
-export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' >
+export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl' >
 
 export const getRoleStatus = 1
 

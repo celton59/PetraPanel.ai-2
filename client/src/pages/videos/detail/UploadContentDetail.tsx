@@ -30,32 +30,53 @@ export function UploadContentDetail({
 
   const { user } = useUser();
 
-  async function uploadFile(file: File, type: "video" | "thumbnail") {
+  async function uploadThumbnail (file: File): Promise<void> {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("type", type);
-    formData.append("videoId", video.id.toString());
-    formData.append("bucket", "videos");
 
     try {
       const response = await fetch(
-        `/api/projects/${video.projectId}/videos/${video.id}/upload`,
+        `/api/projects/${video.projectId}/videos/${video.id}/uploadThumbnail`,
+        { method: "POST", body: formData }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `Error al subir el thumbnail`);
+      }
+
+    } catch (error: any) {
+      console.error(`Error uploading thumbnail:`, error);
+      throw new Error(error.message || `Error al subir la miniatura`);
+    }
+  }
+
+  async function uploadVideo(file: File): Promise<{ url: string, uploadUrl?: string }> {
+
+    try {
+      const response = await fetch(
+        `/api/projects/${video.projectId}/videos/${video.id}/uploadVideo`,
         {
           method: "POST",
-          body: formData,
+          body: JSON.stringify({ originalName: file.name }),
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
         },
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || `Error al subir el ${type}`);
+        throw new Error(error.message || `Error al subir el video`);
       }
 
       const data = await response.json();
-      return data.url;
+      return {
+        url: data.url,
+        uploadUrl: data.uploadUrl,
+      }
     } catch (error: any) {
-      console.error(`Error uploading ${type}:`, error);
-      throw new Error(error.message || `Error al subir el ${type}`);
+      console.error(`Error uploading video:`, error);
+      throw new Error(error.message || `Error al subir el video`);
     }
   }
 
@@ -68,25 +89,32 @@ export function UploadContentDetail({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      let videoUrl = video.videoUrl;
-      let thumbnailUrl = video.thumbnailUrl;
+      let videoUrl: string | undefined;
 
       if (videoFile) {
-        videoUrl = await uploadFile(videoFile, "video");
+        const { url, uploadUrl } = await uploadVideo(videoFile);
+        console.log("S3 presigned url", uploadUrl)
+        const result = await fetch(uploadUrl!, {
+            method: "PUT",
+            body: videoFile,
+            headers: { "Content-Type": videoFile.type },
+        });
+        console.log("RESULT", result)
+        videoUrl = url
         setUploadProgress(50);
       }
 
       if (thumbnailFile) {
-        thumbnailUrl = await uploadFile(thumbnailFile, "thumbnail");
+        await uploadThumbnail(thumbnailFile);
         setUploadProgress(100);
       }
 
       await onUpdate({
         status: "media_review",
-        videoUrl: videoFile ? videoUrl : video.videoUrl,
-        thumbnailUrl: thumbnailFile ? thumbnailUrl : video.thumbnailUrl,
+        videoUrl: videoUrl,
         contentUploadedBy: user?.id,
       });
+      
       toast.success("Archivos subidos correctamente");
     } catch (error: any) {
       console.error("Error al subir:", error);
