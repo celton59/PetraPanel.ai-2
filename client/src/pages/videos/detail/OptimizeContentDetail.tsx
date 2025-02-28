@@ -24,6 +24,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import { useUser } from "@/hooks/use-user";
 
 interface OptimizeContentDetailProps {
   video: Video;
@@ -39,6 +40,8 @@ export function OptimizeContentDetail({
   onUpdate,
 }: OptimizeContentDetailProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { user } = useUser();
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -68,7 +71,8 @@ export function OptimizeContentDetail({
         optimizedDescription: formData.optimizedDescription,
         tags: formData.tags,
         optimizedTitle: formData.optimizedTitle,
-        status: "content_review"
+        status: "content_review",
+        optimizedBy: user!.id!
       });
     } catch (error) {
       console.error("Error al actualizar el video:", error);
