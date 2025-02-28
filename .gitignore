@@ -12,3 +12,4 @@ uploads/avatars/*
 *.m4v
 .DS_Store
 migrations/*
+migrations
