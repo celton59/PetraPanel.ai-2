@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, or, desc, getTableColumns, aliasedTable } from "drizzle-orm";
+import { eq, and, or, desc, getTableColumns, aliasedTable, isNull } from "drizzle-orm";
 import {
   videos,
   users,
@@ -291,11 +291,17 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
             req.user?.role === "optimizer"
               ? eq(videos.optimizedBy, req.user!.id!)
               : undefined,
-            req.user?.role === "reviewer"
+            req.user?.role === "optimizer"
+              ? isNull(videos.optimizedBy)
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
               ? eq(videos.status, "content_review")
               : undefined,
-            req.user?.role === "reviewer"
+            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
               ? eq(videos.contentReviewedBy, req.user!.id!)
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+              ? isNull(videos.contentReviewedBy)
               : undefined,
             req.user?.role === "youtuber"
               ? eq(videos.status, "upload_media")
@@ -306,12 +312,15 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
             req.user?.role === "youtuber"
               ? eq(videos.contentUploadedBy, req.user!.id!)
               : undefined,
-            req.user?.role === "reviewer"
+            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
               ? eq(videos.status, "media_review")
               : undefined,
-            req.user?.role === "reviewer"
+            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
               ? eq(videos.mediaReviewedBy, req.user!.id!)
               : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+            ? isNull(videos.mediaReviewedBy)
+            : undefined,
           ),
           req.user?.role === "admin"
             ? undefined

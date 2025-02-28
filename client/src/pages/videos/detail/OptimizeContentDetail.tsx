@@ -39,9 +39,12 @@ export function OptimizeContentDetail({
   video,
   onUpdate,
 }: OptimizeContentDetailProps) {
+  
+  const { user } = useUser();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { user } = useUser();
+  onUpdate({ optimizedBy: user!.id! });
 
   const form = useForm<FormValues>({
     defaultValues: {
