@@ -11,3 +11,4 @@ uploads/avatars/*
 *.webm
 *.m4v
 .DS_Store
+migrations/*
