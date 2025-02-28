@@ -130,7 +130,7 @@ export function PersonalInfoSection ({
               <FormControl>
                 <Input 
                   {...field}
-                  value={field.value || ''}
+                  value={field.value}
                   placeholder="+34 600 000 000" 
                 />
               </FormControl>

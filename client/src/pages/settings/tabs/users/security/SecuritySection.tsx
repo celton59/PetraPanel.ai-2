@@ -76,7 +76,6 @@ export function SecuritySection ({
                 value={field.value}
                 onChange={(value: User['role']) => {
                   field.onChange(value);
-                  setFormData({ ...formData, role: value });
                 }}
               />
             </FormControl>

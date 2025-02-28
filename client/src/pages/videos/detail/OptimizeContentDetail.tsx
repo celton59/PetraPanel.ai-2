@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Video } from "@db/schema";
@@ -28,7 +28,7 @@ import { useUser } from "@/hooks/use-user";
 
 interface OptimizeContentDetailProps {
   video: Video;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
+  onUpdate: (data: UpdateVideoData, keepDialog?: boolean) => Promise<void>;
 }
 
 type FormValues = Partial<UpdateVideoData>;
@@ -44,7 +44,9 @@ export function OptimizeContentDetail({
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  onUpdate({ optimizedBy: user!.id! });
+  useEffect(() => {
+    onUpdate({ optimizedBy: user!.id! }, true);
+  }, [])
 
   const form = useForm<FormValues>({
     defaultValues: {

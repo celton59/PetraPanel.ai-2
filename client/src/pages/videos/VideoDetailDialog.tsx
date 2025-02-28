@@ -31,7 +31,7 @@ const statusDescriptions: Record<VideoStatus, string> = {
   completed: "Video publicado en YouTube",
 };
 
-export function VideoDetailDialog({ video, onUpdate }: VideoCardProps) {
+export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useUser();
 
@@ -130,7 +130,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoCardProps) {
   );
 }
 
-interface VideoCardProps {
+interface VideoDetailDialogProps {
   video: ApiVideo;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
+  onUpdate: (data: UpdateVideoData, keepDialog?: boolean) => Promise<void>;
 }

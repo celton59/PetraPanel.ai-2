@@ -601,7 +601,7 @@ export default function VideosPage() {
       >
         <VideoDetailDialog
           video={selectedVideo!}
-          onUpdate={async (data) => {
+          onUpdate={async (data, keepDialog) => {
             setUpdatingVideoId(selectedVideo!.id);
             try {
               await updateVideo({
@@ -609,12 +609,14 @@ export default function VideosPage() {
                 projectId: selectedVideo!.projectId,
                 updateRequest: data,
               });
+              if (!keepDialog) {
+                setUpdatingVideoId(undefined);
+                setSelectedVideo(undefined);                
+              }              
+                            
             } catch (err) {
               console.log(err);
               toast.error("Error al actualizar el video");
-            } finally {
-              setUpdatingVideoId(undefined);
-              setSelectedVideo(undefined);
             }
           }}
         />

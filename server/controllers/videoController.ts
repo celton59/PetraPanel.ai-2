@@ -312,6 +312,9 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
             req.user?.role === "youtuber"
               ? eq(videos.contentUploadedBy, req.user!.id!)
               : undefined,
+            req.user?.role === "youtuber"
+              ? isNull(videos.contentUploadedBy)
+              : undefined,
             req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
               ? eq(videos.status, "media_review")
               : undefined,
@@ -319,8 +322,8 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
               ? eq(videos.mediaReviewedBy, req.user!.id!)
               : undefined,
             req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-            ? isNull(videos.mediaReviewedBy)
-            : undefined,
+              ? isNull(videos.mediaReviewedBy)
+              : undefined,
           ),
           req.user?.role === "admin"
             ? undefined
