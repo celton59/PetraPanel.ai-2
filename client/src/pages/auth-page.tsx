@@ -48,8 +48,8 @@ export default function AuthPage() {
       >
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
-          <div className="relative w-24 h-24">
-            {/* Modern logo design */}
+          <div className="relative w-32 h-32">
+            {/* Advanced logo design with high-end animation */}
             <motion.div 
               className="absolute inset-0 flex items-center justify-center"
               initial={{ opacity: 0 }}
@@ -62,93 +62,147 @@ export default function AuthPage() {
                 xmlns="http://www.w3.org/2000/svg"
                 className="w-full h-full"
               >
-                {/* Background Circle */}
-                <motion.circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="url(#gradientBackground)"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                />
-                
-                {/* Outer Ring */}
-                <motion.circle
-                  cx="50"
-                  cy="50"
-                  r="48"
-                  stroke="url(#gradientStroke)"
-                  strokeWidth="2"
-                  fill="none"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ duration: 1.2, ease: "easeInOut" }}
-                />
-                
-                {/* Video Play Icon */}
-                <motion.path
-                  d="M65,50 L42,35 L42,65 Z"
-                  fill="white"
-                  initial={{ scale: 0, x: -5 }}
-                  animate={{ scale: 1, x: 0 }}
-                  transition={{ 
-                    delay: 0.7, 
-                    duration: 0.5, 
-                    type: "spring",
-                    stiffness: 200
-                  }}
-                />
-                
-                {/* Media Waves */}
-                <motion.path
-                  d="M76,40 C80,44 82,47 82,50 C82,53 80,56 76,60"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  fill="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ delay: 0.9, duration: 0.7 }}
-                />
-                
-                <motion.path
-                  d="M72,33 C80,38 85,44 85,50 C85,56 80,62 72,67"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeDasharray="1,3"
-                  fill="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 0.6 }}
-                  transition={{ delay: 1.1, duration: 0.7 }}
-                />
-                
+                {/* Shimmering background */}
                 <defs>
-                  <linearGradient id="gradientBackground" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4f46e5" />
+                  <radialGradient id="radialGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                    <stop offset="0%" stopColor="rgba(139, 92, 246, 0.9)" />
+                    <stop offset="100%" stopColor="rgba(79, 70, 229, 0.7)" />
+                  </radialGradient>
+                  
+                  <linearGradient id="gradientFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4338ca" />
+                    <stop offset="50%" stopColor="#6d28d9" />
                     <stop offset="100%" stopColor="#7c3aed" />
                   </linearGradient>
-                  <linearGradient id="gradientStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#a3e635" stopOpacity="0.7" />
-                    <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.7" />
+                  
+                  <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#ec4899" />
                   </linearGradient>
+                  
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
                 </defs>
+                
+                {/* Outer Spinning Ring */}
+                <motion.g
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <circle cx="50" cy="50" r="48" stroke="url(#accentGradient)" strokeWidth="1" fill="none" strokeDasharray="1,3" />
+                  <circle cx="50" cy="50" r="46" stroke="url(#accentGradient)" strokeWidth="0.5" fill="none" strokeDasharray="1,6" />
+                </motion.g>
+                
+                {/* Main Circle with gradient */}
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="url(#gradientFill)"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.7, ease: "easeOut" }}
+                />
+                
+                {/* Inner circle with subtle pulse */}
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="0.5"
+                  fill="none"
+                  animate={{ scale: [1, 1.02, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                />
+                
+                {/* Center glow */}
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  fill="url(#radialGradient)"
+                  filter="url(#glow)"
+                  animate={{ opacity: [0.7, 0.9, 0.7] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                />
+                
+                {/* Media elements */}
+                <g>
+                  {/* Film reel elements */}
+                  <motion.g
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.7 }}
+                  >
+                    <circle cx="30" cy="30" r="3" fill="white" opacity="0.8" />
+                    <circle cx="70" cy="30" r="3" fill="white" opacity="0.8" />
+                    <circle cx="30" cy="70" r="3" fill="white" opacity="0.8" />
+                    <circle cx="70" cy="70" r="3" fill="white" opacity="0.8" />
+                  </motion.g>
+                  
+                  {/* Triangular play button with glow and pulse */}
+                  <motion.path
+                    d="M60,50 L40,35 L40,65 Z"
+                    fill="white"
+                    filter="url(#glow)"
+                    initial={{ scale: 0 }}
+                    animate={{ 
+                      scale: 1,
+                      filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"]
+                    }}
+                    transition={{ 
+                      scale: { duration: 0.5, delay: 0.8, type: "spring" },
+                      filter: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                    }}
+                  />
+                  
+                  {/* Audio/video waves with sequential drawing effect */}
+                  <motion.path
+                    d="M65,35 C75,40 75,60 65,65"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: [0.5, 0.9, 0.5] }}
+                    transition={{ 
+                      pathLength: { delay: 1, duration: 1, ease: "easeOut" },
+                      opacity: { delay: 1, duration: 3, repeat: Infinity, ease: "easeInOut" }
+                    }}
+                  />
+                  
+                  <motion.path
+                    d="M70,30 C83,40 83,60 70,70"
+                    stroke="white"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    fill="none"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: [0.3, 0.7, 0.3] }}
+                    transition={{ 
+                      pathLength: { delay: 1.2, duration: 1, ease: "easeOut" },
+                      opacity: { delay: 1.2, duration: 4, repeat: Infinity, ease: "easeInOut" }
+                    }}
+                  />
+                </g>
               </svg>
             </motion.div>
             
-            {/* Shine effect */}
+            {/* Dynamic light effect */}
             <motion.div 
-              className="absolute inset-0 bg-white/20 blur-2xl rounded-full"
-              initial={{ opacity: 0, scale: 0.8 }}
+              className="absolute inset-0 bg-white/10 blur-3xl rounded-full"
+              initial={{ opacity: 0 }}
               animate={{ 
                 opacity: [0, 0.3, 0],
-                scale: [0.8, 1.2, 0.8],
+                scale: [0.6, 1.1, 0.6],
+                rotate: [0, 180, 360]
               }}
               transition={{ 
-                duration: 3,
+                duration: 8,
                 repeat: Infinity,
-                repeatType: "reverse",
                 ease: "easeInOut",
                 times: [0, 0.5, 1]
               }}
