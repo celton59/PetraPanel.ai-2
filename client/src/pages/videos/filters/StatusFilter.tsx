@@ -6,7 +6,7 @@ import { VideoStatus } from "@db/schema";
 interface StatusFilterProps {
   status: string;
   onStatusChange: (status: string) => void;
-  visibleStates?: readonly VideoStatus[] | string[];
+  visibleStates?: any[];
 }
 
 export const StatusFilter = ({ status, onStatusChange, visibleStates = [] }: StatusFilterProps) => {
@@ -23,7 +23,7 @@ export const StatusFilter = ({ status, onStatusChange, visibleStates = [] }: Sta
   ];
   
   const filteredOptions = visibleStates.length 
-    ? [{ value: "all", label: "Todos los estados" }, ...statusOptions.filter(opt => visibleStates.includes(opt.value as VideoStatus))]
+    ? [{ value: "all", label: "Todos los estados" }, ...statusOptions.filter(opt => visibleStates.includes(opt.value))]
     : statusOptions;
 
   return (
