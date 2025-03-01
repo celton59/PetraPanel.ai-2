@@ -58,12 +58,21 @@ export default function AuthPage() {
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
             {/* Logo container */}
             <div className="relative bg-gradient-to-br from-primary/10 to-primary/20 p-5 rounded-full backdrop-blur-sm ring-1 ring-primary/20 shadow-lg overflow-hidden hover:shadow-primary/20 transition-all duration-300">
-              {/* Video icon */}
-              <svg 
+              {/* Video icon with animation */}
+              <motion.svg 
                 viewBox="0 0 24 24" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg" 
                 className="w-14 h-14 text-primary"
+                animate={{ 
+                  rotateY: [0, 360],
+                }}
+                transition={{
+                  duration: 3,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                  repeatDelay: 5
+                }}
               >
                 <defs>
                   <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -71,14 +80,42 @@ export default function AuthPage() {
                     <stop offset="100%" stopColor="#8b5cf6" />
                   </linearGradient>
                 </defs>
-                {/* Monitor screen */}
-                <rect x="2" y="4" width="20" height="12" rx="2" stroke="url(#logoGradient)" strokeWidth="2" fill="none" />
-                {/* Play button */}
-                <polygon points="10,8 16,10 10,12" fill="url(#logoGradient)" />
+                {/* Monitor screen with pulsing animation */}
+                <motion.rect 
+                  x="2" y="4" width="20" height="12" rx="2" 
+                  stroke="url(#logoGradient)" 
+                  strokeWidth="2" 
+                  fill="none"
+                  animate={{ 
+                    strokeWidth: [2, 2.5, 2],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: "reverse"
+                  }}
+                />
+                
+                {/* Play button with bounce effect */}
+                <motion.polygon 
+                  points="10,8 16,10 10,12" 
+                  fill="url(#logoGradient)"
+                  animate={{ 
+                    scale: [1, 1.1, 1],
+                    x: [0, 0.3, 0]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut"
+                  }}
+                />
+                
                 {/* Stand */}
                 <path d="M8 16L8 18L16 18L16 16" stroke="url(#logoGradient)" strokeWidth="2" strokeLinecap="round" />
                 <rect x="7" y="18" width="10" height="2" rx="1" fill="url(#logoGradient)" />
-              </svg>
+              </motion.svg>
             </div>
           </motion.div>
           <div className="space-y-3">
