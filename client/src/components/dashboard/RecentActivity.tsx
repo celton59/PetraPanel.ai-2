@@ -1,41 +1,99 @@
 
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock, Activity, CheckCircle2, Hourglass } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideos } from "@/hooks/useVideos";
+import { motion } from "framer-motion";
 
 export function RecentActivity() {
   const { videos } = useVideos();
   
   const recentVideos = videos?.slice(0, 5).map(video => ({
     message: `Video "${video.title || 'Sin título'}" en estado ${video.status}`,
-    time: new Date(video.updatedAt || video.createdAt).toLocaleDateString(),
+    time: new Date(video.updatedAt || video.createdAt || new Date()).toLocaleDateString(),
     status: video.status
   })) || [];
 
+  // Animation variants for list items
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+  
+  // Function to get the appropriate icon based on status
+  const getStatusIcon = (status: string) => {
+    switch(status) {
+      case 'completed':
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'pending':
+        return <Hourglass className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <Activity className="h-5 w-5 text-blue-500" />;
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+    <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      {/* Top accent gradient */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-primary to-purple-500"></div>
+      
+      <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Clock className="h-5 w-5 text-primary" />
           Actividad Reciente
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {recentVideos.map((activity, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <AlertCircle className={`h-4 w-4 mt-0.5 ${
-                activity.status === 'completed' ? 'text-green-500' : 
-                activity.status === 'pending' ? 'text-yellow-500' : 
-                'text-blue-500'
-              }`} />
-              <div>
-                <p className="text-sm">{activity.message}</p>
-                <p className="text-xs text-muted-foreground">{activity.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+      
+      <CardContent className="p-0">
+        <motion.div 
+          className="divide-y divide-muted/30"
+          variants={container}
+          initial="hidden"
+          animate="show"
+        >
+          {recentVideos.length > 0 ? (
+            recentVideos.map((activity, i) => (
+              <motion.div 
+                key={i} 
+                className="flex items-start gap-3 p-4 hover:bg-muted/5 transition-colors cursor-pointer"
+                variants={item}
+              >
+                <div className="mt-0.5 bg-primary/10 p-2 rounded-full">
+                  {getStatusIcon(activity.status)}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{activity.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> 
+                    {activity.time}
+                  </p>
+                </div>
+                {/* Indicator dot */}
+                <div className={`h-2 w-2 rounded-full mt-1.5 ${
+                  activity.status === 'completed' ? 'bg-green-500' : 
+                  activity.status === 'pending' ? 'bg-yellow-500' : 
+                  'bg-blue-500'
+                }`} />
+              </motion.div>
+            ))
+          ) : (
+            <motion.div 
+              className="p-6 text-center text-muted-foreground"
+              variants={item}
+            >
+              No hay actividad reciente
+            </motion.div>
+          )}
+        </motion.div>
       </CardContent>
     </Card>
   );

@@ -81,17 +81,26 @@ const ActionCard = ({
   return (
     <Card 
       className={cn(
-        "transition-all duration-200 hover:scale-[1.02] cursor-pointer",
-        "group hover:shadow-lg dark:hover:shadow-primary/5",
+        "transition-all duration-300 hover:scale-[1.02] cursor-pointer",
+        "group hover:shadow-lg dark:hover:shadow-primary/10 relative",
+        "border border-muted/60 rounded-xl overflow-hidden backdrop-blur-sm",
         className
       )}
       onClick={onClick}
     >
-      <div className="p-4 md:p-6">
+      {/* Decorative background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5 opacity-70 z-0"></div>
+      
+      {/* Action card content */}
+      <div className="p-5 md:p-6 z-10 relative">
+        {/* Top corner accent */}
+        <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-xl"></div>
+        
         <motion.div 
           className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-            "transition-all duration-200 group-hover:scale-110",
+            "w-14 h-14 rounded-xl flex items-center justify-center mb-5",
+            "shadow-sm transition-all duration-200 group-hover:scale-110",
+            "border border-primary/10",
             iconBgColor
           )}
           whileHover={{ 
@@ -112,12 +121,22 @@ const ActionCard = ({
         >
           <IconWithParticles Icon={Icon} iconColor={iconColor} />
         </motion.div>
-        <h3 className="font-semibold text-lg mb-1.5 group-hover:text-primary transition-colors">
-          {title}
-        </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {description}
-        </p>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+            {title}
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {description}
+          </p>
+        </motion.div>
+        
+        {/* Bottom accent */}
+        <div className="w-10 h-1 bg-primary/20 rounded-full mt-4 group-hover:w-full transition-all duration-300"></div>
       </div>
     </Card>
   );
