@@ -10,6 +10,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { useGuide } from "./GuideContext";
 
 type GuideStep = {
   title: string;
@@ -129,68 +130,14 @@ const routeGuides: RouteGuides = {
   }
 };
 
-// Definimos un objeto global accesible desde cualquier parte
-// No lo exportamos directamente para evitar problemas con Fast Refresh
-const globalGuideState = {
-  isOpen: false,
-  openGuide: () => {
-    globalGuideState.isOpen = true;
-  },
-  closeGuide: () => {
-    globalGuideState.isOpen = false;
-  }
-};
-
-// Función para acceder al estado global
-export function getGuideStore() {
-  return globalGuideState;
-}
-
 export function PageGuide() {
   const [location] = useLocation();
-  const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  
-  // Observamos el estado del guide store
-  useEffect(() => {
-    // Crear una función que verifique el valor de globalGuideState.isOpen
-    const checkGuideStoreStatus = () => {
-      if (globalGuideState.isOpen && !open) {
-        setOpen(true);
-      } else if (!globalGuideState.isOpen && open) {
-        setOpen(false);
-      }
-    };
-    
-    // Primera comprobación
-    checkGuideStoreStatus();
-    
-    // Configurar un intervalo para comprobar periódicamente
-    const intervalId = setInterval(checkGuideStoreStatus, 200);
-    
-    // Actualizar el store cuando cambia el estado local
-    const handleOpenChange = (newOpen: boolean) => {
-      if (newOpen !== open) {
-        setOpen(newOpen);
-        globalGuideState.isOpen = newOpen;
-      }
-    };
-    
-    // Cleanup
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [open]);
+  const { isOpen, openGuide, closeGuide } = useGuide();
   
   // Encuentra la guía para la ruta actual
   const currentPathBase = '/' + location.split('/')[1]; // Obtiene la ruta base
   const currentGuide = routeGuides[currentPathBase] || routeGuides["/"];
-  
-  // No abrimos la guía automáticamente, solo cuando el usuario hace clic en el botón de ayuda
-  useEffect(() => {
-    // Solo reiniciamos el paso actual cuando cambia la ruta, pero no abrimos automáticamente
-    setCurrentStep(0);
-  }, [currentPathBase]);
   
   // Reinicia el paso actual cuando cambia la ruta
   useEffect(() => {
@@ -204,7 +151,7 @@ export function PageGuide() {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      setOpen(false);
+      closeGuide();
     }
   }
   
@@ -214,9 +161,17 @@ export function PageGuide() {
     }
   }
   
+  function handleOpenChange(value: boolean) {
+    if (value) {
+      openGuide();
+    } else {
+      closeGuide();
+    }
+  }
+  
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -247,7 +202,7 @@ export function PageGuide() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={closeGuide}
                 size="sm"
               >
                 Cerrar

@@ -1,6 +1,6 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Bell, Cog, HelpCircle, LogOut, MessageSquare, Search, Settings, User } from "lucide-react"
+import { Bell, Cog, LogOut, MessageSquare, Search, Settings, User } from "lucide-react"
 import { ThemeToggle } from "./ThemeToggle"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
+import { HelpButton } from "@/components/help/HelpButton"
 
 interface UserMenuProps {
   className?: string;
@@ -59,18 +60,7 @@ export function UserMenu({ className }: UserMenuProps) {
         </Button>
         
         {/* Help button */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="hidden sm:flex relative"
-          onClick={() => {
-            // Resetear el estado de páginas visitadas para mostrar las guías de nuevo
-            localStorage.setItem('visitedPages', '{}');
-            window.location.reload();
-          }}
-        >
-          <HelpCircle className="h-5 w-5 text-muted-foreground" />
-        </Button>
+        <HelpButton />
         
         {/* Notifications */}
         <DropdownMenu>
