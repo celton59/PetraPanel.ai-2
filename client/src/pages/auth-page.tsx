@@ -157,27 +157,29 @@ export default function AuthPage() {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="rememberMe"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          id="rememberMe"
-                        />
-                      </FormControl>
-                      <label 
-                        htmlFor="rememberMe"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Recordar mi sesión
-                      </label>
-                    </FormItem>
-                  )}
-                />
+                <div className="flex justify-end">
+                  <FormField
+                    control={form.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            id="rememberMe"
+                          />
+                        </FormControl>
+                        <label 
+                          htmlFor="rememberMe"
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          Recordar mi sesión
+                        </label>
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <Button 
                   type="submit" 
