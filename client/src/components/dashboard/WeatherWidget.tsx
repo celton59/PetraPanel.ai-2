@@ -148,38 +148,58 @@ export function WeatherWidget() {
   };
 
   return (
-    <Card className="bg-gradient-to-br from-background to-muted/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Thermometer className="h-5 w-5" />
+    <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      {/* Weather-themed gradient accent */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400"></div>
+      
+      <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Thermometer className="h-5 w-5 text-primary" />
           Puerto de Sagunto
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      
+      <CardContent className="p-5">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-3xl font-bold">{weather.temperature}°C</span>
+            <motion.div
+              className="flex flex-col gap-1"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <span className="text-3xl font-bold tracking-tight">{weather.temperature}°C</span>
               <span className="text-sm text-muted-foreground capitalize">
                 {weather.description}
               </span>
+            </motion.div>
+            
+            <div className="bg-primary/5 p-3 rounded-full border border-primary/10 shadow-inner">
+              {getWeatherIcon(weather.condition)}
             </div>
-            {getWeatherIcon(weather.condition)}
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
+          
+          <motion.div 
+            className="mt-2 grid grid-cols-2 gap-4 text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            <div className="flex items-center gap-2 bg-blue-500/10 p-2 rounded-lg">
               <Droplets className="h-4 w-4 text-blue-500" />
-              <span>{weather.humidity}% humedad</span>
+              <span className="font-medium">{weather.humidity}% humedad</span>
             </div>
-            <div className="flex items-center gap-2">
+            
+            <div className="flex items-center gap-2 bg-green-500/10 p-2 rounded-lg">
               <Wind className="h-4 w-4 text-green-500" />
-              <span>{weather.windSpeed} km/h</span>
+              <span className="font-medium">{weather.windSpeed} km/h</span>
             </div>
-            <div className="col-span-2 flex items-center gap-2 text-muted-foreground">
-              <Thermometer className="h-4 w-4" />
-              <span>Sensación térmica: {weather.feelsLike}°C</span>
+            
+            <div className="col-span-2 flex items-center justify-center gap-2 bg-amber-500/10 p-2 rounded-lg mt-1">
+              <Thermometer className="h-4 w-4 text-amber-500" />
+              <span className="font-medium">Sensación térmica: {weather.feelsLike}°C</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </CardContent>
     </Card>
