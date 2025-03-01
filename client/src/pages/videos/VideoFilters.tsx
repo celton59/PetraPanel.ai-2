@@ -44,7 +44,7 @@ export function VideoFilters({
     <div className="space-y-4">
       <div className="flex-1">
         <Input
-          placeholder="Buscar videos por título o número de serie"
+          placeholder="Buscar por título, serie, descripción, creador u optimizador"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-[400px] pl-4 h-9 text-base"

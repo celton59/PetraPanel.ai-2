@@ -172,7 +172,11 @@ export default function VideosPage() {
     if (searchTerm) {
       return (
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+        video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (video.seriesNumber && video.seriesNumber.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (video.creatorName && video.creatorName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
