@@ -48,76 +48,112 @@ export default function AuthPage() {
       >
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
-          <motion.div 
-            className="relative"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Halo effect behind logo */}
-            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
-            {/* Logo container */}
-            <div className="relative bg-gradient-to-br from-primary/10 to-primary/20 p-5 rounded-full backdrop-blur-sm ring-1 ring-primary/20 shadow-lg overflow-hidden hover:shadow-primary/20 transition-all duration-300">
-              {/* Video icon with animation */}
-              <motion.svg 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="w-14 h-14 text-primary"
-                animate={{ 
-                  rotateY: [0, 360],
-                }}
-                transition={{
-                  duration: 3,
-                  ease: "easeInOut",
-                  repeat: Infinity,
-                  repeatDelay: 5
-                }}
+          <div className="relative w-24 h-24">
+            {/* Modern logo design */}
+            <motion.div 
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+            >
+              <svg
+                viewBox="0 0 100 100"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full h-full"
               >
+                {/* Background Circle */}
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="url(#gradientBackground)"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+                
+                {/* Outer Ring */}
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="48"
+                  stroke="url(#gradientStroke)"
+                  strokeWidth="2"
+                  fill="none"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                />
+                
+                {/* Video Play Icon */}
+                <motion.path
+                  d="M65,50 L42,35 L42,65 Z"
+                  fill="white"
+                  initial={{ scale: 0, x: -5 }}
+                  animate={{ scale: 1, x: 0 }}
+                  transition={{ 
+                    delay: 0.7, 
+                    duration: 0.5, 
+                    type: "spring",
+                    stiffness: 200
+                  }}
+                />
+                
+                {/* Media Waves */}
+                <motion.path
+                  d="M76,40 C80,44 82,47 82,50 C82,53 80,56 76,60"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  fill="none"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ delay: 0.9, duration: 0.7 }}
+                />
+                
+                <motion.path
+                  d="M72,33 C80,38 85,44 85,50 C85,56 80,62 72,67"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="1,3"
+                  fill="none"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.6 }}
+                  transition={{ delay: 1.1, duration: 0.7 }}
+                />
+                
                 <defs>
-                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="currentColor" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
+                  <linearGradient id="gradientBackground" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="100%" stopColor="#7c3aed" />
+                  </linearGradient>
+                  <linearGradient id="gradientStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#a3e635" stopOpacity="0.7" />
+                    <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.7" />
                   </linearGradient>
                 </defs>
-                {/* Monitor screen with pulsing animation */}
-                <motion.rect 
-                  x="2" y="4" width="20" height="12" rx="2" 
-                  stroke="url(#logoGradient)" 
-                  strokeWidth="2" 
-                  fill="none"
-                  animate={{ 
-                    strokeWidth: [2, 2.5, 2],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    repeatType: "reverse"
-                  }}
-                />
-                
-                {/* Play button with bounce effect */}
-                <motion.polygon 
-                  points="10,8 16,10 10,12" 
-                  fill="url(#logoGradient)"
-                  animate={{ 
-                    scale: [1, 1.1, 1],
-                    x: [0, 0.3, 0]
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "easeInOut"
-                  }}
-                />
-                
-                {/* Stand */}
-                <path d="M8 16L8 18L16 18L16 16" stroke="url(#logoGradient)" strokeWidth="2" strokeLinecap="round" />
-                <rect x="7" y="18" width="10" height="2" rx="1" fill="url(#logoGradient)" />
-              </motion.svg>
-            </div>
-          </motion.div>
+              </svg>
+            </motion.div>
+            
+            {/* Shine effect */}
+            <motion.div 
+              className="absolute inset-0 bg-white/20 blur-2xl rounded-full"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: [0, 0.3, 0],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{ 
+                duration: 3,
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "easeInOut",
+                times: [0, 0.5, 1]
+              }}
+            />
+          </div>
           <div className="space-y-3">
             <motion.h1 
               className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent"
