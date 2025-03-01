@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useUser } from "@/hooks/use-user";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleUserRound, KeyRound, LogIn, Loader2, LayoutDashboard } from "lucide-react";
+import { CircleUserRound, KeyRound, LogIn, Loader2, LayoutDashboard, Video, Camera } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -76,7 +76,7 @@ export default function AuthPage() {
           <div className="relative mb-2">
             <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10 shadow-sm">
               <div className="relative bg-gradient-to-br from-primary to-purple-500 p-3 rounded-md shadow-inner">
-                <LayoutDashboard className="w-12 h-12 text-white" />
+                <Video className="w-12 h-12 text-white" />
               </div>
             </div>
           </div>
