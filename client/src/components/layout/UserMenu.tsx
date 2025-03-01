@@ -58,117 +58,19 @@ export function UserMenu({ className }: UserMenuProps) {
           <Search className="h-5 w-5 text-muted-foreground" />
         </Button>
         
-        {/* Help button with dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="hidden sm:flex relative"
-            >
-              <HelpCircle className="h-5 w-5 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Centro de Ayuda</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            
-            {/* Opciones de ayuda rápida */}
-            <div className="p-2 grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2 text-xs" onClick={() => window.open('#', '_blank')}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                  <path d="M12 17h.01"/>
-                </svg>
-                <span>Guía de Uso</span>
-              </Button>
-              
-              <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2 text-xs" onClick={() => window.open('#', '_blank')}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-                <span>Tutoriales</span>
-              </Button>
-              
-              <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2 text-xs" onClick={() => window.open('#', '_blank')}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                  <path d="M12 11h4"/>
-                  <path d="M12 16h4"/>
-                  <path d="M8 11h.01"/>
-                  <path d="M8 16h.01"/>
-                </svg>
-                <span>Documentación</span>
-              </Button>
-              
-              <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2 text-xs" onClick={() => window.open('#', '_blank')}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                  <path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h3.8a2 2 0 0 0 1.4-.6L12 4.6a2 2 0 0 1 1.4-.6h3.8a2 2 0 0 1 2 2v2.4Z"/>
-                  <path d="M12 9v6"/>
-                  <path d="M15 12h-6"/>
-                </svg>
-                <span>Crear Ticket</span>
-              </Button>
-            </div>
-            
-            <DropdownMenuSeparator />
-            
-            {/* Atajos de teclado */}
-            <div className="p-3">
-              <h4 className="text-sm font-medium mb-2">Atajos de teclado principales</h4>
-              <div className="grid gap-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span>Buscar contenido</span>
-                  <div className="flex gap-1">
-                    <kbd className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-[10px] border">Ctrl</kbd>
-                    <kbd className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-[10px] border">K</kbd>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Nuevo proyecto</span>
-                  <div className="flex gap-1">
-                    <kbd className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-[10px] border">Ctrl</kbd>
-                    <kbd className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-[10px] border">N</kbd>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Guardar cambios</span>
-                  <div className="flex gap-1">
-                    <kbd className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-[10px] border">Ctrl</kbd>
-                    <kbd className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-[10px] border">S</kbd>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <DropdownMenuSeparator />
-            
-            {/* Contacto soporte */}
-            <DropdownMenuItem className="cursor-pointer">
-              <div className="flex items-center gap-2 w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                </svg>
-                <span className="text-sm">Contactar Soporte</span>
-              </div>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem className="cursor-pointer">
-              <div className="flex items-center gap-2 w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                <span className="text-sm">Solicitar Capacitación</span>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Help button */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="hidden sm:flex relative"
+          onClick={() => {
+            // Resetear el estado de páginas visitadas para mostrar las guías de nuevo
+            localStorage.setItem('visitedPages', '{}');
+            window.location.reload();
+          }}
+        >
+          <HelpCircle className="h-5 w-5 text-muted-foreground" />
+        </Button>
         
         {/* Notifications */}
         <DropdownMenu>

@@ -13,10 +13,12 @@ import VideosPage from "@/pages/videos/VideosPage";
 import StatsPage from "@/pages/stats/StatsPage";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
+import { PageGuide } from "@/components/help/PageGuide";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
     <Layout>
+      <PageGuide />
       <Component />
     </Layout>
   );
