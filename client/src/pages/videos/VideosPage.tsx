@@ -46,33 +46,31 @@ import { User, VideoStatus } from "@db/schema";
 // Estados visibles por rol
 const VISIBLE_STATES = {
   optimizer: [
-    "available",
-    "content_corrections", 
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "en_revision",
   ],
-  youtuber: ["upload_media", "media_corrections", "completed"],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
   reviewer: [
-    "content_review",
-    "media_review",
-    "final_review",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "completed",
-  ],
-  content_reviewer: [
-    "content_review", 
-    "completed"
-  ],
-  media_reviewer: [
-    "media_review",
-    "completed",
+    "en_revision",
   ],
   admin: [
-    "available",
-    "content_corrections",
-    "content_review",
-    "upload_media",
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "media_corrections",
-    "media_review",
-    "final_review",
+    "review",
+    "youtube_ready",
     "completed",
+    "en_revision",
   ],
 } as const;
 
@@ -206,34 +204,30 @@ export default function VideosPage() {
 
   function getTableView() {
     return (
-      <div className="rounded-xl border border-muted/60 bg-gradient-to-br from-background to-primary/5 shadow-sm overflow-hidden">
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-muted/30">
-                <TableHead className="text-foreground/70 font-medium">Miniatura</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Serie</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Título</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Estado</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Creador</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Optimizador</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Revisor Cont.</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Uploader</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Revisor Media</TableHead>
-                <TableHead className="text-foreground/70 font-medium">Actualización</TableHead>
-                <TableHead className="text-foreground/70 font-medium text-right">Acciones</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="">Miniatura</TableHead>
+                <TableHead className="">Serie</TableHead>
+                <TableHead className="">Título</TableHead>
+                <TableHead className="">Estado</TableHead>
+                <TableHead className="">Creador</TableHead>
+                <TableHead className="">Optimizador</TableHead>
+                <TableHead className="">Revisor Cont.</TableHead>
+                <TableHead className="">Uploader</TableHead>
+                <TableHead className="">Revisor Media</TableHead>
+                <TableHead className="">Actualización</TableHead>
+                <TableHead className=" text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredVideos?.map((video) => (
-                <TableRow 
-                  key={video.id} 
-                  className="group hover:bg-primary/5 cursor-pointer transition-colors"
-                  onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
-                >
+                <TableRow key={video.id} className="group">
                   {/* Miniatura */}
                   <TableCell>
-                    <div className="w-16 h-12 rounded-md overflow-hidden group-hover:shadow-md transition-all border border-muted/40 group-hover:border-primary/40">
+                    <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
                       {video.thumbnailUrl ? (
                         <img
                           src={video.thumbnailUrl}
@@ -241,111 +235,65 @@ export default function VideosPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-muted/30 text-muted-foreground">
+                        <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
                           <Layout className="h-4 w-4" />
                         </div>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {video.seriesNumber ? (
-                      <span className="px-2 py-1 bg-primary/10 text-primary text-sm font-medium rounded-md">
-                        {video.seriesNumber}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    {video.seriesNumber ?? "-"}
                   </TableCell>
-                  <TableCell className="font-medium max-w-[300px]">
-                    <div className="truncate">
-                      {video.optimizedTitle ?? video.title}
-                    </div>
-                    {video.description && (
-                      <div className="text-xs text-muted-foreground truncate mt-1">
-                        {video.description}
-                      </div>
-                    )}
+                  <TableCell className="font-medium max-w-[300px] truncate">
+                    {video.optimizedTitle ?? video.title}
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className={cn("transition-all", getStatusBadgeColor(video.status))}
+                      className={cn(getStatusBadgeColor(video.status))}
                     >
                       {getStatusLabel(user!.role, video)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {video.creatorName ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{video.creatorName}</span>
-                        <span className="text-xs text-muted-foreground">{video.creatorUsername}</span>
-                      </div>
-                    ) : (
-                      video.creatorUsername
-                    )}
+                    {video.creatorName
+                      ? `${video.creatorName} (${video.creatorUsername})`
+                      : video.creatorUsername}
                   </TableCell>
                   <TableCell>
-                    {video.optimizerName ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{video.optimizerName}</span>
-                        <span className="text-xs text-muted-foreground">{video.optimizerUsername}</span>
-                      </div>
-                    ) : (
-                      video.optimizerUsername
-                    )}
+                    {video.optimizerName
+                      ? `${video.optimizerName} (${video.optimizerUsername})`
+                      : video.optimizerUsername}
                   </TableCell>
                   <TableCell>
-                    {video.contentReviewerName ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{video.contentReviewerName}</span>
-                        <span className="text-xs text-muted-foreground">{video.contentReviewerUsername}</span>
-                      </div>
-                    ) : (
-                      video.contentReviewerUsername
-                    )}
+                    {video.contentReviewerName
+                      ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
+                      : video.contentReviewerUsername}
                   </TableCell>
                   <TableCell>
-                    {video.uploaderName ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{video.uploaderName}</span>
-                        <span className="text-xs text-muted-foreground">{video.uploaderUsername}</span>
-                      </div>
-                    ) : (
-                      video.uploaderUsername
-                    )}
+                    {video.uploaderName
+                      ? `${video.uploaderName} (${video.uploaderUsername})`
+                      : video.uploaderUsername}
                   </TableCell>
                   <TableCell>
-                    {video.mediaReviewerName ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{video.mediaReviewerName}</span>
-                        <span className="text-xs text-muted-foreground">{video.mediaReviewerUsername}</span>
-                      </div>
-                    ) : (
-                      video.mediaReviewerUsername
-                    )}
+                    {video.mediaReviewerName
+                      ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
+                      : video.mediaReviewerUsername}
                   </TableCell>
                   <TableCell>
-                    {video.updatedAt && (
-                      <div className="flex flex-col">
-                        <span className="text-sm">{new Date(video.updatedAt).toLocaleDateString()}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(video.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </span>
-                      </div>
-                    )}
+                    {video.updatedAt
+                      ? new Date(video.updatedAt).toLocaleDateString()
+                      : ""}
                   </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {canSeeVideoDetails(video) && (
                         <Button
                           variant="ghost"
                           size="icon"
                           disabled={updatingVideoId === video.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleVideoClick(video);
-                          }}
-                          className="transition-colors hover:bg-primary/10 hover:text-primary"
+                          onClick={() => handleVideoClick(video)}
+                          className="transition-colors"
                         >
                           {updatingVideoId === video.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -360,7 +308,7 @@ export default function VideosPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive transition-colors hover:bg-destructive/10"
+                              className="text-destructive transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -419,10 +367,9 @@ export default function VideosPage() {
         {videos?.map((video) => (
           <div
             key={video.id}
-            className="group relative rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-muted/60 bg-gradient-to-br from-background to-primary/5 hover:border-primary/30"
-            onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
+            className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
           >
-            <div className="aspect-video relative">
+            <div className="aspect-video bg-muted relative">
               {video.thumbnailUrl ? (
                 <img
                   src={video.thumbnailUrl}
@@ -430,133 +377,103 @@ export default function VideosPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted/30 text-muted-foreground">
-                  <Layout className="h-12 w-12 opacity-50" />
+                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                  <Layout className="h-4 w-4" />
                 </div>
               )}
-              {canSeeVideoDetails(video) && (
-                <div
-                  className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                >
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                    <Badge
-                      variant="secondary"
-                      className={cn("text-xs backdrop-blur-sm bg-black/40 border border-white/20", getStatusBadgeColor(video.status))}
-                    >
-                      {getStatusLabel(user!.role, video)}
-                    </Badge>
-                    
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="h-8 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleVideoClick(video);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> Ver detalles
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Series number badge */}
-              {video.seriesNumber && (
-                <div className="absolute top-3 left-3">
-                  <div className="px-2 py-1 rounded-md text-xs font-medium bg-primary/90 text-primary-foreground backdrop-blur-sm">
-                    Serie #{video.seriesNumber}
-                  </div>
-                </div>
-              )}
+              <div
+                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                onClick={() => handleVideoClick(video)}
+              >
+                <Eye className="h-6 w-6 text-white" />
+              </div>
             </div>
-            
             <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2 flex justify-between items-center">
                 <Badge
                   variant="secondary"
                   className={cn("text-xs", getStatusBadgeColor(video.status))}
                 >
                   {getStatusLabel(user!.role, video)}
                 </Badge>
-                
-                <div className="flex items-center space-x-1">
-                  {video.updatedAt && (
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(video.updatedAt).toLocaleDateString()}
-                    </span>
-                  )}
-                  
-                  {user?.role === "admin" && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive transition-colors hover:bg-destructive/10"
+                {user?.role === "admin" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminará
+                          permanentemente el video
+                          <span className="font-medium"> {video.title}</span>.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() =>
+                            deleteVideo({
+                              videoId: video.id,
+                              projectId: video.projectId,
+                            })
+                          }
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará
-                            permanentemente el video
-                            <span className="font-medium"> {video.title}</span>.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() =>
-                              deleteVideo({
-                                videoId: video.id,
-                                projectId: video.projectId,
-                              })
-                            }
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
-              
-              <h3 className="font-medium text-base mb-2 line-clamp-2">
+              <h3 className="font-medium text-sm mb-1 truncate">
                 {video.optimizedTitle || video.title}
               </h3>
-              
-              {video.description && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {video.description}
-                </p>
-              )}
-              
-              <div className="grid grid-cols-2 gap-3 text-xs mt-3 pt-3 border-t border-muted/40">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground font-medium">Creador</p>
-                  <p className="font-medium">{video.creatorName || video.creatorUsername}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-muted-foreground font-medium">Optimizador</p>
-                  <p className="font-medium">{video.optimizerName || video.optimizerUsername}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-muted-foreground font-medium">Rev. Contenido</p>
-                  <p className="font-medium">{video.contentReviewerName || video.contentReviewerUsername}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-muted-foreground font-medium">Rev. Media</p>
-                  <p className="font-medium">{video.mediaReviewerName || video.mediaReviewerUsername}</p>
-                </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{video.seriesNumber || "Sin serie"}</span>
+                <span>
+                  {video.updatedAt &&
+                    new Date(video.updatedAt).toLocaleDateString()}
+                  {!video.updatedAt &&
+                    video.createdAt &&
+                    new Date(video.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                <span>
+                  <strong>Creador: </strong>
+                  {video.creatorName
+                    ? `${video.creatorName} (${video.creatorUsername})`
+                    : video.creatorUsername}
+                </span>
+                <span>
+                  <strong>Optimizador: </strong>
+                  {video.optimizerName
+                    ? `${video.optimizerName} (${video.optimizerUsername})`
+                    : video.optimizerUsername}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                <span>
+                  <strong>Revisor Cont.: </strong>
+                  {video.contentReviewerName
+                    ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
+                    : video.contentReviewerUsername}
+                </span>
+                <span>
+                  <strong>Revisor Media: </strong>
+                  {video.mediaReviewerName
+                    ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
+                    : video.mediaReviewerUsername}
+                </span>
               </div>
             </div>
           </div>
@@ -713,17 +630,14 @@ export default function VideosPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex flex-col gap-2 mb-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gradient-to-br from-background to-primary/5 p-6 rounded-xl border border-muted/60 shadow-sm mb-6">
+      <div className="flex flex-col gap-2 mb-12">
+        <div className="flex items-center justify-between">
           <div className="space-y-3">
-            <div className="relative">
-              <h1 className="text-3xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                  Videos
-                </span>
-              </h1>
-              <div className="absolute -bottom-1 left-0 h-1 w-20 bg-gradient-to-r from-primary/50 to-transparent rounded-full"></div>
-            </div>
+            <h1 className="text-4xl font-bold">
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Videos
+              </span>
+            </h1>
             <div className="flex items-center space-x-4">
               <div className="h-8 w-1 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full" />
               <p className="text-lg text-muted-foreground font-medium tracking-tight">
