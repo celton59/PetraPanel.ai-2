@@ -630,14 +630,17 @@ export default function VideosPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex flex-col gap-2 mb-12">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gradient-to-br from-background to-primary/5 p-6 rounded-xl border border-muted/60 shadow-sm mb-6">
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold">
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Videos
-              </span>
-            </h1>
+            <div className="relative">
+              <h1 className="text-3xl font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                  Videos
+                </span>
+              </h1>
+              <div className="absolute -bottom-1 left-0 h-1 w-20 bg-gradient-to-r from-primary/50 to-transparent rounded-full"></div>
+            </div>
             <div className="flex items-center space-x-4">
               <div className="h-8 w-1 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full" />
               <p className="text-lg text-muted-foreground font-medium tracking-tight">

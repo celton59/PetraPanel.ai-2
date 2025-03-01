@@ -6,30 +6,38 @@ import { VideoStatus } from "@db/schema";
 interface StatusFilterProps {
   status: string;
   onStatusChange: (status: string) => void;
+  visibleStates?: readonly VideoStatus[] | string[];
 }
 
-export const StatusFilter = ({ status, onStatusChange }: StatusFilterProps) => {
+export const StatusFilter = ({ status, onStatusChange, visibleStates = [] }: StatusFilterProps) => {
+  const statusOptions = [
+    { value: "all", label: "Todos los estados" },
+    { value: "available", label: "Disponibles" },
+    { value: "content_corrections", label: "Corr. Contenido" },
+    { value: "content_review", label: "Rev. Contenido" },
+    { value: "upload_media", label: "Subir Media" },
+    { value: "media_corrections", label: "Corr. Media" },
+    { value: "media_review", label: "Rev. Media" },
+    { value: "final_review", label: "Rev. Final" },
+    { value: "completed", label: "Completados" }
+  ];
+  
+  const filteredOptions = visibleStates.length 
+    ? [{ value: "all", label: "Todos los estados" }, ...statusOptions.filter(opt => visibleStates.includes(opt.value as VideoStatus))]
+    : statusOptions;
+
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium flex items-center gap-2">
-        <FileType className="h-4 w-4" />
-        Estado
-      </label>
-      <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger className="w-full bg-background">
-          <SelectValue placeholder="Estado" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos los estados</SelectItem>
-          <SelectItem value="pending">Pendientes</SelectItem>
-          <SelectItem value="in_progress">En Progreso</SelectItem>
-          <SelectItem value="optimize_review">Rev. Optimización</SelectItem>
-          <SelectItem value="upload_review">Rev. Archivos</SelectItem>
-          <SelectItem value="review">Rev. Final</SelectItem>
-          <SelectItem value="youtube_ready">Listo YouTube</SelectItem>
-          <SelectItem value="completed">Completados</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={status} onValueChange={onStatusChange}>
+      <SelectTrigger className="w-full bg-background border-muted/60 hover:border-primary/30 focus:ring-primary/20">
+        <SelectValue placeholder="Estado" />
+      </SelectTrigger>
+      <SelectContent>
+        {filteredOptions.map(option => (
+          <SelectItem key={option.value} value={option.value} className="focus:bg-primary/10">
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };
