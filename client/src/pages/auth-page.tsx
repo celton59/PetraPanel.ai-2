@@ -95,12 +95,7 @@ export default function AuthPage() {
         {/* Auth Form Card */}
         <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
-            <div className="flex items-center space-x-2 mb-2">
-              <div className="p-1.5 rounded-full bg-primary/10">
-                <KeyRound className="w-5 h-5 text-primary" />
-              </div>
-              <span className="text-sm font-medium">Acceso seguro</span>
-            </div>
+            {/* Eliminamos el texto de "Acceso seguro" */}
           </CardHeader>
           <CardContent className="pt-6 px-8 md:px-10">
             <Form {...form}>
