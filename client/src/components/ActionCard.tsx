@@ -88,8 +88,8 @@ const ActionCard = ({
       )}
       onClick={onClick}
     >
-      {/* Colored top border */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+      {/* Simple top accent */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
       
       {/* Action card content */}
       <div className="p-5 relative">
