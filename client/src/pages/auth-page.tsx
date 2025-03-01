@@ -62,36 +62,38 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-gradient-to-br from-primary/10 via-background to-primary/5 overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-5%] w-2/3 h-2/3 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-2/3 h-2/3 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-2xl animate-pulse opacity-70" style={{ animationDelay: '0.5s' }} />
-        <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-primary/10 rounded-full blur-2xl animate-pulse opacity-70" style={{ animationDelay: '1s' }} />
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none"></div>
+      
+      {/* Simple header accent line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-purple-500/80 to-pink-500/80"></div>
       
       <div className="w-full max-w-lg space-y-8 relative z-10 animate-fade-in">
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
-            <div className="relative bg-gradient-to-br from-primary/10 to-primary/20 p-5 rounded-full backdrop-blur-sm ring-1 ring-primary/20 shadow-lg">
-              <CircleUserRound className="w-14 h-14 text-primary animate-float" />
+          {/* Logo/Brand */}
+          <div className="relative mb-2">
+            <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10 shadow-sm">
+              <div className="relative bg-gradient-to-br from-primary to-purple-500 p-3 rounded-md shadow-inner">
+                <CircleUserRound className="w-12 h-12 text-white" />
+              </div>
             </div>
           </div>
+          
+          {/* Welcome Text */}
           <div className="space-y-2">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent animate-shimmer">
-              ¡Bienvenido de nuevo!
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+              <span className="text-primary">Petra</span>Panel
             </h1>
-            <p className="text-base md:text-lg text-muted-foreground/80 max-w-sm mx-auto">
-              Inicia sesión para acceder a tu cuenta y gestionar tus videos
+            <p className="text-base md:text-lg text-muted-foreground max-w-sm mx-auto">
+              Inicia sesión para gestionar tu contenido multimedia
             </p>
           </div>
         </div>
 
         {/* Auth Form Card */}
-        <Card className="border-border/40 backdrop-blur-sm bg-card/90 shadow-xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
             <div className="flex items-center space-x-2 mb-2">
               <div className="p-1.5 rounded-full bg-primary/10">
@@ -185,7 +187,7 @@ export default function AuthPage() {
                 <Button 
                   type="submit" 
                   size="lg" 
-                  className="w-full h-12 text-base mt-2"
+                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
                   disabled={isLoading}
                 >
                   {isLoading ? (
