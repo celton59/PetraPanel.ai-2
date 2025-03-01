@@ -133,12 +133,9 @@ export default function AuthPage() {
                         <FormLabel className="text-sm font-medium">
                           Contraseña
                         </FormLabel>
-                        <a 
-                          href="#" 
-                          className="text-xs text-primary hover:underline"
-                        >
+                        <span className="text-xs text-muted-foreground">
                           ¿Olvidaste tu contraseña?
-                        </a>
+                        </span>
                       </div>
                       <div className="relative">
                         <FormControl>
@@ -206,10 +203,7 @@ export default function AuthPage() {
           <CardFooter className="px-8 md:px-10 flex flex-col space-y-4 pb-8">
             <Separator className="my-2" />
             <div className="text-center text-sm text-muted-foreground">
-              <span>¿No tienes cuenta? </span>
-              <a href="#" className="text-primary font-medium hover:underline">
-                Contacta al administrador
-              </a>
+              <span>¿No tienes cuenta? Contacta al administrador</span>
             </div>
           </CardFooter>
         </Card>
