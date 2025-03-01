@@ -59,28 +59,33 @@ const Index = () => {
         
         {/* Widgets grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <motion.div variants={itemVariants} className="lg:col-span-2 border border-muted/40 rounded-lg p-4">
-            <h3 className="text-xl font-semibold mb-4">Actividad reciente</h3>
+          <motion.div variants={itemVariants} className="lg:col-span-2 border border-muted/40 rounded-lg p-4 relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+            <h3 className="text-xl font-semibold mb-4 mt-2">Actividad reciente</h3>
             <RecentActivity />
           </motion.div>
           
-          <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4">
-            <h3 className="text-xl font-semibold mb-4">Clima local</h3>
+          <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4 relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-blue-400"></div>
+            <h3 className="text-xl font-semibold mb-4 mt-2">Clima local</h3>
             <WeatherWidget />
           </motion.div>
           
-          <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4">
-            <h3 className="text-xl font-semibold mb-4">Rendimiento</h3>
+          <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4 relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
+            <h3 className="text-xl font-semibold mb-4 mt-2">Rendimiento</h3>
             <PerformanceStats />
           </motion.div>
           
-          <motion.div variants={itemVariants} className="lg:col-span-2 border border-muted/40 rounded-lg p-4">
-            <h3 className="text-xl font-semibold mb-4">Métricas de videos</h3>
+          <motion.div variants={itemVariants} className="lg:col-span-2 border border-muted/40 rounded-lg p-4 relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-purple-400"></div>
+            <h3 className="text-xl font-semibold mb-4 mt-2">Métricas de videos</h3>
             <VideoStats />
           </motion.div>
           
-          <motion.div variants={itemVariants} className="lg:col-span-3 border border-muted/40 rounded-lg p-4">
-            <h3 className="text-xl font-semibold mb-4">Equipo activo</h3>
+          <motion.div variants={itemVariants} className="lg:col-span-3 border border-muted/40 rounded-lg p-4 relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-amber-400"></div>
+            <h3 className="text-xl font-semibold mb-4 mt-2">Equipo activo</h3>
             <UsersList />
           </motion.div>
         </motion.div>

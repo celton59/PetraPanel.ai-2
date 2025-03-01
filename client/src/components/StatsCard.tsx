@@ -22,8 +22,8 @@ const StatsCard = ({ title, value, change, isPositive, icon: Icon, className, an
       className
     )}>
       <CardContent className="p-4 relative">
-        {/* Simple accent */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
+        {/* Colored top border */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
         
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
