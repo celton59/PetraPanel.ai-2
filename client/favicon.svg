@@ -14,7 +14,7 @@
   <rect x="6" y="7" width="20" height="14" rx="2" stroke="white" stroke-width="2" fill="none"/>
   
   <!-- Botón de reproducción en el centro -->
-  <polygon points="13,14 19,17 13,20" fill="white"/>
+  <polygon points="13,13 19,16 13,19" fill="white"/>
   
   <!-- Base del monitor -->
   <path d="M12 21L12 24L20 24L20 21" stroke="white" stroke-width="2" stroke-linecap="round"/>
