@@ -7,13 +7,27 @@ import { useForm } from "react-hook-form";
 import { CircleUserRound, LogIn, Lock, User, EyeIcon, EyeOffIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AuthPage() {
   const { login } = useUser();
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
+  
+  // Control when form elements appear
+  const [showForm, setShowForm] = useState(false);
+  
+  // Show form after logo appears
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowForm(true);
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const form = useForm({
     defaultValues: {
@@ -41,8 +55,19 @@ export default function AuthPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-gradient-to-br from-primary/10 via-background to-primary/5">
       <div className="w-full max-w-lg space-y-8">
         {/* Header Section */}
-        <div className="flex flex-col items-center space-y-6 text-center">
-          <div className="relative">
+        <div className="flex flex-col items-center space-y-6 text-center overflow-hidden">
+          <motion.div 
+            className="relative"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ 
+              type: "spring", 
+              damping: 12,
+              duration: 0.8,
+              delay: 0.1
+            }}
+            onAnimationComplete={() => setAnimationComplete(true)}
+          >
             {/* Halo effect behind logo */}
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
             {/* Logo container */}
@@ -72,107 +97,233 @@ export default function AuthPage() {
                 </svg>
               </div>
             </div>
-          </div>
-          <div className="space-y-3">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          </motion.div>
+          <div className="space-y-3 overflow-hidden">
+            <motion.h1 
+              className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent"
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ 
+                type: "spring", 
+                damping: 12,
+                delay: 0.4
+              }}
+            >
               ¡Bienvenido a PetraPanel!
-            </h1>
-            <p className="text-base md:text-lg text-muted-foreground/80 max-w-sm mx-auto">
+            </motion.h1>
+            <motion.p 
+              className="text-base md:text-lg text-muted-foreground/80 max-w-sm mx-auto"
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ 
+                type: "spring", 
+                damping: 12,
+                delay: 0.6
+              }}
+            >
               Tu plataforma avanzada para gestionar y optimizar tus videos de YouTube
-            </p>
+            </motion.p>
           </div>
         </div>
 
         {/* Auth Form Card */}
-        <Card className="border-border/40 backdrop-blur-sm bg-card/90 shadow-xl">
-          <CardContent className="pt-14 px-8 md:px-10">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="space-y-6">
-                  <div className="space-y-2 pt-4">
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <User size={18} className="text-muted-foreground" />
-                      Nombre de usuario
-                    </label>
-                    <div className="relative">
-                      <Input
-                        placeholder="Ingresa tu nombre de usuario"
-                        {...form.register("username", { required: true })}
-                        className="h-12 pl-4"
-                      />
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ 
+              delay: 0.7, 
+              duration: 0.5,
+              type: "spring",
+              stiffness: 100 
+            }}
+          >
+            <Card className="border-border/40 backdrop-blur-sm bg-card/90 shadow-xl overflow-hidden">
+              <CardContent className="pt-14 px-8 md:px-10">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <div className="space-y-6">
+                      <AnimatePresence>
+                        {showForm && (
+                          <motion.div 
+                            className="space-y-2 pt-4"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2, duration: 0.3 }}
+                          >
+                            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                              >
+                                <User size={18} className="text-muted-foreground" />
+                              </motion.div>
+                              <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.5 }}
+                              >
+                                Nombre de usuario
+                              </motion.span>
+                            </label>
+                            <motion.div 
+                              className="relative"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.6 }}
+                            >
+                              <Input
+                                placeholder="Ingresa tu nombre de usuario"
+                                {...form.register("username", { required: true })}
+                                className="h-12 pl-4"
+                              />
+                            </motion.div>
+                            {form.formState.errors.username && (
+                              <motion.p 
+                                className="text-destructive text-xs mt-1"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                              >
+                                Este campo es obligatorio
+                              </motion.p>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      
+                      <AnimatePresence>
+                        {showForm && (
+                          <motion.div 
+                            className="space-y-2"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4, duration: 0.3 }}
+                          >
+                            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+                              >
+                                <Lock size={18} className="text-muted-foreground" />
+                              </motion.div>
+                              <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.7 }}
+                              >
+                                Contraseña
+                              </motion.span>
+                            </label>
+                            <motion.div 
+                              className="relative"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.8 }}
+                            >
+                              <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Ingresa tu contraseña"
+                                {...form.register("password", { required: true })}
+                                className="h-12 pr-10"
+                              />
+                              <motion.button 
+                                type="button"
+                                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                                onClick={() => setShowPassword(!showPassword)}
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 1, type: "spring" }}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+                              </motion.button>
+                            </motion.div>
+                            {form.formState.errors.password && (
+                              <motion.p 
+                                className="text-destructive text-xs mt-1"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                              >
+                                Este campo es obligatorio
+                              </motion.p>
+                            )}
+                            <motion.div 
+                              className="flex justify-end"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 1.1 }}
+                            >
+                              <a
+                                href="#"
+                                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                ¿Olvidaste tu contraseña?
+                              </a>
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    {form.formState.errors.username && (
-                      <p className="text-destructive text-xs mt-1">Este campo es obligatorio</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Lock size={18} className="text-muted-foreground" />
-                      Contraseña
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Ingresa tu contraseña"
-                        {...form.register("password", { required: true })}
-                        className="h-12 pr-10"
-                      />
-                      <button 
-                        type="button"
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
-                      </button>
-                    </div>
-                    {form.formState.errors.password && (
-                      <p className="text-destructive text-xs mt-1">Este campo es obligatorio</p>
-                    )}
-                    <div className="flex justify-end">
-                      <a
-                        href="#"
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        ¿Olvidaste tu contraseña?
-                      </a>
-                    </div>
-                  </div>
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full h-12 text-base gap-2"
-                  disabled={isLoading}
+                    
+                    <AnimatePresence>
+                      {showForm && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 1.2, duration: 0.4 }}
+                        >
+                          <Button 
+                            type="submit" 
+                            size="lg" 
+                            className="w-full h-12 text-base gap-2"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <>
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                Iniciando sesión...
+                              </>
+                            ) : (
+                              <>
+                                <LogIn size={18} />
+                                Iniciar sesión
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </form>
+                </Form>
+              </CardContent>
+              <CardFooter className="px-8 md:px-10 py-4 flex justify-center border-t border-border/20">
+                <motion.p 
+                  className="text-sm text-muted-foreground"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.3 }}
                 >
-                  {isLoading ? (
-                    <>
-                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                      Iniciando sesión...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn size={18} />
-                      Iniciar sesión
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="px-8 md:px-10 py-4 flex justify-center border-t border-border/20">
-            <p className="text-sm text-muted-foreground">
-              ¿No tienes una cuenta? {" "}
-              <a href="#" className="text-primary hover:underline">
-                Contacta al administrador
-              </a>
-            </p>
-          </CardFooter>
-        </Card>
+                  ¿No tienes una cuenta? {" "}
+                  <a href="#" className="text-primary hover:underline">
+                    Contacta al administrador
+                  </a>
+                </motion.p>
+              </CardFooter>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Footer Text */}
-        <p className="px-4 md:px-8 text-center text-xs md:text-sm text-muted-foreground">
+        <motion.p 
+          className="px-4 md:px-8 text-center text-xs md:text-sm text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.6 }}
+        >
           Al continuar, aceptas nuestros{" "}
           <a
             href="#"
@@ -187,7 +338,7 @@ export default function AuthPage() {
           >
             Política de privacidad
           </a>
-        </p>
+        </motion.p>
       </div>
     </div>
   );
