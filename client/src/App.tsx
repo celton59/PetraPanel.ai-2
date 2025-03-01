@@ -14,6 +14,7 @@ import StatsPage from "@/pages/stats/StatsPage";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
+import { GuideProvider } from "@/components/help/GuideContext";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -58,12 +59,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster expand />
-      <Router>
-        {/* <Switch>
-          <Route path="/*" component={Layout} />
-        </Switch> */}
-      </Router>
+      <GuideProvider>
+        <Toaster expand />
+        <Router>
+          {/* <Switch>
+            <Route path="/*" component={Layout} />
+          </Switch> */}
+        </Router>
+      </GuideProvider>
     </QueryClientProvider>
   );
 }

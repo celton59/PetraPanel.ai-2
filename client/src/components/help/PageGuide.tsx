@@ -129,24 +129,67 @@ const routeGuides: RouteGuides = {
   }
 };
 
+// Definimos un objeto global accesible desde cualquier parte
+// No lo exportamos directamente para evitar problemas con Fast Refresh
+const globalGuideState = {
+  isOpen: false,
+  openGuide: () => {
+    globalGuideState.isOpen = true;
+  },
+  closeGuide: () => {
+    globalGuideState.isOpen = false;
+  }
+};
+
+// Función para acceder al estado global
+export function getGuideStore() {
+  return globalGuideState;
+}
+
 export function PageGuide() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   
+  // Observamos el estado del guide store
+  useEffect(() => {
+    // Crear una función que verifique el valor de globalGuideState.isOpen
+    const checkGuideStoreStatus = () => {
+      if (globalGuideState.isOpen && !open) {
+        setOpen(true);
+      } else if (!globalGuideState.isOpen && open) {
+        setOpen(false);
+      }
+    };
+    
+    // Primera comprobación
+    checkGuideStoreStatus();
+    
+    // Configurar un intervalo para comprobar periódicamente
+    const intervalId = setInterval(checkGuideStoreStatus, 200);
+    
+    // Actualizar el store cuando cambia el estado local
+    const handleOpenChange = (newOpen: boolean) => {
+      if (newOpen !== open) {
+        setOpen(newOpen);
+        globalGuideState.isOpen = newOpen;
+      }
+    };
+    
+    // Cleanup
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [open]);
+  
   // Encuentra la guía para la ruta actual
   const currentPathBase = '/' + location.split('/')[1]; // Obtiene la ruta base
   const currentGuide = routeGuides[currentPathBase] || routeGuides["/"];
   
-  // Verifica si este es el primer acceso a esta página
+  // No abrimos la guía automáticamente, solo cuando el usuario hace clic en el botón de ayuda
   useEffect(() => {
-    const visitedPages = JSON.parse(localStorage.getItem('visitedPages') || '{}');
-    if (!visitedPages[currentPathBase]) {
-      setOpen(true);
-      // Marca la página como visitada
-      visitedPages[currentPathBase] = true;
-      localStorage.setItem('visitedPages', JSON.stringify(visitedPages));
-    }
+    // Solo reiniciamos el paso actual cuando cambia la ruta, pero no abrimos automáticamente
+    setCurrentStep(0);
   }, [currentPathBase]);
   
   // Reinicia el paso actual cuando cambia la ruta
