@@ -17,6 +17,7 @@ import translatorRouter from "./routes/translator";
 import VideoController from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
+import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -184,6 +185,9 @@ export function registerRoutes(app: Express): Server {
     app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", requireAuth, thumbailUpload.single('file'),VideoController.uploadThumbnail);
 
     app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", requireAuth, VideoController.getVideoUploadUrl);
+
+    // Titulin
+    setUpTitulinRoutes(app)
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);

@@ -16,6 +16,12 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -24,6 +30,18 @@ export const projects = pgTable("projects", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = typeof projects.$inferInsert;
+
+export const insertProjectSchema = createInsertSchema(projects).extend({
+  name: z.string().min(1, "El nombre es requerido"),
+  prefix: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  current_number: z.number().optional(),
+});
+
+export const selectProjectSchema = createSelectSchema(projects);
 
 export const projectAccess = pgTable("project_access", {
   id: serial("id").primaryKey(),
@@ -35,6 +53,12 @@ export const projectAccess = pgTable("project_access", {
     .references(() => projects.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export type ProjectAccess = typeof projectAccess.$inferSelect;
+export type InsertProjectAccess = typeof projectAccess.$inferInsert;
+
+export const insertProjectAccessSchema = createInsertSchema(projectAccess);
+export const selectProjectAccessSchema = createSelectSchema(projectAccess);
 
 // This has to be equal to the 'status' attribute, this is only used for other code
 export const VIDEO_STATUSES_ARRAY: readonly [string, ...string[]] = ['available', 'content_corrections', 'content_review', 'upload_media', 'media_corrections', 'media_review', 'final_review', 'completed'];
@@ -75,32 +99,51 @@ export const videos = pgTable("videos", {
   publishedAt: timestamp("published_at")
 });
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-
-export type Project = typeof projects.$inferSelect;
-export type InsertProject = typeof projects.$inferInsert;
-
 export type Video = typeof videos.$inferSelect
 export type VideoStatus = Video['status']
 export type InsertVideo = typeof videos.$inferInsert;
 
-export type ProjectAccess = typeof projectAccess.$inferSelect;
-export type InsertProjectAccess = typeof projectAccess.$inferInsert;
-
-export const insertUserSchema = createInsertSchema(users);
-export const selectUserSchema = createSelectSchema(users);
-
-export const insertProjectSchema = createInsertSchema(projects).extend({
-  name: z.string().min(1, "El nombre es requerido"),
-  prefix: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  current_number: z.number().optional(),
-});
-
-export const selectProjectSchema = createSelectSchema(projects);
 export const insertVideoSchema = createInsertSchema(videos);
 export const selectVideoSchema = createSelectSchema(videos);
 
-export const insertProjectAccessSchema = createInsertSchema(projectAccess);
-export const selectProjectAccessSchema = createSelectSchema(projectAccess);
+export const youtube_channels = pgTable("youtube_channels", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id").notNull().unique(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  description: text("description"),
+  subscriberCount: integer("subscriber_count"),
+  videoCount: integer("video_count"),
+  lastVideoFetch: timestamp("last_video_fetch"),
+  lastAnalysis: timestamp("last_analysis"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+
+export const youtube_videos = pgTable("youtube_videos", {
+  id: serial("id").primaryKey(),
+  videoId: text("video_id").notNull().unique(),
+  channelId: text("channel_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  publishedAt: timestamp("published_at"),
+  thumbnailUrl: text("thumbnail_url"),
+  viewCount: integer("view_count"),
+  likeCount: integer("like_count"),
+  commentCount: integer("comment_count"),
+  duration: text("duration"),
+  tags: text("tags").array(),
+  analyzed: boolean("analyzed").default(false),
+  // analysisData: jsonb("analysis_data"),
+  sentToOptimize: boolean("sent_to_optimize").default(false),
+  sentToOptimizeAt: timestamp("sent_to_optimize_at"),
+  sentToOptimizeProjectId: integer("sent_to_optimize_project_id")
+    .references(() => projects.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type YoutubeVideo = typeof youtube_videos.$inferSelect

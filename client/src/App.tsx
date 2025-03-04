@@ -15,6 +15,7 @@ import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
 import { GuideProvider } from "@/components/help/GuideContext";
+import TitulinPage from "./pages/titulin/TitulinPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
       { user.role === 'admin' && <Route path="/ajustes" component={() => <ProtectedRoute component={SettingsPage} />} />}      
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
+      <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
       <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route component={NotFound} />
