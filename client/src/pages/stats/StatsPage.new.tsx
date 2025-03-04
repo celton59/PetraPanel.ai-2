@@ -19,6 +19,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AudienceAnalysis } from "@/components/dashboard/AudienceAnalysis";
 import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
+import { GeoDistribution } from "@/components/dashboard/GeoDistribution";
+import { ComparisonChart } from "@/components/dashboard/ComparisonChart";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export default function StatsPage() {
@@ -318,7 +320,11 @@ export default function StatsPage() {
                   </Button>
                 </div>
               </div>
-              <StatsOverview mode="reports" showTables={true} showExportOptions={true} />
+              <div className="space-y-8">
+                <ComparisonChart />
+                <GeoDistribution />
+                <StatsOverview mode="reports" showTables={true} showExportOptions={true} />
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
