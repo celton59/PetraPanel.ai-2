@@ -1,4 +1,4 @@
-import { BarChart, Home, Languages, Menu, Settings, Video } from "lucide-react";
+import { BarChart, Home, Languages, Menu, Settings, Video, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -25,7 +25,10 @@ export function Sidebar({ className }: SidebarProps) {
     { icon: Video, label: "Videos", path: "/videos", tooltip: "Gestión de videos" },
     { icon: Languages, label: "Traductor", path: "/traductor", tooltip: "Traductor de videos" },
     { icon: BarChart, label: "Estadísticas", path: "/estadisticas", tooltip: "Métricas y análisis" },
-    ...(isAdmin ? [{ icon: Settings, label: "Configuración", path: "/ajustes", tooltip: "Configuración del sistema" }] : []),
+    ...(isAdmin ? [
+      { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" }, 
+      { icon: Settings, label: "Configuración", path: "/admin/settings", tooltip: "Configuración del sistema" }
+    ] : []),
   ];
 
   const isActiveRoute = (path: string) => {
