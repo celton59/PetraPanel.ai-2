@@ -11,7 +11,6 @@ const adminSections = [
   { id: 'overview', label: 'Visión General', path: '/admin' },
   { id: 'stats', label: 'Estadísticas', path: '/admin/stats' },
   { id: 'accounting', label: 'Contabilidad', path: '/admin/accounting' },
-  { id: 'settings', label: 'Configuración', path: '/admin/settings' },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

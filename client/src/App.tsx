@@ -5,7 +5,6 @@ import NotFound from "@/pages/not-found";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile/ProfilePage";
-import SettingsPage from "@/pages/settings/SettingsPage";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
