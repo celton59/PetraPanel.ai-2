@@ -41,12 +41,15 @@ export function OptimizeContentDetail({
 }: OptimizeContentDetailProps) {
   
   const { user } = useUser();
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // Establecer el optimizador automáticamente al cargar
   useEffect(() => {
-    onUpdate({ optimizedBy: user!.id! }, true);
-  }, [])
+    if (!video.optimizedBy) {
+      onUpdate({ optimizedBy: user!.id! }, true);
+    }
+  }, []);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -56,8 +59,6 @@ export function OptimizeContentDetail({
       optimizedTitle: video.optimizedTitle || video.title || "",
     },
   });
-
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   function handleEmojiSelect(emoji: string) {
     const currentOptimizedTitle = form.getValues("optimizedTitle");
 

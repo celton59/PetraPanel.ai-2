@@ -60,8 +60,8 @@ export default function MediaReviewDetail({
   }
 
   return (
-    <ScrollArea className="h-auto max-h-[70vh]">
-      <div className="p-4">
+    <ScrollArea className="h-auto max-h-[80vh]">
+      <div className="p-5">
         {/* Estructura optimizada de 2 columnas para medios */}
         <div className="grid md:grid-cols-2 gap-6 mb-5">
           {/* Columna 1: Miniatura */}
