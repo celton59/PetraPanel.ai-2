@@ -126,7 +126,7 @@ export function UploadContentDetail({
   }
 
   return (
-    <ScrollArea className="h-[80vh] sm:h-[70vh]">
+    <ScrollArea className="max-h-[65vh] h-auto">
       <div className="space-y-6 p-6">
               
         {video.mediaReviewComments?.at(0) && (
