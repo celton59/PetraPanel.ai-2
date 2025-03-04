@@ -42,21 +42,19 @@ export default function AuthPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await login({ username: data.username, password: data.password });
+      const result = await login({ username: data.username, password: data.password });
       
-      // Primero mostramos el toast de éxito
-      toast.success("¡Bienvenido!", { 
-        description: "Has iniciado sesión correctamente",
-        position: "top-right",
-        duration: 3000
-      });
-      
-      // Esperamos a que se complete la actualización del estado
-      setTimeout(() => {
-        // Luego realizamos la redirección a la página principal
-        setLocation("/");
-        setIsLoading(false);
-      }, 100);
+      if (result) {
+        // Primero mostramos el toast de éxito
+        toast.success("¡Bienvenido!", { 
+          description: "Has iniciado sesión correctamente",
+          position: "top-right",
+          duration: 3000
+        });
+        
+        // Redirección inmediata a la página principal
+        window.location.href = "/";
+      }
     } catch (error: any) {
       setIsLoading(false);
       toast.error("Error de inicio de sesión", {
@@ -68,14 +66,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none"></div>
-      
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background">
       {/* Simple header accent line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-purple-500/80 to-pink-500/80"></div>
       
-      <div className="w-full max-w-lg space-y-8 relative z-10 animate-fade-in">
+      <div className="w-full max-w-lg space-y-8 relative z-10">
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
           {/* Logo/Brand */}
@@ -104,7 +99,7 @@ export default function AuthPage() {
         </div>
 
         {/* Auth Form Card */}
-        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
+        <Card className="border border-border/30 bg-card shadow-md rounded-xl">
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
             {/* Eliminamos el texto de "Acceso seguro" */}
           </CardHeader>
@@ -123,7 +118,7 @@ export default function AuthPage() {
                         <FormControl>
                           <Input
                             placeholder="Ingresa tu nombre de usuario"
-                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10"
                             autoComplete="username"
                             {...field}
                           />
@@ -153,7 +148,7 @@ export default function AuthPage() {
                           <Input
                             type="password"
                             placeholder="Ingresa tu contraseña"
-                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10"
                             autoComplete="current-password"
                             {...field}
                           />
@@ -192,7 +187,7 @@ export default function AuthPage() {
                 <Button 
                   type="submit" 
                   size="lg" 
-                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
+                  className="w-full h-12 text-base mt-2 font-medium"
                   disabled={isLoading}
                 >
                   {isLoading ? (

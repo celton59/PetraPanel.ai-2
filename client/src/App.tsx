@@ -32,7 +32,8 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function Router() {
   const { user, isLoading } = useUser();
-
+  // Ya no necesitamos location aquí
+  
   // Show loading spinner during initial load
   if (isLoading) {
     return (
@@ -42,12 +43,12 @@ function Router() {
     );
   }
 
-  // If no user, show AuthPage regardless of route
+  // Si no hay usuario, mostrar AuthPage
   if (!user) {
     return <AuthPage />;
   }
 
-  // Authenticated user
+  // Para usuarios autenticados, usamos Switch
   return (
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
@@ -65,7 +66,8 @@ function Router() {
         </>
       )}
       
-      <Route component={NotFound} />
+      {/* La ruta NotFound debe capturar cualquier otra ruta no definida */}
+      <Route component={() => <NotFound />} />
     </Switch>
   );
 }
