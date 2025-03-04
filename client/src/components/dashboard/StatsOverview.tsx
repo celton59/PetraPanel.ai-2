@@ -107,6 +107,15 @@ export function StatsOverview({
   ];
 
   if (mode === 'detailed') {
+    // Datos simulados para las gráficas
+    const weeklyData = [
+        { date: 'Lun', videos: 4, optimizations: 2, uploads: 3 },
+        { date: 'Mar', videos: 3, optimizations: 3, uploads: 2 },
+        { date: 'Mie', videos: 6, optimizations: 4, uploads: 5 },
+        { date: 'Jue', videos: 8, optimizations: 6, uploads: 7 },
+        { date: 'Vie', videos: 5, optimizations: 3, uploads: 4 }
+    ];
+
     return (
       <motion.div 
         initial={{ opacity: 0 }}
@@ -115,32 +124,40 @@ export function StatsOverview({
         className="space-y-8"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">Análisis por Usuario</h3>
+          <Card className="p-6 border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
+            <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Análisis por Usuario</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={optimizationStats}>
+              <BarChart data={optimizationData}>
                 <XAxis dataKey="username" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="optimizations" fill="#8884d8" />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <Bar dataKey="optimizations" fill="#8884d8" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
           
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">Tendencias Temporales</h3>
+          <Card className="p-6 border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
+            <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Tendencias Semanales</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={[
-                { date: 'Lun', videos: 4 },
-                { date: 'Mar', videos: 3 },
-                { date: 'Mie', videos: 6 },
-                { date: 'Jue', videos: 8 },
-                { date: 'Vie', videos: 5 }
-              ]}>
+              <AreaChart data={weeklyData}>
+                <defs>
+                  <linearGradient id="colorVideos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorUploads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#82ca9d" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
                 <XAxis dataKey="date" />
                 <YAxis />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <Tooltip />
-                <Area type="monotone" dataKey="videos" fill="#82ca9d" />
+                <Legend />
+                <Area type="monotone" dataKey="videos" stroke="#8884d8" fillOpacity={1} fill="url(#colorVideos)" />
+                <Area type="monotone" dataKey="uploads" stroke="#82ca9d" fillOpacity={1} fill="url(#colorUploads)" />
               </AreaChart>
             </ResponsiveContainer>
           </Card>
@@ -163,18 +180,18 @@ export function StatsOverview({
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                 <span>Videos Procesados</span>
-                <span className="font-semibold">{overallStats?.data?.total_videos}</span>
+                <span className="font-semibold">{mockStatsData.total_videos}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                 <span>Tasa de Optimización</span>
                 <span className="font-semibold">
-                  {((overallStats?.data?.total_optimizations / overallStats?.data?.total_videos) * 100).toFixed(1)}%
+                  {((mockStatsData.total_optimizations / mockStatsData.total_videos) * 100).toFixed(1)}%
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                 <span>Eficiencia de Subidas</span>
                 <span className="font-semibold">
-                  {((overallStats?.data?.total_uploads / overallStats?.data?.total_videos) * 100).toFixed(1)}%
+                  {((mockStatsData.total_uploads / mockStatsData.total_videos) * 100).toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -208,7 +225,7 @@ export function StatsOverview({
               <div>
                 <p className="text-sm font-medium text-blue-600 dark:text-blue-300">Videos Totales</p>
                 <h3 className="text-3xl font-bold text-blue-700 dark:text-blue-200">
-                  {overallStats?.data?.total_videos}
+                  {mockStatsData.total_videos}
                 </h3>
               </div>
             </div>
@@ -230,7 +247,7 @@ export function StatsOverview({
               <div>
                 <p className="text-sm font-medium text-green-600 dark:text-green-300">Optimizaciones</p>
                 <h3 className="text-3xl font-bold text-green-700 dark:text-green-200">
-                  {overallStats?.data?.total_optimizations}
+                  {mockStatsData.total_optimizations}
                 </h3>
               </div>
             </div>
@@ -252,7 +269,7 @@ export function StatsOverview({
               <div>
                 <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Subidas</p>
                 <h3 className="text-3xl font-bold text-purple-700 dark:text-purple-200">
-                  {overallStats?.data?.total_uploads}
+                  {mockStatsData.total_uploads}
                 </h3>
               </div>
             </div>

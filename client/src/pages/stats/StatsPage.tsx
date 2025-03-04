@@ -4,7 +4,11 @@ import { Helmet } from 'react-helmet';
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { Download, FileBarChart, FileSpreadsheet, Calendar } from "lucide-react";
+import { 
+  Download, FileBarChart, FileSpreadsheet, Calendar, 
+  ChevronDown, ChevronUp, FilePieChart, BarChart, LineChart,
+  TrendingUp, ArrowUpRight, ArrowRight, PieChart 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -115,18 +119,89 @@ export default function StatsPage() {
           </div>
         </motion.div>
         
-        <Tabs defaultValue="general" className="space-y-8">
-          <TabsList className="w-full max-w-md mx-auto bg-card border border-border/50 p-1 rounded-lg">
-            <TabsTrigger value="general" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all">
-              Vista General
-            </TabsTrigger>
-            <TabsTrigger value="detailed" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all">
-              Detallado
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all">
-              Reportes
-            </TabsTrigger>
-          </TabsList>
+        {/* Advanced Filter Panel */}
+        {showAdvancedFilters && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-6"
+          >
+            <Card className="p-5 border border-border/60 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Rango de fechas</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Desde
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Hasta
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Usuario</label>
+                  <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                    <option value="">Todos los usuarios</option>
+                    <option value="user1">Usuario 1</option>
+                    <option value="user2">Usuario 2</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Proyecto</label>
+                  <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                    <option value="">Todos los proyectos</option>
+                    <option value="1">Proyecto Alpha</option>
+                    <option value="2">Proyecto Beta</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-end">
+                  <Button className="w-full bg-gradient-to-r from-primary to-primary/80 border-0">
+                    Aplicar filtros
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+        
+        <Tabs defaultValue="general" className="space-y-8" onValueChange={(value) => setActiveTab(value)}>
+          <div className="flex items-center justify-between mb-3">
+            <TabsList className="bg-card border border-border/50 p-1 rounded-lg">
+              <TabsTrigger value="general" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all px-4">
+                Vista General
+              </TabsTrigger>
+              <TabsTrigger value="detailed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all px-4">
+                Detallado
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all px-4">
+                Reportes
+              </TabsTrigger>
+            </TabsList>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} 
+              className="flex items-center gap-2"
+            >
+              {showAdvancedFilters ? (
+                <>
+                  <span>Ocultar filtros</span>
+                  <ChevronUp className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <span>Filtros avanzados</span>
+                  <ChevronDown className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </div>
           
           <TabsContent value="general" className="space-y-8 mt-6">
             <StatsOverview mode="general" />
