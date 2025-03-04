@@ -99,12 +99,15 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
 
   return (
     <DialogContent className="w-[95vw] max-w-3xl p-6 overflow-auto max-h-[85vh]">
-      <DialogDescription className="sr-only">Detalles del video</DialogDescription>
       {/* Rich gradient accent for video detail */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-primary to-purple-600"></div>
+      
       <DialogHeader>
+        <DialogTitle className="sr-only">Detalles del video</DialogTitle>
+        <DialogDescription className="sr-only">Información y edición de detalles del video</DialogDescription>
+        
         <div className="flex justify-between items-start">
-          <DialogTitle className="text-2xl">
+          <h2 className="text-2xl font-semibold">
             {hasVisibility ? (
               (video.optimizedTitle ?? video.title)
             ) : (
@@ -112,7 +115,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
                 Título no disponible
               </span>
             )}
-          </DialogTitle>
+          </h2>
           <div className="pe-6">
             <div className="flex justify-end">
               <Badge

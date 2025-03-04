@@ -226,20 +226,71 @@ export function ContentReviewDetail({
           </div>
         )}
 
-        {/* Historial de correcciones optimizado */}
+        {/* Historial de correcciones mejorado */}
         {video.contentReviewComments && video.contentReviewComments.length > 0 && (
           <Accordion type="single" collapsible className="mt-4">
-            <AccordionItem value="item-1" className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden">
-              <AccordionTrigger className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                Historial de correcciones
-              </AccordionTrigger>
-              <AccordionContent className="p-3 space-y-2 bg-gray-50/50 dark:bg-gray-900/20">
-                {video.contentReviewComments?.map((comment, index) => (
-                  <div key={index} className="flex items-start p-2 rounded-md border border-red-200/70 dark:border-red-900/30 bg-white/70 dark:bg-gray-900/40">
-                    <AlertCircle className="h-3.5 w-3.5 text-red-500 dark:text-red-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <p className="text-xs text-red-700 dark:text-red-300">{comment}</p>
+            <AccordionItem value="item-1" className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
+              <AccordionTrigger className="px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900/40 dark:to-transparent">
+                <div className="flex items-center">
+                  <div className="p-1 rounded-full bg-red-50 dark:bg-red-900/30 mr-2">
+                    <AlertCircle className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />
                   </div>
-                ))}
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Historial de correcciones
+                    <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40 text-xs font-medium text-red-600 dark:text-red-300">
+                      {video.contentReviewComments.length}
+                    </span>
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 py-3 space-y-3 bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/30 dark:to-gray-900/10">
+                {video.contentReviewComments?.map((comment, index) => {
+                  // Determinar si es la última entrada (la más reciente)
+                  const isLatest = index === video.contentReviewComments!.length - 1;
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`
+                        relative flex flex-col p-3 rounded-md shadow-sm
+                        ${isLatest 
+                          ? "border border-red-300 dark:border-red-800 bg-gradient-to-r from-red-50/90 to-white dark:from-red-950/30 dark:to-gray-900/20" 
+                          : "border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40"
+                        }
+                      `}
+                    >
+                      {/* Indicador de entrada más reciente */}
+                      {isLatest && (
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-red-400 via-red-500 to-red-400 dark:from-red-700 dark:via-red-600 dark:to-red-700 rounded-t-md"></div>
+                      )}
+                      
+                      <div className="flex items-center mb-1.5">
+                        <AlertCircle className={`
+                          h-3.5 w-3.5 mr-2 flex-shrink-0
+                          ${isLatest ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}
+                        `} />
+                        <span className={`
+                          text-xs font-medium
+                          ${isLatest ? "text-red-700 dark:text-red-300" : "text-gray-600 dark:text-gray-400"}
+                        `}>
+                          {isLatest ? "Corrección más reciente" : `Corrección anterior ${video.contentReviewComments!.length - index}`}
+                        </span>
+                        {isLatest && (
+                          <Badge variant="outline" className="ml-2 bg-red-50/80 text-[0.65rem] h-4 px-1 py-0 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800/50">
+                            Último
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <p className={`
+                        text-xs whitespace-pre-wrap pl-5 border-l-2 
+                        ${isLatest ? "border-red-300 dark:border-red-700 text-red-700 dark:text-red-300" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"}
+                      `}>
+                        {comment}
+                      </p>
+                    </div>
+                  );
+                })}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
