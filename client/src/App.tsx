@@ -21,18 +21,11 @@ import AdminStatsPage from "@/pages/admin/StatsPage";
 import AccountingPage from "@/pages/admin/AccountingPage";
 import ConfigurationPage from "@/pages/admin/ConfigurationPage";
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  return (
-    <Layout>
-      <PageGuide />
-      <Component />
-    </Layout>
-  );
-}
+// Ya no necesitamos un componente ProtectedRoute separado
+// porque ahora incluimos el Layout directamente en cada ruta
 
 function Router() {
   const { user, isLoading } = useUser();
-  // Ya no necesitamos location aquí
   
   // Show loading spinner during initial load
   if (isLoading) {
@@ -43,30 +36,30 @@ function Router() {
     );
   }
 
-  // Si no hay usuario, mostrar AuthPage
+  // Si no hay usuario autenticado, mostrar AuthPage para cualquier ruta
   if (!user) {
     return <AuthPage />;
   }
 
-  // Para usuarios autenticados, usamos Switch
+  // Para usuarios autenticados
   return (
     <Switch>
-      <Route path="/" component={() => <ProtectedRoute component={Index} />} />
-      <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
-      <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
-      <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
+      <Route path="/" component={() => <Layout><PageGuide /><Index /></Layout>} />
+      <Route path="/perfil" component={() => <Layout><PageGuide /><ProfilePage /></Layout>} />
+      <Route path="/videos" component={() => <Layout><PageGuide /><VideosPage /></Layout>} />
+      <Route path="/traductor" component={() => <Layout><PageGuide /><VideoTranslator /></Layout>} />
       
       {/* Rutas de administración - solo accesibles para administradores */}
-      { user.role === 'admin' && (
+      {user.role === 'admin' && (
         <>
-          <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
-          <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
-          <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
-          <Route path="/admin/configuration" component={() => <ProtectedRoute component={ConfigurationPage} />} />
+          <Route path="/admin" component={() => <Layout><PageGuide /><AdminPage /></Layout>} />
+          <Route path="/admin/stats" component={() => <Layout><PageGuide /><AdminStatsPage /></Layout>} />
+          <Route path="/admin/accounting" component={() => <Layout><PageGuide /><AccountingPage /></Layout>} />
+          <Route path="/admin/configuration" component={() => <Layout><PageGuide /><ConfigurationPage /></Layout>} />
         </>
       )}
       
-      {/* La ruta NotFound debe capturar cualquier otra ruta no definida */}
+      {/* Ruta NotFound para capturar cualquier ruta no definida */}
       <Route component={() => <NotFound />} />
     </Switch>
   );

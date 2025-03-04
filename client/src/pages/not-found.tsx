@@ -1,11 +1,8 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { AlertCircle, ArrowLeft, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
 
 export default function NotFound() {
-  const [, setLocation] = useLocation();
-  
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
       <Card className="w-full max-w-md mx-4 border border-border/30 shadow-md">
@@ -29,7 +26,7 @@ export default function NotFound() {
           </Button>
           <Button 
             className="w-full sm:w-auto"
-            onClick={() => window.location.href = "/"}
+            onClick={() => window.location.replace("/")}
           >
             <Home className="mr-2 h-4 w-4" />
             Ir al inicio
