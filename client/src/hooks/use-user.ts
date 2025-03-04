@@ -107,6 +107,8 @@ export function useUser() {
     },
     onSuccess: () => {
       queryClient.setQueryData(['/api/user'], null);
+      // Redirección inmediata a la página de login
+      window.location.replace("/");
     },
   });
 

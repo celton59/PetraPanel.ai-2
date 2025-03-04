@@ -57,17 +57,8 @@ export default function AuthPage() {
         }
         return response.json();
       }).then(user => {
-        // Mostramos toast de éxito
-        toast.success("¡Bienvenido!", { 
-          description: "Has iniciado sesión correctamente",
-          position: "top-right",
-          duration: 3000
-        });
-        
-        // Redirección forzada
-        setTimeout(() => {
-          window.location.replace("/");
-        }, 300);
+        // Redirección inmediata sin tiempo de espera
+        window.location.replace("/");
       });
     } catch (error: any) {
       setIsLoading(false);
