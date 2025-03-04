@@ -16,9 +16,19 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function StatsPage() {
-
   const [dateRange, setDateRange] = useState("7d");
+  const [activeTab, setActiveTab] = useState("general");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Datos de muestra para estadísticas
+  const mockOverallStats = {
+    total_videos: 287,
+    total_optimizations: 176,
+    total_uploads: 215,
+    growth_rate: 14.2,
+    completion_rate: 86.3
+  };
+  
   const handleExport = (format: string) => {
     toast("Exportación iniciada", {
       description: `Preparando exportación en formato ${format}...`,
