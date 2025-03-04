@@ -52,12 +52,12 @@ export default function MediaReviewDetail({
   function handleApprove() {
     if (video.status === 'media_review') {
       onUpdate({
-        status: "completed",
+        status: "final_review",
         mediaReviewedBy: user?.id,
         mediaVideoNeedsCorrection: false,
         mediaThumbnailNeedsCorrection: false
       });
-    } else if (video.status === 'final_review') {
+    } else {
       onUpdate({
         status: 'completed'
       });
