@@ -18,7 +18,8 @@ import {
 } from "recharts";
 import { 
   Loader2, TrendingUp, Users, Video, 
-  Zap, BarChart3, Activity, Award, Target 
+  Zap, BarChart3, Activity, Award, Target,
+  PieChart as PieChartIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
@@ -351,7 +352,7 @@ export function StatsOverview({
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-medium">Distribución General</h3>
-          <PieChartIcon className="w-5 h-5 text-muted-foreground" />
+          <BarChart3 className="w-5 h-5 text-muted-foreground" />
         </div>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
