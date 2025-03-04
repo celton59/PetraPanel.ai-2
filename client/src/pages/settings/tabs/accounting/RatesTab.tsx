@@ -250,7 +250,7 @@ export function RatesTab() {
                     <TableCell>{getRoleName(rate.roleId)}</TableCell>
                     <TableCell>{getProjectName(rate.projectId)}</TableCell>
                     <TableCell className="text-right">
-                      ${rate.rate.toFixed(2)}
+                      ${typeof rate.rate === 'number' ? rate.rate.toFixed(2) : rate.rate}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
