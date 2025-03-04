@@ -61,26 +61,16 @@ export default function StatsPage() {
         <title>Estadísticas | Video Platform</title>
       </Helmet>
 
-      <div className="container max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-lg shadow-sm border border-border/50"
-        >
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <FileBarChart className="w-8 h-8 text-red-500" />
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Estadísticas
-              </h1>
-            </div>
-            <p className="text-muted-foreground text-lg">
+      <div className="container px-4 py-6 lg:py-8 max-w-[1600px] mx-auto space-y-8">
+        <div className="flex flex-col space-y-2 md:space-y-0 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Estadísticas</h1>
+            <p className="text-muted-foreground">
               Panel completo de métricas y análisis de rendimiento
             </p>
           </div>
           
-          <div className="flex flex-wrap gap-3">
+          <div className="flex items-center flex-wrap gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -121,7 +111,7 @@ export default function StatsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </motion.div>
+        </div>
         
         {/* Advanced Filter Panel */}
         {showAdvancedFilters && (
@@ -173,20 +163,8 @@ export default function StatsPage() {
           </motion.div>
         )}
         
-        <Tabs defaultValue="general" className="space-y-8" onValueChange={(value) => setActiveTab(value)}>
-          <div className="flex items-center justify-between mb-3">
-            <TabsList className="bg-card border border-border/50 p-1 rounded-lg">
-              <TabsTrigger value="general" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all px-4">
-                Vista General
-              </TabsTrigger>
-              <TabsTrigger value="detailed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all px-4">
-                Detallado
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded transition-all px-4">
-                Reportes
-              </TabsTrigger>
-            </TabsList>
-            
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
             <Button 
               variant="outline" 
               size="sm"
@@ -206,6 +184,20 @@ export default function StatsPage() {
               )}
             </Button>
           </div>
+        </div>
+        
+        <Tabs defaultValue="general" className="space-y-4" onValueChange={(value) => setActiveTab(value)}>
+          <TabsList className="w-full border-b rounded-none justify-start">
+            <TabsTrigger value="general" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Vista General
+            </TabsTrigger>
+            <TabsTrigger value="detailed" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Detallado
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Reportes
+            </TabsTrigger>
+          </TabsList>
           
           <TabsContent value="general" className="space-y-8 mt-6">
             <div className="space-y-8">
@@ -214,49 +206,46 @@ export default function StatsPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <AudienceAnalysis />
                 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50 h-full">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-primary" />
-                        <h3 className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                          Rendimiento de Plataformas
-                        </h3>
-                      </div>
+                <Card className="p-6 h-full">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="font-semibold text-lg">
+                        Rendimiento de Plataformas
+                      </h3>
+                      <p className="text-muted-foreground text-sm">
+                        Distribución de contenido por plataformas
+                      </p>
                     </div>
-                    <div className="h-[300px] flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: 'YouTube', value: 65, color: '#FF0000' },
-                              { name: 'Facebook', value: 15, color: '#4267B2' },
-                              { name: 'Instagram', value: 12, color: '#C13584' },
-                              { name: 'TikTok', value: 8, color: '#000000' }
-                            ]}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={110}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            <Cell fill="#FF0000" />
-                            <Cell fill="#4267B2" />
-                            <Cell fill="#C13584" />
-                            <Cell fill="#222222" />
-                          </Pie>
-                          <Tooltip formatter={(value) => [`${value}%`, 'Porcentaje']} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-                </motion.div>
+                    <Activity className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="h-[300px] flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'YouTube', value: 65, color: '#FF0000' },
+                            { name: 'Facebook', value: 15, color: '#4267B2' },
+                            { name: 'Instagram', value: 12, color: '#C13584' },
+                            { name: 'TikTok', value: 8, color: '#000000' }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={110}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          <Cell fill="#FF0000" />
+                          <Cell fill="#4267B2" />
+                          <Cell fill="#C13584" />
+                          <Cell fill="#222222" />
+                        </Pie>
+                        <Tooltip formatter={(value) => [`${value}%`, 'Porcentaje']} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
               </div>
               
               <PerformanceMetrics />
@@ -264,68 +253,62 @@ export default function StatsPage() {
           </TabsContent>
           
           <TabsContent value="detailed" className="space-y-8 mt-6">
-            <Card className="p-6 border border-border/50 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    Análisis Detallado
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Métricas detalladas y análisis profundo del rendimiento
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => handleExport('detailed')}
-                  className="flex items-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Exportar Detalles
-                </Button>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Análisis Detallado</h2>
+                <p className="text-muted-foreground">
+                  Métricas detalladas y análisis profundo del rendimiento
+                </p>
               </div>
-              <div className="space-y-8">
-                <StatsOverview mode="detailed" showDetailedCharts={true} />
-                <PerformanceMetrics />
-              </div>
-            </Card>
+              <Button
+                variant="outline"
+                onClick={() => handleExport('detailed')}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Exportar Detalles
+              </Button>
+            </div>
+            
+            <div className="space-y-8">
+              <StatsOverview mode="detailed" showDetailedCharts={true} />
+              <PerformanceMetrics />
+            </div>
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-8 mt-6">
-            <Card className="p-6 border border-border/50 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    Reportes y Exportación
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Generación y descarga de reportes personalizados
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleExport('weekly')}
-                    className="flex items-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Reporte Semanal
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleExport('monthly')}
-                    className="flex items-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Reporte Mensual
-                  </Button>
-                </div>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Reportes y Exportación</h2>
+                <p className="text-muted-foreground">
+                  Generación y descarga de reportes personalizados
+                </p>
               </div>
-              <div className="space-y-8">
-                <ComparisonChart />
-                <GeoDistribution />
-                <StatsOverview mode="reports" showTables={true} showExportOptions={true} />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('weekly')}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Reporte Semanal
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('monthly')}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Reporte Mensual
+                </Button>
               </div>
-            </Card>
+            </div>
+            
+            <div className="space-y-8">
+              <ComparisonChart />
+              <GeoDistribution />
+              <StatsOverview mode="reports" showTables={true} showExportOptions={true} />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
