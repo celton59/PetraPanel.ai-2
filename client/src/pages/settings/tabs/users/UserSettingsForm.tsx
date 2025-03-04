@@ -25,7 +25,13 @@ const userFormSchema = z.object({
   full_name: z.string().min(1, "El nombre es requerido").optional(),
   username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
   email: z.string().email("Email inválido"),
-  phone: z.string().optional(),
+  phone: z.string()
+    .transform(val => val === "" ? undefined : val)
+    .refine(
+      val => !val || val.replace(/\D/g, '').length >= 9, 
+      "El teléfono debe tener al menos 9 dígitos"
+    )
+    .optional(),
   bio: z.string().optional(),
   role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer" ] as const).optional(),
   password: z.string().optional(),

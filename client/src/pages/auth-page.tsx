@@ -74,9 +74,14 @@ export default function AuthPage() {
         <div className="flex flex-col items-center space-y-6 text-center">
           {/* Logo/Brand */}
           <div className="relative mb-2">
-            <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10 shadow-sm">
+            <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10 shadow-sm group">
               <div className="relative bg-gradient-to-br from-primary to-purple-500 p-3 rounded-md shadow-inner">
                 <Video className="w-12 h-12 text-white" />
+                {/* Círculo rojo que solo aparece al pasar el cursor */}
+                <div className="absolute top-0 right-0 w-3 h-3 rounded-full bg-red-500 border border-white shadow-glow opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* Animación de ping para el círculo */}
+                  <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></div>
+                </div>
               </div>
             </div>
           </div>

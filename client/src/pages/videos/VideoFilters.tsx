@@ -24,6 +24,7 @@ interface VideoFiltersProps {
   onProjectChange: (value: string) => void;
   showFilters: boolean;
   onToggleFilters: () => void;
+  visibleStates?: readonly string[];
 }
 
 export function VideoFilters({
@@ -52,7 +53,9 @@ export function VideoFilters({
     </div>
 
       {showFilters && (
-        <div className="grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4">
+        <div className="grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4 relative overflow-hidden">
+          {/* Gradiente sutil para filtros */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500/50 via-primary/50 to-violet-500/50"></div>
           <StatusFilter status={status} onStatusChange={onStatusChange} />
           <AssigneeFilter
             assignedTo={assignedTo}

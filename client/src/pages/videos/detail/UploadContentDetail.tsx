@@ -126,80 +126,110 @@ export function UploadContentDetail({
   }
 
   return (
-    <ScrollArea className="h-[80vh] sm:h-[70vh]">
-      <div className="space-y-6 p-6">
-              
+    <ScrollArea className="max-h-[65vh] h-auto">
+      <div className="p-4">
+        {/* Alerta de correcciones compacta */}      
         {video.mediaReviewComments?.at(0) && (
-          <>
-            <Alert className="border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <AlertDescription className="text-red-700 dark:text-red-300">
-                <p className="font-medium mb-1">
-                  Se han solicitado las siguientes correcciones:
-                </p>                
-                <p className="text-sm whitespace-pre-wrap">
-                  {video.mediaReviewComments?.at(-1)}
-                </p>
-                { (video.mediaVideoNeedsCorrection || video.mediaThumbnailNeedsCorrection) && <div className="mt-2">
+          <div className="mb-4">
+            <div className="flex items-start p-3 rounded-md border border-red-200 dark:border-red-900/50 shadow-sm bg-gradient-to-r from-red-50/80 to-transparent dark:from-red-950/30 dark:to-transparent backdrop-blur-sm">
+              <div className="flex-shrink-0 p-1 bg-red-100 dark:bg-red-900/40 rounded-full mr-2 mt-0.5">
+                <AlertCircle className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center flex-wrap gap-2 mb-1">
+                  <h3 className="text-xs font-medium text-red-700 dark:text-red-300">Corrección solicitada</h3>
+                  
+                  {/* Badges de corrección */}
                   {video.mediaVideoNeedsCorrection && (
-                    <span className="badge bg-red-500 text-white rounded-full px-2 py-1 mr-1">
+                    <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/40 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/50">
                       Corregir Video
                     </span>
                   )}
                   {video.mediaThumbnailNeedsCorrection && (
-                    <span className="badge bg-orange-500 text-white rounded-full px-2 py-1">
+                    <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
                       Corregir Miniatura
                     </span>
                   )}
-                </div>}
-                
-              </AlertDescription>
-            </Alert>
+                </div>
+                <p className="text-xs text-red-700/90 dark:text-red-400/90 whitespace-pre-wrap">
+                  {video.mediaReviewComments?.at(-1)}
+                </p>
+              </div>
+            </div>
 
-            <Accordion type="single" collapsible className="space-y-4">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>Historial de correciones</AccordionTrigger>
-                <AccordionContent>
-                  {video.mediaReviewComments?.map((comment) => (
-                    <Alert className="mb-1 border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
-                      <AlertCircle className="h-5 w-5 text-red-500" />
-                      <AlertDescription className="text-red-700 dark:text-red-300">
-                        <p className="font-medium">{comment}</p>
-                      </AlertDescription>
-                    </Alert>
+            {/* Historial de correcciones mejorado */}
+            <Accordion type="single" collapsible className="mt-2 overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
+              <AccordionItem value="item-1" className="border-0">
+                <AccordionTrigger className="px-3 py-2 text-xs font-medium bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900/40 dark:to-transparent">
+                  <div className="flex items-center">
+                    <div className="p-1 rounded-full bg-red-50 dark:bg-red-900/30 mr-2">
+                      <AlertCircle className="h-3 w-3 text-red-500 dark:text-red-400" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Historial de correcciones
+                      <span className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40 text-[0.65rem] font-medium text-red-600 dark:text-red-300">
+                        {video.mediaReviewComments?.length || 0}
+                      </span>
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 py-2 space-y-2 bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/30 dark:to-gray-900/10">
+                  {video.mediaReviewComments?.map((comment, index) => (
+                    <div 
+                      key={index} 
+                      className={`
+                        relative flex flex-col p-2 rounded-md shadow-sm
+                        ${index === video.mediaReviewComments!.length - 1 
+                          ? "border border-red-300 dark:border-red-800 bg-gradient-to-r from-red-50/90 to-white dark:from-red-950/30 dark:to-gray-900/20" 
+                          : "border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40"
+                        }
+                      `}
+                    >
+                      <p className="text-xs text-red-700 dark:text-red-300 pl-3 border-l border-red-300 dark:border-red-700">
+                        {comment}
+                      </p>
+                    </div>
                   ))}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </>
+          </div>
         )}
 
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">Subir Archivos</h2>
-          <p className="text-muted-foreground">
-            Sube el video y la miniatura para continuar con el proceso
-          </p>
-        </div>
-
-        <VideoUploadFields
-          videoFile={videoFile}
-          thumbnailFile={thumbnailFile}
-          onVideoFileChange={setVideoFile}
-          onThumbnailFileChange={setThumbnailFile}
-          isUploading={isUploading}
-          uploadProgress={uploadProgress}
-          video={video}
-        />
-
-        <div className="flex justify-end">
+        {/* Título y descripción más compactos */}
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Subir Archivos</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Sube el video y la miniatura para continuar con el proceso
+            </p>
+          </div>
           <Button
             onClick={handleUpload}
-            className="min-w-[200px]"
+            className="py-1 h-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white"
+            size="sm"
+            disabled={isUploading}
           >
-            {isUploading ? (<> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Subiendo... </>) : 
-              !videoFile && !thumbnailFile ? 'Enviar archivos' : "Subir Archivos"
-            }
+            {isUploading ? (
+              <span className="flex items-center">
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" /> 
+                Subiendo...
+              </span>
+            ) : !videoFile && !thumbnailFile ? 'Enviar archivos' : "Subir Archivos"}
           </Button>
+        </div>
+
+        {/* Contenedor para los campos de carga */}
+        <div className="bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/30 dark:to-gray-900/10 border border-gray-200 dark:border-gray-800 rounded-md p-4 shadow-sm">
+          <VideoUploadFields
+            videoFile={videoFile}
+            thumbnailFile={thumbnailFile}
+            onVideoFileChange={setVideoFile}
+            onThumbnailFileChange={setThumbnailFile}
+            isUploading={isUploading}
+            uploadProgress={uploadProgress}
+            video={video}
+          />
         </div>
       </div>
     </ScrollArea>

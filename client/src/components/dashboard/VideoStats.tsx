@@ -69,8 +69,8 @@ export function VideoStats() {
 
   return (
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      {/* Top accent gradient */}
-      <div className="h-1 w-full bg-gradient-to-r from-yellow-500 via-purple-500 to-green-500"></div>
+      {/* Enhanced rich accent gradient representing all video statuses */}
+      <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-purple-500 to-emerald-500"></div>
       
       <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
         <CardTitle className="flex items-center gap-2 text-lg">

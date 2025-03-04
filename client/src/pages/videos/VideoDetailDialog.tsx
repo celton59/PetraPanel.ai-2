@@ -6,7 +6,8 @@ import {
 import {  
   DialogContent,
   DialogHeader,
-  DialogTitle,  
+  DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
@@ -97,35 +98,46 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const statusLabel = getStatusLabel(user!.role, video);
 
   return (
-    <DialogContent className="w-[95vw] max-w-3xl p-6">
-      <DialogHeader>
-        <div className="flex justify-between items-start">
-          <DialogTitle className="text-2xl">
-            {hasVisibility ? (
-              (video.optimizedTitle ?? video.title)
-            ) : (
-              <span className="text-muted-foreground italic">
-                Título no disponible
-              </span>
-            )}
-          </DialogTitle>
-          <div className="pe-6">
-            <div className="flex justify-end">
-              <Badge
-                variant="outline"
-                className={`${statusColor} border-0 text-lg py-1 px-2`}
-              >
-                {statusLabel}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground">
+    <DialogContent className="w-[95vw] max-w-7xl p-6 overflow-hidden max-h-[92vh]">
+      {/* Rich gradient accent for video detail */}
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 dark:from-blue-700 dark:via-purple-700 dark:to-blue-700"></div>
+      
+      <DialogHeader className="pb-2">
+        <DialogTitle className="sr-only">Detalles del video</DialogTitle>
+        <DialogDescription className="sr-only">Información y edición de detalles del video</DialogDescription>
+        
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[450px]">
+              {hasVisibility ? (
+                (video.optimizedTitle ?? video.title)
+              ) : (
+                <span className="text-muted-foreground italic">
+                  Título no disponible
+                </span>
+              )}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {video.creatorName && `Creado por: ${video.creatorName}`}
+            </p>
+          </div>
+          <div className="flex flex-col items-end">
+            <Badge
+              variant="outline"
+              className={`${statusColor} border-0 text-md py-0.5 px-2.5 mb-1`}
+            >
+              {statusLabel}
+            </Badge>
+            <p className="text-xs text-muted-foreground">
               {statusDescriptions[video.status]}
             </p>
           </div>
         </div>
       </DialogHeader>
 
-      {renderCardContent()}
+      <div className="overflow-y-auto pr-2 h-[calc(92vh-120px)]">
+        {renderCardContent()}
+      </div>
     </DialogContent>
   );
 }

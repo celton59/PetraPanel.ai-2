@@ -149,8 +149,8 @@ export function WeatherWidget() {
 
   return (
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      {/* Weather-themed gradient accent */}
-      <div className="h-1 w-full bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400"></div>
+      {/* Enhanced rich weather-themed gradient accent */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-sky-400 to-indigo-500"></div>
       
       <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
         <CardTitle className="flex items-center gap-2 text-lg">

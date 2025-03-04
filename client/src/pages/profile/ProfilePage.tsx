@@ -20,7 +20,13 @@ const profileSchema = z.object({
   fullName: z.string().min(1, "El nombre es requerido"),
   username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
   bio: z.string().optional(),
-  phone: z.string().optional(),
+  phone: z.string()
+    .transform(val => val === "" ? undefined : val)
+    .refine(
+      val => !val || val.replace(/\D/g, '').length >= 9, 
+      "El teléfono debe tener al menos 9 dígitos"
+    )
+    .optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;

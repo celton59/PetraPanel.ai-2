@@ -22,8 +22,13 @@ const StatsCard = ({ title, value, change, isPositive, icon: Icon, className, an
       className
     )}>
       <CardContent className="p-4 relative">
-        {/* Simple accent */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
+        {/* Rich gradient accent based on status */}
+        <div className={cn(
+          "absolute top-0 left-0 w-full h-1", 
+          isPositive 
+            ? "bg-gradient-to-r from-emerald-600 via-green-500 to-lime-400" 
+            : "bg-gradient-to-r from-rose-600 via-red-500 to-red-400"
+        )}></div>
         
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
