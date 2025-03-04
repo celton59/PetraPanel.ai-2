@@ -1,6 +1,6 @@
 import { Video } from "@db/schema";
 import { Badge } from "@/components/ui/badge";
-import { List, CheckCircle2, XCircle } from "lucide-react";
+import { List, CheckCircle2, XCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
 import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function MediaReviewDetail({
   video,
@@ -21,6 +22,8 @@ export default function MediaReviewDetail({
   );
   const [videoNeedsCorrection, setVideoNeedsCorrection] = useState<boolean>(false);
   const [thumbnailNeedsCorrection, setThumbnailNeedsCorrection] = useState<boolean>(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState<boolean>(false);
+  const [videoPreviewOpen, setVideoPreviewOpen] = useState<boolean>(false);
 
   function handleApprove() {
     if (video.status === 'media_review') {
@@ -57,6 +60,57 @@ export default function MediaReviewDetail({
 
   return (
     <div className="pb-4">
+      {/* Modal de ampliación de miniatura */}
+      <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95">
+          <div className="p-1 relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-2 right-2 z-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+              onClick={() => setImagePreviewOpen(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Cerrar</span>
+            </Button>
+            {video.thumbnailUrl && (
+              <img 
+                src={video.thumbnailUrl} 
+                alt="Miniatura ampliada" 
+                className="w-full h-auto max-h-[80vh] object-contain mx-auto" 
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de ampliación de video */}
+      <Dialog open={videoPreviewOpen} onOpenChange={setVideoPreviewOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95">
+          <div className="p-1 relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-2 right-2 z-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+              onClick={() => setVideoPreviewOpen(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Cerrar</span>
+            </Button>
+            {video.videoUrl && (
+              <video 
+                controls 
+                autoPlay 
+                className="w-full h-auto max-h-[80vh]"
+              >
+                <source src={video.videoUrl} type="video/mp4" />
+                Tu navegador no soporta la reproducción de video.
+              </video>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       <div className="p-4">
         {/* Estructura optimizada de 2 columnas para medios */}
         <div className="grid md:grid-cols-2 gap-6 mb-5">
@@ -67,37 +121,24 @@ export default function MediaReviewDetail({
             </div>
             <div className="p-3">
               {video.thumbnailUrl ? (
-                <div className="relative group cursor-pointer">
-                  <a 
-                    href={video.thumbnailUrl || '#'} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block"
-                    onClick={(e) => {
-                      if (!video.thumbnailUrl) {
-                        e.preventDefault();
-                        return;
-                      }
-                    }}
-                  >
-                    <img
-                      src={video.thumbnailUrl || ''}
-                      alt="Miniatura del video"
-                      className="w-full h-auto rounded overflow-hidden object-cover max-h-[220px] transition-all duration-200 group-hover:opacity-95"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
-                          <path d="M15 3h6v6"></path>
-                          <path d="M10 14 21 3"></path>
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        </svg>
-                      </div>
+                <div className="relative group cursor-pointer" onClick={() => setImagePreviewOpen(true)}>
+                  <img
+                    src={video.thumbnailUrl || ''}
+                    alt="Miniatura del video"
+                    className="w-full h-auto rounded overflow-hidden object-cover max-h-[220px] transition-all duration-200 group-hover:opacity-95"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                        <path d="M15 3h6v6"></path>
+                        <path d="M10 14 21 3"></path>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      </svg>
                     </div>
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                      Clic para ampliar
-                    </div>
-                  </a>
+                  </div>
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                    Clic para ampliar
+                  </div>
                 </div>
               ) : (
                 <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
@@ -126,20 +167,12 @@ export default function MediaReviewDetail({
                     <source src={video.videoUrl || ''} type="video/mp4" />
                     Tu navegador no soporta la visualización del video.
                   </video>
-                  <a 
-                    href={video.videoUrl || '#'} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                  <div
                     className="absolute top-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded cursor-pointer"
-                    onClick={(e) => {
-                      if (!video.videoUrl) {
-                        e.preventDefault();
-                        return;
-                      }
-                    }}
+                    onClick={() => setVideoPreviewOpen(true)}
                   >
-                    Abrir en ventana nueva
-                  </a>
+                    Ver en pantalla completa
+                  </div>
                 </div>
               ) : (
                 <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
