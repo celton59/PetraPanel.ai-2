@@ -19,7 +19,6 @@ import ActionCard from '@/components/ActionCard';
 
 export default function AdminPage() {
   return (
-    <AdminLayout>
       <div className="space-y-8">
         <div className="flex flex-col space-y-1.5">
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
@@ -248,6 +247,5 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   );
 }
