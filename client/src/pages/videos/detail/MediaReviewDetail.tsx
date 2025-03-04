@@ -63,7 +63,7 @@ export default function MediaReviewDetail({
     <ScrollArea className="h-auto max-h-[70vh]">
       <div className="p-4">
         {/* Estructura optimizada de 2 columnas para medios */}
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
+        <div className="grid md:grid-cols-2 gap-6 mb-5">
           {/* Columna 1: Miniatura */}
           <div className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
             <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/40 dark:to-gray-900/20 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
@@ -74,10 +74,10 @@ export default function MediaReviewDetail({
                 <img
                   src={video.thumbnailUrl}
                   alt="Miniatura del video"
-                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[200px]"
+                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[250px]"
                 />
               ) : (
-                <div className="w-full h-[150px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
+                <div className="w-full h-[200px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
                   <p className="text-sm text-gray-500 dark:text-gray-400">No hay miniatura disponible</p>
                 </div>
               )}
@@ -91,12 +91,12 @@ export default function MediaReviewDetail({
             </div>
             <div className="p-3">
               {video.videoUrl ? (
-                <video controls className="w-full h-auto rounded overflow-hidden max-h-[200px]">
+                <video controls className="w-full h-auto rounded overflow-hidden max-h-[250px]">
                   <source src={video.videoUrl} type="video/mp4" />
                   Tu navegador no soporta la visualización del video.
                 </video>
               ) : (
-                <div className="w-full h-[150px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
+                <div className="w-full h-[200px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
                   <p className="text-sm text-gray-500 dark:text-gray-400">No hay video disponible</p>
                 </div>
               )}
