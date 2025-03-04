@@ -148,108 +148,102 @@ export function OptimizeContentDetail({
                 )
               }
 
-              <div className="grid gap-8">
-                <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
-                  {/* Gradiente sutil en la parte superior */}
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700"></div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800">
-                          <FileText className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              {/* Layout optimizado para títulos con sistema de dos columnas */}
+              <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 dark:from-blue-600 dark:via-purple-600 dark:to-blue-600"></div>
+                <div className="p-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Columna izquierda: Título Original */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                            <FileText className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                          </div>
+                          <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm">Título Original</h3>
                         </div>
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">Título Original</h3>
+                        <Badge variant="outline" className="bg-background/50 text-xs px-2 py-0.5 border border-gray-200 dark:border-gray-700">
+                          Original
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="bg-background/50 border border-gray-200 dark:border-gray-700">
-                        Original
-                      </Badge>
-                    </div>
-                    <div className="space-y-4">
-                      <ScrollArea className="h-[80px] rounded-md border border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm">
-                        <div className="p-4">
-                          <p className="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
-                            {video.title}
-                          </p>
-                        </div>
-                      </ScrollArea>
+                      
+                      <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[60px] text-sm text-gray-700 dark:text-gray-300 shadow-sm">
+                        {video.title}
+                      </div>
+                      
                       {video.seriesNumber && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
-                          <ArrowRight className="w-4 h-4" />
+                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-md border border-gray-100 dark:border-gray-800">
+                          <ArrowRight className="w-3 h-3 flex-shrink-0" />
                           <span>Serie: {video.seriesNumber}</span>
                         </div>
                       )}
                     </div>
-                  </div>
-                </Card>
-
-                <Card className="overflow-hidden border border-purple-200 dark:border-purple-800 shadow-sm relative">
-                  {/* Gradiente en la parte superior */}
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 via-purple-500 to-purple-400 dark:from-purple-600 dark:via-purple-500 dark:to-purple-600"></div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-900/50">
-                          <Wand2 className="h-5 w-5 text-purple-500 dark:text-purple-400" />
+                    
+                    {/* Columna derecha: Título Optimizado */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-900/50">
+                            <Wand2 className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                          </div>
+                          <h3 className="font-medium text-purple-700 dark:text-purple-300 text-sm">Título Optimizado</h3>
                         </div>
-                        <h3 className="font-semibold text-purple-700 dark:text-purple-300">
-                          Título Optimizado
-                        </h3>
+                        <div className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 font-medium border border-purple-100 dark:border-purple-800/50">
+                          {form.getValues("optimizedTitle")?.length}/{MAX_TITLE_LENGTH}
+                        </div>
                       </div>
-                      <div className="text-sm px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 font-medium border border-purple-100 dark:border-purple-800/50">
-                        {form.getValues("optimizedTitle")?.length}/{MAX_TITLE_LENGTH}
+                      
+                      <div className="relative">
+                        <Textarea
+                          {...form.register("optimizedTitle")}
+                          placeholder="Escribe el título optimizado..."
+                          className={cn(
+                            "min-h-[60px] pr-9 resize-none",
+                            "bg-white/80 dark:bg-gray-900/60",
+                            "border-purple-200 dark:border-purple-800/70",
+                            "focus-visible:ring-purple-500/30",
+                            "focus-visible:border-purple-300",
+                            "placeholder:text-purple-300/70 dark:placeholder:text-purple-400/40",
+                            "text-sm backdrop-blur-sm",
+                            "shadow-sm"
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 bottom-1 w-7 h-7 p-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-300 dark:hover:bg-purple-900/30"
+                          onClick={() => setShowEmojiPicker(true)}
+                        >
+                          <Smile className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="relative">
-                      <Textarea
-                        {...form.register("optimizedTitle")}
-                        placeholder="Escribe el título optimizado..."
-                        className={cn(
-                          "min-h-[80px] pr-12 resize-none",
-                          "bg-white/80 dark:bg-gray-900/60",
-                          "border-purple-200 dark:border-purple-800/70",
-                          "focus-visible:ring-purple-500/30",
-                          "focus-visible:border-purple-300",
-                          "placeholder:text-purple-300/70 dark:placeholder:text-purple-400/40",
-                          "text-lg backdrop-blur-sm",
-                          "shadow-sm"
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 bottom-2 text-purple-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-300 dark:hover:bg-purple-900/30"
-                        onClick={() => setShowEmojiPicker(true)}
-                      >
-                        <Smile className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              <div className="rounded-lg border border-purple-100 dark:border-purple-900/50 p-4 shadow-sm bg-gradient-to-r from-purple-50/80 via-purple-50/50 to-transparent dark:from-purple-950/30 dark:via-purple-950/20 dark:to-transparent backdrop-blur-sm">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-md mr-3">
-                    <Sparkles className="h-4 w-4 text-purple-500 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-purple-800 dark:text-purple-300 mb-1">
-                      Consejos para Optimización
-                    </h4>
-                    <p className="text-purple-700/90 dark:text-purple-400/90 text-sm">
-                      Optimiza el título manteniendo la esencia del contenido y mejorando su visibilidad para SEO.
-                      Usa etiquetas relevantes para aumentar el alcance.
-                    </p>
-                    {video.status === "media_corrections" && (
-                      <p className="mt-2 text-purple-600 dark:text-purple-300 text-sm font-medium border-l-2 border-purple-400 pl-2">
-                        Por favor, revisa las correcciones solicitadas antes de volver a enviar.
-                      </p>
-                    )}
                   </div>
                 </div>
+              </Card>
+
+              {/* Consejo de optimización compacto */}
+              <div className="flex items-center p-3 rounded-md border border-purple-100 dark:border-purple-900/50 shadow-sm bg-gradient-to-r from-purple-50/80 to-transparent dark:from-purple-950/30 dark:to-transparent backdrop-blur-sm mt-2 mb-2">
+                <div className="flex-shrink-0 p-1 bg-purple-100 dark:bg-purple-900/40 rounded-full mr-2">
+                  <Sparkles className="h-3 w-3 text-purple-500 dark:text-purple-400" />
+                </div>
+                <p className="text-xs text-purple-700/90 dark:text-purple-400/90">
+                  <span className="font-medium text-purple-800 dark:text-purple-300">Consejo:</span> Optimiza manteniendo la esencia del contenido y mejorando SEO. Usa etiquetas relevantes para aumentar el alcance.
+                </p>
               </div>
+              
+              {/* Alerta de corrección compacta */}
+              {video.status === "content_corrections" && (
+                <div className="flex items-center p-2.5 rounded-md border border-amber-200 dark:border-amber-900/50 shadow-sm bg-gradient-to-r from-amber-50/80 to-transparent dark:from-amber-950/30 dark:to-transparent backdrop-blur-sm mt-1 mb-3">
+                  <div className="flex-shrink-0 p-1 bg-amber-100 dark:bg-amber-900/40 rounded-full mr-2">
+                    <AlertCircle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <span className="font-medium">Atención:</span> Revisa las correcciones solicitadas antes de volver a enviar.
+                  </p>
+                </div>
+              )}
 
               <EmojiPicker
                 isOpen={showEmojiPicker}
@@ -260,61 +254,57 @@ export function OptimizeContentDetail({
               />
             </div>
 
-            <div className="grid gap-6 mt-4">
+            {/* Layout optimizado con grid de 2 columnas y campos más compactos */}
+            <div className="mt-4">
               <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700"></div>
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800">
-                        <FileText className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-300 via-blue-400 to-purple-500 dark:from-gray-700 dark:via-blue-600 dark:to-purple-700"></div>
+                <div className="p-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Columna izquierda: Descripción Original */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                          <FileText className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        </div>
+                        <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm">Descripción Original</h3>
                       </div>
-                      <h3 className="font-medium text-gray-800 dark:text-gray-200">Descripción Original</h3>
+                      <Textarea
+                        value={video.description || ""}
+                        disabled
+                        className="min-h-[120px] resize-none text-xs bg-gray-50/80 dark:bg-gray-900/60 border-gray-200 dark:border-gray-800"
+                      />
+                    </div>
+                    
+                    {/* Columna derecha: Descripción Optimizada */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-900/50">
+                          <Wand2 className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                        </div>
+                        <h3 className="font-medium text-purple-700 dark:text-purple-300 text-sm">Descripción Optimizada</h3>
+                      </div>
+                      <Textarea
+                        {...form.register("optimizedDescription")}
+                        placeholder="Ingresa la descripción optimizada"
+                        className="min-h-[120px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-purple-200 dark:border-purple-800/70 focus-visible:ring-purple-500/30 focus-visible:border-purple-300 placeholder:text-purple-300/70"
+                      />
                     </div>
                   </div>
-                  <Textarea
-                    value={video.description || ""}
-                    disabled
-                    className="min-h-[80px] sm:min-h-[100px] resize-none text-sm bg-gray-50/80 dark:bg-gray-900/60 border-gray-200 dark:border-gray-800"
-                  />
-                </div>
-              </Card>
-
-              <Card className="overflow-hidden border border-purple-200 dark:border-purple-800 shadow-sm relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 via-purple-500 to-purple-400 dark:from-purple-600 dark:via-purple-500 dark:to-purple-600"></div>
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-900/50">
-                        <Wand2 className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                  
+                  {/* Tags en la parte inferior, ocupando todo el ancho */}
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-900/50">
+                        <div className="text-xs text-blue-500 dark:text-blue-400 font-semibold">#</div>
                       </div>
-                      <h3 className="font-medium text-purple-700 dark:text-purple-300">Descripción Optimizada</h3>
+                      <h3 className="font-medium text-blue-700 dark:text-blue-300 text-sm">Tags (separados por comas)</h3>
                     </div>
+                    <Textarea
+                      {...form.register("tags")}
+                      placeholder="tag1, tag2, tag3"
+                      className="min-h-[40px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-blue-200 dark:border-blue-800/70 focus-visible:ring-blue-500/30 focus-visible:border-blue-300"
+                    />
                   </div>
-                  <Textarea
-                    {...form.register("optimizedDescription")}
-                    placeholder="Ingresa la descripción optimizada"
-                    className="min-h-[80px] sm:min-h-[100px] resize-none text-sm bg-white/80 dark:bg-gray-900/60 border-purple-200 dark:border-purple-800/70 focus-visible:ring-purple-500/30 focus-visible:border-purple-300 placeholder:text-purple-300/70 dark:placeholder:text-purple-400/40"
-                  />
-                </div>
-              </Card>
-
-              <Card className="overflow-hidden border border-purple-200 dark:border-purple-800 shadow-sm relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-300 to-purple-500 dark:from-purple-700 dark:to-purple-500"></div>
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-900/50">
-                        <div className="text-xs text-purple-500 dark:text-purple-400 font-semibold">#</div>
-                      </div>
-                      <h3 className="font-medium text-purple-700 dark:text-purple-300">Tags (separados por comas)</h3>
-                    </div>
-                  </div>
-                  <Textarea
-                    {...form.register("tags")}
-                    placeholder="tag1, tag2, tag3"
-                    className="min-h-[40px] sm:min-h-[50px] resize-none text-sm bg-white/80 dark:bg-gray-900/60 border-purple-200 dark:border-purple-800/70 focus-visible:ring-purple-500/30 focus-visible:border-purple-300 placeholder:text-purple-300/70 dark:placeholder:text-purple-400/40"
-                  />
                 </div>
               </Card>
             </div>
