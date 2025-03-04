@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useUser } from "@/hooks/use-user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AnimatedLogo } from "./AnimatedLogo";
 
 interface SidebarProps {
   className?: string;
@@ -94,10 +95,7 @@ export function Sidebar({ className }: SidebarProps) {
           href="/" 
           className="flex items-center gap-2 hover:opacity-80 transition-all"
         >
-          <div className="relative h-8 w-8 flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/10 rounded-md shadow-sm overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Video className="h-5 w-5 text-primary relative z-10" />
-          </div>
+          <AnimatedLogo iconSize={5} showEffects={true} />
           <div className="flex flex-col">
             <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               PetraPanel
@@ -127,9 +125,7 @@ export function Sidebar({ className }: SidebarProps) {
               <div className="flex flex-col h-full">
                 <div className="flex items-center p-4 border-b bg-muted/30">
                   <div className="flex items-center gap-2">
-                    <div className="relative h-8 w-8 flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/10 rounded-md shadow-sm">
-                      <Video className="h-5 w-5 text-primary" />
-                    </div>
+                    <AnimatedLogo showEffects={false} iconSize={5} />
                     <div className="flex flex-col">
                       <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                         PetraPanel
