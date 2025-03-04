@@ -44,16 +44,19 @@ export default function AuthPage() {
     try {
       await login({ username: data.username, password: data.password });
       
-      // Simular un pequeño retraso para una mejor experiencia
+      // Primero mostramos el toast de éxito
+      toast.success("¡Bienvenido!", { 
+        description: "Has iniciado sesión correctamente",
+        position: "top-right",
+        duration: 3000
+      });
+      
+      // Esperamos a que se complete la actualización del estado
       setTimeout(() => {
+        // Luego realizamos la redirección a la página principal
         setLocation("/");
-        toast.success("¡Bienvenido!", { 
-          description: "Has iniciado sesión correctamente",
-          position: "top-right",
-          duration: 3000
-        });
         setIsLoading(false);
-      }, 500);
+      }, 100);
     } catch (error: any) {
       setIsLoading(false);
       toast.error("Error de inicio de sesión", {
