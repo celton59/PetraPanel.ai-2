@@ -74,8 +74,8 @@ export function RecentActivity() {
 
   return (
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      {/* Top accent gradient */}
-      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-primary to-purple-500"></div>
+      {/* Top accent gradient - using colors that match the activity states */}
+      <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-primary to-green-500"></div>
       
       <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
         <CardTitle className="flex items-center gap-2 text-lg">
