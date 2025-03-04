@@ -157,7 +157,7 @@ export function VideoUploadFields({
             <div className="bg-gradient-to-r from-blue-50 to-white dark:from-blue-950/20 dark:to-gray-900/20 px-3 py-2 border-b border-blue-200 dark:border-blue-800/50">
               <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300">Nuevo Video</h3>
             </div>
-            <div className="p-2">
+            <div className="p-3">
               <FileUploadZone
                 file={videoFile}
                 isDragging={isDraggingVideo}
@@ -171,9 +171,12 @@ export function VideoUploadFields({
                 uploadProgress={uploadProgress}
               />
               {!videoFile && (
-                <div className="flex items-center p-2 mt-2 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-xs text-gray-600 dark:text-gray-400">
-                  <AlertCircle className="h-3 w-3 mr-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                  Formatos: MP4, MOV, AVI. Máx: 1GB
+                <div className="flex items-center p-2.5 mt-3 rounded-md border border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/30 dark:to-gray-900/10 text-xs text-gray-600 dark:text-gray-400">
+                  <AlertCircle className="h-3.5 w-3.5 mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium block mb-0.5 text-blue-700 dark:text-blue-300">Formatos:</span>
+                    <span>MP4, MOV, AVI. Tamaño máximo: 1GB</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -188,11 +191,11 @@ export function VideoUploadFields({
               <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/40 dark:to-gray-900/20 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Miniatura Actual</h3>
               </div>
-              <div className="p-2">
+              <div className="p-3">
                 <img 
                   src={video.thumbnailUrl} 
                   alt="Miniatura actual"
-                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[180px]" 
+                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[220px]" 
                 />
               </div>
             </div>
@@ -203,7 +206,7 @@ export function VideoUploadFields({
             <div className="bg-gradient-to-r from-purple-50 to-white dark:from-purple-950/20 dark:to-gray-900/20 px-3 py-2 border-b border-purple-200 dark:border-purple-800/50">
               <h3 className="text-sm font-medium text-purple-700 dark:text-purple-300">Nueva Miniatura</h3>
             </div>
-            <div className="p-2">
+            <div className="p-3">
               <FileUploadZone
                 file={thumbnailFile}
                 isDragging={isDraggingThumbnail}
@@ -217,9 +220,12 @@ export function VideoUploadFields({
                 uploadProgress={uploadProgress}
               />
               {!thumbnailFile && (
-                <div className="flex items-center p-2 mt-2 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-xs text-gray-600 dark:text-gray-400">
-                  <AlertCircle className="h-3 w-3 mr-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                  Formatos: JPG, PNG. Resolución: 1280x720
+                <div className="flex items-center p-2.5 mt-3 rounded-md border border-gray-100 dark:border-gray-800 bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-900/30 dark:to-gray-900/10 text-xs text-gray-600 dark:text-gray-400">
+                  <AlertCircle className="h-3.5 w-3.5 mr-2 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium block mb-0.5 text-purple-700 dark:text-purple-300">Especificaciones:</span>
+                    <span>JPG, PNG. Resolución recomendada: 1280x720</span>
+                  </div>
                 </div>
               )}
             </div>
