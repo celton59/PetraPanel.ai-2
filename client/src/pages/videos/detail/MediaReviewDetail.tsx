@@ -68,28 +68,36 @@ export default function MediaReviewDetail({
             <div className="p-3">
               {video.thumbnailUrl ? (
                 <div className="relative group cursor-pointer">
-                  <img
-                    src={video.thumbnailUrl || ''}
-                    alt="Miniatura del video"
-                    className="w-full h-auto rounded overflow-hidden object-cover max-h-[220px] transition-all duration-200 group-hover:opacity-95"
-                    onClick={() => {
-                      if (video.thumbnailUrl) {
-                        window.open(video.thumbnailUrl, "_blank", "width=1000,height=800");
+                  <a 
+                    href={video.thumbnailUrl || '#'} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                    onClick={(e) => {
+                      if (!video.thumbnailUrl) {
+                        e.preventDefault();
+                        return;
                       }
                     }}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
-                        <path d="M15 3h6v6"></path>
-                        <path d="M10 14 21 3"></path>
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                      </svg>
+                  >
+                    <img
+                      src={video.thumbnailUrl || ''}
+                      alt="Miniatura del video"
+                      className="w-full h-auto rounded overflow-hidden object-cover max-h-[220px] transition-all duration-200 group-hover:opacity-95"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                          <path d="M15 3h6v6"></path>
+                          <path d="M10 14 21 3"></path>
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                    Clic para ampliar
-                  </div>
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                      Clic para ampliar
+                    </div>
+                  </a>
                 </div>
               ) : (
                 <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
@@ -118,16 +126,20 @@ export default function MediaReviewDetail({
                     <source src={video.videoUrl || ''} type="video/mp4" />
                     Tu navegador no soporta la visualización del video.
                   </video>
-                  <div 
+                  <a 
+                    href={video.videoUrl || '#'} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
                     className="absolute top-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded cursor-pointer"
-                    onClick={() => {
-                      if (video.videoUrl) {
-                        window.open(video.videoUrl, "_blank", "width=1000,height=800");
+                    onClick={(e) => {
+                      if (!video.videoUrl) {
+                        e.preventDefault();
+                        return;
                       }
                     }}
                   >
                     Abrir en ventana nueva
-                  </div>
+                  </a>
                 </div>
               ) : (
                 <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
