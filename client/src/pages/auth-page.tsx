@@ -77,6 +77,10 @@ export default function AuthPage() {
             <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10 shadow-sm">
               <div className="relative bg-gradient-to-br from-primary to-purple-500 p-3 rounded-md shadow-inner">
                 <Video className="w-12 h-12 text-white" />
+                {/* Círculo rojo parpadeante */}
+                <div className="absolute top-0 right-0 w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-glow border border-white">
+                  <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></div>
+                </div>
               </div>
             </div>
           </div>
