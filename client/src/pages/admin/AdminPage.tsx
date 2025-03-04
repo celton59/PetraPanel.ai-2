@@ -149,22 +149,24 @@ export default function AdminPage() {
             </div>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <ActionCard
-                icon={BarChart2}
-                title="Estadísticas Avanzadas"
-                description="Accede a información detallada sobre el rendimiento del sistema, usuarios y videos."
-                iconColor="text-blue-500"
-                iconBgColor="bg-blue-50 dark:bg-blue-900/20"
-                onClick={() => window.location.href = '/admin/stats'}
-              />
-              <ActionCard
-                icon={MoneyIcon}
-                title="Gestión Contable"
-                description="Administra pagos, tarifas y consulta informes financieros."
-                iconColor="text-green-500"
-                iconBgColor="bg-green-50 dark:bg-green-900/20"
-                onClick={() => window.location.href = '/admin/accounting'}
-              />
+              <Link href="/admin/stats">
+                <ActionCard
+                  icon={BarChart2}
+                  title="Estadísticas Avanzadas"
+                  description="Accede a información detallada sobre el rendimiento del sistema, usuarios y videos."
+                  iconColor="text-blue-500"
+                  iconBgColor="bg-blue-50 dark:bg-blue-900/20"
+                />
+              </Link>
+              <Link href="/admin/accounting">
+                <ActionCard
+                  icon={MoneyIcon}
+                  title="Gestión Contable"
+                  description="Administra pagos, tarifas y consulta informes financieros."
+                  iconColor="text-green-500"
+                  iconBgColor="bg-green-50 dark:bg-green-900/20"
+                />
+              </Link>
               <ActionCard
                 icon={Settings}
                 title="Configuración"
