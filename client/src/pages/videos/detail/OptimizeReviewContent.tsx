@@ -55,200 +55,195 @@ export function ContentReviewDetail({
 
   return (
     <ScrollArea className="h-auto max-h-[70vh]">
-      <div className="mt-4 p-5">
-        {/* Title */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="overflow-hidden border-2 bg-gradient-to-br from-muted/50 to-transparent">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">Título Original</h3>
-                </div>
-                <Badge variant="outline" className="bg-background/50">
-                  Original
-                </Badge>
-              </div>
-              <Card className="bg-card/50 border-none">
-                <ScrollArea className="h-[100px]">
-                  <div className="p-4">
-                    <p className="text-lg leading-relaxed">{video.title}</p>
+      <div className="mt-2 p-4">
+        {/* Título optimizado con layout de 2 columnas */}
+        <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 dark:from-blue-600 dark:via-purple-600 dark:to-blue-600"></div>
+          <div className="p-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Columna izquierda: Título Original */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                      <FileText className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </div>
+                    <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm">Título Original</h3>
                   </div>
-                </ScrollArea>
-              </Card>
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold">Título Optimizado</h3>
+                  <Badge variant="outline" className="bg-background/50 text-xs px-2 py-0.5 border border-gray-200 dark:border-gray-700">
+                    Original
+                  </Badge>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="border-primary/20 text-primary"
-                >
-                  Propuesta
-                </Badge>
-              </div>
-              <Card className="bg-card/50 border-none">
-                <ScrollArea className="h-[100px]">
-                  <div className="p-4">
-                    <p className="text-lg leading-relaxed text-primary">
-                      {video.optimizedTitle}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Optimizado por: {video.optimizerUsername}
-                    </p>
-                  </div>
-                </ScrollArea>
-              </Card>
-            </div>
-          </Card>
-        </div>
-
-        {/* Description */}
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
-          <Card className="overflow-hidden border-2 bg-gradient-to-br from-muted/50 to-transparent">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">Descripción Original</h3>
+                
+                <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[60px] text-sm text-gray-700 dark:text-gray-300 shadow-sm">
+                  {video.title}
                 </div>
-                <Badge variant="outline" className="bg-background/50">
-                  Original
-                </Badge>
               </div>
-              <Card className="bg-card/50 border-none">
-                <ScrollArea className="h-[100px]">
-                  <div className="p-4">
-                    <p className="text-lg leading-relaxed">
-                      {video.description}
-                    </p>
+              
+              {/* Columna derecha: Título Optimizado */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-900/50">
+                      <MessageSquare className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                    </div>
+                    <h3 className="font-medium text-purple-700 dark:text-purple-300 text-sm">Título Optimizado</h3>
                   </div>
-                </ScrollArea>
-              </Card>
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold">Descripción Optimizada</h3>
+                  <Badge variant="outline" className="bg-purple-50/80 text-xs px-2 py-0.5 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50">
+                    Propuesta
+                  </Badge>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="border-primary/20 text-primary"
-                >
-                  Propuesta
-                </Badge>
+                
+                <div className="rounded-md border border-purple-200 dark:border-purple-800/50 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[60px] text-sm text-purple-700 dark:text-purple-300 shadow-sm">
+                  {video.optimizedTitle}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
+                    Optimizado por: {video.optimizerUsername}
+                  </p>
+                </div>
               </div>
-              <Card className="bg-card/50 border-none">
-                <ScrollArea className="h-[100px]">
-                  <div className="p-4">
-                    <p className="text-lg leading-relaxed text-primary">
-                      {video.optimizedDescription}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Optimizado por: {video.optimizerUsername}
-                    </p>
-                  </div>
-                </ScrollArea>
-              </Card>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
-        <Card className="mt-4 p-6">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Decisión</h3>
+        {/* Descripción optimizada con layout de 2 columnas */}
+        <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative mt-4">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-300 via-blue-400 to-purple-500 dark:from-gray-700 dark:via-blue-600 dark:to-purple-700"></div>
+          <div className="p-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Columna izquierda: Descripción Original */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                    <FileText className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  </div>
+                  <h3 className="font-medium text-gray-800 dark:text-gray-200 text-sm">Descripción Original</h3>
+                </div>
+                <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[100px] text-sm text-gray-700 dark:text-gray-300 shadow-sm overflow-y-auto">
+                  {video.description || "Sin descripción"}
+                </div>
+              </div>
+                  
+              {/* Columna derecha: Descripción Optimizada */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-900/50">
+                    <MessageSquare className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                  </div>
+                  <h3 className="font-medium text-purple-700 dark:text-purple-300 text-sm">Descripción Optimizada</h3>
+                </div>
+                <div className="rounded-md border border-purple-200 dark:border-purple-800/50 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[100px] text-sm text-purple-700 dark:text-purple-300 shadow-sm overflow-y-auto">
+                  {video.optimizedDescription || "Sin descripción optimizada"}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
+                    Optimizado por: {video.optimizerUsername}
+                  </p>
+                </div>
+              </div>
+            </div>
+                  
+            {/* Tags en la parte inferior si están disponibles */}
+            {video.tags && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-900/50">
+                    <div className="text-xs text-blue-500 dark:text-blue-400 font-semibold">#</div>
+                  </div>
+                  <h3 className="font-medium text-blue-700 dark:text-blue-300 text-sm">Tags propuestos</h3>
+                </div>
+                <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-white/30 dark:bg-gray-900/30 p-3 text-sm text-blue-700 dark:text-blue-300">
+                  {video.tags}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Panel de decisión optimizado */}
+        <Card className="mt-4 overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded-md bg-amber-50 dark:bg-amber-900/50">
+                  <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="font-medium text-amber-700 dark:text-amber-300 text-sm">Decisión de Revisión</h3>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => handleSubmit(true)}
                   disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="py-1 h-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 text-white"
+                  size="sm"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                   Aprobar
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={() => handleSubmit(false)}
                   disabled={isSubmitting || !titleCorrections?.trim()}
+                  className="py-1 h-8"
+                  size="sm"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
+                  <XCircle className="w-3.5 h-3.5 mr-1" />
                   Rechazar
                 </Button>
               </div>
             </div>
 
-            <Separator />
+            <Separator className="my-3" />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Comentarios de Revisión
               </label>
               <Textarea
                 placeholder="Escribe aquí los motivos del rechazo o sugerencias de mejora..."
                 value={titleCorrections}
                 onChange={(e) => setTitleCorrections(e.target.value)}
-                className="min-h-[100px] resize-none"
+                className="min-h-[80px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-amber-200 dark:border-amber-800/70 focus-visible:ring-amber-500/30 focus-visible:border-amber-300"
               />
             </div>
           </div>
         </Card>
 
+        {/* Última revisión compacta */}
         {video.contentReviewComments?.at(-1) && (
-          <Card className="mt-4 p-6 border-destructive/20 bg-destructive/5">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div className="space-y-2 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-destructive">
-                    Última Revisión
-                  </h3>
-                  <Badge
-                    variant="outline"
-                    className="bg-destructive/10 text-destructive"
-                  >
-                    Rechazado
-                  </Badge>
-                </div>
-                <Card className="bg-card/50 border-none">
-                  <div className="p-4">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {video.contentReviewComments?.at(-1)}
-                    </p>
-                  </div>
-                </Card>
-              </div>
+          <div className="flex items-center p-3 rounded-md border border-red-200 dark:border-red-900/50 shadow-sm bg-gradient-to-r from-red-50/80 to-transparent dark:from-red-950/30 dark:to-transparent backdrop-blur-sm mt-4">
+            <div className="flex-shrink-0 p-1 bg-red-100 dark:bg-red-900/40 rounded-full mr-2">
+              <AlertTriangle className="h-3 w-3 text-red-500 dark:text-red-400" />
             </div>
-          </Card>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-xs font-medium text-red-700 dark:text-red-300">Última Revisión</h3>
+                <Badge variant="outline" className="bg-red-50/80 text-xs h-5 px-1.5 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800/50">
+                  Rechazado
+                </Badge>
+              </div>
+              <p className="text-xs text-red-700/90 dark:text-red-400/90 whitespace-pre-wrap">
+                {video.contentReviewComments?.at(-1)}
+              </p>
+            </div>
+          </div>
         )}
 
-        <Accordion type="single" collapsible className="space-y-4">
-          <AccordionItem value="item-1">
-            <AccordionTrigger>Historial de correciones</AccordionTrigger>
-            <AccordionContent>
-              {video.contentReviewComments?.map((comment) => (
-                <Alert className="mb-1 border-2 border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  <AlertDescription className="text-red-700 dark:text-red-300">
-                    <p className="font-medium">{comment}</p>
-                  </AlertDescription>
-                </Alert>
-              ))}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        {/* Historial de correcciones optimizado */}
+        {video.contentReviewComments && video.contentReviewComments.length > 0 && (
+          <Accordion type="single" collapsible className="mt-4">
+            <AccordionItem value="item-1" className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden">
+              <AccordionTrigger className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                Historial de correcciones
+              </AccordionTrigger>
+              <AccordionContent className="p-3 space-y-2 bg-gray-50/50 dark:bg-gray-900/20">
+                {video.contentReviewComments?.map((comment, index) => (
+                  <div key={index} className="flex items-start p-2 rounded-md border border-red-200/70 dark:border-red-900/30 bg-white/70 dark:bg-gray-900/40">
+                    <AlertCircle className="h-3.5 w-3.5 text-red-500 dark:text-red-400 mt-0.5 mr-2 flex-shrink-0" />
+                    <p className="text-xs text-red-700 dark:text-red-300">{comment}</p>
+                  </div>
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
       </div>
     </ScrollArea>
   );
