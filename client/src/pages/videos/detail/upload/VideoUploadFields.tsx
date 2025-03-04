@@ -91,9 +91,12 @@ export function VideoUploadFields({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={`
-          relative border-2 border-dashed rounded-lg p-6 text-center
-          ${isDragging ? "border-primary bg-primary/5" : "border-border"}
-          ${isUploading ? "bg-muted/50" : ""}
+          relative border border-dashed rounded-md p-4 text-center
+          ${type === "video" 
+            ? isDragging ? "border-blue-400 bg-blue-50/30 dark:border-blue-500 dark:bg-blue-900/10" : "border-blue-200 dark:border-blue-800/50" 
+            : isDragging ? "border-purple-400 bg-purple-50/30 dark:border-purple-500 dark:bg-purple-900/10" : "border-purple-200 dark:border-purple-800/50"
+          }
+          ${isUploading ? "bg-muted/20" : ""}
           transition-colors
         `}
       >
@@ -109,18 +112,18 @@ export function VideoUploadFields({
         />
   
         {file ? (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Archivo seleccionado:</p>
-            <p className="text-sm text-muted-foreground">{file.name}</p>
-            {isUploading && <Progress value={uploadProgress} className="h-1" />}
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Archivo seleccionado:</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-full">{file.name}</p>
+            {isUploading && <Progress value={uploadProgress} className="h-1 mt-1" />}
           </div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              Arrastra y suelta tu {type === "video" ? "video" : "imagen"} aquí
+          <div className="space-y-1 py-1">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              {type === "video" ? "Arrastra tu video aquí" : "Arrastra tu imagen aquí"}
             </p>
-            <p className="text-sm text-muted-foreground">
-              O haz clic para seleccionar un archivo
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              O haz clic para seleccionar
             </p>
           </div>
         )}
@@ -129,84 +132,99 @@ export function VideoUploadFields({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Layout de 2 columnas para actual y nuevo */}
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Columna 1: Contenido de video */}
+        <div className="space-y-4">
+          {/* Video Actual */}
+          {video.videoUrl && (
+            <div className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
+              <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/40 dark:to-gray-900/20 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Video Actual</h3>
+              </div>
+              <div className="p-2">
+                <video controls className="w-full h-auto rounded overflow-hidden max-h-[180px]">
+                  <source src={video.videoUrl} type="video/mp4" />
+                  Tu navegador no soporta la visualización del video.
+                </video>
+              </div>
+            </div>
+          )}
 
-      {/* Actual Video */}
-      <div>
-        { video.videoUrl && <>
-          <h2 className="text-2xl font-semibold">Video Actual</h2>
-          <video controls className="w-full mt-2 rounded-md">
-            <source src={video.videoUrl} type="video/mp4" />
-            Tu navegador no soporta la visualización del video.
-          </video>          
-        </>}
-      </div>
-
-      {/* New Video */}
-      <div>                
-        <h2 className="text-2xl font-semibold">Nuevo Video</h2>
-        <FileUploadZone
-          file={videoFile}
-          isDragging={isDraggingVideo}
-          onDragOver={(e) => handleDragOver(e, setIsDraggingVideo)}
-          onDragLeave={(e) => handleDragLeave(e, setIsDraggingVideo)}
-          onDrop={(e) =>
-            handleDrop(e, setIsDraggingVideo, onVideoFileChange, "video")
-          }
-          onFileChange={onVideoFileChange}
-          accept="video/*"
-          type="video"
-          isUploading={isUploading}
-          uploadProgress={uploadProgress}
-        />
-        {!videoFile && (
-          <Alert variant="default" className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Formatos soportados: MP4, MOV, AVI. Tamaño máximo: 1GB
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
-
-      {/* Actual Thumbnail */}
-      <div>
-        { video.thumbnailUrl && <>
-          <h2 className="text-2xl font-semibold">Miniatura Actual</h2>
-          <img src={video.thumbnailUrl} className="w-full mt-2 rounded-md" />
-        </>}
-      </div>
-      
-      {/* New Thumbnail */}
-      <div>
-        <h2 className="text-2xl font-semibold">Nueva Miniatura</h2>
-        <FileUploadZone
-          file={thumbnailFile}
-          isDragging={isDraggingThumbnail}
-          onDragOver={(e) => handleDragOver(e, setIsDraggingThumbnail)}
-          onDragLeave={(e) => handleDragLeave(e, setIsDraggingThumbnail)}
-          onDrop={(e) =>
-            handleDrop(
-              e,
-              setIsDraggingThumbnail,
-              onThumbnailFileChange,
-              "image",
-            )
-          }
-          onFileChange={onThumbnailFileChange}
-          accept="image/*"
-          type="image"
-          isUploading={isUploading}
-          uploadProgress={uploadProgress}
-        />
-        {!thumbnailFile && (
-          <Alert variant="default" className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Formatos soportados: JPG, PNG. Resolución recomendada: 1280x720
-            </AlertDescription>
-          </Alert>
-        )}
+          {/* Nuevo Video */}
+          <div className="overflow-hidden rounded-md border border-blue-200 dark:border-blue-800/50 shadow-sm">
+            <div className="bg-gradient-to-r from-blue-50 to-white dark:from-blue-950/20 dark:to-gray-900/20 px-3 py-2 border-b border-blue-200 dark:border-blue-800/50">
+              <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300">Nuevo Video</h3>
+            </div>
+            <div className="p-2">
+              <FileUploadZone
+                file={videoFile}
+                isDragging={isDraggingVideo}
+                onDragOver={(e) => handleDragOver(e, setIsDraggingVideo)}
+                onDragLeave={(e) => handleDragLeave(e, setIsDraggingVideo)}
+                onDrop={(e) => handleDrop(e, setIsDraggingVideo, onVideoFileChange, "video")}
+                onFileChange={onVideoFileChange}
+                accept="video/*"
+                type="video"
+                isUploading={isUploading}
+                uploadProgress={uploadProgress}
+              />
+              {!videoFile && (
+                <div className="flex items-center p-2 mt-2 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-xs text-gray-600 dark:text-gray-400">
+                  <AlertCircle className="h-3 w-3 mr-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                  Formatos: MP4, MOV, AVI. Máx: 1GB
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Columna 2: Contenido de miniatura */}
+        <div className="space-y-4">
+          {/* Miniatura Actual */}
+          {video.thumbnailUrl && (
+            <div className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
+              <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/40 dark:to-gray-900/20 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Miniatura Actual</h3>
+              </div>
+              <div className="p-2">
+                <img 
+                  src={video.thumbnailUrl} 
+                  alt="Miniatura actual"
+                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[180px]" 
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Nueva Miniatura */}
+          <div className="overflow-hidden rounded-md border border-purple-200 dark:border-purple-800/50 shadow-sm">
+            <div className="bg-gradient-to-r from-purple-50 to-white dark:from-purple-950/20 dark:to-gray-900/20 px-3 py-2 border-b border-purple-200 dark:border-purple-800/50">
+              <h3 className="text-sm font-medium text-purple-700 dark:text-purple-300">Nueva Miniatura</h3>
+            </div>
+            <div className="p-2">
+              <FileUploadZone
+                file={thumbnailFile}
+                isDragging={isDraggingThumbnail}
+                onDragOver={(e) => handleDragOver(e, setIsDraggingThumbnail)}
+                onDragLeave={(e) => handleDragLeave(e, setIsDraggingThumbnail)}
+                onDrop={(e) => handleDrop(e, setIsDraggingThumbnail, onThumbnailFileChange, "image")}
+                onFileChange={onThumbnailFileChange}
+                accept="image/*"
+                type="image"
+                isUploading={isUploading}
+                uploadProgress={uploadProgress}
+              />
+              {!thumbnailFile && (
+                <div className="flex items-center p-2 mt-2 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-xs text-gray-600 dark:text-gray-400">
+                  <AlertCircle className="h-3 w-3 mr-1.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                  Formatos: JPG, PNG. Resolución: 1280x720
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
