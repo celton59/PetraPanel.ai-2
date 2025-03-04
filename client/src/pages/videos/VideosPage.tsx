@@ -204,8 +204,10 @@ export default function VideosPage() {
 
   function getTableView() {
     return (
-      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden relative">
+        {/* Accent gradient para la tabla de videos */}
+        <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
+        <div className="overflow-x-auto pt-1">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -369,6 +371,8 @@ export default function VideosPage() {
             key={video.id}
             className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
           >
+            {/* Gradient accent en tarjetas grid */}
+            <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0 z-10"></div>
             <div className="aspect-video bg-muted relative">
               {video.thumbnailUrl ? (
                 <img
@@ -489,9 +493,11 @@ export default function VideosPage() {
         {videos?.map((video: any) => (
           <div
             key={video.id}
-            className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer"
+            className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer relative overflow-hidden"
             onClick={() => handleVideoClick(video)}
           >
+            {/* Gradient accent en tarjetas list */}
+            <div className="h-full w-1 bg-gradient-to-b from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
             <div className="w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
               {video.thumbnailUrl ? (
                 <img

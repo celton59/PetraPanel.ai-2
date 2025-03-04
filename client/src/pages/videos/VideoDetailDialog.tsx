@@ -97,7 +97,9 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const statusLabel = getStatusLabel(user!.role, video);
 
   return (
-    <DialogContent className="w-[95vw] max-w-3xl p-6">
+    <DialogContent className="w-[95vw] max-w-3xl p-6 relative overflow-hidden">
+      {/* Rich gradient accent for video detail */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-primary to-purple-600"></div>
       <DialogHeader>
         <div className="flex justify-between items-start">
           <DialogTitle className="text-2xl">
