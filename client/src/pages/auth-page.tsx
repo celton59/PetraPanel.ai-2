@@ -77,10 +77,10 @@ export default function AuthPage() {
             <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10 shadow-sm group">
               <div className="relative bg-gradient-to-br from-primary to-purple-500 p-3 rounded-md shadow-inner">
                 <Video className="w-12 h-12 text-white" />
-                {/* Círculo rojo estático con pulso lento */}
-                <div className="absolute top-0 right-0 w-3 h-3 rounded-full bg-red-500 border border-white shadow-glow opacity-75 transition-opacity duration-300">
-                  {/* Círculo con animación que solo se activa al pasar el cursor */}
-                  <div className="absolute inset-0 rounded-full bg-red-500 opacity-0 group-hover:animate-ping group-hover:opacity-75 transition-opacity duration-300"></div>
+                {/* Círculo rojo que solo aparece al pasar el cursor */}
+                <div className="absolute top-0 right-0 w-3 h-3 rounded-full bg-red-500 border border-white shadow-glow opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* Animación de ping para el círculo */}
+                  <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></div>
                 </div>
               </div>
             </div>
