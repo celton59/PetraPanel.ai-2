@@ -94,15 +94,16 @@ export function Sidebar({ className }: SidebarProps) {
           href="/" 
           className="flex items-center gap-2 hover:opacity-80 transition-all"
         >
-          <div className="relative h-8 w-8 flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/10 rounded-md shadow-sm overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Video className="h-5 w-5 text-primary relative z-10" />
+          <div className="relative h-9 w-9 flex items-center justify-center bg-primary rounded-md shadow-sm overflow-hidden">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10">
+              <path d="M12 4.80005C12.5333 4.80005 13.0333 4.93338 13.5 5.20005C13.9667 5.46672 14.3333 5.80005 14.6 6.20005C14.8667 6.60005 15 7.06671 15 7.60005C15 8.13338 14.8667 8.60005 14.6 9.00005C14.3333 9.40005 13.9667 9.73338 13.5 10C13.0333 10.2667 12.5333 10.4 12 10.4C11.4667 10.4 10.9667 10.2667 10.5 10C10.0333 9.73338 9.66667 9.40005 9.4 9.00005C9.13333 8.60005 9 8.13338 9 7.60005C9 7.06671 9.13333 6.60005 9.4 6.20005C9.66667 5.80005 10.0333 5.46672 10.5 5.20005C10.9667 4.93338 11.4667 4.80005 12 4.80005ZM4 19.2V17.6C4 17.0667 4.15 16.6 4.45 16.2C4.75 15.8 5.13333 15.5334 5.6 15.4C6.6 15.1334 7.5 14.9334 8.3 14.8C9.1 14.6667 9.9 14.6 10.7 14.6H13.3C14.1 14.6 14.9 14.6667 15.7 14.8C16.5 14.9334 17.4 15.1334 18.4 15.4C18.8667 15.5334 19.25 15.8 19.55 16.2C19.85 16.6 20 17.0667 20 17.6V19.2H4Z" fill="white"/>
+            </svg>
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <span className="font-bold text-base leading-tight">
               PetraPanel
             </span>
-            <span className="text-[10px] -mt-0.5 text-muted-foreground/80">Video Studio</span>
+            <span className="text-[10px] text-muted-foreground">Video Studio</span>
           </div>
         </Link>
 
@@ -127,14 +128,16 @@ export function Sidebar({ className }: SidebarProps) {
               <div className="flex flex-col h-full">
                 <div className="flex items-center p-4 border-b bg-muted/30">
                   <div className="flex items-center gap-2">
-                    <div className="relative h-8 w-8 flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/10 rounded-md shadow-sm">
-                      <Video className="h-5 w-5 text-primary" />
+                    <div className="relative h-9 w-9 flex items-center justify-center bg-primary rounded-md shadow-sm overflow-hidden">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10">
+                        <path d="M12 4.80005C12.5333 4.80005 13.0333 4.93338 13.5 5.20005C13.9667 5.46672 14.3333 5.80005 14.6 6.20005C14.8667 6.60005 15 7.06671 15 7.60005C15 8.13338 14.8667 8.60005 14.6 9.00005C14.3333 9.40005 13.9667 9.73338 13.5 10C13.0333 10.2667 12.5333 10.4 12 10.4C11.4667 10.4 10.9667 10.2667 10.5 10C10.0333 9.73338 9.66667 9.40005 9.4 9.00005C9.13333 8.60005 9 8.13338 9 7.60005C9 7.06671 9.13333 6.60005 9.4 6.20005C9.66667 5.80005 10.0333 5.46672 10.5 5.20005C10.9667 4.93338 11.4667 4.80005 12 4.80005ZM4 19.2V17.6C4 17.0667 4.15 16.6 4.45 16.2C4.75 15.8 5.13333 15.5334 5.6 15.4C6.6 15.1334 7.5 14.9334 8.3 14.8C9.1 14.6667 9.9 14.6 10.7 14.6H13.3C14.1 14.6 14.9 14.6667 15.7 14.8C16.5 14.9334 17.4 15.1334 18.4 15.4C18.8667 15.5334 19.25 15.8 19.55 16.2C19.85 16.6 20 17.0667 20 17.6V19.2H4Z" fill="white"/>
+                      </svg>
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                      <span className="font-bold text-base leading-tight">
                         PetraPanel
                       </span>
-                      <span className="text-[10px] -mt-0.5 text-muted-foreground/80">Video Studio</span>
+                      <span className="text-[10px] text-muted-foreground">Video Studio</span>
                     </div>
                   </div>
                 </div>
