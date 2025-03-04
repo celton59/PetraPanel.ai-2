@@ -49,14 +49,17 @@ export default function AuthPage() {
         setLocation("/");
         toast.success("¡Bienvenido!", { 
           description: "Has iniciado sesión correctamente",
-          position: "top-center" 
+          position: "top-right",
+          duration: 3000
         });
         setIsLoading(false);
       }, 500);
     } catch (error: any) {
       setIsLoading(false);
       toast.error("Error de inicio de sesión", {
-        description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo."
+        description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
+        position: "top-right",
+        duration: 3000
       });
     }
   };

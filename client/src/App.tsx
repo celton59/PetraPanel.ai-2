@@ -72,7 +72,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <GuideProvider>
-        <Toaster expand />
+        <Toaster 
+          position="top-right"
+          expand={false}
+          closeButton
+          richColors
+          duration={3000}
+        />
         <Router>
           {/* <Switch>
             <Route path="/*" component={Layout} />
