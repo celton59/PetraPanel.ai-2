@@ -8,7 +8,6 @@ import ProfilePage from "@/pages/profile/ProfilePage";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
-import { AdminProtectedRoute } from "@/components/AdminProtectedRoute";
 import VideosPage from "@/pages/videos/VideosPage";
 import StatsPage from "@/pages/stats/StatsPage.new";
 import VideoTranslator from "@/pages/VideoTranslator";
@@ -56,11 +55,15 @@ function Router() {
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       
-      {/* Rutas de administración - protegidas con AdminProtectedRoute */}
-      <Route path="/admin" component={() => <AdminProtectedRoute component={AdminPage} />} />
-      <Route path="/admin/stats" component={() => <AdminProtectedRoute component={AdminStatsPage} />} />
-      <Route path="/admin/accounting" component={() => <AdminProtectedRoute component={AccountingPage} />} />
-      <Route path="/admin/configuration" component={() => <AdminProtectedRoute component={ConfigurationPage} />} />
+      {/* Rutas de administración - solo accesibles para administradores */}
+      { user.role === 'admin' && (
+        <>
+          <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
+          <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
+          <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
+          <Route path="/admin/configuration" component={() => <ProtectedRoute component={ConfigurationPage} />} />
+        </>
+      )}
       
       <Route component={NotFound} />
     </Switch>
@@ -78,7 +81,11 @@ function App() {
           richColors
           duration={3000}
         />
-        <Router />
+        <Router>
+          {/* <Switch>
+            <Route path="/*" component={Layout} />
+          </Switch> */}
+        </Router>
       </GuideProvider>
     </QueryClientProvider>
   );
