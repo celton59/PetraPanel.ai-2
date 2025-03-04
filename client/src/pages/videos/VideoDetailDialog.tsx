@@ -98,11 +98,11 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const statusLabel = getStatusLabel(user!.role, video);
 
   return (
-    <DialogContent className="w-[95vw] max-w-6xl p-6 overflow-auto max-h-[90vh]">
+    <DialogContent className="w-[95vw] max-w-7xl p-6 overflow-hidden max-h-[92vh]">
       {/* Rich gradient accent for video detail */}
       <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 dark:from-blue-700 dark:via-purple-700 dark:to-blue-700"></div>
       
-      <DialogHeader>
+      <DialogHeader className="pb-2">
         <DialogTitle className="sr-only">Detalles del video</DialogTitle>
         <DialogDescription className="sr-only">Información y edición de detalles del video</DialogDescription>
         
@@ -135,7 +135,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
         </div>
       </DialogHeader>
 
-      <div className="mt-4">
+      <div className="overflow-y-auto pr-2 h-[calc(92vh-120px)]">
         {renderCardContent()}
       </div>
     </DialogContent>

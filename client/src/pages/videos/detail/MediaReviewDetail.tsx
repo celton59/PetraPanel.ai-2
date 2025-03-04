@@ -3,9 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { List, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
@@ -25,20 +23,18 @@ export default function MediaReviewDetail({
   const [thumbnailNeedsCorrection, setThumbnailNeedsCorrection] = useState<boolean>(false);
 
   function handleApprove() {
-    if ( video.status === 'media_review') {
-        onUpdate({
-          status: "final_review",
-          mediaReviewedBy: user?.id,
-          mediaVideoNeedsCorrection: false,
-          mediaThumbnailNeedsCorrection: false
-        })
-    }
-    else {
+    if (video.status === 'media_review') {
+      onUpdate({
+        status: "final_review",
+        mediaReviewedBy: user?.id,
+        mediaVideoNeedsCorrection: false,
+        mediaThumbnailNeedsCorrection: false
+      });
+    } else {
       onUpdate({
         status: 'completed'
-      })
+      });
     }
-    
   }
 
   function handleReject() {
@@ -60,8 +56,8 @@ export default function MediaReviewDetail({
   }
 
   return (
-    <ScrollArea className="h-auto max-h-[80vh]">
-      <div className="p-5">
+    <div className="pb-4">
+      <div className="p-4">
         {/* Estructura optimizada de 2 columnas para medios */}
         <div className="grid md:grid-cols-2 gap-6 mb-5">
           {/* Columna 1: Miniatura */}
@@ -74,10 +70,10 @@ export default function MediaReviewDetail({
                 <img
                   src={video.thumbnailUrl}
                   alt="Miniatura del video"
-                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[250px]"
+                  className="w-full h-auto rounded overflow-hidden object-cover max-h-[220px]"
                 />
               ) : (
-                <div className="w-full h-[200px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
+                <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
                   <p className="text-sm text-gray-500 dark:text-gray-400">No hay miniatura disponible</p>
                 </div>
               )}
@@ -91,12 +87,12 @@ export default function MediaReviewDetail({
             </div>
             <div className="p-3">
               {video.videoUrl ? (
-                <video controls className="w-full h-auto rounded overflow-hidden max-h-[250px]">
+                <video controls className="w-full h-auto rounded overflow-hidden max-h-[220px]">
                   <source src={video.videoUrl} type="video/mp4" />
                   Tu navegador no soporta la visualización del video.
                 </video>
               ) : (
-                <div className="w-full h-[200px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
+                <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
                   <p className="text-sm text-gray-500 dark:text-gray-400">No hay video disponible</p>
                 </div>
               )}
@@ -275,7 +271,7 @@ export default function MediaReviewDetail({
           </Card>
         )}
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 
