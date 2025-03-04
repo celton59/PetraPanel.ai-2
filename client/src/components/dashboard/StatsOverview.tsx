@@ -248,182 +248,134 @@ export function StatsOverview({
     >
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <Card className="relative overflow-hidden p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-950/30 border border-blue-200 dark:border-blue-800">
-            <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
-              <div className="absolute inset-0 bg-blue-500 opacity-10 rounded-full" />
-            </div>
-            <div className="relative z-10 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900 shadow-inner">
-                <Video className="w-6 h-6 text-blue-600 dark:text-blue-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-300">Videos Totales</p>
-                <h3 className="text-3xl font-bold text-blue-700 dark:text-blue-200">
+        <Card className="p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Videos Totales</p>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-bold mt-1">
                   {mockStatsData.total_videos}
                 </h3>
+                <span className="text-sm text-green-500 font-medium">+12%</span>
               </div>
             </div>
-          </Card>
-        </motion.div>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Video className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+        </Card>
 
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <Card className="relative overflow-hidden p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-950/30 border border-green-200 dark:border-green-800">
-            <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
-              <div className="absolute inset-0 bg-green-500 opacity-10 rounded-full" />
-            </div>
-            <div className="relative z-10 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-green-100 dark:bg-green-900 shadow-inner">
-                <Zap className="w-6 h-6 text-green-600 dark:text-green-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-300">Optimizaciones</p>
-                <h3 className="text-3xl font-bold text-green-700 dark:text-green-200">
+        <Card className="p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Optimizaciones</p>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-bold mt-1">
                   {mockStatsData.total_optimizations}
                 </h3>
+                <span className="text-sm text-green-500 font-medium">+8%</span>
               </div>
             </div>
-          </Card>
-        </motion.div>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+        </Card>
 
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <Card className="relative overflow-hidden p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-950/30 border border-purple-200 dark:border-purple-800">
-            <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
-              <div className="absolute inset-0 bg-purple-500 opacity-10 rounded-full" />
-            </div>
-            <div className="relative z-10 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900 shadow-inner">
-                <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Subidas</p>
-                <h3 className="text-3xl font-bold text-purple-700 dark:text-purple-200">
+        <Card className="p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Subidas</p>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-bold mt-1">
                   {mockStatsData.total_uploads}
                 </h3>
+                <span className="text-sm text-green-500 font-medium">+15%</span>
               </div>
             </div>
-          </Card>
-        </motion.div>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Performance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-lg">Top Optimizadores</h3>
-              </div>
-              <Badge variant="secondary" className="font-medium">
-                Rendimiento
-              </Badge>
-            </div>
-            <div className="space-y-4">
-              {optimizationData.slice(0, 3).map((opt) => (
-                <div key={opt.userId} className="flex items-center justify-between p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{opt.username}</p>
-                      <p className="text-sm text-muted-foreground">{opt.optimizations} optimizaciones</p>
-                    </div>
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-medium">Top Optimizadores</h3>
+            <Award className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="space-y-4">
+            {optimizationData.slice(0, 3).map((opt) => (
+              <div key={opt.userId} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{opt.username}</p>
+                    <p className="text-sm text-muted-foreground">{opt.optimizations} optimizaciones</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
+              </div>
+            ))}
+          </div>
+        </Card>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-lg">Top Subidas</h3>
-              </div>
-              <Badge variant="secondary" className="font-medium">
-                Efectividad
-              </Badge>
-            </div>
-            <div className="space-y-4">
-              {uploadData.slice(0, 3).map((upload) => (
-                <div key={upload.userId} className="flex items-center justify-between p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{upload.username}</p>
-                      <p className="text-sm text-muted-foreground">{upload.uploads} subidas</p>
-                    </div>
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-medium">Top Subidas</h3>
+            <Target className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="space-y-4">
+            {uploadData.slice(0, 3).map((upload) => (
+              <div key={upload.userId} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{upload.username}</p>
+                    <p className="text-sm text-muted-foreground">{upload.uploads} subidas</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
       {/* Distribution Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-lg">Distribución General</h3>
-            </div>
-            <Badge variant="secondary" className="font-medium">
-              Balance General
-            </Badge>
-          </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </motion.div>
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium">Distribución General</h3>
+          <PieChartIcon className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
     </motion.div>
   );
 }
