@@ -370,10 +370,10 @@ export function RatesTab() {
                     <FormLabel>Proyecto (opcional)</FormLabel>
                     <Select
                       onValueChange={(value) =>
-                        field.onChange(value ? parseInt(value) : null)
+                        field.onChange(value === "global" ? null : parseInt(value))
                       }
                       defaultValue={
-                        field.value !== null ? field.value.toString() : ""
+                        field.value !== null ? field.value.toString() : "global"
                       }
                     >
                       <FormControl>
@@ -382,7 +382,7 @@ export function RatesTab() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">
+                        <SelectItem value="global">
                           Global (todos los proyectos)
                         </SelectItem>
                         {projects?.map((project: Project) => (
