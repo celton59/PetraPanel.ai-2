@@ -40,7 +40,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import StatsCard from "@/components/StatsCard";
 import { format, subDays } from "date-fns";
-import { CreditCard, DollarSign, Activity, Clock } from "lucide-react";
+import { PaymentIcon, MoneyIcon, TasksIcon, PendingIcon } from "@/components/CustomIcons";
 
 // Tipos
 interface AccountingStats {
@@ -197,28 +197,28 @@ export function AccountingMetrics() {
           value={stats?.totalPayments.toString() || "0"}
           change="+12% vs mes anterior"
           isPositive={true}
-          icon={CreditCard}
+          icon={PaymentIcon}
         />
         <StatsCard
           title="Monto Total Pagado"
           value={`$${stats?.totalAmountPaid.toFixed(2) || "0.00"}`}
           change="+8% vs mes anterior"
           isPositive={true}
-          icon={DollarSign}
+          icon={MoneyIcon}
         />
         <StatsCard
           title="Acciones Completadas"
           value={stats?.actionsCompleted.toString() || "0"}
           change="+15% vs mes anterior"
           isPositive={true}
-          icon={Activity}
+          icon={TasksIcon}
         />
         <StatsCard
           title="Pagos Pendientes"
           value={stats?.pendingPayments.toString() || "0"}
           change="-5% vs mes anterior"
           isPositive={true}
-          icon={Clock}
+          icon={PendingIcon}
         />
       </div>
 

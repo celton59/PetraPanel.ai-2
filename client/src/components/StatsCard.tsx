@@ -1,14 +1,17 @@
-import { LucideIcon } from "lucide-react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+
+// Definimos un tipo de icono más flexible que puede ser un componente SVG o JSX
+type IconComponent = React.ComponentType<React.SVGProps<SVGSVGElement> & { className?: string }>;
 
 interface StatsCardProps {
   title: string;
   value: string;
   change: string;
   isPositive: boolean;
-  icon: LucideIcon;
+  icon: IconComponent;
   className?: string;
   animation?: any;
 }
