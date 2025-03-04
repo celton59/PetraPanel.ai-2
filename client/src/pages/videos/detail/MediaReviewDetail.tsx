@@ -60,7 +60,7 @@ export default function MediaReviewDetail({
   }
 
   return (
-    <ScrollArea className="h-[80vh] sm:h-[70vh]">
+    <ScrollArea className="h-auto max-h-[70vh]">
       <div className="space-y-6 p-5">
         
         {/* Actual Thumbnail */}

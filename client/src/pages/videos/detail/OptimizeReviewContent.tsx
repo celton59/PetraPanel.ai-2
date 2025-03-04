@@ -54,7 +54,7 @@ export function ContentReviewDetail({
   }
 
   return (
-    <ScrollArea className="h-[80vh] sm:h-[70vh]">
+    <ScrollArea className="h-auto max-h-[70vh]">
       <div className="mt-4 p-5">
         {/* Title */}
         <div className="grid gap-6 lg:grid-cols-2">

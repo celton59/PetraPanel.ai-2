@@ -87,7 +87,7 @@ export function OptimizeContentDetail({
   }
 
   return (
-    <ScrollArea className="h-[80vh] sm:h-[70vh]">
+    <ScrollArea className="h-auto max-h-[70vh]">
       <Card className="border-0 shadow-none p-5">
         <CardHeader className="px-0 sm:px-6">
           <CardTitle>Optimización de Contenido</CardTitle>

@@ -98,7 +98,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const statusLabel = getStatusLabel(user!.role, video);
 
   return (
-    <DialogContent className="w-[95vw] max-w-3xl p-6 relative overflow-hidden top-[5vh] max-h-[90vh] fixed">
+    <DialogContent className="w-[95vw] max-w-3xl p-6 relative overflow-auto fixed inset-0 m-auto h-[85vh]">
       <DialogDescription className="sr-only">Detalles del video</DialogDescription>
       {/* Rich gradient accent for video detail */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-primary to-purple-600"></div>
