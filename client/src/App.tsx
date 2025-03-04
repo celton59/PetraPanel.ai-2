@@ -19,6 +19,7 @@ import { GuideProvider } from "@/components/help/GuideContext";
 import AdminPage from "@/pages/admin/AdminPage";
 import AdminStatsPage from "@/pages/admin/StatsPage";
 import AccountingPage from "@/pages/admin/AccountingPage";
+import ConfigurationPage from "@/pages/admin/ConfigurationPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -60,6 +61,7 @@ function Router() {
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
           <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
           <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
+          <Route path="/admin/configuration" component={() => <ProtectedRoute component={ConfigurationPage} />} />
         </>
       )}
       
