@@ -74,7 +74,7 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
         }
       }}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+      {/* Mantuvimos los efectos de esquina en AnimatedLogo para usarse en el dashboard */}
       
       {/* Indicador de actividad */}
       {isActive && showEffects && (
