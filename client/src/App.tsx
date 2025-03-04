@@ -10,7 +10,7 @@ import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import VideosPage from "@/pages/videos/VideosPage";
-import StatsPage from "@/pages/stats/StatsPage";
+import StatsPage from "@/pages/stats/StatsPage.new";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
