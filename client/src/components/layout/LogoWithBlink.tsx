@@ -17,7 +17,7 @@ export const LogoWithBlink: React.FC<LogoWithBlinkProps> = ({
   return (
     <div 
       className={cn(
-        "relative h-8 w-8 flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/10 rounded-md shadow-sm overflow-visible group",
+        "relative h-8 w-8 flex items-center justify-center bg-primary/10 rounded-md shadow-sm overflow-visible",
         className
       )}
       onMouseEnter={() => {
@@ -32,7 +32,7 @@ export const LogoWithBlink: React.FC<LogoWithBlinkProps> = ({
         setTimeout(() => setIsActive(false), 3000);
       }}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+      {/* Eliminada la capa de las esquinas */}
       
       {/* Indicador de actividad */}
       {isActive && (
