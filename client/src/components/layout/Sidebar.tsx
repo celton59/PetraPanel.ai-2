@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useUser } from "@/hooks/use-user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AnimatedLogo } from "./AnimatedLogo";
+import { LogoWithBlink } from "./LogoWithBlink";
 
 interface SidebarProps {
   className?: string;
@@ -95,7 +96,7 @@ export function Sidebar({ className }: SidebarProps) {
           href="/" 
           className="flex items-center gap-2 hover:opacity-80 transition-all"
         >
-          <AnimatedLogo iconSize={5} showEffects={true} />
+          <LogoWithBlink iconSize={5} />
           <div className="flex flex-col">
             <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               PetraPanel
@@ -125,7 +126,7 @@ export function Sidebar({ className }: SidebarProps) {
               <div className="flex flex-col h-full">
                 <div className="flex items-center p-4 border-b bg-muted/30">
                   <div className="flex items-center gap-2">
-                    <AnimatedLogo showEffects={false} iconSize={5} />
+                    <LogoWithBlink iconSize={5} />
                     <div className="flex flex-col">
                       <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                         PetraPanel
