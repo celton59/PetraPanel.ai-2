@@ -24,9 +24,9 @@ export function Sidebar({ className }: SidebarProps) {
     { icon: Home, label: "Dashboard", path: "/", tooltip: "Panel principal" },
     { icon: Video, label: "Videos", path: "/videos", tooltip: "Gestión de videos" },
     { icon: Languages, label: "Traductor", path: "/traductor", tooltip: "Traductor de videos" },
-    { icon: BarChart, label: "Estadísticas", path: "/estadisticas", tooltip: "Métricas y análisis" },
     ...(isAdmin ? [
-      { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" }, 
+      { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" },
+      { icon: BarChart, label: "Estadísticas", path: "/admin/stats", tooltip: "Métricas y análisis" },
       { icon: Settings, label: "Configuración", path: "/admin/settings", tooltip: "Configuración del sistema" }
     ] : []),
   ];

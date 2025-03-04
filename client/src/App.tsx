@@ -53,10 +53,9 @@ function Router() {
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
       <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
-      <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       
-      {/* Nuevas rutas de administración - solo accesibles para administradores */}
+      {/* Rutas de administración - solo accesibles para administradores */}
       { user.role === 'admin' && (
         <>
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
