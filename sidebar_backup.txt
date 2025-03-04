@@ -101,7 +101,7 @@ export function Sidebar({ className }: SidebarProps) {
             <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               PetraPanel
             </span>
-            <span className="text-[10px] -mt-0.5 text-muted-foreground/80">Video Studio</span>
+            <span className="text-[10px] -mt-0.5 text-muted-foreground/80">Estudio de Video</span>
           </div>
         </Link>
 
@@ -131,7 +131,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <span className="font-bold text-sm bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                         PetraPanel
                       </span>
-                      <span className="text-[10px] -mt-0.5 text-muted-foreground/80">Video Studio</span>
+                      <span className="text-[10px] -mt-0.5 text-muted-foreground/80">Estudio de Video</span>
                     </div>
                   </div>
                 </div>
