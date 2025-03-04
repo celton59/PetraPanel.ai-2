@@ -47,9 +47,14 @@ export function OptimizeContentDetail({
   // Establecer el optimizador automáticamente al cargar
   useEffect(() => {
     if (!video.optimizedBy) {
-      onUpdate({ optimizedBy: user!.id! }, true);
+      try {
+        console.log("Datos de actualización:", { optimizedBy: user!.id! });
+        onUpdate({ optimizedBy: user!.id! }, true);
+      } catch (error) {
+        console.error("Error al actualizar el optimizador:", error);
+      }
     }
-  }, []);
+  }, [video.id]);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -88,7 +93,7 @@ export function OptimizeContentDetail({
   }
 
   return (
-    <ScrollArea className="h-auto max-h-[70vh]">
+    <ScrollArea className="h-auto max-h-[75vh] overflow-y-auto">
       <Card className="border-0 shadow-none p-5">
         <CardHeader className="px-0 sm:px-6">
           <CardTitle>Optimización de Contenido</CardTitle>
@@ -198,8 +203,9 @@ export function OptimizeContentDetail({
                         <Textarea
                           {...form.register("optimizedTitle")}
                           placeholder="Escribe el título optimizado..."
+                          rows={2}
                           className={cn(
-                            "min-h-[60px] pr-9 resize-none",
+                            "min-h-[60px] max-h-[100px] pr-9 resize-none",
                             "bg-white/80 dark:bg-gray-900/60",
                             "border-purple-200 dark:border-purple-800/70",
                             "focus-visible:ring-purple-500/30",
@@ -287,7 +293,8 @@ export function OptimizeContentDetail({
                       <Textarea
                         {...form.register("optimizedDescription")}
                         placeholder="Ingresa la descripción optimizada"
-                        className="min-h-[120px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-purple-200 dark:border-purple-800/70 focus-visible:ring-purple-500/30 focus-visible:border-purple-300 placeholder:text-purple-300/70"
+                        rows={4}
+                        className="min-h-[120px] max-h-[200px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-purple-200 dark:border-purple-800/70 focus-visible:ring-purple-500/30 focus-visible:border-purple-300 placeholder:text-purple-300/70"
                       />
                     </div>
                   </div>
