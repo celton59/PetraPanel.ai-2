@@ -2,7 +2,6 @@ import { Sidebar } from "./Sidebar"
 import { UserMenu } from "./UserMenu"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Breadcrumbs } from "./Breadcrumbs"
 import { useLocation } from "wouter"
 
 interface LayoutProps {
@@ -10,8 +9,6 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [location] = useLocation()
-  
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-background via-background to-background shadow-sm">
@@ -29,13 +26,6 @@ export function Layout({ children }: LayoutProps) {
           
           <UserMenu />
         </div>
-        
-        {/* Breadcrumbs navigation - shows on pages except dashboard */}
-        {location !== "/" && (
-          <div className="px-4 h-10 flex items-center border-t border-border/40">
-            <Breadcrumbs />
-          </div>
-        )}
       </header>
       <main className="flex-1 px-8 py-8">
         {children}
