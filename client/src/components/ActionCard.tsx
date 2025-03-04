@@ -88,8 +88,16 @@ const ActionCard = ({
       )}
       onClick={onClick}
     >
-      {/* Simple top accent */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
+      {/* Top accent with gradient matching the icon color */}
+      <div className={cn(
+        "absolute top-0 left-0 w-full h-1",
+        iconColor === "text-primary" ? "bg-gradient-to-r from-primary/60 to-primary/20" : 
+        iconColor === "text-blue-500" ? "bg-gradient-to-r from-blue-500/60 to-blue-500/20" :
+        iconColor === "text-green-500" ? "bg-gradient-to-r from-green-500/60 to-green-500/20" :
+        iconColor === "text-red-500" ? "bg-gradient-to-r from-red-500/60 to-red-500/20" :
+        iconColor === "text-purple-500" ? "bg-gradient-to-r from-purple-500/60 to-purple-500/20" :
+        "bg-gradient-to-r from-primary/60 to-primary/20"
+      )}></div>
       
       {/* Action card content */}
       <div className="p-5 relative">
