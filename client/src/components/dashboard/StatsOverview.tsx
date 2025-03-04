@@ -75,7 +75,45 @@ export function StatsOverview({
   const mockStatsData = {
     total_videos: 287,
     total_optimizations: 176,
-    total_uploads: 215
+    total_uploads: 215,
+    engagement_rate: 72.4,
+    completion_rate: 86.3,
+    conversion_rate: 42.8,
+    weekly_trend: [
+      { day: 'Lun', views: 156, shares: 34, likes: 89 },
+      { day: 'Mar', views: 142, shares: 29, likes: 76 },
+      { day: 'Mie', views: 164, shares: 32, likes: 95 },
+      { day: 'Jue', views: 198, shares: 45, likes: 112 },
+      { day: 'Vie', views: 234, shares: 56, likes: 142 },
+      { day: 'Sab', views: 187, shares: 41, likes: 97 },
+      { day: 'Dom', views: 163, shares: 36, likes: 84 }
+    ],
+    platforms: [
+      { name: 'YouTube', value: 65, color: '#FF0000' },
+      { name: 'Facebook', value: 15, color: '#4267B2' },
+      { name: 'Instagram', value: 12, color: '#C13584' },
+      { name: 'TikTok', value: 8, color: '#000000' }
+    ],
+    audience: {
+      age: [
+        { group: '18-24', percentage: 22 },
+        { group: '25-34', percentage: 38 },
+        { group: '35-44', percentage: 27 },
+        { group: '45-54', percentage: 8 },
+        { group: '55+', percentage: 5 }
+      ],
+      gender: [
+        { type: 'Masculino', percentage: 58 },
+        { type: 'Femenino', percentage: 42 }
+      ],
+      regions: [
+        { name: 'América Latina', value: 45 },
+        { name: 'Norteamérica', value: 28 },
+        { name: 'Europa', value: 18 },
+        { name: 'Asia', value: 6 },
+        { name: 'Otros', value: 3 }
+      ]
+    }
   };
 
   // Fingimos un breve tiempo de carga para la experiencia de usuario

@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { 
   Download, FileBarChart, FileSpreadsheet, Calendar, 
-  ChevronDown, ChevronUp, Sliders
+  ChevronDown, ChevronUp, Sliders, BarChart, PieChart as PieChartIcon, LineChart,
+  TrendingUp, AreaChart, Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AudienceAnalysis } from "@/components/dashboard/AudienceAnalysis";
+import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export default function StatsPage() {
   const [dateRange, setDateRange] = useState("7d");
@@ -202,7 +206,59 @@ export default function StatsPage() {
           </div>
           
           <TabsContent value="general" className="space-y-8 mt-6">
-            <StatsOverview mode="general" />
+            <div className="space-y-8">
+              <StatsOverview mode="general" />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <AudienceAnalysis />
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card className="p-6 hover:shadow-lg transition-all duration-300 border border-border/50 h-full">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-primary" />
+                        <h3 className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                          Rendimiento de Plataformas
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="h-[300px] flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'YouTube', value: 65, color: '#FF0000' },
+                              { name: 'Facebook', value: 15, color: '#4267B2' },
+                              { name: 'Instagram', value: 12, color: '#C13584' },
+                              { name: 'TikTok', value: 8, color: '#000000' }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={110}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            <Cell fill="#FF0000" />
+                            <Cell fill="#4267B2" />
+                            <Cell fill="#C13584" />
+                            <Cell fill="#222222" />
+                          </Pie>
+                          <Tooltip formatter={(value) => [`${value}%`, 'Porcentaje']} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </motion.div>
+              </div>
+              
+              <PerformanceMetrics />
+            </div>
           </TabsContent>
           
           <TabsContent value="detailed" className="space-y-8 mt-6">
@@ -225,7 +281,10 @@ export default function StatsPage() {
                   Exportar Detalles
                 </Button>
               </div>
-              <StatsOverview mode="detailed" showDetailedCharts={true} />
+              <div className="space-y-8">
+                <StatsOverview mode="detailed" showDetailedCharts={true} />
+                <PerformanceMetrics />
+              </div>
             </Card>
           </TabsContent>
 
