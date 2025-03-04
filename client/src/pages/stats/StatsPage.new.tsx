@@ -1,12 +1,11 @@
-
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { Helmet } from 'react-helmet';
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { 
-  Download, FileBarChart, FileSpreadsheet, Calendar,
-  ChevronDown, ChevronUp, Sliders 
+  Download, FileBarChart, FileSpreadsheet, Calendar, 
+  ChevronDown, ChevronUp, Sliders
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
