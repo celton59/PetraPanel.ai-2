@@ -61,7 +61,6 @@ function Router() {
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
           <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
           <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
-          <Route path="/admin/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
         </>
       )}
       
