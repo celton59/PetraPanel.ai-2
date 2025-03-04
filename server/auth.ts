@@ -134,9 +134,28 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    console.log("Login successful for user:", req.user?.username);
-    res.json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ success: false, message: "Error interno del servidor" });
+      }
+      
+      if (!user) {
+        return res.status(401).json({ success: false, message: info?.message || "Credenciales incorrectas" });
+      }
+      
+      req.login(user, (loginErr: any) => {
+        if (loginErr) {
+          console.error("Session error:", loginErr);
+          return res.status(500).json({ success: false, message: "Error al crear la sesión" });
+        }
+        
+        console.log("Login successful for user:", user.username);
+        // Enviamos código 200 para indicar éxito
+        return res.status(200).json({ success: true, redirectTo: "/" });
+      });
+    })(req, res, next);
   });
 
   // app.post("/api/register", async (req, res) => {
@@ -178,10 +197,16 @@ export function setupAuth(app: Express) {
     req.logout((err) => {
       if (err) {
         console.error("Logout error for user:", username, err);
-        return res.status(500).json({ message: "Error al cerrar sesión" });
+        return res.status(500).json({ success: false, message: "Error al cerrar sesión" });
       }
       console.log("User logged out successfully:", username);
-      res.json({ message: "Sesión cerrada correctamente" });
+      
+      // Enviamos respuesta con indicación de redirección
+      res.status(200).json({ 
+        success: true, 
+        message: "Sesión cerrada correctamente",
+        redirectTo: "/" 
+      });
     });
   });
 

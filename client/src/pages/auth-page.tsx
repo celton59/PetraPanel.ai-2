@@ -38,12 +38,11 @@ export default function AuthPage() {
     },
   });
 
-  // Función de envío del formulario con manejo de estados - versión simplificada
+  // Función de envío del formulario - optimizada para rapidez
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // Intentamos iniciar sesión
-      await fetch('/api/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -51,15 +50,20 @@ export default function AuthPage() {
           password: data.password
         }),
         credentials: 'include',
-      }).then(response => {
-        if (!response.ok) {
-          throw new Error("Credenciales incorrectas");
-        }
-        return response.json();
-      }).then(user => {
-        // Redirección inmediata sin tiempo de espera
-        window.location.replace("/");
       });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || "Credenciales incorrectas");
+      }
+      
+      // Si la respuesta contiene una redirección, la seguimos inmediatamente
+      if (result.redirectTo) {
+        window.location.replace(result.redirectTo);
+      } else {
+        window.location.replace("/");
+      }
     } catch (error: any) {
       setIsLoading(false);
       toast.error("Error de inicio de sesión", {

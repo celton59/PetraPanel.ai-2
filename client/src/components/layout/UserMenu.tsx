@@ -309,13 +309,26 @@ export function UserMenu({ className }: UserMenuProps) {
             <DropdownMenuItem 
               className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
               onClick={async () => {
-                // Enviamos la petición de logout al servidor
-                await fetch('/api/logout', {
-                  method: 'POST',
-                  credentials: 'include',
-                });
-                // Redirección inmediata sin esperas
-                window.location.replace("/");
+                try {
+                  // Enviamos la petición de logout al servidor
+                  const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                  
+                  const result = await response.json();
+                  
+                  // Si hay una URL de redirección en la respuesta, la usamos
+                  if (result.redirectTo) {
+                    window.location.replace(result.redirectTo);
+                  } else {
+                    // De lo contrario, utilizamos la redirección por defecto
+                    window.location.replace("/");
+                  }
+                } catch (error) {
+                  // Si hay algún error, simplemente redirigimos al inicio
+                  window.location.replace("/");
+                }
               }}
             >
               <LogOut className="mr-2 h-4 w-4" />
