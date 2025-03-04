@@ -26,7 +26,6 @@ export function Sidebar({ className }: SidebarProps) {
     { icon: Languages, label: "Traductor", path: "/traductor", tooltip: "Traductor de videos" },
     ...(isAdmin ? [
       { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" },
-      { icon: BarChart, label: "Estadísticas", path: "/admin/stats", tooltip: "Métricas y análisis" },
       { icon: Settings, label: "Configuración", path: "/admin/settings", tooltip: "Configuración del sistema" }
     ] : []),
   ];
