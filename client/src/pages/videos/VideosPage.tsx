@@ -1,6 +1,7 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
+import { UserBadges } from "@/components/video/UserBadges";
 import {
   Eye,
   Trash2,
@@ -215,11 +216,7 @@ export default function VideosPage() {
                 <TableHead className="">Serie</TableHead>
                 <TableHead className="">Título</TableHead>
                 <TableHead className="">Estado</TableHead>
-                <TableHead className="">Creador</TableHead>
-                <TableHead className="">Optimizador</TableHead>
-                <TableHead className="">Revisor Cont.</TableHead>
-                <TableHead className="">Uploader</TableHead>
-                <TableHead className="">Revisor Media</TableHead>
+                <TableHead className="">Colaboradores</TableHead>
                 <TableHead className="">Actualización</TableHead>
                 <TableHead className=" text-right">Acciones</TableHead>
               </TableRow>
@@ -258,29 +255,7 @@ export default function VideosPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {video.creatorName
-                      ? `${video.creatorName} (${video.creatorUsername})`
-                      : video.creatorUsername}
-                  </TableCell>
-                  <TableCell>
-                    {video.optimizerName
-                      ? `${video.optimizerName} (${video.optimizerUsername})`
-                      : video.optimizerUsername}
-                  </TableCell>
-                  <TableCell>
-                    {video.contentReviewerName
-                      ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
-                      : video.contentReviewerUsername}
-                  </TableCell>
-                  <TableCell>
-                    {video.uploaderName
-                      ? `${video.uploaderName} (${video.uploaderUsername})`
-                      : video.uploaderUsername}
-                  </TableCell>
-                  <TableCell>
-                    {video.mediaReviewerName
-                      ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
-                      : video.mediaReviewerUsername}
+                    <UserBadges video={video} compact />
                   </TableCell>
                   <TableCell>
                     {video.updatedAt
@@ -451,33 +426,8 @@ export default function VideosPage() {
                     new Date(video.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                <span>
-                  <strong>Creador: </strong>
-                  {video.creatorName
-                    ? `${video.creatorName} (${video.creatorUsername})`
-                    : video.creatorUsername}
-                </span>
-                <span>
-                  <strong>Optimizador: </strong>
-                  {video.optimizerName
-                    ? `${video.optimizerName} (${video.optimizerUsername})`
-                    : video.optimizerUsername}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                <span>
-                  <strong>Revisor Cont.: </strong>
-                  {video.contentReviewerName
-                    ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
-                    : video.contentReviewerUsername}
-                </span>
-                <span>
-                  <strong>Revisor Media: </strong>
-                  {video.mediaReviewerName
-                    ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
-                    : video.mediaReviewerUsername}
-                </span>
+              <div className="mt-2">
+                <UserBadges video={video} compact />
               </div>
             </div>
           </div>
@@ -527,29 +477,8 @@ export default function VideosPage() {
                   {video.seriesNumber || "Sin serie"}
                 </span>
               </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                <strong>Creador: </strong>
-                {video.creatorName
-                  ? `${video.creatorName} (${video.creatorUsername})`
-                  : video.creatorUsername}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <strong>Optimizador: </strong>
-                {video.optimizerName
-                  ? `${video.optimizerName} (${video.optimizerUsername})`
-                  : video.optimizerUsername}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <strong>Revisor Cont.: </strong>
-                {video.contentReviewerName
-                  ? `${video.contentReviewerName} (${video.contentReviewerUsername})`
-                  : video.contentReviewerUsername}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <strong>Revisor Media: </strong>
-                {video.mediaReviewerName
-                  ? `${video.mediaReviewerName} (${video.mediaReviewerUsername})`
-                  : video.mediaReviewerUsername}
+              <div className="mt-2">
+                <UserBadges video={video} />
               </div>
             </div>
             <div className="flex items-center gap-2">
