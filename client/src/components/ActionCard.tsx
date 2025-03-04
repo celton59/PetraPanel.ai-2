@@ -40,6 +40,19 @@ const Particle = ({ x, y, delay }: { x: number; y: number; delay: number; }) => 
 // Componente que envuelve al ícono y dispara el efecto de partículas al hacer hover
 const IconWithParticles: React.FC<{ Icon: LucideIcon; iconColor: string; }> = ({ Icon, iconColor }) => {
   const [burst, setBurst] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  
+  // Efecto de parpadeo para la cámara
+  React.useEffect(() => {
+    if (isRecording) {
+      const interval = setInterval(() => {
+        setBurst(true);
+        setTimeout(() => setBurst(false), 700);
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isRecording]);
 
   return (
     <motion.div
@@ -49,9 +62,43 @@ const IconWithParticles: React.FC<{ Icon: LucideIcon; iconColor: string; }> = ({
         // Reiniciamos el estado después de la duración de la animación (700ms)
         setTimeout(() => setBurst(false), 700);
       }}
+      onClick={() => {
+        // Alternamos el estado de "grabación"
+        setIsRecording(!isRecording);
+      }}
     >
-      {/* Ícono principal */}
-      <Icon className={cn("w-6 h-6", iconColor)} />
+      {/* Indicador de grabación */}
+      {isRecording && (
+        <motion.div 
+          className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"
+          animate={{
+            opacity: [1, 0.5, 1],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            repeatType: "loop"
+          }}
+        />
+      )}
+      
+      {/* Ícono principal con animación de rotación suave al iniciar "grabación" */}
+      <motion.div
+        animate={isRecording ? {
+          rotateZ: [0, -10, 10, -5, 5, 0],
+          scale: [1, 1.2, 0.9, 1.1, 1]
+        } : {}}
+        transition={{
+          duration: 0.7,
+          type: "spring",
+          stiffness: 260,
+          damping: 20
+        }}
+      >
+        <Icon className={cn("w-5 h-5", iconColor)} />
+      </motion.div>
+      
       {/* Si burst es true, se muestran las partículas */}
       <AnimatePresence>
         {burst &&
@@ -78,6 +125,9 @@ const ActionCard = ({
   className,
   onClick 
 }: ActionCardProps) => {
+  // Determina si este icono debería tener animación especial (para el icono de Video)
+  const isVideoIcon = Icon.name === 'Video';
+
   return (
     <Card 
       className={cn(
@@ -103,11 +153,15 @@ const ActionCard = ({
       <div className="p-5 relative">
         <div className="flex items-start gap-4">
           <div className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center",
+            "w-10 h-10 rounded-lg flex items-center justify-center overflow-visible",
             "transition-all duration-200 group-hover:scale-110",
             iconBgColor
           )}>
-            <Icon className={cn("w-5 h-5", iconColor)} />
+            {isVideoIcon ? (
+              <IconWithParticles Icon={Icon} iconColor={iconColor} />
+            ) : (
+              <Icon className={cn("w-5 h-5", iconColor)} />
+            )}
           </div>
           
           <div>
