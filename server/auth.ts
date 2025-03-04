@@ -78,11 +78,18 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         console.log("Authenticating user:", username);
-        const [user] = await db
+        
+        // Buscar usuarios ignorando mayúsculas/minúsculas
+        const usersResult = await db
           .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1);
+          .from(users);
+          
+        // Filtrar manualmente para encontrar la coincidencia insensible a mayúsculas/minúsculas
+        const user = usersResult.find(u => 
+          u.username.toLowerCase() === username.toLowerCase() ||
+          u.username.charAt(0).toUpperCase() + u.username.slice(1) === username ||
+          u.username.charAt(0).toLowerCase() + u.username.slice(1) === username
+        );
 
         if (!user) {
           return done(null, false, { message: "Incorrect username." });
