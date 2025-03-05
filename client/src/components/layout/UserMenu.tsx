@@ -1,6 +1,6 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Bell, LogOut, MessageSquare, Search, Settings, User } from "lucide-react"
+import { LogOut, MessageSquare, Search, Settings, User } from "lucide-react"
 import { ThemeToggle } from "./ThemeToggle"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -60,57 +60,7 @@ export function UserMenu({ className }: UserMenuProps) {
         <HelpButton />
         
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              {notifications > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="h-5 w-5 p-0 min-w-0 absolute -top-1.5 -right-1.5 flex items-center justify-center"
-                >
-                  {notifications}
-                </Badge>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="max-h-80 overflow-y-auto">
-              {Array(notifications).fill(0).map((_, i) => (
-                <DropdownMenuItem key={i} className="py-3 cursor-pointer">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`} />
-                      <AvatarFallback>PL</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">Nuevo comentario en video</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        El usuario ha dejado un comentario en el video "Cómo configurar una API en Node.js"
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">hace 10 minutos</p>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-              {notifications === 0 && (
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                  No tienes notificaciones
-                </div>
-              )}
-            </div>
-            <DropdownMenuSeparator />
-            <Button 
-              variant="ghost" 
-              className="w-full justify-center text-sm" 
-              onClick={() => setNotifications(0)}
-            >
-              Marcar todas como leídas
-            </Button>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationCenter />
         
         {/* Messages dropdown */}
         <DropdownMenu>
