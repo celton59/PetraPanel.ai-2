@@ -40,7 +40,7 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
       }
       
       await db.update(notifications)
-        .set({ read: true })
+        .set({ isRead: true })
         .where(and(
           eq(notifications.id, notificationId),
           eq(notifications.userId, userId)
@@ -133,6 +133,49 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
     } catch (error) {
       console.error('Error al crear notificación:', error);
       return res.status(500).json({ success: false, message: 'Error al crear notificación' });
+    }
+  });
+
+  // Enviar notificación a todos los usuarios (solo admin)
+  app.post('/api/notifications/role/all', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Solo los administradores pueden enviar notificaciones a todos los usuarios' });
+      }
+      
+      const { title, message, type, actionUrl, actionLabel } = req.body;
+      
+      if (!title || !message) {
+        return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
+      }
+      
+      const notificationsService = getNotificationsService();
+      if (!notificationsService) {
+        return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
+      }
+      
+      // Obtener todos los usuarios
+      const users = await db.query.users.findMany();
+      
+      // Enviar notificación a cada usuario
+      const promises = users.map(user => 
+        notificationsService.createNotification({
+          userId: user.id,
+          title,
+          message,
+          type: type || 'info',
+          actionUrl,
+          actionLabel,
+          createdBy: req.user.id
+        })
+      );
+      
+      await Promise.all(promises);
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Error al enviar notificaciones a todos los usuarios:', error);
+      return res.status(500).json({ success: false, message: 'Error al enviar notificaciones' });
     }
   });
 
