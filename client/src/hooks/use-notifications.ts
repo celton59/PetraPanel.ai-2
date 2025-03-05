@@ -1,5 +1,5 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from 'zustand';
+import { formatNotificationDate } from '@/lib/utils';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
@@ -33,147 +33,232 @@ interface NotificationsState {
   clearAll: () => void;
 }
 
-// Generate a unique ID
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
-};
+export const useNotifications = create<NotificationsState>((set) => ({
+  notifications: [],
+  unreadCount: 0,
+  readLaterCount: 0,
 
-export const useNotifications = create<NotificationsState>()(
-  persist(
-    (set, get) => ({
-      notifications: [],
-      unreadCount: 0,
-      readLaterCount: 0,
-      
-      addNotification: (notification) => {
-        const newNotification: Notification = {
-          ...notification,
-          id: generateId(),
-          createdAt: new Date(),
-          read: false,
-          readLater: false,
-        };
-        
-        set((state) => ({
-          notifications: [newNotification, ...state.notifications],
-          unreadCount: state.unreadCount + 1
-        }));
-        
-        // Auto remove system notifications after 5 seconds
-        if (notification.type === 'system') {
-          setTimeout(() => {
-            get().markAsRead(newNotification.id);
-          }, 5000);
-        }
-      },
-      
-      markAsRead: (id) => {
-        set((state) => {
-          const notifications = state.notifications.map(notification => 
-            notification.id === id ? { ...notification, read: true } : notification
-          );
-          
-          // Count unread
-          const unreadCount = notifications.filter(n => !n.read).length;
-          
-          return { notifications, unreadCount };
-        });
-      },
-      
-      markAllAsRead: () => {
-        set((state) => {
-          const notifications = state.notifications.map(notification => ({
-            ...notification,
-            read: true
-          }));
-          
-          return { 
-            notifications, 
-            unreadCount: 0 
-          };
-        });
-      },
-      
-      toggleReadLater: (id) => {
-        set((state) => {
-          const notifications = state.notifications.map(notification => 
-            notification.id === id 
-              ? { ...notification, readLater: !notification.readLater } 
-              : notification
-          );
-          
-          // Count read later
-          const readLaterCount = notifications.filter(n => n.readLater).length;
-          
-          return { notifications, readLaterCount };
-        });
-      },
-      
-      removeNotification: (id) => {
-        set((state) => {
-          const filteredNotifications = state.notifications.filter(
-            notification => notification.id !== id
-          );
-          
-          // Recalculate counts
-          const unreadCount = filteredNotifications.filter(n => !n.read).length;
-          const readLaterCount = filteredNotifications.filter(n => n.readLater).length;
-          
-          return { 
-            notifications: filteredNotifications,
-            unreadCount,
-            readLaterCount
-          };
-        });
-      },
-      
-      clearAll: () => {
-        set({ notifications: [], unreadCount: 0, readLaterCount: 0 });
-      }
-    }),
-    {
-      name: 'notifications-storage',
-    }
-  )
-);
+  addNotification: (notification) => {
+    set((state) => {
+      const newNotification: Notification = {
+        ...notification,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        read: false,
+        readLater: false,
+      };
 
-// Demo notifications for development
-if (process.env.NODE_ENV === 'development') {
-  // Only add demo notifications if there are none
-  setTimeout(() => {
-    const { notifications, addNotification } = useNotifications.getState();
+      const notifications = [newNotification, ...state.notifications].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      );
+
+      return { 
+        notifications, 
+        unreadCount: notifications.filter((n) => !n.read).length,
+        readLaterCount: notifications.filter((n) => n.readLater).length,
+      };
+    });
+  },
+
+  markAsRead: (id) => {
+    set((state) => {
+      const notifications = state.notifications.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification
+      );
+
+      return { 
+        notifications, 
+        unreadCount: notifications.filter((n) => !n.read).length,
+        readLaterCount: notifications.filter((n) => n.readLater).length,
+      };
+    });
+  },
+
+  markAllAsRead: () => {
+    set((state) => {
+      const notifications = state.notifications.map((notification) => ({
+        ...notification,
+        read: true,
+      }));
+
+      return { 
+        notifications, 
+        unreadCount: 0, 
+        readLaterCount: notifications.filter((n) => n.readLater).length,
+      };
+    });
+  },
+
+  toggleReadLater: (id) => {
+    set((state) => {
+      const notifications = state.notifications.map((notification) =>
+        notification.id === id
+          ? { ...notification, readLater: !notification.readLater }
+          : notification
+      );
+
+      return { 
+        notifications, 
+        unreadCount: notifications.filter((n) => !n.read).length,
+        readLaterCount: notifications.filter((n) => n.readLater).length,
+      };
+    });
+  },
+
+  removeNotification: (id) => {
+    set((state) => {
+      const notifications = state.notifications.filter(
+        (notification) => notification.id !== id
+      );
+
+      return { 
+        notifications, 
+        unreadCount: notifications.filter((n) => !n.read).length,
+        readLaterCount: notifications.filter((n) => n.readLater).length,
+      };
+    });
+  },
+
+  clearAll: () => {
+    set({ notifications: [], unreadCount: 0, readLaterCount: 0 });
+  },
+}));
+
+// Hook para conectarse al WebSocket y recibir notificaciones
+export function useNotificationWebSocket() {
+  const { addNotification } = useNotifications();
+  
+  const connect = (userId: number) => {
+    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/ws/notifications?userId=${userId}`);
     
-    if (notifications.length === 0) {
-      addNotification({
-        title: 'Nuevo video asignado',
-        message: 'Se te ha asignado un nuevo video para optimizar: "Cómo hacer un blog con NextJS"',
-        type: 'info',
-        actionUrl: '/videos',
-        actionLabel: 'Ver video',
-        sender: {
-          id: 1,
-          name: 'Sistema',
-          avatar: '/logo.svg'
+    ws.onopen = () => {
+      console.log('Conexión WebSocket de notificaciones establecida');
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'new_notification':
+            // Convertir notificación del servidor al formato de la tienda
+            addNotification({
+              title: data.data.title,
+              message: data.data.message,
+              type: data.data.type as NotificationType,
+              actionUrl: data.data.actionUrl,
+              actionLabel: data.data.actionLabel,
+              sender: data.data.sender ? {
+                id: data.data.sender.id,
+                name: data.data.sender.fullName || data.data.sender.username,
+                avatar: data.data.sender.avatarUrl
+              } : undefined
+            });
+            break;
+            
+          case 'unread_notifications':
+            // Procesar notificaciones no leídas al conectar
+            data.data.forEach((notification: any) => {
+              addNotification({
+                title: notification.title,
+                message: notification.message,
+                type: notification.type as NotificationType,
+                actionUrl: notification.actionUrl,
+                actionLabel: notification.actionLabel,
+                sender: notification.sender ? {
+                  id: notification.sender.id,
+                  name: notification.sender.fullName || notification.sender.username,
+                  avatar: notification.sender.avatarUrl
+                } : undefined
+              });
+            });
+            break;
+            
+          case 'ping':
+            // Responder al ping del servidor para mantener la conexión
+            ws.send(JSON.stringify({ type: 'pong' }));
+            break;
         }
-      });
+      } catch (error) {
+        console.error('Error al procesar mensaje WebSocket:', error);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('Error en WebSocket de notificaciones:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('Conexión WebSocket de notificaciones cerrada');
       
-      addNotification({
-        title: 'Nueva actualización disponible',
-        message: 'Hay una nueva actualización del sistema disponible. Actualiza para obtener las últimas funciones.',
-        type: 'system',
-        actionLabel: 'Actualizar ahora',
-      });
+      // Reintentar conexión después de un retraso
+      setTimeout(() => {
+        console.log('Reconectando WebSocket de notificaciones...');
+        connect(userId);
+      }, 5000);
+    };
+    
+    return ws;
+  };
+  
+  return { connect };
+}
+
+// Hook para obtener notificaciones desde la API
+export function useNotificationAPI() {
+  const fetchNotifications = async (includeRead = false) => {
+    try {
+      const response = await fetch(`/api/notifications?includeRead=${includeRead}`);
+      if (!response.ok) throw new Error('Error al obtener notificaciones');
       
-      addNotification({
-        title: 'Comentario en tu video',
-        message: 'María ha comentado en tu video "Tutorial de React": "Excelente explicación, muy claro todo!"',
-        type: 'info',
-        sender: {
-          id: 3,
-          name: 'María López',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=maria'
-        }
-      });
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error al cargar notificaciones:', error);
+      return [];
     }
-  }, 1000);
+  };
+  
+  const markAsRead = async (id: number) => {
+    try {
+      const response = await fetch(`/api/notifications/${id}/read`, {
+        method: 'POST',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error al marcar notificación como leída:', error);
+      return false;
+    }
+  };
+  
+  const markAllAsRead = async () => {
+    try {
+      const response = await fetch('/api/notifications/read-all', {
+        method: 'POST',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error al marcar todas las notificaciones como leídas:', error);
+      return false;
+    }
+  };
+  
+  const archiveNotification = async (id: number) => {
+    try {
+      const response = await fetch(`/api/notifications/${id}/archive`, {
+        method: 'POST',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error al archivar notificación:', error);
+      return false;
+    }
+  };
+  
+  return {
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    archiveNotification
+  };
 }

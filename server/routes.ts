@@ -21,6 +21,7 @@ import { setUpVideoRoutes } from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
+import { setupNotificationRoutes } from "./routes/notifications";
 
 const scryptAsync = promisify(scrypt);
 
@@ -174,6 +175,9 @@ export function registerRoutes(app: Express): Server {
 
     // Titulin
     setUpTitulinRoutes(app)
+    
+    // Notificaciones
+    setupNotificationRoutes(app, requireAuth)
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);
