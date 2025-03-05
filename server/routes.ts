@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
 import { 
-  users, videos, actionRates, userActions, payments, projects
+  users, videos, actionRates, userActions, payments, projects, youtube_channels
 } from "@db/schema"; 
 import { eq, count, sql, and, asc, desc, or, isNull, isNotNull, ne } from "drizzle-orm";
 import multer from "multer";
