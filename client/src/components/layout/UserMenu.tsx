@@ -1,6 +1,6 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Bell, Cog, LogOut, MessageSquare, Search, Settings, User } from "lucide-react"
+import { Bell, LogOut, MessageSquare, Search, Settings, User } from "lucide-react"
 import { ThemeToggle } from "./ThemeToggle"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,6 +13,7 @@ import { useState } from "react"
 import { HelpButton } from "@/components/help/HelpButton"
 import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator"
 import { useOnlineUsers } from "@/hooks/use-online-users"
+import { NotificationCenter } from "../notifications/NotificationCenter"
 
 interface UserMenuProps {
   className?: string;
@@ -21,7 +22,6 @@ interface UserMenuProps {
 export function UserMenu({ className }: UserMenuProps) {
   const [, setLocation] = useLocation()
   const { user, logout } = useUser()
-  const [notifications, setNotifications] = useState(3) // Demo notifications count
   
   // Usar el hook real de usuarios en línea
   const { onlineUsers } = useOnlineUsers()
