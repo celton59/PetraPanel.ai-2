@@ -135,20 +135,38 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    console.log("Recibida petición de login:", {
+      contentType: req.headers['content-type'],
+      body: req.body
+    });
+    
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);
-        return res.status(500).json({ success: false, message: "Error interno del servidor" });
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+          return res.status(500).json({ success: false, message: "Error interno del servidor" });
+        } else {
+          return res.redirect('/?error=server_error');
+        }
       }
       
       if (!user) {
-        return res.status(401).json({ success: false, message: info?.message || "Credenciales incorrectas" });
+        console.error("Credenciales incorrectas:", info?.message);
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+          return res.status(401).json({ success: false, message: info?.message || "Credenciales incorrectas" });
+        } else {
+          return res.redirect('/?error=invalid_credentials');
+        }
       }
       
       req.login(user, (loginErr: any) => {
         if (loginErr) {
           console.error("Session error:", loginErr);
-          return res.status(500).json({ success: false, message: "Error al crear la sesión" });
+          if (req.xhr || req.headers.accept?.includes('application/json')) {
+            return res.status(500).json({ success: false, message: "Error al crear la sesión" });
+          } else {
+            return res.redirect('/?error=session_error');
+          }
         }
         
         console.log("Login successful for user:", user.username);
