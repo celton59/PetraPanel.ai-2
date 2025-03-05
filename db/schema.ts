@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -118,6 +118,27 @@ export const youtube_channels = pgTable("youtube_channels", {
   lastVideoFetch: timestamp("last_video_fetch"),
   lastAnalysis: timestamp("last_analysis"),
   active: boolean("active").default(true),
+   createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  });
+// Tabla para configurar las tarifas por acción según el rol
+export const actionRates = pgTable("action_rates", {
+  id: serial("id").primaryKey(),
+  actionType: text("action_type", { 
+    enum: [
+      "content_optimization", 
+      "content_review", 
+      "upload_media", 
+      "media_review", 
+      "video_creation"
+    ] 
+  }).notNull(),
+  roleId: text("role_id", { 
+    enum: ["content_reviewer", "media_reviewer", "optimizer", "youtuber"] 
+  }).notNull(),
+  rate: numeric("rate").notNull(),
+  projectId: integer("project_id").references(() => projects.id),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -148,3 +169,60 @@ export const youtube_videos = pgTable("youtube_videos", {
 
 export type YoutubeVideo = typeof youtube_videos.$inferSelect
 export type InsertYoutubeVideo = typeof youtube_videos.$inferInsert
+// Tabla para registrar las acciones realizadas por los usuarios
+export const userActions = pgTable("user_actions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  actionType: text("action_type", { 
+    enum: [
+      "content_optimization", 
+      "content_review", 
+      "upload_media", 
+      "media_review", 
+      "video_creation"
+    ] 
+  }).notNull(),
+  videoId: integer("video_id")
+    .references(() => videos.id, { onDelete: "cascade" }),
+  projectId: integer("project_id")
+    .references(() => projects.id),
+  rateApplied: numeric("rate_applied"),
+  isPaid: boolean("is_paid").default(false),
+  paymentDate: timestamp("payment_date"),
+  paymentReference: text("payment_reference"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tabla para registrar los pagos a los usuarios
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  amount: numeric("amount").notNull(),
+  paymentDate: timestamp("payment_date").notNull(),
+  reference: text("reference"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ActionRate = typeof actionRates.$inferSelect;
+export type InsertActionRate = typeof actionRates.$inferInsert;
+
+export type UserAction = typeof userActions.$inferSelect;
+export type InsertUserAction = typeof userActions.$inferInsert;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;
+
+export const insertActionRateSchema = createInsertSchema(actionRates);
+export const selectActionRateSchema = createSelectSchema(actionRates);
+
+export const insertUserActionSchema = createInsertSchema(userActions);
+export const selectUserActionSchema = createSelectSchema(userActions);
+
+export const insertPaymentSchema = createInsertSchema(payments);
+export const selectPaymentSchema = createSelectSchema(payments);
+

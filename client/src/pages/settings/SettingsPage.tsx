@@ -4,8 +4,9 @@ import { ProjectsTab } from "./tabs/project/ProjectsTab";
 import { UsersTab } from "./tabs/users/UsersTab";
 import { RolesTab } from "./tabs/roles/RolesTab";
 import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
+import { AccountingTab } from "./tabs/accounting/AccountingTab";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Building2, Users2, Shield, GitBranch, Leaf } from "lucide-react";
+import { Building2, Users2, Shield, GitBranch, Leaf, DollarSign } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import TitulinTab from "./tabs/titulin/TitulinTab";
 
@@ -63,6 +64,13 @@ export default function SettingsPage () {
                   <GitBranch className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Flujo de trabajo</span>
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="accounting" 
+                  className="w-full justify-start px-3 py-2 gap-2.5 data-[state=active]:bg-primary/10 hover:bg-muted/80 transition-colors rounded-md"
+                >
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Contabilidad</span>
+                </TabsTrigger>
               </TabsList>
             </ScrollArea>
           </Card>
@@ -87,6 +95,10 @@ export default function SettingsPage () {
 
           <TabsContent value="workflow" className="space-y-4 mt-2 md:mt-0">
             <VideoFlowTab />
+          </TabsContent>
+
+          <TabsContent value="accounting" className="space-y-4 mt-2 md:mt-0">
+            <AccountingTab />
           </TabsContent>
         </div>
       </Tabs>

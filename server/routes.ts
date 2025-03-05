@@ -2,8 +2,10 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
-import { users, videos } from "@db/schema"; 
-import { eq, count, sql } from "drizzle-orm";
+import { 
+  users, videos, actionRates, userActions, payments, projects
+} from "@db/schema"; 
+import { eq, count, sql, and, asc, desc, or, isNull, isNotNull, ne } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import sharp from "sharp";
@@ -13,6 +15,7 @@ import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
+import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
@@ -473,6 +476,411 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
+    // Rutas para el sistema de contabilidad
+    
+    // Obtener todas las tarifas por acción
+    app.get("/api/accounting/rates", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const rates = await db
+          .select()
+          .from(actionRates)
+          .orderBy(asc(actionRates.actionType), asc(actionRates.roleId));
+
+        res.json({
+          success: true,
+          data: rates
+        });
+      } catch (error) {
+        console.error("Error fetching action rates:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener las tarifas"
+        });
+      }
+    });
+
+    // Crear/Actualizar tarifa
+    app.post("/api/accounting/rates", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para realizar esta acción"
+          });
+        }
+
+        const { actionType, roleId, rate, projectId } = req.body;
+
+        // Validar datos
+        if (!actionType || !roleId || rate === undefined) {
+          return res.status(400).json({
+            success: false,
+            message: "Los campos actionType, roleId y rate son obligatorios"
+          });
+        }
+
+        // Verificar si ya existe una tarifa para esta acción y rol
+        const existingRate = await db
+          .select()
+          .from(actionRates)
+          .where(
+            and(
+              eq(actionRates.actionType, actionType),
+              eq(actionRates.roleId, roleId),
+              projectId ? eq(actionRates.projectId, projectId) : isNull(actionRates.projectId)
+            )
+          )
+          .limit(1);
+
+        let result;
+        if (existingRate.length > 0) {
+          // Actualizar tarifa existente
+          result = await db
+            .update(actionRates)
+            .set({
+              rate,
+              updatedAt: new Date()
+            })
+            .where(eq(actionRates.id, existingRate[0].id))
+            .returning();
+        } else {
+          // Crear nueva tarifa
+          result = await db
+            .insert(actionRates)
+            .values({
+              actionType,
+              roleId,
+              rate,
+              projectId: projectId || null,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            })
+            .returning();
+        }
+
+        res.json({
+          success: true,
+          data: result[0],
+          message: existingRate.length > 0 ? "Tarifa actualizada correctamente" : "Tarifa creada correctamente"
+        });
+      } catch (error) {
+        console.error("Error creating/updating action rate:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al crear/actualizar la tarifa"
+        });
+      }
+    });
+
+    // Eliminar tarifa
+    app.delete("/api/accounting/rates/:id", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para realizar esta acción"
+          });
+        }
+
+        const rateId = parseInt(req.params.id);
+
+        await db
+          .delete(actionRates)
+          .where(eq(actionRates.id, rateId));
+
+        res.json({
+          success: true,
+          message: "Tarifa eliminada correctamente"
+        });
+      } catch (error) {
+        console.error("Error deleting action rate:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al eliminar la tarifa"
+        });
+      }
+    });
+
+    // Registrar acción
+    app.post("/api/accounting/actions", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const { userId, actionType, videoId, projectId } = req.body;
+
+        // Validar datos
+        if (!userId || !actionType) {
+          return res.status(400).json({
+            success: false,
+            message: "Los campos userId y actionType son obligatorios"
+          });
+        }
+
+        // Obtener información del usuario
+        const userInfo = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        if (!userInfo.length) {
+          return res.status(404).json({
+            success: false,
+            message: "Usuario no encontrado"
+          });
+        }
+
+        // Obtener tarifa aplicable
+        const rate = await db
+          .select()
+          .from(actionRates)
+          .where(
+            and(
+              eq(actionRates.actionType, actionType),
+              eq(actionRates.roleId, userInfo[0].role),
+              projectId ? eq(actionRates.projectId, projectId) : isNull(actionRates.projectId),
+              eq(actionRates.isActive, true)
+            )
+          )
+          .limit(1);
+
+        // Registrar la acción
+        const action = await db
+          .insert(userActions)
+          .values({
+            userId,
+            actionType,
+            videoId: videoId || null,
+            projectId: projectId || null,
+            rateApplied: rate.length > 0 ? rate[0].rate : null,
+            isPaid: false,
+            createdAt: new Date()
+          })
+          .returning();
+
+        res.json({
+          success: true,
+          data: action[0],
+          message: "Acción registrada correctamente"
+        });
+      } catch (error) {
+        console.error("Error registering action:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al registrar la acción"
+        });
+      }
+    });
+
+    // Obtener acciones pendientes de pago
+    app.get("/api/accounting/pending-payments", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const pendingActions = await db
+          .select({
+            userId: userActions.userId,
+            username: users.username,
+            fullName: users.fullName,
+            totalAmount: sql<string>`SUM(${userActions.rateApplied})`,
+            actionsCount: count()
+          })
+          .from(userActions)
+          .innerJoin(users, eq(users.id, userActions.userId))
+          .where(
+            and(
+              eq(userActions.isPaid, false),
+              isNotNull(userActions.rateApplied)
+            )
+          )
+          .groupBy(userActions.userId, users.username, users.fullName);
+
+        res.json({
+          success: true,
+          data: pendingActions
+        });
+      } catch (error) {
+        console.error("Error fetching pending payments:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener pagos pendientes"
+        });
+      }
+    });
+
+    // Obtener detalle de acciones por usuario
+    app.get("/api/accounting/user-actions/:userId", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador o el propio usuario
+        if (req.user?.role !== "admin" && req.user?.id !== parseInt(req.params.userId)) {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const userId = parseInt(req.params.userId);
+        const { paid } = req.query;
+
+        let query = db
+          .select({
+            id: userActions.id,
+            actionType: userActions.actionType,
+            videoId: userActions.videoId,
+            projectId: userActions.projectId,
+            projectName: projects.name,
+            rate: userActions.rateApplied,
+            isPaid: userActions.isPaid,
+            createdAt: userActions.createdAt,
+            paymentDate: userActions.paymentDate,
+            paymentReference: userActions.paymentReference
+          })
+          .from(userActions)
+          .leftJoin(projects, eq(projects.id, userActions.projectId))
+          .where(eq(userActions.userId, userId));
+
+        // Filtrar por estado de pago si se especifica
+        if (paid !== undefined) {
+          query = query.where(eq(userActions.isPaid, paid === 'true'));
+        }
+
+        // Ordenar por fecha (más reciente primero)
+        query = query.orderBy(desc(userActions.createdAt));
+
+        const actions = await query;
+
+        res.json({
+          success: true,
+          data: actions
+        });
+      } catch (error) {
+        console.error("Error fetching user actions:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener acciones del usuario"
+        });
+      }
+    });
+
+    // Registrar pago
+    app.post("/api/accounting/payments", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para realizar esta acción"
+          });
+        }
+
+        const { userId, amount, reference, notes, actionIds } = req.body;
+
+        if (!userId || !amount || !actionIds || !Array.isArray(actionIds)) {
+          return res.status(400).json({
+            success: false,
+            message: "Los campos userId, amount y actionIds son obligatorios"
+          });
+        }
+
+        // Registrar el pago
+        const payment = await db
+          .insert(payments)
+          .values({
+            userId,
+            amount,
+            paymentDate: new Date(),
+            reference: reference || null,
+            notes: notes || null,
+            createdAt: new Date()
+          })
+          .returning();
+
+        // Actualizar acciones como pagadas
+        if (actionIds && actionIds.length > 0) {
+          await db
+            .update(userActions)
+            .set({
+              isPaid: true,
+              paymentDate: new Date(),
+              paymentReference: payment[0].id.toString()
+            })
+            .where(
+              and(
+                eq(userActions.userId, userId),
+                eq(userActions.isPaid, false),
+                sql`${userActions.id} = ANY(ARRAY[${actionIds.join(',')}]::int[])`
+              )
+            );
+        }
+
+        res.json({
+          success: true,
+          data: payment[0],
+          message: "Pago registrado correctamente"
+        });
+      } catch (error) {
+        console.error("Error registering payment:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al registrar el pago"
+        });
+      }
+    });
+
+    // Historial de pagos
+    app.get("/api/accounting/payments-history", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const paymentsHistory = await db
+          .select({
+            id: payments.id,
+            userId: payments.userId,
+            username: users.username,
+            fullName: users.fullName,
+            amount: payments.amount,
+            paymentDate: payments.paymentDate,
+            reference: payments.reference,
+            notes: payments.notes
+          })
+          .from(payments)
+          .innerJoin(users, eq(users.id, payments.userId))
+          .orderBy(desc(payments.paymentDate));
+
+        res.json({
+          success: true,
+          data: paymentsHistory
+        });
+      } catch (error) {
+        console.error("Error fetching payments history:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener historial de pagos"
+        });
+      }
+    });
+    
     app.get("/api/stats/user/:userId", requireAuth, async (req: Request, res: Response) => {
       try {
         const stats = await StatsService.getUserStats(parseInt(req.params.userId));
@@ -485,6 +893,36 @@ export function registerRoutes(app: Express): Server {
         res.status(500).json({
           success: false,
           message: "Error al obtener estadísticas del usuario"
+        });
+      }
+    });
+
+    // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
+    app.get("/api/online-users", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const onlineUsersService = getOnlineUsersService();
+        if (!onlineUsersService) {
+          return res.status(503).json({
+            success: false,
+            message: "El servicio de usuarios en línea no está disponible"
+          });
+        }
+
+        // Registra la actividad del usuario actual mediante REST
+        if (req.user) {
+          onlineUsersService.registerUserActivity(req.user);
+        }
+
+        const activeUsers = onlineUsersService.getActiveUsers();
+        res.json({
+          success: true,
+          data: activeUsers
+        });
+      } catch (error) {
+        console.error("Error fetching online users:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener usuarios en línea"
         });
       }
     });

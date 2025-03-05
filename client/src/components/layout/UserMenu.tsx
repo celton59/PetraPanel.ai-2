@@ -9,8 +9,10 @@ import { useUser } from "@/hooks/use-user"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { HelpButton } from "@/components/help/HelpButton"
+import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator"
+import { useOnlineUsers } from "@/hooks/use-online-users"
 
 interface UserMenuProps {
   className?: string;
@@ -21,16 +23,8 @@ export function UserMenu({ className }: UserMenuProps) {
   const { user, logout } = useUser()
   const [notifications, setNotifications] = useState(3) // Demo notifications count
   
-  // Simulate online status - just for demo
-  const [isOnline, setIsOnline] = useState(true)
-  
-  // Demo effect - pulse animation for the online indicator
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsOnline(prev => !prev)
-    }, 6000)
-    return () => clearInterval(interval)
-  }, [])
+  // Usar el hook real de usuarios en línea
+  const { onlineUsers } = useOnlineUsers()
 
   if (!user) {
     return (
@@ -58,6 +52,9 @@ export function UserMenu({ className }: UserMenuProps) {
         >
           <Search className="h-5 w-5 text-muted-foreground" />
         </Button>
+        
+        {/* Indicador de usuarios en línea */}
+        <OnlineUsersIndicator />
         
         {/* Help button */}
         <HelpButton />
@@ -248,8 +245,8 @@ export function UserMenu({ className }: UserMenuProps) {
                 {/* Online status indicator */}
                 <span className={cn(
                   "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background",
-                  isOnline ? "bg-green-500" : "bg-yellow-500",
-                  isOnline && "animate-pulse"
+                  onlineUsers.some(u => u.userId === user.id) ? "bg-green-500" : "bg-gray-400",
+                  onlineUsers.some(u => u.userId === user.id) && "animate-pulse"
                 )} />
               </div>
               
@@ -278,7 +275,9 @@ export function UserMenu({ className }: UserMenuProps) {
                 <p className="text-xs mt-1 text-muted-foreground">
                   <span className="capitalize">{user.role}</span>
                   {" · "}
-                  <span className="text-green-500">En línea</span>
+                  <span className={onlineUsers.some(u => u.userId === user.id) ? "text-green-500" : "text-gray-400"}>
+                    {onlineUsers.some(u => u.userId === user.id) ? "En línea" : "Desconectado"}
+                  </span>
                 </p>
                 <p className="text-xs text-muted-foreground/70 font-medium">{user.email}</p>
               </div>

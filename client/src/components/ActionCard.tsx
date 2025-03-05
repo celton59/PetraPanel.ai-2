@@ -116,7 +116,7 @@ const IconWithParticles: React.FC<{ Icon: LucideIcon; iconColor: string; }> = ({
   );
 };
 
-const ActionCard = ({ 
+export const ActionCard = ({ 
   icon: Icon, 
   title, 
   description, 
@@ -178,4 +178,5 @@ const ActionCard = ({
   );
 };
 
+// Mantener también la exportación por defecto para compatibilidad
 export default ActionCard;

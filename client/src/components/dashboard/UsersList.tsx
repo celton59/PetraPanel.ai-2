@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   UserCheck, Upload, Video, User, Users, 
   Search, Loader2, ShieldCheck, Pencil, Shield,
-  SquareUser
+  SquareUser, Wifi, WifiOff
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { UserCard } from "./users/UserCard";
@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsers } from "@/hooks/useUsers";
+import { useOnlineUsers } from "@/hooks/use-online-users";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Profile {
   id: string;
@@ -30,11 +32,14 @@ interface Profile {
 
 export const UsersList = () => {
   const { users, isLoading } = useUsers();
+  const { onlineUsers: onlineUsersData, isConnected, usingFallback } = useOnlineUsers();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [detailOpen, setDetailOpen] = useState(false);
-  const [onlineUsers] = useState<Set<string>>(new Set(["1", "3"])); 
+  
+  // Crear un conjunto de IDs de usuarios en línea para búsqueda rápida
+  const onlineUserIds = new Set(onlineUsersData.map(user => user.userId.toString()));
 
   // Filtrar usuarios por rol y búsqueda
   const filteredUsers = users?.filter(user =>
@@ -122,15 +127,28 @@ export const UsersList = () => {
         </CardTitle>
         
         <div className="flex items-center gap-2">
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="bg-primary/10 rounded-full p-1.5"
-          >
-            <User className="h-4 w-4 text-primary" />
-          </motion.div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className={`rounded-full p-1.5 ${isConnected ? 'bg-green-500/20' : 'bg-amber-500/20'}`}
+                >
+                  {isConnected ? 
+                    <Wifi className={`h-4 w-4 ${usingFallback ? 'text-amber-500' : 'text-green-500'}`} /> : 
+                    <WifiOff className="h-4 w-4 text-gray-500" />
+                  }
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Estado de conexión: {isConnected ? (usingFallback ? 'Fallback REST' : 'WebSocket') : 'Desconectado'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <Badge variant="outline" className="font-medium">
-            {users?.length || 0} miembros
+            {users?.length || 0} miembros / {onlineUsersData.length} en línea
           </Badge>
         </div>
       </CardHeader>
@@ -187,7 +205,12 @@ export const UsersList = () => {
                           : user.username.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 h-2.5 w-2.5 rounded-full border-2 border-background"></div>
+                    {/* Indicador de estado en línea */}
+                    {onlineUserIds.has(user.id.toString()) ? (
+                      <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 h-2.5 w-2.5 rounded-full border-2 border-background"></div>
+                    ) : (
+                      <div className="absolute -bottom-0.5 -right-0.5 bg-gray-400/50 h-2.5 w-2.5 rounded-full border-2 border-background"></div>
+                    )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -213,10 +236,21 @@ export const UsersList = () => {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1 mt-2">
-                      <div className="bg-green-500 h-1.5 w-1.5 rounded-full"></div>
-                      <p className="text-xs text-muted-foreground">
-                        En línea
-                      </p>
+                      {onlineUserIds.has(user.id.toString()) ? (
+                        <>
+                          <div className="bg-green-500 h-1.5 w-1.5 rounded-full"></div>
+                          <p className="text-xs text-muted-foreground">
+                            En línea
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-gray-400/50 h-1.5 w-1.5 rounded-full"></div>
+                          <p className="text-xs text-muted-foreground">
+                            Desconectado
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -248,7 +282,7 @@ export const UsersList = () => {
           user={selectedUser} 
           isOpen={detailOpen} 
           onClose={() => setDetailOpen(false)} 
-          isOnline={true}
+          isOnline={selectedUser ? onlineUserIds.has(selectedUser.id) : false}
         />
       </CardContent>
     </Card>

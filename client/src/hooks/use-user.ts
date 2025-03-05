@@ -71,42 +71,82 @@ export function useUser() {
   const { data: user, error, isLoading, refetch } = useQuery({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    staleTime: 0,
-    retry: 1,
+    staleTime: 60000,         // 1 minuto antes de considerar los datos obsoletos
+    refetchOnWindowFocus: false, // No recargar al cambiar de pestaña
+    retry: 1                  // Solo intentar una vez si falla
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string; }) => {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-        credentials: 'include',
-      });
+    mutationFn: async (userData: { username: string; password: string; rememberMe?: boolean }) => {
+      console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
+      
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData),
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text);
+        const contentType = response.headers.get('content-type');
+        let data;
+        
+        // Parsear según tipo de contenido
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          data = { success: response.ok, message: text };
+        }
+        
+        if (!response.ok) {
+          throw new Error(data.message || "Error en inicio de sesión");
+        }
+        
+        return data;
+      } catch (error: any) {
+        console.error("Error en inicio de sesión:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries()
-      queryClient.setQueryData(['/api/user'], data);
+      // Si la respuesta contiene usuario, usarlo directamente
+      if (data.user) {
+        queryClient.setQueryData(['/api/user'], data.user);
+      } else {
+        // Si no, actualizar con una sola consulta específica
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      }
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const result = await handleRequest('/api/logout', 'POST');
-      if (!result.ok) {
-        throw new Error(result.message);
+      console.log("Iniciando cierre de sesión");
+      
+      try {
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          throw new Error("Error al cerrar sesión");
+        }
+        
+        return { success: true };
+      } catch (error: any) {
+        console.error("Error en logout:", error);
+        throw error;
       }
-      return result;
     },
     onSuccess: () => {
+      console.log("Sesión cerrada correctamente");
       queryClient.setQueryData(['/api/user'], null);
+      
+      // Redirección manual para evitar problemas de cache
+      window.location.href = "/";
     },
   });
 
