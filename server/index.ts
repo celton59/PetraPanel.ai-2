@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import path from "path";
 import fs from "fs";
+import { setupOnlineUsersService } from "./services/online-users";
 
 const app = express();
 app.use(express.json());
@@ -104,6 +105,10 @@ app.use((req, res, next) => {
 
     // Registrar rutas y obtener el servidor HTTP
     const server = registerRoutes(app);
+    
+    // Inicializar servicio de usuarios en línea
+    const onlineUsersService = setupOnlineUsersService(server);
+    console.log("Online users service initialized");
 
     // Middleware de manejo de errores
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
