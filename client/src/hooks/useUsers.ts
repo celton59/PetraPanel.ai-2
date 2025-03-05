@@ -53,7 +53,8 @@ export function useUsers(): {
         body: JSON.stringify(user),
       });
       if (!res.ok) {
-        throw new Error("Error al crear el usuario");
+        const body = await res.json()
+        throw new Error(body.message ?? "Error al crear el usuario");
       }
     },
     onSuccess: () => {

@@ -1,9 +1,19 @@
 import { google } from 'googleapis';
-import { youtube_channels, youtube_videos, YoutubeVideo } from '@db/schema';
-import { eq, desc, sql, inArray } from 'drizzle-orm';
+import { youtube_channels, youtube_videos, YoutubeVideo, InsertYoutubeVideo } from '@db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from "@db";
 
 const youtube = google.youtube('v3');
+
+export interface ChannelResult {
+  channelId?: string | null
+  name?: string | null
+  description?: string | null
+  thumbnailUrl?: string | null
+  subscriberCount?: number | null
+  videoCount?: number | null
+  uploadsPlaylistId?: string
+}
 
 export class YouTubeService {
   private apiKey: string;
@@ -42,7 +52,7 @@ export class YouTubeService {
     return { type: 'username', value: parts[parts.length - 1] };
   }
 
-  async getChannelInfo(channelUrl: string) {
+  async getChannelInfo(channelUrl: string): Promise<ChannelResult> {
     try {
       const { type, value } = this.extractChannelIdentifier(channelUrl);
       console.log('Processing channel identifier:', { type, value });
@@ -96,7 +106,7 @@ export class YouTubeService {
     }
   }
 
-  async getChannelVideos(channelId: string) {
+  async getChannelVideos(channelId: string): Promise<InsertYoutubeVideo[]> {
     try {
       console.log(`Fetching videos for channel ${channelId}`)
 
@@ -134,14 +144,13 @@ export class YouTubeService {
       }
 
       // Create efficient lookup maps for video IDs
-      const existingVideoIds = new Set(existingVideos.map(v => v.videoId));
       const recentlyUpdatedIds = new Set(
         existingVideos
           .filter(v => v.updatedAt && (Date.now() - v.updatedAt.getTime() < 24 * 60 * 60 * 1000))
           .map(v => v.videoId)
       );
 
-      const allVideos: YoutubeVideo[] = [];
+      let allVideos: InsertYoutubeVideo[] = [];
       
       let nextPageToken: string | undefined = undefined;
       let pageCounter = 0;
@@ -166,7 +175,6 @@ export class YouTubeService {
         // Filter out videos that were recently updated
         const videoIds = playlistResponse.data.items
           .map(item => item.contentDetails?.videoId)
-          .filter(Boolean)
           .filter(id => !recentlyUpdatedIds.has(id!)) as string[];
 
         console.debug(`Filtered ${videoIds.length} video IDs from playlist page ${pageCounter}`);
@@ -200,7 +208,7 @@ export class YouTubeService {
               tags: video.snippet?.tags || [],
             })) || [];
 
-            allVideos = [...allVideos, ...batchVideos.map<YoutubeVideo>(bv => {
+            allVideos = [...allVideos, ...batchVideos.map<InsertYoutubeVideo>(bv => {
               return {
                 videoId: bv.videoId,
                 channelId: bv.channelId,
@@ -220,7 +228,6 @@ export class YouTubeService {
                 sentToOptimizeAt: null,
                 sentToOptimizeReason: null,
                 sentToOptimizeProjectId: null,
-                id: 
               }
             })]
           }
@@ -239,14 +246,88 @@ export class YouTubeService {
     }
   }
 
+  async upsertYoutubeVideos(videos: InsertYoutubeVideo[]) {
+
+    if (!videos.length) return 0;
+
+    try {
+      const startTime = performance.now();
+      let totalInserted = 0;
+
+      // Get all existing video IDs to determine insert vs update
+      // Using a Set for O(1) lookups
+      const existingVideoIds = new Set<string>();
+      const existingVideos = await db
+        .select({ videoId: youtube_videos.videoId })
+        .from(youtube_videos)
+        .where(inArray(
+          youtube_videos.videoId, 
+          videos.map(v => v.videoId)
+        ));
+
+      existingVideos.forEach(v => existingVideoIds.add(v.videoId));
+
+      // Separate videos into ones to insert and ones to update
+      const videosToInsert = videos.filter(v => !existingVideoIds.has(v.videoId));
+      const videosToUpdate = videos.filter(v => existingVideoIds.has(v.videoId));
+
+      console.debug(`Processing ${videosToInsert.length} new videos and ${videosToUpdate.length} updates`);
+
+      // Batch insert new videos
+      if (videosToInsert.length > 0) {
+        for (let i = 0; i < videosToInsert.length; i += this.BATCH_SIZE) {
+          const batch = videosToInsert.slice(i, i + this.BATCH_SIZE);
+
+          await db.transaction(async (tx) => {
+            await tx.insert(youtube_videos)
+              .values(batch.map(video => ({
+                ...video,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })));
+          });
+
+          totalInserted += batch.length;
+        }
+      }
+
+      // Batch update existing videos with fresh data
+      if (videosToUpdate.length > 0) {
+        for (let i = 0; i < videosToUpdate.length; i += this.BATCH_SIZE) {
+          const batch = videosToUpdate.slice(i, i + this.BATCH_SIZE);
+
+          for (const video of batch) {
+            await db
+              .update(youtube_videos)
+              .set({
+                ...video,
+                updatedAt: new Date(),
+              })
+              .where(eq(youtube_videos.videoId, video.videoId));
+          }
+        }
+      }
+
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+
+      console.debug(`Completed batch upsert of ${videos.length} YouTube videos in ${totalTime.toFixed(2)}ms`);
+
+      return totalInserted;
+    } catch (error) {
+      console.error('Error in upsertYouTubeVideos', error);
+      throw error;
+    }
+  }
+
   async updateChannelVideos(channelId: string) {
     try {
       const videos = await this.getChannelVideos(channelId);
-      this.logger.info(`Fetched ${videos.length} videos for batch update for channel ${channelId}`);
+      console.info(`Fetched ${videos.length} videos for batch update for channel ${channelId}`);
 
       // No videos to process
       if (videos.length === 0) {
-        this.logger.info(`No videos to update for channel ${channelId}`);
+        console.info(`No videos to update for channel ${channelId}`);
 
         // Still update the channel's last fetch time
         const now = new Date();
@@ -264,14 +345,14 @@ export class YouTubeService {
       // Use the optimized DbUtils function for batch upsert
       const startTime = Date.now();
       try {
-        const successCount = await DbUtils.upsertYouTubeVideos(videos);
+        const successCount = await this.upsertYoutubeVideos(videos);
 
         const queryTime = Date.now() - startTime;
         if (queryTime > 500) {
-          this.logger.debug(`Slow batch operation detected: ${queryTime}ms for ${videos.length} videos`);
+          console.debug(`Slow batch operation detected: ${queryTime}ms for ${videos.length} videos`);
         }
 
-        this.logger.info(`Successfully processed ${successCount} videos for channel ${channelId}`);
+        console.info(`Successfully processed ${successCount} videos for channel ${channelId}`);
 
         // Update channel's last fetch time
         const now = new Date();
@@ -286,11 +367,11 @@ export class YouTubeService {
         return { total: videos.length, success: successCount, errors: 0 };
       } catch (error) {
         const queryTime = Date.now() - startTime;
-        this.logger.error(`Failed to process videos for channel ${channelId} after ${queryTime}ms: ${error}`);
+        console.error(`Failed to process videos for channel ${channelId} after ${queryTime}ms: ${error}`);
         return { total: videos.length, success: 0, errors: videos.length };
       }
     } catch (error) {
-      this.logger.error(`Error updating channel videos for ${channelId}: ${error}`);
+      console.error(`Error updating channel videos for ${channelId}: ${error}`);
       throw new Error('Error al actualizar videos del canal');
     }
   }

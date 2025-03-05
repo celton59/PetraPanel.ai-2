@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -21,23 +19,6 @@ import {
 import { ApiUser, useUsers } from "@/hooks/useUsers";
 import { User } from "@db/schema";
 
-const userFormSchema = z.object({
-  full_name: z.string().min(1, "El nombre es requerido").optional(),
-  username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
-  email: z.string().email("Email inválido"),
-  phone: z.string()
-    .transform(val => val === "" ? undefined : val)
-    .refine(
-      val => !val || val.replace(/\D/g, '').length >= 9, 
-      "El teléfono debe tener al menos 9 dígitos"
-    )
-    .optional(),
-  bio: z.string().optional(),
-  role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer" ] as const).optional(),
-  password: z.string().optional(),
-});
-
-export type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserSettingsFormProps {
   user: ApiUser | undefined;
@@ -50,27 +31,27 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [formDataToSubmit, setFormDataToSubmit] = useState<UserFormData | null>(null);
+  const [formDataToSubmit, setFormDataToSubmit] = useState<Partial<User> | null>(null);
   const [selectedProjects, setSelectedProjects] = useState<number[]>(
     Array.isArray(user?.projectAccess)
       ? user.projectAccess.map((p) => p.projectId)
       : []
   );
 
-  const form = useForm<UserFormData>({
-    resolver: zodResolver(userFormSchema),
+  const form = useForm<Partial<User>>({
     defaultValues: {
-      full_name: user?.fullName ? user.fullName : undefined,
+      fullName: user?.fullName ? user.fullName : undefined,
       username: user?.username,
       email: user?.email ?? '',
       phone: user?.phone ? user.phone : undefined,
       bio: user?.bio ? user.bio : undefined,
       role: user?.role ?? undefined,
       password: "",
+      
     },
   });
 
-  const handleSubmit = async (data: UserFormData) => {
+  const handleSubmit = async (data: Partial<User>) => {
     setFormDataToSubmit(data);
     setShowConfirmDialog(true);
   };
@@ -88,7 +69,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
 
     try {
       const userData: Partial<User> & { projectIds: number[] } = {
-        fullName: formDataToSubmit.full_name,
+        fullName: formDataToSubmit.fullName,
         username: formDataToSubmit.username,
         email: formDataToSubmit.email,
         phone: formDataToSubmit.phone,
@@ -140,7 +121,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                 formData={{
                   role: user?.role,
                   password: "",
-                  full_name: form.watch("full_name"),
+                  full_name: form.watch("fullName"),
                   username: form.watch("username"),
                   email: form.watch("email"),
                   phone: form.watch("phone") || "",
@@ -148,7 +129,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {
-                    form.setValue(key as keyof UserFormData, value as string);
+                    form.setValue(key as keyof Partial<User>, value as string);
                   });
                   form.trigger();
                 }}
@@ -163,7 +144,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                 formData={{
                   role: user?.role,
                   password: "",
-                  full_name: form.watch("full_name"),
+                  full_name: form.watch("fullName"),
                   username: form.watch("username"),
                   email: form.watch("email"),
                   phone: form.watch("phone") || "",
@@ -171,7 +152,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {
-                    form.setValue(key as keyof UserFormData, value as string);
+                    form.setValue(key as keyof Partial<User>, value as string);
                   });
                   form.trigger();
                 }}
@@ -188,7 +169,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || !form.formState.isValid}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>

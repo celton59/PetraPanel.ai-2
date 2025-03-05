@@ -8,7 +8,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ProjectSelector } from "./ProjectSelector";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,6 +36,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { ProjectSelector } from "@/components/project/ProjectSelector";
 
 const videoSchema = z.object({
   title: z

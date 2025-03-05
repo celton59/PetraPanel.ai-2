@@ -9,26 +9,26 @@ import { promisify } from "util";
 const scryptAsync = promisify(scrypt);
 
 const createUserSchema = z.object({
-  username: z.string().min(3).max(30),
-  email: z.string().email(),
-  password: z.string().min(6).max(30),
-  role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"]),
-  fullName: z.string().min(3).max(30),
-  phone: z.string().min(9).optional(),
-  bio: z.string().min(3).max(30).optional(),
-  projectIds: z.array(z.number()).min(1),
+  username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).max(30, { message: "El nombre de usuario debe tener como máximo 30 caracteres" }),
+  email: z.string().email({ message: "Dirección de correo electrónico inválida" }),
+  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }).max(30, { message: "La contraseña debe tener como máximo 30 caracteres" }),
+  role: z.enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"], { message: "El rol debe ser uno de los valores permitidos" }),
+  fullName: z.string({ message: 'Nombre completo es obligatorio' }).min(3, { message: "El nombre completo debe tener al menos 3 caracteres" }).max(30, { message: "El nombre completo debe tener como máximo 30 caracteres" }),
+  phone: z.string().min(9, { message: "El número de teléfono debe tener al menos 9 caracteres" }).optional(),
+  bio: z.string().min(3, { message: "La biografía debe tener al menos 3 caracteres" }).max(30, { message: "La biografía debe tener como máximo 30 caracteres" }).optional(),
+  projectIds: z.array(z.number()).min(1, { message: "Debe tener al menos un proyecto asociado" }),
 });
 
 const updateUserSchema = z.object({
-  username: z.string().min(3).max(30).optional(),
-  password: z.string().min(6).max(30).optional(),
-  fullName: z.string().min(3).max(30).optional(),
-  phone: z.string().min(9).optional(),
-  bio: z.string().min(3).max(30).optional(),
-  projectIds: z.array(z.number()).min(1).optional(),
-  email: z.string().email().optional(),
+  username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).max(30, { message: "El nombre de usuario debe tener como máximo 30 caracteres" }).optional(),
+  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }).max(30, { message: "La contraseña debe tener como máximo 30 caracteres" }).optional(),
+  fullName: z.string().min(3, { message: "El nombre completo debe tener al menos 3 caracteres" }).max(30, { message: "El nombre completo debe tener como máximo 30 caracteres" }).optional(),
+  phone: z.string().min(9, { message: "El número de teléfono debe tener al menos 9 caracteres" }).optional(),
+  bio: z.string().min(3, { message: "La biografía debe tener al menos 3 caracteres" }).max(30, { message: "La biografía debe tener como máximo 30 caracteres" }).optional(),
+  projectIds: z.array(z.number()).min(1, { message: "Debe tener al menos un proyecto asociado" }).optional(),
+  email: z.string().email({ message: "Dirección de correo electrónico inválida" }).optional(),
   role: z
-    .enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"])
+    .enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"], { message: "El rol debe ser uno de los valores permitidos" })
     .optional(),
 });
 
@@ -56,11 +56,12 @@ export async function createUser(
     const body = req.body as CreateUserSchema;
 
     // Validar body con schema
-    const validationResult = createUserSchema.safeParse(body);
+    const validationResult = createUserSchema.safeParse(body);    
     if (!validationResult.success) {
+      const errorMessages = JSON.parse(validationResult.error.message) as { message: string}[];
       return res
         .status(400)
-        .json({ success: false, message: validationResult.error.message });
+        .json({ success: false, message: errorMessages.at(0)?.message });
     }
 
     const {

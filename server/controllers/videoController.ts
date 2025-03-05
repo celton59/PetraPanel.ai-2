@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { eq, and, or, desc, getTableColumns, aliasedTable, isNull } from "drizzle-orm";
 import {
   videos,
@@ -15,6 +15,8 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { s3, PutObjectCommand, getSignedUrl } from "../lib/s3"
+import { type Express } from "express";
+import multer from "multer";
 
 const bucketName = process.env.AWS_BUCKET_NAME!;
 const awsRegion = process.env.AWS_REGION!;
@@ -506,14 +508,23 @@ async function getVideoUploadUrl(
 }
 
 
+export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  app.get("/api/videos", requireAuth, getVideos);
 
-const VideoController = {
-  updateVideo,
-  deleteVideo,
-  getVideos,
-  createVideo,
-  uploadThumbnail,
-  getVideoUploadUrl,
-};
+  app.post("/api/projects/:projectId/videos", requireAuth, createVideo);
 
-export default VideoController;
+  app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo)
+
+  app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo)
+
+  // Video upload endpoint
+  const thumbailUpload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 1024 * 1024 * 1024 // 1GB limit
+    }
+  })
+  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", requireAuth, thumbailUpload.single('file'), uploadThumbnail);
+
+  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", requireAuth, getVideoUploadUrl);
+}

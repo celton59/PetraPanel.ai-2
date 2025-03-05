@@ -147,3 +147,4 @@ export const youtube_videos = pgTable("youtube_videos", {
 });
 
 export type YoutubeVideo = typeof youtube_videos.$inferSelect
+export type InsertYoutubeVideo = typeof youtube_videos.$inferInsert

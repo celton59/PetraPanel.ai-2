@@ -6,20 +6,15 @@ import { ProjectSelector } from "./ProjectSelector";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { User } from "@db/schema";
-import { UserFormData } from "../UserSettingsForm";
 
 interface SecuritySectionProps {
-  formData: UserFormData;
-  setFormData: (data: Partial<SecuritySectionProps['formData']>) => void;
   isEditing: boolean;
   selectedProjects: number[];
   setSelectedProjects: (projects: number[]) => void;
-  form: UseFormReturn<UserFormData>;
+  form: UseFormReturn<Partial<User>>;
 }
 
 export function SecuritySection ({
-  formData,
-  setFormData,
   isEditing,
   selectedProjects,
   setSelectedProjects,

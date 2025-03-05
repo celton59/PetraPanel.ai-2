@@ -5,8 +5,9 @@ import { UsersTab } from "./tabs/users/UsersTab";
 import { RolesTab } from "./tabs/roles/RolesTab";
 import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Building2, Users2, Shield, GitBranch } from "lucide-react";
+import { Building2, Users2, Shield, GitBranch, Leaf } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import TitulinTab from "./tabs/titulin/TitulinTab";
 
 export default function SettingsPage () {
   const isMobile = useIsMobile();
@@ -42,6 +43,13 @@ export default function SettingsPage () {
                   <span className="font-medium">Usuarios</span>
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="titulin" 
+                  className="w-full justify-start px-3 py-2 gap-2.5 data-[state=active]:bg-primary/10 hover:bg-muted/80 transition-colors rounded-md"
+                >
+                  <Leaf className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Titulin</span>
+                </TabsTrigger>
+                <TabsTrigger 
                   value="roles" 
                   className="w-full justify-start px-3 py-2 gap-2.5 data-[state=active]:bg-primary/10 hover:bg-muted/80 transition-colors rounded-md"
                 >
@@ -67,6 +75,10 @@ export default function SettingsPage () {
 
           <TabsContent value="users" className="space-y-4 mt-2 md:mt-0">
             <UsersTab />
+          </TabsContent>
+
+          <TabsContent value="titulin" className="space-y-4 mt-2 md:mt-0">
+            <TitulinTab />
           </TabsContent>
 
           <TabsContent value="roles" className="space-y-4 mt-2 md:mt-0">

@@ -14,7 +14,7 @@ import { promisify } from "util";
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import translatorRouter from "./routes/translator";
-import VideoController from "./controllers/videoController";
+import { setUpVideoRoutes } from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
@@ -167,24 +167,7 @@ export function registerRoutes(app: Express): Server {
 
     // Videos routes
     
-    app.get("/api/videos", requireAuth, VideoController.getVideos);
-    
-    app.post("/api/projects/:projectId/videos", requireAuth, VideoController.createVideo);
-
-    app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.updateVideo)
-
-    app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, VideoController.deleteVideo)
-
-    // Video upload endpoint
-    const thumbailUpload = multer({ 
-      storage: multer.memoryStorage(),
-      limits: {
-        fileSize: 1024 * 1024 * 1024 // 1GB limit
-      }
-    })
-    app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", requireAuth, thumbailUpload.single('file'),VideoController.uploadThumbnail);
-
-    app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", requireAuth, VideoController.getVideoUploadUrl);
+    setUpVideoRoutes(requireAuth, app)
 
     // Titulin
     setUpTitulinRoutes(app)

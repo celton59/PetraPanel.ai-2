@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
@@ -15,6 +14,10 @@ import { es } from "date-fns/locale";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Download } from "lucide-react";
+import { toast } from "sonner";
+import { ProjectSelector } from "@/components/project/ProjectSelector";
+import { Project } from "@db/schema";
+import { DataTable } from "./DataTable";
 
 
 interface TitulinVideo {
@@ -63,17 +66,14 @@ export default function TitulinPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
-      toast({
-        title: "Análisis completado",
+      toast.success("Análisis completado", {
         description: "El video ha sido analizado correctamente"
       });
     },
     onError: (error) => {
       console.error("Error analyzing video:", error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "No se pudo analizar el video",
-        variant: "destructive"
       });
     }
   });
@@ -319,10 +319,8 @@ export default function TitulinPage() {
 
   const handleDownloadCSV = () => {
     if (!videos?.length) {
-      toast({
-        title: "No hay videos",
+      toast.error("No hay videos", {
         description: "No hay videos para descargar.",
-        variant: "destructive",
       });
       return;
     }
@@ -475,17 +473,14 @@ interface SendToOptimizeDialogProps {
 }
 
 function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialogProps) {
-  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useWouterLocation();
-  const { toast } = useToast();
 
   const handleSubmit = async () => {
     if (!selectedProject) {
-      toast({
-        title: "Error",
+      toast.error("Error", {        
         description: "Debes seleccionar un proyecto",
-        variant: "destructive"
       });
       return;
     }
@@ -506,8 +501,7 @@ function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialo
         projectId: selectedProject
       });
 
-      toast({
-        title: "Éxito",
+      toast.success("Éxito", {
         description: "Video enviado a optimización"
       });
 
@@ -515,10 +509,8 @@ function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialo
       setLocation("/videos");
     } catch (error) {
       console.error("Error sending video to optimization:", error);
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "No se pudo enviar el video a optimización",
-        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -539,7 +531,7 @@ function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialo
             </p>
           </div>
           <ProjectSelector
-            value={selectedProject}
+            value={selectedProject?.id ?? null}
             onChange={setSelectedProject}
           />
           <div className="flex justify-end gap-2 pt-4">
