@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, getTableColumns } from "drizzle-orm";
+import { eq, and, getTableColumns, desc, sql } from "drizzle-orm";
 import {
   youtube_videos,
   youtube_channels
@@ -16,7 +16,7 @@ async function addChannel (req: Request, res: Response): Promise<Response> {
       message: 'No tienes permisos para agregar canales',
     });
   }
-  
+
   try {
     const { url } = req.body;
     if (!url) {
@@ -51,34 +51,73 @@ async function addChannel (req: Request, res: Response): Promise<Response> {
   }
 }
 
-async function getVideos (req: Request, res: Response): Promise<Response> {
-
-  if (!req.user?.role || req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      message: 'No tienes permisos para obtener videos',
-    });
-  }
-
-  // Obtener channelId de los params
-  const { channelId } = req.params;
-  
+async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
-    const result = await db.select({
-        ...getTableColumns(youtube_videos)
-      })
-      .from(youtube_videos)
-      .where(and(
-        channelId ? eq(youtube_videos.channelId, channelId) : undefined,
-      ))
-      .execute()
+    // Parámetros de paginación (obligatorios)
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
 
-    return res.status(200).json(result);
+    // Validar parámetros de paginación
+    if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Los parámetros de paginación son inválidos. 'page' y 'limit' son requeridos y deben ser números positivos."
+      });
+    }
+
+    // Calcular el offset
+    const offset = (page - 1) * limit;
+
+    // Filtro opcional por canal
+    const channelId = req.query.channelId as string;
+
+    // Consulta para obtener el total de videos (para metadata de paginación)
+    const countQuery = db.select({
+      count: sql`count(*)`.mapWith(Number)
+    }).from(youtube_videos);
+
+    if (channelId) {
+      countQuery.where(eq(youtube_videos.channelId, channelId));
+    }
+
+    const [countResult] = await countQuery;
+    const totalVideos = countResult?.count || 0;
+
+    // Consulta principal con paginación
+    const videosQuery = db
+      .select()
+      .from(youtube_videos)
+      .orderBy(desc(youtube_videos.publishedAt))
+      .limit(limit)
+      .offset(offset);
+
+    if (channelId) {
+      videosQuery.where(eq(youtube_videos.channelId, channelId));
+    }
+
+    const videos = await videosQuery;
+
+    // Calcular metadata de paginación
+    const totalPages = Math.ceil(totalVideos / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return res.status(200).json({
+      videos,
+      pagination: {
+        page,
+        limit,
+        totalVideos,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
+    });
   } catch (error) {
-    console.error('Error al obtener youtube videos', error);
-    return res.status(500).json({ 
-      error: 'Error al obtener youtube videos',
-      details: error instanceof Error ? error.message : 'Error desconocido'
+    console.error("Error getting YouTube videos:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error obteniendo videos de YouTube",
     });
   }
 }
@@ -119,7 +158,7 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
 
   // Obtener channelId del path
   const { channelId } = req.params;
-  
+
   try {
     await db.transaction(async (trx) => {
       // Eliminar videos relacionados
@@ -132,7 +171,7 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
         .where(eq(youtube_channels.id, parseInt(channelId)))
         .execute();
     });
-    
+
     return res.status(200).json({
       success: true
     })
@@ -162,9 +201,9 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
       message: 'No se ha especificado el canal',
     });
   }
-  
+
   try {
-    
+
     const now = new Date()
     const videos = await youtubeService.getChannelVideos(channelId)
 
@@ -209,7 +248,7 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
     return res.status(200).json({
       success: true
     })
-    
+
   } catch (error) {
     console.error('Error adding channel:', error);
     return res.status(500).json({ 
