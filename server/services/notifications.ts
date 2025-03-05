@@ -284,8 +284,14 @@ export class NotificationsService {
     // Enviar solo a la conexión más reciente
     if (mostRecentConnection) {
       try {
-        mostRecentConnection.ws.send(JSON.stringify(message));
-        log(`Notificación enviada al usuario ${userId} (conexión más reciente)`, 'notifications');
+        // Verificar si la conexión está abierta
+        if (mostRecentConnection.ws.readyState === WebSocket.OPEN) {
+          mostRecentConnection.ws.send(JSON.stringify(message));
+          log(`Notificación enviada al usuario ${userId} (conexión más reciente)`, 'notifications');
+        } else {
+          log(`La conexión para el usuario ${userId} no está abierta (estado: ${mostRecentConnection.ws.readyState})`, 'notifications');
+          this.clients.delete(mostRecentConnection.ws);
+        }
       } catch (error) {
         log(`Error al enviar mensaje a usuario ${userId}: ${error}`, 'notifications');
         this.clients.delete(mostRecentConnection.ws);
@@ -403,7 +409,14 @@ export class NotificationsService {
         .from(users)
         .where(eq(users.role, role));
       
-      for (const user of usersWithRole) {
+      // Filtrar para excluir al usuario que está enviando la notificación
+      const filteredUsers = usersWithRole.filter(user => 
+        user.id !== notification.createdBy
+      );
+      
+      log(`Enviando notificación a ${filteredUsers.length} usuarios con rol ${role} (excluyendo al remitente)`, 'notifications');
+      
+      for (const user of filteredUsers) {
         await this.createNotification({
           ...notification,
           userId: user.id

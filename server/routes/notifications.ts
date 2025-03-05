@@ -154,23 +154,29 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
         return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
       }
       
-      // Obtener todos los usuarios
-      const users = await db.query.users.findMany();
+      // Obtener todos los usuarios excepto el usuario actual
+      const users = await db.query.users.findMany({
+        where: (users, { ne }) => ne(users.id, req.user?.id || 0)
+      });
       
-      // Enviar notificación a cada usuario
-      const promises = users.map(user => 
-        notificationsService.createNotification({
-          userId: user.id,
-          title,
-          message,
-          type: type || 'info',
-          actionUrl,
-          actionLabel,
-          createdBy: req.user?.id
-        })
-      );
+      console.log(`Enviando notificación global a ${users.length} usuarios (excluyendo al remitente)`);
       
-      await Promise.all(promises);
+      // Enviar notificación a cada usuario (excepto el actual)
+      if (users.length > 0) {
+        const promises = users.map(user => 
+          notificationsService.createNotification({
+            userId: user.id,
+            title,
+            message,
+            type: type || 'info',
+            actionUrl,
+            actionLabel,
+            createdBy: req.user?.id
+          })
+        );
+        
+        await Promise.all(promises);
+      }
       
       return res.json({ success: true });
     } catch (error) {
