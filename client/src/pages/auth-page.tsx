@@ -43,7 +43,7 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       console.log("Iniciando sesión con:", { username: "hola" });
-      await login({ username: "hola", password: "hola" });
+      await login({ username: "hola", password: "1234" });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
@@ -57,6 +57,7 @@ export default function AuthPage() {
       }, 500);
     } catch (error: any) {
       setIsLoading(false);
+      console.error("Error en inicio de sesión:", error);
       toast.error("Error de inicio de sesión", {
         description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
         position: "top-right",
