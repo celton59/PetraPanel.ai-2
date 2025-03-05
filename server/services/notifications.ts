@@ -267,19 +267,32 @@ export class NotificationsService {
   }
 
   /**
-   * Envía un mensaje a un usuario específico
+   * Envía un mensaje a un usuario específico (solo a la conexión más reciente)
    */
   private sendToUser(userId: number, message: any) {
+    // Encontrar la conexión más reciente de este usuario
+    let mostRecentConnection: ClientConnection | null = null;
+    let mostRecentActivity = 0;
+    
     this.clients.forEach(client => {
-      if (client.userId === userId) {
-        try {
-          client.ws.send(JSON.stringify(message));
-        } catch (error) {
-          log(`Error al enviar mensaje a usuario ${userId}: ${error}`, 'notifications');
-          this.clients.delete(client.ws);
-        }
+      if (client.userId === userId && client.lastActivity > mostRecentActivity) {
+        mostRecentActivity = client.lastActivity;
+        mostRecentConnection = client;
       }
     });
+    
+    // Enviar solo a la conexión más reciente
+    if (mostRecentConnection) {
+      try {
+        mostRecentConnection.ws.send(JSON.stringify(message));
+        log(`Notificación enviada al usuario ${userId} (conexión más reciente)`, 'notifications');
+      } catch (error) {
+        log(`Error al enviar mensaje a usuario ${userId}: ${error}`, 'notifications');
+        this.clients.delete(mostRecentConnection.ws);
+      }
+    } else {
+      log(`No se encontró una conexión activa para el usuario ${userId}`, 'notifications');
+    }
   }
 
   /**

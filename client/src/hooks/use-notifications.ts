@@ -40,9 +40,28 @@ export const useNotifications = create<NotificationsState>((set) => ({
 
   addNotification: (notification) => {
     set((state) => {
+      // Generar un ID único basado en el título y el mensaje para evitar duplicados
+      const contentHash = `${notification.title}-${notification.message}`.replace(/\s+/g, '');
+      const id = `${Date.now()}-${contentHash}`;
+      
+      // Verificar si ya existe una notificación similar en los últimos 5 segundos
+      const now = new Date();
+      const recentNotifications = state.notifications.filter(n => {
+        const timeDiff = now.getTime() - n.createdAt.getTime();
+        return timeDiff < 5000 && 
+               n.title === notification.title && 
+               n.message === notification.message;
+      });
+      
+      // Si ya existe una notificación similar reciente, no añadir una nueva
+      if (recentNotifications.length > 0) {
+        console.log('Notificación similar encontrada, ignorando duplicado');
+        return state;
+      }
+      
       const newNotification: Notification = {
         ...notification,
-        id: Date.now().toString(),
+        id,
         createdAt: new Date(),
         read: false,
         readLater: false,
@@ -219,8 +238,14 @@ export function useNotificationAPI() {
     }
   };
   
-  const markAsRead = async (id: number) => {
+  const markAsRead = async (id: string | number) => {
     try {
+      // Si el ID parece ser un timestamp, no intentamos enviarlo al servidor
+      if (typeof id === 'string' && id.length > 10) {
+        console.log('ID parece ser un timestamp de frontend, marcando como leído localmente');
+        return true;
+      }
+      
       const response = await fetch(`/api/notifications/${id}/read`, {
         method: 'POST',
       });
@@ -243,8 +268,14 @@ export function useNotificationAPI() {
     }
   };
   
-  const archiveNotification = async (id: number) => {
+  const archiveNotification = async (id: string | number) => {
     try {
+      // Si el ID parece ser un timestamp, no intentamos enviarlo al servidor
+      if (typeof id === 'string' && id.length > 10) {
+        console.log('ID parece ser un timestamp de frontend, marcando como archivado localmente');
+        return true;
+      }
+      
       const response = await fetch(`/api/notifications/${id}/archive`, {
         method: 'POST',
       });
