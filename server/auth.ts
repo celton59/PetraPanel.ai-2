@@ -166,39 +166,79 @@ export function setupAuth(app: Express) {
     console.log("Método de la petición:", req.method);
     console.log("Tipo de contenido:", req.headers['content-type']);
     console.log("Cuerpo de la petición:", req.body);
-    console.log("Cookies:", req.headers.cookie);
-    console.log("URL completa:", req.url);
     console.log("=== FIN DIAGNÓSTICO DE LOGIN ===");
     
     // Verificar que los datos del formulario estén presentes
     if (!req.body || !req.body.username || !req.body.password) {
       console.error("Error: Faltan datos del formulario");
-      return res.redirect('/?error=missing_form_data');
+      
+      // Detectar si es una petición JSON
+      const isJsonRequest = req.headers['content-type']?.includes('application/json');
+      
+      if (isJsonRequest) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Faltan datos del formulario" 
+        });
+      } else {
+        return res.redirect('/?error=missing_form_data');
+      }
     }
     
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);
-        return res.redirect('/?error=server_error');
+        
+        // Detectar si es una petición JSON
+        const isJsonRequest = req.headers['content-type']?.includes('application/json');
+        
+        if (isJsonRequest) {
+          return res.status(500).json({ 
+            success: false, 
+            message: "Error interno del servidor" 
+          });
+        } else {
+          return res.redirect('/?error=server_error');
+        }
       }
       
       if (!user) {
         console.error("Credenciales incorrectas:", info?.message);
-        return res.redirect('/?error=invalid_credentials');
+        
+        // Detectar si es una petición JSON
+        const isJsonRequest = req.headers['content-type']?.includes('application/json');
+        
+        if (isJsonRequest) {
+          return res.status(401).json({ 
+            success: false, 
+            message: info?.message || "Credenciales incorrectas" 
+          });
+        } else {
+          return res.redirect('/?error=invalid_credentials');
+        }
       }
       
       req.login(user, (loginErr: any) => {
         if (loginErr) {
           console.error("Session error:", loginErr);
-          return res.redirect('/?error=session_error');
+          
+          // Detectar si es una petición JSON
+          const isJsonRequest = req.headers['content-type']?.includes('application/json');
+          
+          if (isJsonRequest) {
+            return res.status(500).json({ 
+              success: false, 
+              message: "Error al crear la sesión" 
+            });
+          } else {
+            return res.redirect('/?error=session_error');
+          }
         }
         
         console.log("Login successful for user:", user.username);
         console.log("Session ID:", req.sessionID);
-        console.log("Cookie settings:", req.session.cookie);
         
         // Asegurar que la cookie de sesión se establezca correctamente
-        // Configurar opciones de cookie manualmente
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 días
         req.session.cookie.httpOnly = true;
         req.session.cookie.secure = false; // Importante para Cloudflare Flexible
@@ -208,14 +248,40 @@ export function setupAuth(app: Express) {
         req.session.save((err) => {
           if (err) {
             console.error("Error al guardar la sesión:", err);
-            return res.redirect('/?error=session_save_error');
+            
+            // Detectar si es una petición JSON
+            const isJsonRequest = req.headers['content-type']?.includes('application/json');
+            
+            if (isJsonRequest) {
+              return res.status(500).json({ 
+                success: false, 
+                message: "Error al guardar la sesión" 
+              });
+            } else {
+              return res.redirect('/?error=session_save_error');
+            }
           }
           
           console.log("Sesión guardada correctamente");
-          console.log("Redirigiendo a /");
           
-          // Redirección directa (sin JSON para formularios tradicionales)
-          return res.redirect('/');
+          // Detectar si es una petición JSON
+          const isJsonRequest = req.headers['content-type']?.includes('application/json');
+          
+          if (isJsonRequest) {
+            return res.status(200).json({ 
+              success: true, 
+              message: "Inicio de sesión exitoso",
+              user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                fullName: user.fullName
+              }
+            });
+          } else {
+            // Para formularios tradicionales
+            return res.redirect('/');
+          }
         });
       });
     })(req, res, next);
@@ -269,20 +335,37 @@ export function setupAuth(app: Express) {
     const username = req.user?.username;
     console.log("Cerrando sesión para usuario:", username);
     
+    // Detectar si es una petición JSON
+    const isJsonRequest = req.headers['content-type']?.includes('application/json');
+    
     req.logout((err) => {
       if (err) {
         console.error("Logout error for user:", username, err);
-        return res.redirect('/?error=logout_error');
+        
+        if (isJsonRequest) {
+          return res.status(500).json({
+            success: false, 
+            message: "Error al cerrar sesión" 
+          });
+        } else {
+          return res.redirect('/?error=logout_error');
+        }
       }
       
       console.log("User logged out successfully:", username);
-      console.log("Redirigiendo al inicio después del logout");
       
-      // Limpiar la cookie de sesión
-      res.clearCookie('connect.sid');
+      // Limpiar la cookie de sesión (el nombre de la cookie coincide con el nombre configurado)
+      res.clearCookie('petra_session');
       
-      // Simplificar usando solo redirección directa
-      return res.redirect('/');
+      if (isJsonRequest) {
+        return res.status(200).json({
+          success: true,
+          message: "Sesión cerrada correctamente"
+        });
+      } else {
+        // Para formularios tradicionales
+        return res.redirect('/');
+      }
     });
   });
 
