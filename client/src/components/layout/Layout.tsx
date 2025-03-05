@@ -1,8 +1,7 @@
 import { Sidebar } from "./Sidebar"
 import { UserMenu } from "./UserMenu"
-import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { useLocation } from "wouter"
+import { SearchButton, GlobalSearch } from "@/components/global-search"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -16,11 +15,10 @@ export function Layout({ children }: LayoutProps) {
           <Sidebar />
           
           {/* Global search bar - desktop */}
-          <div className="hidden md:flex max-w-md relative mx-4 flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar videos, proyectos..." 
-              className="pl-9 h-9 bg-muted/40 border-muted hover:bg-muted/60 focus:bg-background transition-colors rounded-md"
+          <div className="hidden md:flex mx-4 flex-1">
+            <SearchButton 
+              variant="outline" 
+              className="w-full max-w-md justify-start bg-muted/40 border-muted hover:bg-muted/60 focus:bg-background transition-colors rounded-md"
             />
           </div>
           
@@ -30,6 +28,9 @@ export function Layout({ children }: LayoutProps) {
       <main className="flex-1 px-8 py-8">
         {children}
       </main>
+      
+      {/* Global search component (diálogo) */}
+      <GlobalSearch />
     </div>
   )
 }
