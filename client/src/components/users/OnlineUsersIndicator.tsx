@@ -16,21 +16,13 @@ export function OnlineUsersIndicator() {
   const { onlineUsers, isConnected, error, usingFallback } = useOnlineUsers();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Si no hay conexión o no hay usuarios, mostrar un indicador de desconectado
+  // Si no hay conexión o no hay usuarios, mostrar un icono simple
   if (!isConnected && !onlineUsers.length) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center p-1.5 text-yellow-500 hover:text-yellow-600 cursor-help">
-              <WifiOff size={16} />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Sin conexión a usuarios en línea</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs">
+        <Users size={14} className="text-muted-foreground" />
+        <span className="font-medium text-muted-foreground">0</span>
+      </div>
     );
   }
 
@@ -149,36 +141,15 @@ export function OnlineUsersIndicator() {
         <div 
           className={cn(
             "flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs",
-            "transition-colors cursor-pointer hover:bg-muted",
-            usingFallback && "border-yellow-200 dark:border-yellow-800"
+            "transition-colors cursor-pointer hover:bg-muted"
           )}
         >
-          {usingFallback ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center">
-                    <AlertCircle size={14} className="text-yellow-500 mr-1" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>Modo alternativo: Actualización periódica</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <Wifi size={14} className="text-green-500" />
-          )}
+          <Wifi size={14} className="text-green-500" />
           <span className="font-medium">{activeUserCount}</span>
           {renderUserAvatars()}
         </div>
       </HoverCardTrigger>
       <HoverCardContent className="w-80" align="start">
-        {usingFallback && (
-          <div className="bg-yellow-50 dark:bg-yellow-950 border-l-4 border-yellow-500 p-2 mb-3 text-xs text-yellow-800 dark:text-yellow-300">
-            Usando modo alternativo: la información se actualiza periódicamente.
-          </div>
-        )}
         {renderUsersList()}
       </HoverCardContent>
     </HoverCard>

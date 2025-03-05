@@ -240,7 +240,7 @@ export const UsersList = () => {
                         <>
                           <div className="bg-green-500 h-1.5 w-1.5 rounded-full"></div>
                           <p className="text-xs text-muted-foreground">
-                            En línea {usingFallback ? "(REST)" : "(WS)"}
+                            En línea
                           </p>
                         </>
                       ) : (
