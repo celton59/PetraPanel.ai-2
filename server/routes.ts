@@ -960,6 +960,26 @@ export function registerRoutes(app: Express): Server {
             status: 'content_review',
             tags: ['wordpress', 'plugins', 'web']
           },
+          {
+            id: 3,
+            title: 'Entrevista con Aitor Menta',
+            subtitle: 'Especialista en SEO',
+            type: 'video',
+            url: '/videos/3',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video3',
+            status: 'completed',
+            tags: ['entrevista', 'seo', 'marketing']
+          },
+          {
+            id: 4,
+            title: 'Análisis de redes sociales',
+            subtitle: 'Por Aitor Tilla',
+            type: 'video',
+            url: '/videos/4',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video4',
+            status: 'media_review',
+            tags: ['redes', 'social', 'analisis']
+          },
           // Proyectos
           {
             id: 1,
@@ -974,6 +994,14 @@ export function registerRoutes(app: Express): Server {
             type: 'project',
             url: '/projects/2',
             icon: '💻',
+          },
+          {
+            id: 3,
+            title: 'Proyecto Aitor',
+            subtitle: 'Investigación de mercado',
+            type: 'project',
+            url: '/projects/3',
+            icon: '🔍',
           },
           // Usuarios
           {
@@ -992,6 +1020,22 @@ export function registerRoutes(app: Express): Server {
             url: '/users/2',
             thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
           },
+          {
+            id: 3,
+            title: 'Aitor García',
+            subtitle: 'Especialista en SEO',
+            type: 'user',
+            url: '/users/3',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aitor',
+          },
+          {
+            id: 4,
+            title: 'Elena Aitor',
+            subtitle: 'Content Manager',
+            type: 'user',
+            url: '/users/4',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
+          },
           // Canales
           {
             id: 1,
@@ -1000,6 +1044,14 @@ export function registerRoutes(app: Express): Server {
             type: 'channel',
             url: '/titulin/channels/1',
             icon: '📺',
+          },
+          {
+            id: 2,
+            title: 'AitorTech',
+            subtitle: 'Canal de tecnología',
+            type: 'channel',
+            url: '/titulin/channels/2',
+            icon: '📱',
           },
           // Configuración
           {
@@ -1015,15 +1067,56 @@ export function registerRoutes(app: Express): Server {
             type: 'settings',
             url: '/settings/notifications',
             icon: '🔔',
+          },
+          {
+            id: 3,
+            title: 'Gestión de usuarios',
+            type: 'settings',
+            url: '/admin/users',
+            icon: '👥',
           }
         ];
         
-        // Filtrar resultados según query
-        const filteredResults = results.filter(item => 
-          item.title.toLowerCase().includes(query) || 
-          (item.subtitle && item.subtitle.toLowerCase().includes(query)) ||
-          (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
-        );
+        // Obtenemos datos reales de usuarios de la base de datos para incluirlos en la búsqueda
+        let dbUsers = [] as any[];
+        
+        try {
+          // Intentamos obtener usuarios de la base de datos
+          const usersResult = await db.select().from(users);
+          
+          // Convertimos los usuarios de DB a formato SearchItem
+          dbUsers = usersResult.map(user => ({
+            id: user.id,
+            title: user.fullName || user.username,
+            subtitle: user.email || `@${user.username}`,
+            type: 'user' as const,
+            url: `/users/${user.id}`,
+            thumbnail: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+          }));
+          
+          console.log(`Encontrados ${dbUsers.length} usuarios en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener usuarios de la base de datos:', error);
+          // Si hay error, continuamos con los datos mock solamente
+        }
+        
+        // Combinamos ambos resultados (prioritizando los de la base de datos)
+        const allResults = [...dbUsers, ...results];
+        
+        // Filtrar resultados según query (mejorado para ser más inclusivo)
+        const filteredResults = allResults.filter(item => {
+          const titleMatch = item.title?.toLowerCase().includes(query);
+          const subtitleMatch = item.subtitle?.toLowerCase().includes(query);
+          const tagsMatch = item.tags?.some(tag => tag.toLowerCase().includes(query));
+          
+          // Buscamos también coincidencias parciales en palabras
+          const words = item.title?.toLowerCase().split(' ') || [];
+          const wordMatch = words.some(word => word.startsWith(query));
+          
+          return titleMatch || subtitleMatch || tagsMatch || wordMatch;
+        });
+        
+        console.log(`Búsqueda "${query}" encontró ${filteredResults.length} resultados`);
         
         return res.json({ results: filteredResults });
       } catch (error) {
