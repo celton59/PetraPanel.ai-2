@@ -76,94 +76,37 @@ export function useUser() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string; rememberMe?: boolean }) => {
-      console.log("Intentando iniciar sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
-      
-      try {
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData),
-          credentials: 'include',
-        });
+    mutationFn: async (userData: { username: string; password: string; }) => {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+        credentials: 'include',
+      });
 
-        const contentType = response.headers.get('content-type');
-        let data;
-        
-        // Parsear la respuesta según su tipo
-        if (contentType && contentType.includes('application/json')) {
-          data = await response.json();
-        } else {
-          const text = await response.text();
-          console.log("Respuesta no JSON:", text);
-          data = { success: response.ok, message: text };
-        }
-        
-        // Si no es exitoso, lanzar error con el mensaje
-        if (!response.ok) {
-          throw new Error(data.message || "Error en el inicio de sesión");
-        }
-        
-        console.log("Inicio de sesión exitoso:", data);
-        return data;
-      } catch (error: any) {
-        console.error("Error en login:", error);
-        throw error;
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text);
       }
+
+      return response.json();
     },
     onSuccess: (data) => {
-      console.log("Login exitoso, actualizando estado:", data);
-      
-      // Si la respuesta contiene un usuario, usarlo directamente
-      if (data.user) {
-        queryClient.setQueryData(['/api/user'], data.user);
-      } else {
-        // De lo contrario, recargar los datos del usuario
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      }
+      queryClient.invalidateQueries()
+      queryClient.setQueryData(['/api/user'], data);
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      console.log("Iniciando proceso de logout");
-      
-      try {
-        const response = await fetch('/api/logout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-        });
-        
-        const contentType = response.headers.get('content-type');
-        let data;
-        
-        // Parsear la respuesta según su tipo
-        if (contentType && contentType.includes('application/json')) {
-          data = await response.json();
-        } else {
-          const text = await response.text();
-          console.log("Respuesta no JSON:", text);
-          data = { success: response.ok, message: text };
-        }
-        
-        // Si no es exitoso, lanzar error con el mensaje
-        if (!response.ok) {
-          throw new Error(data.message || "Error al cerrar sesión");
-        }
-        
-        console.log("Logout exitoso:", data);
-        return data;
-      } catch (error: any) {
-        console.error("Error en logout:", error);
-        throw error;
+      const result = await handleRequest('/api/logout', 'POST');
+      if (!result.ok) {
+        throw new Error(result.message);
       }
+      return result;
     },
     onSuccess: () => {
-      console.log("Logout exitoso, limpiando estado");
       queryClient.setQueryData(['/api/user'], null);
-      // Redirección inmediata a la página de login
-      window.location.replace("/");
     },
   });
 

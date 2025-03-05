@@ -51,12 +51,11 @@ export function setupAuth(app: Express) {
     next();
   });
   
-  // La configuración de sesión optimizada para formularios tradicionales
+  // La configuración base debe ser lo más simple posible para evitar problemas
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID || "petra-panel-secret-key-optimized",
-    resave: true, // Cambiado a true para forzar resguardar la sesión
-    saveUninitialized: true, // Cambiado para asegurar que la sesión se guarde
-    name: 'petra_session', // Nombre personalizado para evitar detección de bots
+    secret: process.env.REPL_ID || "petra-panel-secret",
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       // SIEMPRE poner secure: false para Cloudflare Flexible SSL
       secure: false,
@@ -67,11 +66,8 @@ export function setupAuth(app: Express) {
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
-      stale: false, // No usar sesiones antiguas
-      ttl: 86400 // 1 día en segundos
     }),
-    proxy: true, // Mantener proxy para manejar las cabeceras correctamente
-    rolling: true // Renovar la cookie en cada petición
+    proxy: true // Mantener proxy para manejar las cabeceras correctamente
   };
 
   app.use(session(sessionSettings));
@@ -82,28 +78,12 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         console.log("Authenticating user:", username);
-        console.log("Authentication type: Traditional Form");
-        
-        // Validación básica de entrada
-        if (!username || !password) {
-          console.error("Missing username or password");
-          return done(null, false, { message: "Nombre de usuario y contraseña son requeridos" });
-        }
-        
-        console.log(`Buscando usuario: ${username}`);
         
         // Buscar usuarios ignorando mayúsculas/minúsculas
         const usersResult = await db
           .select()
           .from(users);
           
-        if (!usersResult || usersResult.length === 0) {
-          console.error("No users found in database");
-          return done(null, false, { message: "No se encontraron usuarios en la base de datos" });
-        }
-        
-        console.log(`Se encontraron ${usersResult.length} usuarios`);
-        
         // Filtrar manualmente para encontrar la coincidencia insensible a mayúsculas/minúsculas
         const user = usersResult.find(u => 
           u.username.toLowerCase() === username.toLowerCase() ||
@@ -112,19 +92,14 @@ export function setupAuth(app: Express) {
         );
 
         if (!user) {
-          console.error(`Usuario ${username} no encontrado`);
-          return done(null, false, { message: "Usuario no encontrado" });
+          return done(null, false, { message: "Incorrect username." });
         }
-        
-        console.log(`Usuario ${username} encontrado, verificando contraseña`);
 
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
-          console.error(`Contraseña incorrecta para usuario ${username}`);
-          return done(null, false, { message: "Contraseña incorrecta" });
+          return done(null, false, { message: "Incorrect password." });
         }
-        
-        console.log(`Autenticación exitosa para ${username}`);
+
         return done(null, user);
       } catch (err) {
         console.error("Authentication error:", err);
@@ -159,126 +134,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    console.log("=== INICIO DIAGNÓSTICO DE LOGIN ===");
-    console.log("Dirección IP:", req.ip);
-    console.log("Método de la petición:", req.method);
-    console.log("Tipo de contenido:", req.headers['content-type']);
-    console.log("Cuerpo de la petición:", req.body);
-    
-    // Detección explícita del tipo de petición
-    const isJsonRequest = req.headers['content-type']?.includes('application/json');
-    console.log("¿Es petición JSON?:", isJsonRequest);
-    console.log("¿Recuerda usuario?:", req.body.rememberMe);
-    console.log("=== FIN DIAGNÓSTICO DE LOGIN ===");
-    
-    // Verificar que los datos del formulario estén presentes
-    if (!req.body || !req.body.username || !req.body.password) {
-      console.error("Error: Faltan datos del formulario");
-      
-      if (isJsonRequest) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Faltan datos requeridos: nombre de usuario y contraseña" 
-        });
-      } else {
-        return res.redirect('/?error=missing_form_data');
-      }
-    }
-    
-    passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
-      if (err) {
-        console.error("Login error:", err);
-        
-        // Detectar si es una petición JSON
-        const isJsonRequest = req.headers['content-type']?.includes('application/json');
-        
-        if (isJsonRequest) {
-          return res.status(500).json({ 
-            success: false, 
-            message: "Error interno del servidor" 
-          });
-        } else {
-          return res.redirect('/?error=server_error');
-        }
-      }
-      
-      if (!user) {
-        console.error("Credenciales incorrectas:", info?.message);
-        
-        // Detectar si es una petición JSON
-        const isJsonRequest = req.headers['content-type']?.includes('application/json');
-        
-        if (isJsonRequest) {
-          return res.status(401).json({ 
-            success: false, 
-            message: info?.message || "Credenciales incorrectas" 
-          });
-        } else {
-          return res.redirect('/?error=invalid_credentials');
-        }
-      }
-      
-      req.login(user, (loginErr: any) => {
-        if (loginErr) {
-          console.error("Session error:", loginErr);
-          
-          // Detectar si es una petición JSON
-          const isJsonRequest = req.headers['content-type']?.includes('application/json');
-          
-          if (isJsonRequest) {
-            return res.status(500).json({ 
-              success: false, 
-              message: "Error al crear la sesión" 
-            });
-          } else {
-            return res.redirect('/?error=session_error');
-          }
-        }
-        
-        console.log("Login successful for user:", user.username);
-        console.log("Session ID:", req.sessionID);
-        
-        // Asegurar que la cookie de sesión se establezca correctamente
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 días
-        req.session.cookie.httpOnly = true;
-        req.session.cookie.secure = false; // Importante para Cloudflare Flexible
-        req.session.cookie.path = '/';
-        
-        // Sesión guardada 
-        console.log("Sesión establecida correctamente");
-        
-        // Detectar si es una petición JSON
-        const isJsonRequest = req.headers['content-type']?.includes('application/json');
-        
-        if (isJsonRequest) {
-          // Respuesta más completa para la versión JSON
-          return res.status(200).json({ 
-            success: true, 
-            message: "Inicio de sesión exitoso",
-            user: {
-              id: user.id,
-              username: user.username,
-              role: user.role,
-              fullName: user.fullName,
-              email: user.email,
-              phone: user.phone,
-              bio: user.bio,
-              avatar: user.avatarUrl,
-              createdAt: user.createdAt
-            },
-            sessionInfo: {
-              id: req.sessionID,
-              rememberMe: req.body.rememberMe === true,
-              expires: new Date(Date.now() + req.session.cookie.maxAge).toISOString()
-            }
-          });
-        } else {
-          // Para formularios tradicionales, redirección inmediata
-          return res.redirect('/');
-        }
-      });
-    })(req, res, next);
+  app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    console.log("Login successful for user:", req.user?.username);
+    res.json(req.user);
   });
 
   // app.post("/api/register", async (req, res) => {
@@ -316,78 +174,21 @@ export function setupAuth(app: Express) {
   // });
 
   app.post("/api/logout", (req, res) => {
-    console.log("=== INICIO DIAGNÓSTICO DE LOGOUT ===");
-    console.log("Dirección IP:", req.ip);
-    console.log("Headers:", JSON.stringify(req.headers, null, 2));
-    console.log("Método de la petición:", req.method);
-    console.log("Tipo de contenido:", req.headers['content-type']);
-    console.log("Cookies:", req.headers.cookie);
-    console.log("URL completa:", req.url);
-    console.log("Usuario autenticado:", req.isAuthenticated());
-    console.log("=== FIN DIAGNÓSTICO DE LOGOUT ===");
-    
     const username = req.user?.username;
-    console.log("Cerrando sesión para usuario:", username);
-    
-    // Detectar si es una petición JSON
-    const isJsonRequest = req.headers['content-type']?.includes('application/json');
-    
     req.logout((err) => {
       if (err) {
         console.error("Logout error for user:", username, err);
-        
-        if (isJsonRequest) {
-          return res.status(500).json({
-            success: false, 
-            message: "Error al cerrar sesión" 
-          });
-        } else {
-          return res.redirect('/?error=logout_error');
-        }
+        return res.status(500).json({ message: "Error al cerrar sesión" });
       }
-      
       console.log("User logged out successfully:", username);
-      
-      // Limpiar la cookie de sesión (el nombre de la cookie coincide con el nombre configurado)
-      res.clearCookie('petra_session');
-      
-      if (isJsonRequest) {
-        return res.status(200).json({
-          success: true,
-          message: "Sesión cerrada correctamente"
-        });
-      } else {
-        // Para formularios tradicionales
-        return res.redirect('/');
-      }
+      res.json({ message: "Sesión cerrada correctamente" });
     });
   });
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      const { password, ...userWithoutPassword } = req.user;
-      
-      return res.json({
-        ...userWithoutPassword,
-        sessionInfo: {
-          id: req.sessionID,
-          expires: new Date(Date.now() + req.session.cookie.maxAge).toISOString()
-        }
-      });
+      return res.json(req.user);
     }
-    
-    // Si no está autenticado, responder según el tipo de petición
-    const isJsonRequest = req.headers['content-type']?.includes('application/json') || 
-                         req.headers['accept']?.includes('application/json');
-                         
-    if (isJsonRequest) {
-      return res.status(401).json({
-        success: false,
-        message: "No autenticado",
-        redirect: "/"
-      });
-    }
-    
     res.status(401).send("No autenticado");
   });
 }

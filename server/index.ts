@@ -7,8 +7,7 @@ import fs from "fs";
 
 const app = express();
 app.use(express.json());
-// Configuramos extended: true para manejar objetos anidados en formularios
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 
 // Trust proxy settings específico para Cloudflare
 // Esto le dice a Express que confíe en todas las cabeceras de proxy

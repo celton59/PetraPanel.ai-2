@@ -8,11 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleUserRound, KeyRound, LogIn, Loader2, LayoutDashboard, Video, Camera } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import axios from "axios";
 
 // Definir esquema de validación de Zod
 const loginSchema = z.object({
@@ -25,42 +24,9 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
-  const { login, user } = useUser();
+  const { login } = useUser();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Efecto para manejar los errores de URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const errorParam = urlParams.get('error');
-    
-    if (errorParam) {
-      switch(errorParam) {
-        case 'invalid_credentials':
-          setError('Nombre de usuario o contraseña incorrectos.');
-          break;
-        case 'server_error':
-          setError('Error del servidor. Inténtalo de nuevo más tarde.');
-          break;
-        case 'session_error':
-          setError('Error al crear la sesión. Inténtalo de nuevo.');
-          break;
-        case 'missing_form_data':
-          setError('Faltan datos del formulario. Por favor, completa todos los campos.');
-          break;
-        default:
-          setError('Ha ocurrido un error. Por favor, inténtalo de nuevo.');
-      }
-    }
-  }, []);
-  
-  // Redirigir al usuario si ya está autenticado
-  useEffect(() => {
-    if (user) {
-      setLocation('/');
-    }
-  }, [user, setLocation]);
 
   // Configurar el formulario con validación de Zod
   const form = useForm<LoginFormValues>({
@@ -72,46 +38,41 @@ export default function AuthPage() {
     },
   });
 
-  // Función para manejar la validación del formulario
+  // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    setError(null);
-    
     try {
-      // Usar axios para enviar la solicitud de inicio de sesión
-      const response = await axios.post('/api/login', data, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      await login({ username: data.username, password: data.password });
       
-      if (response.data.success) {
-        // Mostrar mensaje de éxito
-        toast.success('Inicio de sesión exitoso');
-        
-        // Redirección más rápida usando replace
-        window.location.replace('/');
-      }
+      // Simular un pequeño retraso para una mejor experiencia
+      setTimeout(() => {
+        setLocation("/");
+        toast.success("¡Bienvenido!", { 
+          description: "Has iniciado sesión correctamente",
+          position: "top-right",
+          duration: 3000
+        });
+        setIsLoading(false);
+      }, 500);
     } catch (error: any) {
-      console.error('Error de inicio de sesión:', error);
-      
-      // Manejar el error
-      if (error.response) {
-        setError(error.response.data.message || 'Credenciales incorrectas');
-      } else {
-        setError('Error al conectar con el servidor');
-      }
-    } finally {
       setIsLoading(false);
+      toast.error("Error de inicio de sesión", {
+        description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
+        position: "top-right",
+        duration: 3000
+      });
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none"></div>
+      
       {/* Simple header accent line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-purple-500/80 to-pink-500/80"></div>
       
-      <div className="w-full max-w-lg space-y-8 relative z-10">
+      <div className="w-full max-w-lg space-y-8 relative z-10 animate-fade-in">
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
           {/* Logo/Brand */}
@@ -140,12 +101,11 @@ export default function AuthPage() {
         </div>
 
         {/* Auth Form Card */}
-        <Card className="border border-border/30 bg-card shadow-md rounded-xl">
+        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
             {/* Eliminamos el texto de "Acceso seguro" */}
           </CardHeader>
           <CardContent className="pt-6 px-8 md:px-10">
-            {/* Formulario react con validación completa */}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -159,10 +119,10 @@ export default function AuthPage() {
                       <div className="relative">
                         <FormControl>
                           <Input
-                            {...field}
                             placeholder="Ingresa tu nombre de usuario"
-                            className="h-12 pl-10"
+                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="username"
+                            {...field}
                           />
                         </FormControl>
                         <CircleUserRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
@@ -188,11 +148,11 @@ export default function AuthPage() {
                       <div className="relative">
                         <FormControl>
                           <Input
-                            {...field}
                             type="password"
                             placeholder="Ingresa tu contraseña"
-                            className="h-12 pl-10"
+                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="current-password"
+                            {...field}
                           />
                         </FormControl>
                         <KeyRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
@@ -202,32 +162,34 @@ export default function AuthPage() {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="rememberMe"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-end space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          id="rememberMe"
-                        />
-                      </FormControl>
-                      <FormLabel
-                        htmlFor="rememberMe"
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        Recordar mi sesión
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
+                <div className="flex justify-end">
+                  <FormField
+                    control={form.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            id="rememberMe"
+                          />
+                        </FormControl>
+                        <label 
+                          htmlFor="rememberMe"
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          Recordar mi sesión
+                        </label>
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <Button 
                   type="submit" 
                   size="lg" 
-                  className="w-full h-12 text-base mt-2 font-medium"
+                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -242,12 +204,6 @@ export default function AuthPage() {
                     </>
                   )}
                 </Button>
-                
-                {error && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded text-red-600 text-sm">
-                    <p>{error}</p>
-                  </div>
-                )}
               </form>
             </Form>
           </CardContent>
