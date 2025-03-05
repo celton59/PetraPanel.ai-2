@@ -102,7 +102,7 @@ export default function AuthPage() {
         setError('Error al conectar con el servidor');
       }
     } finally {
-      setIsLoading(false);lse);
+      setIsLoading(false);
     }
   };
 

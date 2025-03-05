@@ -162,23 +162,24 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log("=== INICIO DIAGNÓSTICO DE LOGIN ===");
     console.log("Dirección IP:", req.ip);
-    console.log("Headers:", JSON.stringify(req.headers, null, 2));
     console.log("Método de la petición:", req.method);
     console.log("Tipo de contenido:", req.headers['content-type']);
     console.log("Cuerpo de la petición:", req.body);
+    
+    // Detección explícita del tipo de petición
+    const isJsonRequest = req.headers['content-type']?.includes('application/json');
+    console.log("¿Es petición JSON?:", isJsonRequest);
+    console.log("¿Recuerda usuario?:", req.body.rememberMe);
     console.log("=== FIN DIAGNÓSTICO DE LOGIN ===");
     
     // Verificar que los datos del formulario estén presentes
     if (!req.body || !req.body.username || !req.body.password) {
       console.error("Error: Faltan datos del formulario");
       
-      // Detectar si es una petición JSON
-      const isJsonRequest = req.headers['content-type']?.includes('application/json');
-      
       if (isJsonRequest) {
         return res.status(400).json({ 
           success: false, 
-          message: "Faltan datos del formulario" 
+          message: "Faltan datos requeridos: nombre de usuario y contraseña" 
         });
       } else {
         return res.redirect('/?error=missing_form_data');
@@ -251,6 +252,7 @@ export function setupAuth(app: Express) {
         const isJsonRequest = req.headers['content-type']?.includes('application/json');
         
         if (isJsonRequest) {
+          // Respuesta más completa para la versión JSON
           return res.status(200).json({ 
             success: true, 
             message: "Inicio de sesión exitoso",
@@ -258,7 +260,17 @@ export function setupAuth(app: Express) {
               id: user.id,
               username: user.username,
               role: user.role,
-              fullName: user.fullName
+              fullName: user.fullName,
+              email: user.email,
+              phone: user.phone,
+              bio: user.bio,
+              avatar: user.avatarUrl,
+              createdAt: user.createdAt
+            },
+            sessionInfo: {
+              id: req.sessionID,
+              rememberMe: req.body.rememberMe === true,
+              expires: new Date(Date.now() + req.session.cookie.maxAge).toISOString()
             }
           });
         } else {
@@ -353,8 +365,29 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      return res.json(req.user);
+      const { password, ...userWithoutPassword } = req.user;
+      
+      return res.json({
+        ...userWithoutPassword,
+        sessionInfo: {
+          id: req.sessionID,
+          expires: new Date(Date.now() + req.session.cookie.maxAge).toISOString()
+        }
+      });
     }
+    
+    // Si no está autenticado, responder según el tipo de petición
+    const isJsonRequest = req.headers['content-type']?.includes('application/json') || 
+                         req.headers['accept']?.includes('application/json');
+                         
+    if (isJsonRequest) {
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado",
+        redirect: "/"
+      });
+    }
+    
     res.status(401).send("No autenticado");
   });
 }
