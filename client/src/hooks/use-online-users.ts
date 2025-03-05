@@ -188,7 +188,6 @@ export function useOnlineUsers() {
     }
     
     // Añadir evento para detectar cierre de ventana/pestaña
-  useEffect(() => {
     const handleBeforeUnload = () => {
       // Enviar mensaje de cierre explícito al servidor
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
@@ -201,15 +200,12 @@ export function useOnlineUsers() {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    // Limpiar evento al desmontar
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [user?.id, user?.username]);
 
   // Limpiar al desmontar
   return () => {
+    // Eliminar el evento beforeunload
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    
     // Enviar mensaje de logout explícito
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
       try {
