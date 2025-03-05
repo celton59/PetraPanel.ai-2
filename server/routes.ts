@@ -937,7 +937,65 @@ export function registerRoutes(app: Express): Server {
           return res.json({ results: [] });
         }
         
-        // Simulación de resultados de búsqueda (mock)
+        // Arrays para almacenar los diferentes tipos de resultados
+        let dbUsers = [] as any[];
+        let dbVideos = [] as any[];
+        let dbProjects = [] as any[];
+        let dbYoutubeChannels = [] as any[];
+        
+        // 1. Obtener usuarios de la base de datos
+        try {
+          const usersResult = await db.select().from(users).limit(20);
+          
+          dbUsers = usersResult.map(user => ({
+            id: user.id,
+            title: user.fullName || user.username,
+            subtitle: user.email || `@${user.username}`,
+            type: 'user' as const,
+            url: `/users/${user.id}`,
+            thumbnail: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+          }));
+          
+          console.log(`Encontrados ${dbUsers.length} usuarios en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener usuarios de la base de datos:', error);
+        }
+        
+        // 2. Obtener videos de la base de datos
+        try {
+          const videosResult = await db.select({
+            id: videos.id,
+            title: videos.title,
+            description: videos.description,
+            status: videos.status,
+            projectId: videos.projectId,
+            projectName: projects.name,
+            thumbnailUrl: videos.thumbnailUrl,
+            createdAt: videos.createdAt,
+            tags: videos.tags
+          })
+          .from(videos)
+          .leftJoin(projects, eq(videos.projectId, projects.id))
+          .limit(30);
+          
+          dbVideos = videosResult.map(video => ({
+            id: video.id,
+            title: video.title,
+            subtitle: video.projectName ? `Proyecto: ${video.projectName}` : (video.description || 'Sin descripción'),
+            type: 'video' as const,
+            url: `/videos/${video.id}`,
+            thumbnail: video.thumbnailUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=video${video.id}`,
+            status: video.status,
+            date: video.createdAt,
+            tags: video.tags || [],
+          }));
+          
+          console.log(`Encontrados ${dbVideos.length} videos en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener videos de la base de datos:', error);
+        }
+        
+        // Mantener algunos resultados de ejemplo para compatibilidad
         const results = [
           // Videos
           {
@@ -1077,31 +1135,83 @@ export function registerRoutes(app: Express): Server {
           }
         ];
         
-        // Obtenemos datos reales de usuarios de la base de datos para incluirlos en la búsqueda
-        let dbUsers = [] as any[];
-        
+        // 3. Obtener proyectos de la base de datos
         try {
-          // Intentamos obtener usuarios de la base de datos
-          const usersResult = await db.select().from(users);
+          const projectsResult = await db.select().from(projects).limit(20);
           
-          // Convertimos los usuarios de DB a formato SearchItem
-          dbUsers = usersResult.map(user => ({
-            id: user.id,
-            title: user.fullName || user.username,
-            subtitle: user.email || `@${user.username}`,
-            type: 'user' as const,
-            url: `/users/${user.id}`,
-            thumbnail: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+          dbProjects = projectsResult.map(project => ({
+            id: project.id,
+            title: project.name,
+            subtitle: project.description || 'Proyecto',
+            type: 'project' as const,
+            url: `/projects/${project.id}`,
+            icon: project.prefix || '📁',
           }));
           
-          console.log(`Encontrados ${dbUsers.length} usuarios en la base de datos`);
+          console.log(`Encontrados ${dbProjects.length} proyectos en la base de datos`);
         } catch (error) {
-          console.error('Error al obtener usuarios de la base de datos:', error);
-          // Si hay error, continuamos con los datos mock solamente
+          console.error('Error al obtener proyectos de la base de datos:', error);
         }
         
-        // Combinamos ambos resultados (prioritizando los de la base de datos)
-        const allResults = [...dbUsers, ...results];
+        // 4. Obtener canales de YouTube
+        try {
+          const channelsResult = await db.select().from(youtube_channels).limit(15);
+          
+          dbYoutubeChannels = channelsResult.map(channel => ({
+            id: channel.id,
+            title: channel.name,
+            subtitle: 'Canal YouTube',
+            type: 'channel' as const,
+            url: `/titulin/channels/${channel.id}`,
+            thumbnail: channel.thumbnailUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${channel.name}`,
+            icon: '📺',
+          }));
+          
+          console.log(`Encontrados ${dbYoutubeChannels.length} canales de YouTube en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener canales de YouTube de la base de datos:', error);
+        }
+        
+        // 5. Configuración y elementos estáticos
+        const settingsItems = [
+          {
+            id: 'profile',
+            title: 'Ajustes de perfil',
+            type: 'settings' as const,
+            url: '/profile',
+            icon: '⚙️',
+          },
+          {
+            id: 'notifications',
+            title: 'Configuración de notificaciones',
+            type: 'settings' as const,
+            url: '/settings/notifications',
+            icon: '🔔',
+          },
+          {
+            id: 'users',
+            title: 'Gestión de usuarios',
+            type: 'settings' as const,
+            url: '/admin/users',
+            icon: '👥',
+          },
+          {
+            id: 'search',
+            title: 'Configuración de búsqueda',
+            type: 'settings' as const,
+            url: '/settings/search',
+            icon: '🔍',
+          }
+        ];
+        
+        // Combinamos todos los resultados con prioridad a los datos reales
+        const allResults = [
+          ...dbUsers,           // Usuarios reales de la base de datos
+          ...dbVideos,          // Videos reales de la base de datos
+          ...dbProjects,        // Proyectos reales de la base de datos
+          ...dbYoutubeChannels, // Canales reales de YouTube
+          ...settingsItems,     // Items estáticos de configuración
+        ];
         
         // Filtrar resultados según query (mejorado para ser más inclusivo)
         const filteredResults = allResults.filter(item => {
