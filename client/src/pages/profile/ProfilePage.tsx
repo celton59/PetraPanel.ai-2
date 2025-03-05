@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bell, Lock, Activity } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 import { AvatarUpload } from "./AvatarUpload";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +13,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Lock } from "lucide-react"; // Import the Lock icon
 import { toast } from "sonner";
+import NotificationSettings from "./NotificationSettings";
+import { ActivityFeed } from "./ActivityFeed";
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "El nombre es requerido"),
@@ -299,11 +300,29 @@ export default function ProfilePage() {
             </form>
           </Card>
         </TabsContent>
-        <TabsContent value="notificaciones" className="mt-6">{/* Placeholder for Notifications Tab */}
-          <p>Notificaciones content here</p>
+        <TabsContent value="notificaciones" className="mt-6">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-medium">Preferencias de notificaciones</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Configura cómo y cuándo quieres recibir notificaciones sobre actividades importantes.
+            </p>
+            <NotificationSettings />
+          </div>
         </TabsContent>
-        <TabsContent value="actividad" className="mt-6"> {/* Placeholder for Activity Tab */}
-          <p>Actividad content here</p>
+        <TabsContent value="actividad" className="mt-6">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Activity className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-medium">Historial de actividad</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Revisa tu historial de actividad reciente en la plataforma.
+            </p>
+            <ActivityFeed />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

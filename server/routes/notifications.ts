@@ -1,55 +1,30 @@
-import { Request, Response, NextFunction, Express } from 'express';
-import { z } from 'zod';
-import { getNotificationsService, setupNotificationsService } from '../services/notifications';
-import { User } from '@db/schema';
-import { log } from '../vite';
-
-// Esquema para validar la creación de notificaciones
-const createNotificationSchema = z.object({
-  title: z.string().min(1).max(100),
-  message: z.string().min(1).max(500),
-  type: z.enum(['info', 'success', 'warning', 'error', 'system']).optional(),
-  actionUrl: z.string().optional(),
-  actionLabel: z.string().optional(),
-  relatedEntityType: z.string().optional(),
-  relatedEntityId: z.number().optional(),
-  userId: z.number()
-});
-
-// Esquema para actualizar configuración de notificaciones
-const updateSettingsSchema = z.object({
-  emailEnabled: z.boolean().optional(),
-  pushEnabled: z.boolean().optional(),
-  inAppEnabled: z.boolean().optional(),
-  contentChangesEnabled: z.boolean().optional(),
-  assignmentsEnabled: z.boolean().optional(),
-  mentionsEnabled: z.boolean().optional(),
-  statusChangesEnabled: z.boolean().optional(),
-  systemMessagesEnabled: z.boolean().optional()
-});
+import { Express, Request, Response, NextFunction } from 'express';
+import { getNotificationsService } from '../services/notifications';
+import { db } from '@db/index';
+import { notifications, notificationSettings } from '@db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export function setupNotificationRoutes(app: Express, requireAuth: (req: Request, res: Response, next: NextFunction) => void) {
-  // Obtener todas las notificaciones del usuario actual
+  // Obtener todas las notificaciones del usuario
   app.get('/api/notifications', requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'No autorizado' });
-      }
-
       const includeRead = req.query.includeRead === 'true';
       const limit = parseInt(req.query.limit as string) || 50;
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+      }
       
       const notificationsService = getNotificationsService();
       if (!notificationsService) {
         return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
       }
-
-      const notifications = await notificationsService.getUserNotifications(userId, includeRead, limit);
       
-      return res.json({ success: true, data: notifications });
+      const userNotifications = await notificationsService.getUserNotifications(userId, includeRead, limit);
+      return res.json({ success: true, data: userNotifications });
     } catch (error) {
-      log(`Error al obtener notificaciones: ${error}`, 'notifications');
+      console.error('Error al obtener notificaciones:', error);
       return res.status(500).json({ success: false, message: 'Error al obtener notificaciones' });
     }
   });
@@ -57,24 +32,24 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
   // Marcar notificación como leída
   app.post('/api/notifications/:id/read', requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'No autorizado' });
-      }
-
       const notificationId = parseInt(req.params.id);
+      const userId = req.user?.id;
       
-      const notificationsService = getNotificationsService();
-      if (!notificationsService) {
-        return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
+      if (!userId || !notificationId) {
+        return res.status(400).json({ success: false, message: 'Parámetros inválidos' });
       }
-
-      await notificationsService['markNotificationAsRead'](userId, notificationId);
+      
+      await db.update(notifications)
+        .set({ read: true })
+        .where(and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        ));
       
       return res.json({ success: true });
     } catch (error) {
-      log(`Error al marcar notificación como leída: ${error}`, 'notifications');
-      return res.status(500).json({ success: false, message: 'Error al marcar notificación como leída' });
+      console.error('Error al marcar notificación como leída:', error);
+      return res.status(500).json({ success: false, message: 'Error al actualizar notificación' });
     }
   });
 
@@ -82,111 +57,117 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
   app.post('/api/notifications/read-all', requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
+      
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'No autorizado' });
+        return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       }
       
-      const notificationsService = getNotificationsService();
-      if (!notificationsService) {
-        return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
-      }
-
-      await notificationsService['markAllNotificationsAsRead'](userId);
+      await db.update(notifications)
+        .set({ read: true })
+        .where(eq(notifications.userId, userId));
       
       return res.json({ success: true });
     } catch (error) {
-      log(`Error al marcar todas las notificaciones como leídas: ${error}`, 'notifications');
-      return res.status(500).json({ success: false, message: 'Error al marcar notificaciones como leídas' });
+      console.error('Error al marcar todas las notificaciones como leídas:', error);
+      return res.status(500).json({ success: false, message: 'Error al actualizar notificaciones' });
     }
   });
 
   // Archivar notificación
   app.post('/api/notifications/:id/archive', requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'No autorizado' });
-      }
-
       const notificationId = parseInt(req.params.id);
+      const userId = req.user?.id;
       
-      const notificationsService = getNotificationsService();
-      if (!notificationsService) {
-        return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
+      if (!userId || !notificationId) {
+        return res.status(400).json({ success: false, message: 'Parámetros inválidos' });
       }
-
-      await notificationsService['archiveNotification'](userId, notificationId);
+      
+      await db.update(notifications)
+        .set({ archived: true })
+        .where(and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        ));
       
       return res.json({ success: true });
     } catch (error) {
-      log(`Error al archivar notificación: ${error}`, 'notifications');
+      console.error('Error al archivar notificación:', error);
       return res.status(500).json({ success: false, message: 'Error al archivar notificación' });
     }
   });
 
-  // Crear notificación (solo admin)
+  // Crear una notificación (para administradores)
   app.post('/api/notifications', requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
-      const userRole = req.user?.role;
+      const { userId, title, message, type, actionUrl, actionLabel, relatedEntityType, relatedEntityId } = req.body;
+      const createdBy = req.user?.id;
       
-      if (!userId || userRole !== 'admin') {
-        return res.status(403).json({ success: false, message: 'No autorizado' });
+      if (!userId || !title || !message) {
+        return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
       }
-
-      const validation = createNotificationSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ success: false, message: 'Datos inválidos', errors: validation.error.errors });
+      
+      // Verificar permisos (solo administradores pueden crear notificaciones para otros)
+      if (req.user?.role !== 'admin' && userId !== createdBy) {
+        return res.status(403).json({ success: false, message: 'No tienes permisos para crear notificaciones para otros usuarios' });
       }
-
+      
       const notificationsService = getNotificationsService();
       if (!notificationsService) {
         return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
       }
-
+      
       const notificationId = await notificationsService.createNotification({
-        ...validation.data,
-        createdBy: userId
+        userId,
+        title,
+        message,
+        type: type || 'info',
+        actionUrl,
+        actionLabel,
+        relatedEntityType,
+        relatedEntityId,
+        createdBy
       });
       
       return res.json({ success: true, data: { id: notificationId } });
     } catch (error) {
-      log(`Error al crear notificación: ${error}`, 'notifications');
+      console.error('Error al crear notificación:', error);
       return res.status(500).json({ success: false, message: 'Error al crear notificación' });
     }
   });
 
-  // Crear notificación para todos los usuarios con un rol específico (solo admin)
+  // Enviar notificación a usuarios con rol específico (solo admin)
   app.post('/api/notifications/role/:role', requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
-      const userRole = req.user?.role;
-      
-      if (!userId || userRole !== 'admin') {
-        return res.status(403).json({ success: false, message: 'No autorizado' });
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Solo los administradores pueden enviar notificaciones a roles' });
       }
-
-      const targetRole = req.params.role as User['role'];
-      const validation = createNotificationSchema.omit({ userId: true }).safeParse(req.body);
       
-      if (!validation.success) {
-        return res.status(400).json({ success: false, message: 'Datos inválidos', errors: validation.error.errors });
+      const role = req.params.role;
+      const { title, message, type, actionUrl, actionLabel } = req.body;
+      
+      if (!title || !message) {
+        return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
       }
-
+      
       const notificationsService = getNotificationsService();
       if (!notificationsService) {
         return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
       }
-
-      await notificationsService.notifyUsersWithRole(targetRole, {
-        ...validation.data,
-        createdBy: userId
+      
+      await notificationsService.notifyUsersWithRole(role, {
+        title,
+        message,
+        type: type || 'info',
+        actionUrl,
+        actionLabel,
+        createdBy: req.user.id
       });
       
       return res.json({ success: true });
     } catch (error) {
-      log(`Error al crear notificación para rol: ${error}`, 'notifications');
-      return res.status(500).json({ success: false, message: 'Error al crear notificación para rol' });
+      console.error('Error al enviar notificaciones a rol:', error);
+      return res.status(500).json({ success: false, message: 'Error al enviar notificaciones' });
     }
   });
 
@@ -194,24 +175,24 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
   app.get('/api/notifications/settings', requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
+      
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'No autorizado' });
+        return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       }
       
       const notificationsService = getNotificationsService();
       if (!notificationsService) {
         return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
       }
-
+      
       // Asegurar que el usuario tenga configuración
       await notificationsService.ensureUserHasSettings(userId);
       
       // Obtener configuración
       const settings = await notificationsService.getUserSettings(userId);
-      
       return res.json({ success: true, data: settings });
     } catch (error) {
-      log(`Error al obtener configuración de notificaciones: ${error}`, 'notifications');
+      console.error('Error al obtener configuración de notificaciones:', error);
       return res.status(500).json({ success: false, message: 'Error al obtener configuración' });
     }
   });
@@ -220,33 +201,45 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
   app.post('/api/notifications/settings', requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
+      
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'No autorizado' });
+        return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       }
-
-      const validation = updateSettingsSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ success: false, message: 'Datos inválidos', errors: validation.error.errors });
-      }
+      
+      const { 
+        emailEnabled, 
+        pushEnabled, 
+        inAppEnabled,
+        contentChangesEnabled,
+        assignmentsEnabled,
+        mentionsEnabled,
+        statusChangesEnabled,
+        systemMessagesEnabled
+      } = req.body;
       
       const notificationsService = getNotificationsService();
       if (!notificationsService) {
         return res.status(500).json({ success: false, message: 'Servicio de notificaciones no disponible' });
       }
-
+      
       // Asegurar que el usuario tenga configuración
       await notificationsService.ensureUserHasSettings(userId);
       
       // Actualizar configuración
-      const success = await notificationsService.updateUserSettings(userId, validation.data);
-      
-      if (!success) {
-        return res.status(500).json({ success: false, message: 'Error al actualizar configuración' });
-      }
+      await notificationsService.updateUserSettings(userId, {
+        emailEnabled: emailEnabled !== undefined ? emailEnabled : true,
+        pushEnabled: pushEnabled !== undefined ? pushEnabled : true,
+        inAppEnabled: inAppEnabled !== undefined ? inAppEnabled : true,
+        contentChangesEnabled: contentChangesEnabled !== undefined ? contentChangesEnabled : true,
+        assignmentsEnabled: assignmentsEnabled !== undefined ? assignmentsEnabled : true,
+        mentionsEnabled: mentionsEnabled !== undefined ? mentionsEnabled : true,
+        statusChangesEnabled: statusChangesEnabled !== undefined ? statusChangesEnabled : true,
+        systemMessagesEnabled: systemMessagesEnabled !== undefined ? systemMessagesEnabled : true
+      });
       
       return res.json({ success: true });
     } catch (error) {
-      log(`Error al actualizar configuración de notificaciones: ${error}`, 'notifications');
+      console.error('Error al actualizar configuración de notificaciones:', error);
       return res.status(500).json({ success: false, message: 'Error al actualizar configuración' });
     }
   });
