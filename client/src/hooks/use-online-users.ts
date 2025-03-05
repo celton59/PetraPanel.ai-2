@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from './use-user';
 import axios from 'axios';
@@ -24,8 +23,6 @@ export function useOnlineUsers() {
   const wsRef = useRef<WebSocket | null>(null);
   const heartbeatIntervalRef = useRef<number | null>(null);
   const restFallbackIntervalRef = useRef<number | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const connectionAttemptsRef = useRef(0);
   
   // Función para obtener usuarios activos mediante API REST
   const fetchOnlineUsersRest = async () => {
@@ -43,22 +40,139 @@ export function useOnlineUsers() {
   };
   
   useEffect(() => {
-    // Si no hay usuario autenticado, no intentar conectarse
-    if (!user?.id) return;
-    
-    // Función para manejar cierre limpio de conexión
-    const handleBeforeUnload = () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
-        wsRef.current.send(JSON.stringify({
-          type: 'logout',
-          userId: user.id,
-          username: user.username
-        }));
+    const connectToWebsocket = () => {
+      if (!user?.id) return;
+      
+      try {
+        // Limpiar conexión anterior si existe
+        if (wsRef.current) {
+          wsRef.current.close();
+          wsRef.current = null;
+        }
+        
+        // Limpiar heartbeat si existe
+        if (heartbeatIntervalRef.current) {
+          window.clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
+        
+        setIsConnecting(true);
+        setError(null);
+        
+        // Crear nueva conexión WebSocket
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/online-users`;
+        const socket = new WebSocket(wsUrl);
+        wsRef.current = socket;
+        
+        socket.onopen = () => {
+          console.log('Conexión WebSocket establecida');
+          setIsConnected(true);
+          setIsConnecting(false);
+          setUseRestFallback(false);
+          
+          // Enviar información de inicio de sesión
+          socket.send(JSON.stringify({
+            type: 'login',
+            userId: user.id,
+            username: user.username
+          }));
+        };
+        
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+              case 'config': {
+                // Configurar heartbeat según indicación del servidor
+                if (data.heartbeatInterval && !heartbeatIntervalRef.current) {
+                  heartbeatIntervalRef.current = window.setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                      socket.send(JSON.stringify({ type: 'heartbeat' }));
+                    }
+                  }, data.heartbeatInterval);
+                }
+                break;
+              }
+              
+              case 'active_users': {
+                // Actualizar lista de usuarios activos
+                if (Array.isArray(data.users)) {
+                  setOnlineUsers(data.users);
+                }
+                break;
+              }
+            }
+          } catch (err) {
+            console.error('Error al procesar mensaje WebSocket:', err);
+          }
+        };
+        
+        socket.onclose = () => {
+          console.log('Conexión WebSocket cerrada');
+          setIsConnected(false);
+          setIsConnecting(false);
+          
+          // Limpiar heartbeat
+          if (heartbeatIntervalRef.current) {
+            window.clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = null;
+          }
+          
+          // Cambiar a modo REST si hay muchos intentos fallidos
+          setUseRestFallback(true);
+          
+          // Intentar reconectar después de un tiempo
+          setTimeout(connectToWebsocket, 5000);
+        };
+        
+        socket.onerror = (e) => {
+          console.error('Error en conexión WebSocket:', e);
+          setError('Error en la conexión. Usando alternativa...');
+          setIsConnected(false);
+          setUseRestFallback(true);
+          
+          // El evento onclose se disparará automáticamente
+        };
+      } catch (err) {
+        console.error('Error al establecer conexión WebSocket:', err);
+        setError('Error al conectar con el servidor');
+        setIsConnected(false);
+        setIsConnecting(false);
+        setUseRestFallback(true);
       }
     };
     
-    // Función para limpiar todos los intervalos y timeouts
-    const clearAllTimers = () => {
+    // Iniciar modo REST si WebSocket falla
+    const setupRestFallback = () => {
+      // Limpiar intervalo existente si hay
+      if (restFallbackIntervalRef.current) {
+        window.clearInterval(restFallbackIntervalRef.current);
+        restFallbackIntervalRef.current = null;
+      }
+      
+      // Obtener datos inmediatamente
+      fetchOnlineUsersRest();
+      
+      // Configurar intervalo para actualizaciones periódicas
+      restFallbackIntervalRef.current = window.setInterval(fetchOnlineUsersRest, 30000); // cada 30 segundos
+    };
+    
+    // Conectar solo si hay un usuario autenticado
+    if (user?.id) {
+      if (useRestFallback) {
+        setupRestFallback();
+      } else {
+        connectToWebsocket();
+      }
+    } else {
+      // Desconectar si no hay usuario
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      
       if (heartbeatIntervalRef.current) {
         window.clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -69,161 +183,59 @@ export function useOnlineUsers() {
         restFallbackIntervalRef.current = null;
       }
       
-      if (reconnectTimeoutRef.current) {
-        window.clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-    };
-    
-    // Función para establecer la conexión WebSocket
-    const connectWebSocket = () => {
-      // Si ya hay una conexión activa o estamos usando fallback, no hacer nada
-      if (
-        (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) || 
-        useRestFallback
-      ) {
-        return;
-      }
-      
-      // Limpiar conexión anterior si existe
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      
-      setIsConnecting(true);
-      connectionAttemptsRef.current++;
-      
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/online-users`;
-        
-        wsRef.current = new WebSocket(wsUrl);
-        
-        wsRef.current.onopen = () => {
-          setIsConnected(true);
-          setIsConnecting(false);
-          setError(null);
-          connectionAttemptsRef.current = 0;
-          
-          // Enviar mensaje de login al conectar
-          if (wsRef.current && user?.id) {
-            wsRef.current.send(JSON.stringify({
-              type: 'login',
-              userId: user.id,
-              username: user.username
-            }));
-          }
-        };
-        
-        wsRef.current.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'users_update') {
-              setOnlineUsers(data.users);
-            } else if (data.type === 'config') {
-              // Configurar heartbeat - Cada 2 minutos (120000ms)
-              if (heartbeatIntervalRef.current) {
-                clearInterval(heartbeatIntervalRef.current);
-              }
-              
-              heartbeatIntervalRef.current = window.setInterval(() => {
-                if (wsRef.current?.readyState === WebSocket.OPEN && user?.id) {
-                  wsRef.current.send(JSON.stringify({
-                    type: 'heartbeat',
-                    userId: user.id
-                  }));
-                }
-              }, 120000); // 2 minutos
-            }
-          } catch (err) {
-            console.error('Error al procesar mensaje WebSocket:', err);
-          }
-        };
-        
-        wsRef.current.onclose = () => {
-          setIsConnected(false);
-          
-          // Si tenemos demasiados intentos fallidos, cambiar a REST
-          if (connectionAttemptsRef.current >= 3) {
-            console.log('Demasiados intentos fallidos, usando REST como fallback');
-            setUseRestFallback(true);
-            setIsConnecting(false);
-            return;
-          }
-          
-          // Intentar reconectar después de un delay exponencial
-          const reconnectDelay = Math.min(30000, Math.pow(2, connectionAttemptsRef.current) * 1000);
-          console.log(`Reconectando en ${reconnectDelay}ms...`);
-          
-          reconnectTimeoutRef.current = window.setTimeout(() => {
-            connectWebSocket();
-          }, reconnectDelay);
-        };
-        
-        wsRef.current.onerror = () => {
-          if (wsRef.current) {
-            wsRef.current.close();
-          }
-        };
-      } catch (err) {
-        console.error('Error al conectar WebSocket:', err);
-        setIsConnected(false);
-        setIsConnecting(false);
-        setError('Error al conectar con el servidor');
-        
-        // Intentar reconectar después de un delay
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          connectWebSocket();
-        }, 5000);
-      }
-    };
-    
-    // Iniciar conexión principal o fallback
-    if (useRestFallback) {
-      // Usar REST si WebSocket falló demasiadas veces
-      fetchOnlineUsersRest();
-      
-      // Iniciar intervalo para actualizar usuarios vía REST (cada 30 segundos)
-      if (!restFallbackIntervalRef.current) {
-        restFallbackIntervalRef.current = window.setInterval(fetchOnlineUsersRest, 30000);
-      }
-    } else {
-      // Intentar conexión WebSocket
-      connectWebSocket();
+      setIsConnected(false);
+      setOnlineUsers([]);
     }
     
-    // Registrar evento beforeunload para cerrar conexión limpiamente
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    // Cleanup al desmontar componente
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      
-      // Enviar mensaje de logout si es posible
+    // Añadir evento para detectar cierre de ventana/pestaña
+    const handleBeforeUnload = () => {
+      // Enviar mensaje de cierre explícito al servidor
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
-        try {
-          wsRef.current.send(JSON.stringify({
-            type: 'logout',
-            userId: user.id,
-            username: user.username
-          }));
-        } catch (e) {
-          console.error('Error al enviar mensaje de logout:', e);
-        }
+        wsRef.current.send(JSON.stringify({
+          type: 'logout',
+          userId: user.id,
+          username: user.username
+        }));
       }
-      
-      // Cerrar WebSocket si existe
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      
-      // Limpiar todos los intervalos y timeouts
-      clearAllTimers();
     };
-  }, [user?.id, useRestFallback]); // Solo re-ejecutar cuando el usuario o el modo fallback cambian
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // Limpiar al desmontar
+  return () => {
+    // Eliminar el evento beforeunload
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    
+    // Enviar mensaje de logout explícito
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
+      try {
+        // Intentar enviar mensaje de cierre
+        wsRef.current.send(JSON.stringify({
+          type: 'logout',
+          userId: user.id,
+          username: user.username
+        }));
+      } catch (e) {
+        console.error('Error al enviar mensaje de logout:', e);
+      }
+    }
+    
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    if (heartbeatIntervalRef.current) {
+      window.clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    
+    if (restFallbackIntervalRef.current) {
+      window.clearInterval(restFallbackIntervalRef.current);
+      restFallbackIntervalRef.current = null;
+    }
+  };
+  }, [user?.id, useRestFallback]);
   
   return {
     onlineUsers,
