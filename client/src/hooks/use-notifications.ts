@@ -148,15 +148,60 @@ export function useNotificationWebSocket() {
   const { addNotification } = useNotifications();
   
   const connect = (userId: number) => {
-    // Control de reintentos
+    // Control de reintentos y estado
     let retryCount = 0;
-    const MAX_RETRIES = 5;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+    const MAX_RETRIES = 10; // Aumentamos el número máximo de reintentos
     const BASE_RETRY_MS = 2000;
+    const HEARTBEAT_INTERVAL = 25000; // 25 segundos, menor que el intervalo del servidor (30s)
     let ws: WebSocket | null = null;
+    let isIntentionalClose = false;
+    
+    // Función para limpiar temporizadores
+    const clearTimers = () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      if (heartbeatTimer) {
+        clearTimeout(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+    };
+    
+    // Función para configurar heartbeat manual
+    const setupHeartbeat = () => {
+      clearTimers(); // Limpiar temporizadores existentes
+      
+      // Configurar nuevo heartbeat
+      heartbeatTimer = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          try {
+            // Enviar ping manual para mantener la conexión activa
+            ws.send(JSON.stringify({ type: 'ping_client' }));
+          } catch (e) {
+            console.log('Error al enviar heartbeat manual, reconectando...');
+            clearTimers();
+            if (ws) {
+              try {
+                ws.close();
+              } catch (err) {
+                // Ignorar errores al cerrar
+              }
+            }
+            createConnection();
+          }
+        }
+      }, HEARTBEAT_INTERVAL);
+    };
     
     // Función para crear la conexión WebSocket
     const createConnection = () => {
-      // Si existe una conexión previa, cerrarla
+      // Limpiar temporizadores previos
+      clearTimers();
+      
+      // Cerrar conexión previa si existe
       if (ws) {
         try {
           ws.close();
@@ -165,13 +210,21 @@ export function useNotificationWebSocket() {
         }
       }
       
+      // Resetear flag de cierre intencional
+      isIntentionalClose = false;
+      
       // Crear nueva conexión
+      console.log('Reconectando WebSocket de notificaciones...');
       ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/ws/notifications?userId=${userId}`);
       
       ws.onopen = () => {
         console.log('Conexión WebSocket de notificaciones establecida');
+        
         // Reiniciar contador de reintentos al conectar exitosamente
         retryCount = 0;
+        
+        // Configurar heartbeat
+        setupHeartbeat();
       };
       
       ws.onmessage = (event) => {
@@ -230,26 +283,55 @@ export function useNotificationWebSocket() {
       };
       
       ws.onclose = (event) => {
+        // Limpiar heartbeat
+        clearTimers();
+        
+        console.log('Conexión WebSocket de notificaciones cerrada');
+        
         // Solo intentar reconectar si la conexión no fue cerrada intencionalmente
-        if (!event.wasClean) {
+        if (!isIntentionalClose) {
           retryCount++;
           
           // Tiempo de espera exponencial con jitter
           const delay = Math.min(
-            BASE_RETRY_MS * Math.pow(2, retryCount) + Math.random() * 1000,
+            BASE_RETRY_MS * Math.pow(1.5, retryCount) + Math.random() * 1000,
             30000 // Máximo 30 segundos
           );
           
           if (retryCount <= MAX_RETRIES) {
             console.log(`Reconectando en ${Math.round(delay)}ms...`);
-            setTimeout(createConnection, delay);
+            reconnectTimer = setTimeout(createConnection, delay);
           } else {
             console.log('Demasiados intentos fallidos, usando REST como fallback');
-            // Podríamos configurar un polling por REST aquí
+            
+            // Implementar polling por REST como fallback
+            const pollInterval = 60000; // Cada minuto
+            reconnectTimer = setTimeout(() => {
+              // Reintentar WebSocket después de un tiempo
+              retryCount = 0;
+              createConnection();
+            }, pollInterval);
+            
+            // Obtener notificaciones mediante REST mientras tanto
+            fetch('/api/notifications')
+              .then(response => response.json())
+              .then(data => {
+                if (data.success && data.data) {
+                  data.data.forEach((notification: any) => {
+                    addNotification({
+                      title: notification.title,
+                      message: notification.message,
+                      type: notification.type as NotificationType,
+                      actionUrl: notification.actionUrl,
+                      actionLabel: notification.actionLabel,
+                      sender: notification.sender
+                    });
+                  });
+                }
+              })
+              .catch(err => console.error('Error al obtener notificaciones por REST:', err));
           }
         }
-        
-        console.log('Conexión WebSocket de notificaciones cerrada');
       };
       
       return ws;
@@ -261,11 +343,15 @@ export function useNotificationWebSocket() {
     // Devolver objeto mejorado con métodos adicionales
     return {
       close: () => {
+        isIntentionalClose = true;
+        clearTimers();
+        
         if (connection && connection.readyState === WebSocket.OPEN) {
           connection.close(1000, 'Cierre intencional');
         }
       },
       reconnect: () => {
+        retryCount = 0;
         createConnection();
       },
       connection

@@ -138,6 +138,14 @@ export class NotificationsService {
         case 'pong':
           // Respuesta al heartbeat, no se requiere acción
           break;
+        case 'ping_client':
+          // Responder al ping del cliente para confirmar que el servidor está vivo
+          try {
+            ws.send(JSON.stringify({ type: 'pong_server', timestamp: Date.now() }));
+          } catch (e) {
+            log(`Error al responder al ping del cliente: ${e}`, 'notifications');
+          }
+          break;
       }
     } catch (error) {
       log(`Error al procesar mensaje: ${error}`, 'notifications');
@@ -267,37 +275,47 @@ export class NotificationsService {
   }
 
   /**
-   * Envía un mensaje a un usuario específico (solo a la conexión más reciente)
+   * Envía un mensaje a todas las conexiones activas de un usuario específico
    */
   private sendToUser(userId: number, message: any) {
-    // Encontrar la conexión más reciente de este usuario
-    let mostRecentConnection: ClientConnection | null = null;
-    let mostRecentActivity = 0;
+    // Encontrar todas las conexiones activas de este usuario
+    const userConnections: ClientConnection[] = [];
     
     this.clients.forEach(client => {
-      if (client.userId === userId && client.lastActivity > mostRecentActivity) {
-        mostRecentActivity = client.lastActivity;
-        mostRecentConnection = client;
+      if (client.userId === userId) {
+        userConnections.push(client);
       }
     });
     
-    // Enviar solo a la conexión más reciente
-    if (mostRecentConnection) {
-      try {
-        // Verificar si la conexión está abierta
-        if (mostRecentConnection.ws.readyState === WebSocket.OPEN) {
-          mostRecentConnection.ws.send(JSON.stringify(message));
-          log(`Notificación enviada al usuario ${userId} (conexión más reciente)`, 'notifications');
-        } else {
-          log(`La conexión para el usuario ${userId} no está abierta (estado: ${mostRecentConnection.ws.readyState})`, 'notifications');
-          this.clients.delete(mostRecentConnection.ws);
+    // Contador para registrar a cuántas conexiones se envió el mensaje
+    let successCount = 0;
+    let closedCount = 0;
+    let errorCount = 0;
+    
+    // Enviar a todas las conexiones activas del usuario
+    if (userConnections.length > 0) {
+      const jsonMessage = JSON.stringify(message);
+      
+      userConnections.forEach(connection => {
+        try {
+          // Verificar si la conexión está abierta
+          if (connection.ws.readyState === WebSocket.OPEN) {
+            connection.ws.send(jsonMessage);
+            successCount++;
+          } else {
+            closedCount++;
+            this.clients.delete(connection.ws);
+          }
+        } catch (error) {
+          errorCount++;
+          log(`Error al enviar mensaje a una conexión del usuario ${userId}: ${error}`, 'notifications');
+          this.clients.delete(connection.ws);
         }
-      } catch (error) {
-        log(`Error al enviar mensaje a usuario ${userId}: ${error}`, 'notifications');
-        this.clients.delete(mostRecentConnection.ws);
-      }
+      });
+      
+      log(`Notificación enviada a ${successCount}/${userConnections.length} conexiones del usuario ${userId}`, 'notifications');
     } else {
-      log(`No se encontró una conexión activa para el usuario ${userId}`, 'notifications');
+      log(`No se encontraron conexiones activas para el usuario ${userId}`, 'notifications');
     }
   }
 
