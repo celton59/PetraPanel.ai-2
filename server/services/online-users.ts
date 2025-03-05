@@ -93,6 +93,28 @@ export class OnlineUsersService {
           break;
         }
         
+        case 'logout': {
+          // Cierre de sesión explícito
+          if (data.userId) {
+            const userId = parseInt(data.userId, 10);
+            
+            // Eliminar de los usuarios activos
+            this.activeUsers.delete(userId);
+            
+            // Registrar desconexión
+            log(`Usuario desconectado explícitamente: ${data.username} (${data.userId})`, 'ws');
+            
+            // Actualizar lista de usuarios activos
+            this.broadcastActiveUsers();
+            
+            // Cerrar WebSocket si aún está abierto
+            if (ws.readyState === OPEN) {
+              ws.close();
+            }
+          }
+          break;
+        }
+        
         case 'heartbeat': {
           // Actualizar timestamp de actividad
           const client = this.clients.get(ws);

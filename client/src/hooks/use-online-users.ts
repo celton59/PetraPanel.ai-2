@@ -187,23 +187,58 @@ export function useOnlineUsers() {
       setOnlineUsers([]);
     }
     
-    // Limpiar al desmontar
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      
-      if (heartbeatIntervalRef.current) {
-        window.clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-      }
-      
-      if (restFallbackIntervalRef.current) {
-        window.clearInterval(restFallbackIntervalRef.current);
-        restFallbackIntervalRef.current = null;
+    // Añadir evento para detectar cierre de ventana/pestaña
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Enviar mensaje de cierre explícito al servidor
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
+        wsRef.current.send(JSON.stringify({
+          type: 'logout',
+          userId: user.id,
+          username: user.username
+        }));
       }
     };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Limpiar evento al desmontar
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user?.id, user?.username]);
+
+  // Limpiar al desmontar
+  return () => {
+    // Enviar mensaje de logout explícito
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user?.id) {
+      try {
+        // Intentar enviar mensaje de cierre
+        wsRef.current.send(JSON.stringify({
+          type: 'logout',
+          userId: user.id,
+          username: user.username
+        }));
+      } catch (e) {
+        console.error('Error al enviar mensaje de logout:', e);
+      }
+    }
+    
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    if (heartbeatIntervalRef.current) {
+      window.clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    
+    if (restFallbackIntervalRef.current) {
+      window.clearInterval(restFallbackIntervalRef.current);
+      restFallbackIntervalRef.current = null;
+    }
+  };
   }, [user?.id, useRestFallback]);
   
   return {
