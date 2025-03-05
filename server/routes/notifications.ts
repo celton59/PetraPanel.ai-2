@@ -63,7 +63,7 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
       }
       
       await db.update(notifications)
-        .set({ read: true })
+        .set({ isRead: true })
         .where(eq(notifications.userId, userId));
       
       return res.json({ success: true });
@@ -84,7 +84,7 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
       }
       
       await db.update(notifications)
-        .set({ archived: true })
+        .set({ isArchived: true })
         .where(and(
           eq(notifications.id, notificationId),
           eq(notifications.userId, userId)
@@ -166,7 +166,7 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
           type: type || 'info',
           actionUrl,
           actionLabel,
-          createdBy: req.user.id
+          createdBy: req.user?.id
         })
       );
       
@@ -204,7 +204,7 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
         type: type || 'info',
         actionUrl,
         actionLabel,
-        createdBy: req.user.id
+        createdBy: req.user?.id
       });
       
       return res.json({ success: true });
