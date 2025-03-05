@@ -22,10 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
-import { getInitials } from '@/lib/utils';
-import { format, formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { cn, getInitials, formatNotificationDate } from '@/lib/utils';
 
 // Icon mapping for notification types
 const NotificationTypeIcon: Record<
@@ -46,20 +43,6 @@ const notificationTypeStyles: Record<NotificationType, string> = {
   warning: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
   error: 'bg-red-500/10 text-red-600 dark:text-red-400',
   system: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-};
-
-// Function to format notification date
-const formatNotificationDate = (date: Date): string => {
-  const now = new Date();
-  const diffInHours = Math.abs(now.getTime() - date.getTime()) / 36e5;
-  
-  if (diffInHours < 24) {
-    return formatDistanceToNow(date, { addSuffix: true, locale: es });
-  } else if (diffInHours < 48) {
-    return 'ayer';
-  } else {
-    return format(date, 'dd MMM', { locale: es });
-  }
 };
 
 // Individual notification item component
