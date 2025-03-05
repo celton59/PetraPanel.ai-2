@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import * as WebSocketModule from 'ws';
 import { User } from '../../db/schema';
 import { log } from '../vite';
+import { IncomingMessage } from 'http';
 
 // Alias para tipado y uso como valor
 const WebSocketServer = WebSocketModule.WebSocketServer;
@@ -18,7 +19,7 @@ interface ClientConnection {
  * Servicio para gestionar usuarios conectados en tiempo real
  */
 export class OnlineUsersService {
-  private wss: WebSocketServer;
+  private wss: typeof WebSocketServer;
   private clients: Map<WebSocket, ClientConnection> = new Map();
   private activeUsers: Map<number, { lastActivity: number; username: string; }> = new Map();
   private heartbeatInterval: NodeJS.Timeout;
@@ -32,20 +33,20 @@ export class OnlineUsersService {
     // Configurar upgrade de conexión HTTP a WebSocket
     server.on('upgrade', (request, socket, head) => {
       if (request.url?.startsWith('/ws/online-users')) {
-        this.wss.handleUpgrade(request, socket, head, (ws) => {
+        this.wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
           this.wss.emit('connection', ws, request);
         });
       }
     });
     
     // Manejar conexiones de clientes
-    this.wss.on('connection', (ws, req) => {
+    this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       log('Nueva conexión WebSocket para usuarios en línea', 'ws');
       
       // Configurar manejadores de eventos
-      ws.on('message', (message) => this.handleMessage(ws, message));
+      ws.on('message', (message: WebSocketModule.Data) => this.handleMessage(ws, message));
       ws.on('close', () => this.handleDisconnection(ws));
-      ws.on('error', (error) => {
+      ws.on('error', (error: Error) => {
         log(`Error en WebSocket: ${error.message}`, 'ws');
         this.handleDisconnection(ws);
       });

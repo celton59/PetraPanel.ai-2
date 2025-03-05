@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { HelpButton } from "@/components/help/HelpButton"
+import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator"
 
 interface UserMenuProps {
   className?: string;
@@ -58,6 +59,9 @@ export function UserMenu({ className }: UserMenuProps) {
         >
           <Search className="h-5 w-5 text-muted-foreground" />
         </Button>
+        
+        {/* Indicador de usuarios en línea */}
+        <OnlineUsersIndicator />
         
         {/* Help button */}
         <HelpButton />
