@@ -38,40 +38,11 @@ export default function AuthPage() {
     },
   });
 
-  // Función de envío del formulario - optimizada para rapidez
-  const onSubmit = async (data: LoginFormValues) => {
+  // Función para manejar la validación del formulario
+  const onSubmit = (data: LoginFormValues) => {
     setIsLoading(true);
-    try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: data.username, 
-          password: data.password
-        }),
-        credentials: 'include',
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || "Credenciales incorrectas");
-      }
-      
-      // Si la respuesta contiene una redirección, la seguimos inmediatamente
-      if (result.redirectTo) {
-        window.location.replace(result.redirectTo);
-      } else {
-        window.location.replace("/");
-      }
-    } catch (error: any) {
-      setIsLoading(false);
-      toast.error("Error de inicio de sesión", {
-        description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
-        position: "top-right",
-        duration: 3000
-      });
-    }
+    // El formulario se enviará directamente al servidor usando el método POST tradicional
+    // La redirección la manejará el servidor
   };
 
   return (
@@ -113,106 +84,97 @@ export default function AuthPage() {
             {/* Eliminamos el texto de "Acceso seguro" */}
           </CardHeader>
           <CardContent className="pt-6 px-8 md:px-10">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm font-medium">
-                        Nombre de usuario
-                      </FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            placeholder="Ingresa tu nombre de usuario"
-                            className="h-12 pl-10"
-                            autoComplete="username"
-                            {...field}
-                          />
-                        </FormControl>
-                        <CircleUserRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-sm font-medium">
-                          Contraseña
-                        </FormLabel>
-                        <span className="text-xs text-muted-foreground">
-                          ¿Olvidaste tu contraseña?
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Ingresa tu contraseña"
-                            className="h-12 pl-10"
-                            autoComplete="current-password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <KeyRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end">
-                  <FormField
-                    control={form.control}
-                    name="rememberMe"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            id="rememberMe"
-                          />
-                        </FormControl>
-                        <label 
-                          htmlFor="rememberMe"
-                          className="text-sm font-medium leading-none cursor-pointer"
-                        >
-                          Recordar mi sesión
-                        </label>
-                      </FormItem>
-                    )}
+            {/* Formulario tradicional que se enviará directamente al servidor */}
+            <form 
+              action="/api/login" 
+              method="POST" 
+              className="space-y-6"
+              onSubmit={(e) => {
+                const isValid = form.formState.isValid;
+                if (!isValid) {
+                  e.preventDefault();
+                  form.handleSubmit(onSubmit)(e);
+                } else {
+                  setIsLoading(true);
+                }
+              }}
+            >
+              <div className="space-y-2">
+                <label htmlFor="username" className="text-sm font-medium">
+                  Nombre de usuario
+                </label>
+                <div className="relative">
+                  <input
+                    id="username"
+                    name="username"
+                    placeholder="Ingresa tu nombre de usuario"
+                    className="w-full h-12 pl-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    autoComplete="username"
+                    required
                   />
+                  <CircleUserRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full h-12 text-base mt-2 font-medium"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Iniciando sesión...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-5 w-5" />
-                      Iniciar sesión
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="text-sm font-medium">
+                    Contraseña
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    ¿Olvidaste tu contraseña?
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Ingresa tu contraseña"
+                    className="w-full h-12 pl-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <KeyRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    name="rememberMe"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label 
+                    htmlFor="rememberMe"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Recordar mi sesión
+                  </label>
+                </div>
+              </div>
+              
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full h-12 text-base mt-2 font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Iniciando sesión...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-5 w-5" />
+                    Iniciar sesión
+                  </>
+                )}
+              </Button>
+            </form>
           </CardContent>
           
           <CardFooter className="px-8 md:px-10 flex flex-col space-y-4 pb-8">

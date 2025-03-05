@@ -152,8 +152,14 @@ export function setupAuth(app: Express) {
         }
         
         console.log("Login successful for user:", user.username);
-        // Enviamos código 200 para indicar éxito
-        return res.status(200).json({ success: true, redirectTo: "/" });
+        // Técnica directa: redirección desde el servidor
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+          // Si es una petición AJAX, enviamos JSON
+          return res.status(200).json({ success: true, redirectTo: "/" });
+        } else {
+          // Si es una petición normal, redirigimos directamente
+          return res.redirect('/');
+        }
       });
     })(req, res, next);
   });
@@ -201,12 +207,18 @@ export function setupAuth(app: Express) {
       }
       console.log("User logged out successfully:", username);
       
-      // Enviamos respuesta con indicación de redirección
-      res.status(200).json({ 
-        success: true, 
-        message: "Sesión cerrada correctamente",
-        redirectTo: "/" 
-      });
+      // Técnica directa: redirección desde el servidor
+      if (req.xhr || req.headers.accept?.includes('application/json')) {
+        // Si es una petición AJAX, enviamos JSON
+        return res.status(200).json({ 
+          success: true, 
+          message: "Sesión cerrada correctamente",
+          redirectTo: "/" 
+        });
+      } else {
+        // Si es una petición normal, redirigimos directamente
+        return res.redirect('/');
+      }
     });
   });
 

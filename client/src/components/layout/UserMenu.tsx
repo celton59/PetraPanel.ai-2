@@ -306,34 +306,21 @@ export function UserMenu({ className }: UserMenuProps) {
             
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem 
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-              onClick={async () => {
-                try {
-                  // Enviamos la petición de logout al servidor
-                  const response = await fetch('/api/logout', {
-                    method: 'POST',
-                    credentials: 'include',
-                  });
-                  
-                  const result = await response.json();
-                  
-                  // Si hay una URL de redirección en la respuesta, la usamos
-                  if (result.redirectTo) {
-                    window.location.replace(result.redirectTo);
-                  } else {
-                    // De lo contrario, utilizamos la redirección por defecto
-                    window.location.replace("/");
-                  }
-                } catch (error) {
-                  // Si hay algún error, simplemente redirigimos al inicio
-                  window.location.replace("/");
-                }
-              }}
+            {/* Usamos un formulario tradicional para el logout */}
+            <form 
+              action="/api/logout" 
+              method="POST" 
+              style={{ margin: 0 }}
+              className="w-full"
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Cerrar Sesión</span>
-            </DropdownMenuItem>
+              <button 
+                type="submit"
+                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </form>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
