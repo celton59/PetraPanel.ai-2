@@ -320,61 +320,6 @@ export class YouTubeService {
     }
   }
 
-  async updateChannelVideos(channelId: string) {
-    try {
-      const videos = await this.getChannelVideos(channelId);
-      console.info(`Fetched ${videos.length} videos for batch update for channel ${channelId}`);
-
-      // No videos to process
-      if (videos.length === 0) {
-        console.info(`No videos to update for channel ${channelId}`);
-
-        // Still update the channel's last fetch time
-        const now = new Date();
-        await db
-          .update(youtube_channels)
-          .set({
-            lastVideoFetch: now,
-            updatedAt: now
-          })
-          .where(eq(youtube_channels.channelId, channelId));
-
-        return { total: 0, success: 0, errors: 0 };
-      }
-
-      // Use the optimized DbUtils function for batch upsert
-      const startTime = Date.now();
-      try {
-        const successCount = await this.upsertYoutubeVideos(videos);
-
-        const queryTime = Date.now() - startTime;
-        if (queryTime > 500) {
-          console.debug(`Slow batch operation detected: ${queryTime}ms for ${videos.length} videos`);
-        }
-
-        console.info(`Successfully processed ${successCount} videos for channel ${channelId}`);
-
-        // Update channel's last fetch time
-        const now = new Date();
-        await db
-          .update(youtube_channels)
-          .set({
-            lastVideoFetch: now,
-            updatedAt: now
-          })
-          .where(eq(youtube_channels.channelId, channelId));
-
-        return { total: videos.length, success: successCount, errors: 0 };
-      } catch (error) {
-        const queryTime = Date.now() - startTime;
-        console.error(`Failed to process videos for channel ${channelId} after ${queryTime}ms: ${error}`);
-        return { total: videos.length, success: 0, errors: videos.length };
-      }
-    } catch (error) {
-      console.error(`Error updating channel videos for ${channelId}: ${error}`);
-      throw new Error('Error al actualizar videos del canal');
-    }
-  }
 }
 
 export const youtubeService = new YouTubeService();

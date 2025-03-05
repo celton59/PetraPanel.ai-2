@@ -18,7 +18,7 @@ import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
 import { setUpVideoRoutes } from "./controllers/videoController";
-import ProjectController from "./controllers/projectController.js";
+import { setUpProjectRoutes } from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 
@@ -160,20 +160,14 @@ export function registerRoutes(app: Express): Server {
 
     // Projects routes
 
-    app.post("/api/projects", requireAuth, ProjectController.createProject);
-    
-    app.get("/api/projects", requireAuth, ProjectController.getProjects);
-
-    app.put("/api/projects/:id", requireAuth, ProjectController.updateProject);
-
-    app.delete("/api/projects/:id", requireAuth, ProjectController.deleteProject);
+    setUpProjectRoutes(requireAuth, app)
 
     // Videos routes
     
     setUpVideoRoutes(requireAuth, app)
 
     // Titulin
-    setUpTitulinRoutes(app)
+    setUpTitulinRoutes(requireAuth, app)
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);

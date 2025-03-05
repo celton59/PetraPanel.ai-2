@@ -11,16 +11,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-
-interface Channel {
-  id: number;
-  name: string;
-  url: string;
-  analyzedVideos?: number;
-  lastVideoFetch?: string;
-  active: boolean;
-  thumbnailUrl?: string;
-}
+import { YoutubeChannel } from "@db/schema";
 
 export default function TitulinTab () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
@@ -28,7 +19,7 @@ export default function TitulinTab () {
   const [syncingChannelId, setSyncingChannelId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: channels = [], isLoading } = useQuery<Channel[]>({
+  const { data: channels = [], isLoading } = useQuery<YoutubeChannel[]>({
     queryKey: ["titulin-channels"],
     queryFn: async () => {
       try {
@@ -42,7 +33,7 @@ export default function TitulinTab () {
     },
   });
 
-  const formatLastUpdate = (dateString?: string) => {
+  function formatLastUpdate (dateString?: string) {
     if (!dateString) return "Nunca";
     try {
       const date = parseISO(dateString);
@@ -75,7 +66,10 @@ export default function TitulinTab () {
 
   const deleteChannelMutation = useMutation({
     mutationFn: async (id: number) => {
-      await axios.delete(`/api/titulin/channels/${id}`);
+      // await axios.delete(`/api/titulin/channels/${id}`);
+      await fetch(`/api/titulin/channels/${id}`, {
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
@@ -88,8 +82,8 @@ export default function TitulinTab () {
   });
 
   const syncChannelMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await axios.post(`/api/titulin/channels/${id}/sync`);
+    mutationFn: async (channelId: string) => {
+      const response = await axios.post(`/api/titulin/channels/${channelId}/sync`);
       return response.data;
     },
     onSuccess: () => {
@@ -115,9 +109,9 @@ export default function TitulinTab () {
     deleteChannelMutation.mutate(id);
   };
 
-  const handleSyncChannel = async (id: number) => {
+  const handleSyncChannel = async (id: number, channelId: string) => {
     setSyncingChannelId(id);
-    syncChannelMutation.mutate(id);
+    syncChannelMutation.mutate(channelId);
   };
 
   if (isLoading) {
@@ -196,9 +190,9 @@ export default function TitulinTab () {
                       {channel.name}
                     </div>
                   </TableCell>
-                  <TableCell>{channel.analyzedVideos || 0}</TableCell>
+                  <TableCell>{channel.videoCount || 0}</TableCell>
                   <TableCell>
-                    {formatLastUpdate(channel.lastVideoFetch)}
+                    {formatLastUpdate(channel.lastVideoFetch as unknown as string | undefined )}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -213,7 +207,7 @@ export default function TitulinTab () {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleSyncChannel(channel.id)}
+                        onClick={() => handleSyncChannel(channel.id, channel.channelId)}
                         disabled={syncingChannelId === channel.id}
                       >
                         {syncingChannelId === channel.id ? (

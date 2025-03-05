@@ -121,6 +121,9 @@ export const youtube_channels = pgTable("youtube_channels", {
    createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   });
+
+export type YoutubeChannel = typeof youtube_channels.$inferSelect;
+
 // Tabla para configurar las tarifas por acción según el rol
 export const actionRates = pgTable("action_rates", {
   id: serial("id").primaryKey(),
@@ -143,7 +146,6 @@ export const actionRates = pgTable("action_rates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-
 export const youtube_videos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
   videoId: text("video_id").notNull().unique(),
@@ -158,13 +160,14 @@ export const youtube_videos = pgTable("youtube_videos", {
   duration: text("duration"),
   tags: text("tags").array(),
   analyzed: boolean("analyzed").default(false),
-  // analysisData: jsonb("analysis_data"),
   sentToOptimize: boolean("sent_to_optimize").default(false),
   sentToOptimizeAt: timestamp("sent_to_optimize_at"),
   sentToOptimizeProjectId: integer("sent_to_optimize_project_id")
     .references(() => projects.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  isEvergreen: boolean("is_evergreen"),
+  evergreenConfidence: numeric("evergreen_confidence")
 });
 
 export type YoutubeVideo = typeof youtube_videos.$inferSelect

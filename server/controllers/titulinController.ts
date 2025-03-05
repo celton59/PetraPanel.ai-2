@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { eq, and, getTableColumns } from "drizzle-orm";
 import {
   youtube_videos,
@@ -119,7 +119,6 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
 
   // Obtener channelId del path
   const { channelId } = req.params;
-  console.log("CHANNEL ID", channelId)
   
   try {
     await db.transaction(async (trx) => {
@@ -134,8 +133,9 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
         .execute();
     });
     
-    console.log("RESPONDIDO")
-    return res.status(200)
+    return res.status(200).json({
+      success: true
+    })
   } catch (error) {
     console.error('Error al eliminar canal', error);
     return res.status(500).json({ 
@@ -145,9 +145,85 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
   }
 }
 
-export function setUpTitulinRoutes (app: Express) {
-  app.post('/api/titulin/channels', addChannel )
-  app.get('/api/titulin/channels', getChannels )
-  app.delete('/api/titulin/channels/:channelId', deleteChannel )
-  app.get('/api/titulin/videos', getVideos )
+async function syncChannel (req: Request, res: Response): Promise<Response> {
+
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para sincronizar canales',
+    });
+  }
+
+  const channelId = req.params.channelId;
+
+  if (!channelId) {
+    return res.status(400).json({
+      success: false,
+      message: 'No se ha especificado el canal',
+    });
+  }
+  
+  try {
+    
+    const now = new Date()
+    const videos = await youtubeService.getChannelVideos(channelId)
+
+    console.info(`Fetched ${videos.length} videos for batch update for channel ${channelId}`);
+
+    // No videos to process
+    if (videos.length === 0) {
+      console.info(`No videos to update for channel ${channelId}`);
+
+      // Still update the channel's last fetch time
+      ;
+      await db
+        .update(youtube_channels)
+        .set({
+          lastVideoFetch: now,
+          updatedAt: now
+        })
+        .where(eq(youtube_channels.channelId, channelId));
+
+    }
+
+    // Use the optimized DbUtils function for batch upsert
+    const startTime = Date.now();
+    const successCount = await youtubeService.upsertYoutubeVideos(videos);
+
+    const queryTime = Date.now() - startTime;
+    if (queryTime > 500) {
+      console.debug(`Slow batch operation detected: ${queryTime}ms for ${videos.length} videos`);
+    }
+
+    console.info(`Successfully processed ${successCount} videos for channel ${channelId}`);
+
+    // Update channel's last fetch time
+    await db
+      .update(youtube_channels)
+      .set({
+        lastVideoFetch: now,
+        updatedAt: now
+      })
+      .where(eq(youtube_channels.channelId, channelId));
+
+    return res.status(200).json({
+      success: true
+    })
+    
+  } catch (error) {
+    console.error('Error adding channel:', error);
+    return res.status(500).json({ 
+      error: 'Error al añadir canal',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+  });
+}
+
+}
+
+export function setUpTitulinRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  app.post('/api/titulin/channels', requireAuth, addChannel )
+  app.get('/api/titulin/channels', requireAuth, getChannels )
+  app.delete('/api/titulin/channels/:channelId', requireAuth, deleteChannel )
+  app.post('/api/titulin/channels/:channelId/sync', requireAuth, syncChannel )
+  app.get('/api/titulin/videos', requireAuth, getVideos )
 }

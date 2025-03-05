@@ -16,48 +16,15 @@ import { Card } from "@/components/ui/card";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectSelector } from "@/components/project/ProjectSelector";
-import { Project } from "@db/schema";
+import { Project, YoutubeChannel, YoutubeVideo } from "@db/schema";
 import { DataTable } from "./DataTable";
-
-
-interface TitulinVideo {
-  id: number;
-  videoId: string;
-  channelId: string;
-  title: string;
-  description: string | null;
-  publishedAt: string | null;
-  thumbnailUrl: string | null;
-  viewCount: number;
-  likeCount: number;
-  commentCount: number;
-  duration: string | null;
-  tags: string[] | null;
-  analyzed: boolean;
-  sentToOptimize: boolean;
-  sentToOptimizeAt: string | null;
-  sentToOptimizeProjectId: number | null;
-  analysisData: {
-    isEvergreen: boolean;
-    confidence: number;
-    reason: string;
-  } | null;
-}
-
-interface Channel {
-  id: number;
-  channelId: string;
-  name: string;
-  lastVideoFetch: string | null;
-}
-
 
 
 export default function TitulinPage() {
   const queryClient = useQueryClient();
   const [titleFilter, setTitleFilter] = useState("");
-  const [channelFilter, setChannelFilter] = useState<string>("all");
-  const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
+  const [channelFilter, setYoutubeChannelFilter] = useState<string>("all");
+  const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null);
 
   const analyzeEvergeenMutation = useMutation({
     mutationFn: async (videoId: number) => {
@@ -88,7 +55,7 @@ export default function TitulinPage() {
     },
   });
 
-  const { data: channels } = useQuery<Channel[]>({
+  const { data: channels } = useQuery<YoutubeChannel[]>({
     queryKey: ["youtube-channels"],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/channels");
@@ -96,15 +63,15 @@ export default function TitulinPage() {
     },
   });
 
-  const filteredVideos = videos?.filter((video: TitulinVideo) => {
+  const filteredVideos: YoutubeVideo[] = videos?.filter((video: YoutubeVideo) => {
     const matchesTitle = video.title.toLowerCase().includes(titleFilter.toLowerCase());
     return matchesTitle;
   }) || [];
 
   // Calculate statistics
   const totalVideos = videos?.length || 0;
-  const viewsCount = videos?.reduce((acc: number, video: TitulinVideo) => acc + (video.viewCount || 0), 0) || 0;
-  const likesCount = videos?.reduce((acc: number, video: TitulinVideo) => acc + (video.likeCount || 0), 0) || 0;
+  const viewsCount = videos?.reduce((acc: number, video: YoutubeVideo) => acc + (video.viewCount || 0), 0) || 0;
+  const likesCount = videos?.reduce((acc: number, video: YoutubeVideo) => acc + (video.likeCount || 0), 0) || 0;
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
@@ -134,17 +101,17 @@ export default function TitulinPage() {
     if (!channels || channels.length === 0) return "No hay canales";
 
     if (channelFilter !== "all") {
-      const selectedChannel = channels.find(c => c.channelId === channelFilter);
-      return selectedChannel ? formatLastUpdate(selectedChannel.lastVideoFetch) : "Canal no encontrado";
+      const selectedYoutubeChannel = channels.find(c => c.channelId === channelFilter);
+      return selectedYoutubeChannel ? formatLastUpdate(selectedYoutubeChannel.lastVideoFetch as unknown as string | null) : "Canal no encontrado";
     }
 
-    const lastUpdate = channels.reduce((latest, channel) => {
+    const lastUpdate = channels.reduce((latest: Date | null, channel) => {
       if (!channel.lastVideoFetch) return latest;
       if (!latest) return channel.lastVideoFetch;
       return channel.lastVideoFetch > latest ? channel.lastVideoFetch : latest;
-    }, null as string | null);
+    }, null);
 
-    return formatLastUpdate(lastUpdate);
+    return formatLastUpdate(lastUpdate as string | null);
   };
 
   const formatDuration = (duration: string | null) => {
@@ -172,12 +139,12 @@ export default function TitulinPage() {
     }
   };
 
-  const getChannelName = (channelId: string) => {
+  const getYoutubeChannelName = (channelId: string) => {
     const channel = channels?.find(c => c.channelId === channelId);
     return channel?.name || channelId;
   };
 
-  const columns: ColumnDef<TitulinVideo>[] = [
+  const columns: ColumnDef<YoutubeVideo>[] = [
     {
       accessorKey: "thumbnailUrl",
       header: "Miniatura",
@@ -233,7 +200,7 @@ export default function TitulinPage() {
       accessorKey: "publishedAt",
       header: "Publicado",
       cell: ({ row }) => (
-        <span>{formatDate(row.original.publishedAt)}</span>
+        <span>{formatDate(row.original.publishedAt as string | null)}</span>
       ),
     },
     {
@@ -248,7 +215,7 @@ export default function TitulinPage() {
       header: "Canal",
       cell: ({ row }) => (
         <div className="max-w-[200px] truncate">
-          {getChannelName(row.original.channelId)}
+          {getYoutubeChannelName(row.original.channelId)}
         </div>
       ),
     },
@@ -277,7 +244,7 @@ export default function TitulinPage() {
           );
         }
 
-        if (!video.analysisData) {
+        if (!video.analyzed) {
           return (
             <Badge variant="outline" className="text-muted-foreground">
               No analizado
@@ -287,11 +254,11 @@ export default function TitulinPage() {
 
         return (
           <div className="space-y-1">
-            <Badge variant={video.analysisData.isEvergreen ? "default" : "secondary"}>
-              {video.analysisData.isEvergreen ? "Evergreen" : "No Evergreen"}
+            <Badge variant={video.isEvergreen ? "default" : "secondary"}>
+              {video.isEvergreen ? "Evergreen" : "No Evergreen"}
             </Badge>
             <div className="text-xs text-muted-foreground">
-              {Math.round(video.analysisData.confidence * 100)}% confianza
+              {Math.round(parseFloat(video.evergreenConfidence ?? '0')  * 100)}% confianza
             </div>
           </div>
         );
@@ -308,7 +275,7 @@ export default function TitulinPage() {
             size="sm"
             onClick={() => setSelectedVideo(video)}
             className="w-full"
-            disabled={video.sentToOptimize}
+            disabled={Boolean(video.sentToOptimize)}
           >
             {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
           </Button>
@@ -330,10 +297,10 @@ export default function TitulinPage() {
       title: video.title,
       views: video.viewCount,
       likes: video.likeCount,
-      published: formatDate(video.publishedAt),
-      channel: getChannelName(video.channelId),
-      isEvergreen: video.analysisData?.isEvergreen ? "Sí" : "No",
-      confidence: video.analysisData ? `${Math.round(video.analysisData.confidence * 100)}%` : "N/A"
+      published: formatDate(video.publishedAt as string | null),
+      channel: getYoutubeChannelName(video.channelId),
+      isEvergreen: video.isEvergreen ? "Sí" : "No",
+      confidence: video.evergreenConfidence ? `${Math.round(parseFloat(video.evergreenConfidence) * 100)}%` : "N/A"
     }));
 
     const headers = ["Título", "Vistas", "Likes", "Fecha de Publicación", "Canal", "Evergreen", "Confianza"];
@@ -436,7 +403,7 @@ export default function TitulinPage() {
 
             <Select
               value={channelFilter}
-              onValueChange={setChannelFilter}
+              onValueChange={setYoutubeChannelFilter}
             >
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Filtrar por canal" />
@@ -453,6 +420,8 @@ export default function TitulinPage() {
           </div>
         </div>
 
+        <p>{filteredVideos.length}</p>
+
         <DataTable columns={columns} data={filteredVideos} />
 
         <SendToOptimizeDialog
@@ -467,7 +436,7 @@ export default function TitulinPage() {
 
 
 interface SendToOptimizeDialogProps {
-  video: TitulinVideo;
+  video: YoutubeVideo;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
