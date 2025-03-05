@@ -148,76 +148,128 @@ export function useNotificationWebSocket() {
   const { addNotification } = useNotifications();
   
   const connect = (userId: number) => {
-    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/ws/notifications?userId=${userId}`);
+    // Control de reintentos
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+    const BASE_RETRY_MS = 2000;
+    let ws: WebSocket | null = null;
     
-    ws.onopen = () => {
-      console.log('Conexión WebSocket de notificaciones establecida');
-    };
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'new_notification':
-            // Convertir notificación del servidor al formato de la tienda
-            addNotification({
-              title: data.data.title,
-              message: data.data.message,
-              type: data.data.type as NotificationType,
-              actionUrl: data.data.actionUrl,
-              actionLabel: data.data.actionLabel,
-              sender: data.data.sender ? {
-                id: data.data.sender.id,
-                name: data.data.sender.fullName || data.data.sender.username,
-                avatar: data.data.sender.avatarUrl
-              } : undefined
-            });
-            break;
-            
-          case 'unread_notifications':
-            // Procesar notificaciones no leídas al conectar
-            data.data.forEach((notification: any) => {
+    // Función para crear la conexión WebSocket
+    const createConnection = () => {
+      // Si existe una conexión previa, cerrarla
+      if (ws) {
+        try {
+          ws.close();
+        } catch (e) {
+          // Ignorar errores al cerrar
+        }
+      }
+      
+      // Crear nueva conexión
+      ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/ws/notifications?userId=${userId}`);
+      
+      ws.onopen = () => {
+        console.log('Conexión WebSocket de notificaciones establecida');
+        // Reiniciar contador de reintentos al conectar exitosamente
+        retryCount = 0;
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          switch (data.type) {
+            case 'new_notification':
+              // Convertir notificación del servidor al formato de la tienda
               addNotification({
-                title: notification.title,
-                message: notification.message,
-                type: notification.type as NotificationType,
-                actionUrl: notification.actionUrl,
-                actionLabel: notification.actionLabel,
-                sender: notification.sender ? {
-                  id: notification.sender.id,
-                  name: notification.sender.fullName || notification.sender.username,
-                  avatar: notification.sender.avatarUrl
+                title: data.data.title,
+                message: data.data.message,
+                type: data.data.type as NotificationType,
+                actionUrl: data.data.actionUrl,
+                actionLabel: data.data.actionLabel,
+                sender: data.data.sender ? {
+                  id: data.data.sender.id,
+                  name: data.data.sender.fullName || data.data.sender.username,
+                  avatar: data.data.sender.avatarUrl
                 } : undefined
               });
-            });
-            break;
-            
-          case 'ping':
-            // Responder al ping del servidor para mantener la conexión
-            ws.send(JSON.stringify({ type: 'pong' }));
-            break;
+              break;
+              
+            case 'unread_notifications':
+              // Procesar notificaciones no leídas al conectar
+              data.data.forEach((notification: any) => {
+                addNotification({
+                  title: notification.title,
+                  message: notification.message,
+                  type: notification.type as NotificationType,
+                  actionUrl: notification.actionUrl,
+                  actionLabel: notification.actionLabel,
+                  sender: notification.sender ? {
+                    id: notification.sender.id,
+                    name: notification.sender.fullName || notification.sender.username,
+                    avatar: notification.sender.avatarUrl
+                  } : undefined
+                });
+              });
+              break;
+              
+            case 'ping':
+              // Responder al ping del servidor para mantener la conexión
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'pong' }));
+              }
+              break;
+          }
+        } catch (error) {
+          console.error('Error al procesar mensaje WebSocket:', error);
         }
-      } catch (error) {
-        console.error('Error al procesar mensaje WebSocket:', error);
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error('Error en WebSocket de notificaciones:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('Conexión WebSocket de notificaciones cerrada');
+      };
       
-      // Reintentar conexión después de un retraso
-      setTimeout(() => {
-        console.log('Reconectando WebSocket de notificaciones...');
-        connect(userId);
-      }, 5000);
+      ws.onerror = (error) => {
+        console.error('Error en WebSocket de notificaciones:', error);
+      };
+      
+      ws.onclose = (event) => {
+        // Solo intentar reconectar si la conexión no fue cerrada intencionalmente
+        if (!event.wasClean) {
+          retryCount++;
+          
+          // Tiempo de espera exponencial con jitter
+          const delay = Math.min(
+            BASE_RETRY_MS * Math.pow(2, retryCount) + Math.random() * 1000,
+            30000 // Máximo 30 segundos
+          );
+          
+          if (retryCount <= MAX_RETRIES) {
+            console.log(`Reconectando en ${Math.round(delay)}ms...`);
+            setTimeout(createConnection, delay);
+          } else {
+            console.log('Demasiados intentos fallidos, usando REST como fallback');
+            // Podríamos configurar un polling por REST aquí
+          }
+        }
+        
+        console.log('Conexión WebSocket de notificaciones cerrada');
+      };
+      
+      return ws;
     };
     
-    return ws;
+    // Iniciar la conexión
+    const connection = createConnection();
+    
+    // Devolver objeto mejorado con métodos adicionales
+    return {
+      close: () => {
+        if (connection && connection.readyState === WebSocket.OPEN) {
+          connection.close(1000, 'Cierre intencional');
+        }
+      },
+      reconnect: () => {
+        createConnection();
+      },
+      connection
+    };
   };
   
   return { connect };
