@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Moon, 
   Sun, 
   Computer, 
   Clock, 
   ChevronDown, 
-  Check
+  Check, 
+  Info
 } from "lucide-react";
 import { 
   Select,
@@ -20,6 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { 
   Popover,
@@ -36,11 +39,31 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 export function ThemeSelector() {
   const { theme, mode, scheduledTime, setTheme, setMode, setScheduledTime } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [tempSchedule, setTempSchedule] = useState(scheduledTime);
+  const [currentTime, setCurrentTime] = useState<string>("");
+  
+  // Update current time every second
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      setCurrentTime(`${hours}:${minutes}`);
+    };
+    
+    // Update immediately
+    updateCurrentTime();
+    
+    // Then update every minute
+    const intervalId = setInterval(updateCurrentTime, 60000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
   
   // Icon mapping for different modes
   const modeIconMap = {
@@ -79,6 +102,14 @@ export function ThemeSelector() {
       default:
         return "Tema";
     }
+  };
+
+  // Format time for display with AM/PM
+  const formatTimeForDisplay = (timeString: string) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
   return (
@@ -184,7 +215,16 @@ export function ThemeSelector() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Programar cambio de tema</DialogTitle>
+                  <DialogDescription>
+                    Establece los horarios para cambiar automáticamente entre el modo claro y oscuro.
+                  </DialogDescription>
                 </DialogHeader>
+
+                <div className="mt-2 p-2 bg-muted rounded-md flex items-center gap-2 text-sm">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span>Hora actual: <Badge variant="outline" className="ml-1 font-mono">{currentTime}</Badge></span>
+                </div>
+                
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="light-start" className="text-right col-span-2">
@@ -211,11 +251,20 @@ export function ThemeSelector() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <Button type="button" onClick={saveSchedule}>
-                    Guardar
-                  </Button>
+
+                <div className="bg-muted/50 p-3 rounded-md text-xs text-muted-foreground">
+                  <p>Con la configuración actual:</p>
+                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                    <li>Modo claro se activará a las <strong>{formatTimeForDisplay(tempSchedule.lightStart)}</strong></li>
+                    <li>Modo oscuro se activará a las <strong>{formatTimeForDisplay(tempSchedule.darkStart)}</strong></li>
+                  </ul>
                 </div>
+                
+                <DialogFooter className="mt-4">
+                  <Button type="button" onClick={saveSchedule}>
+                    Guardar configuración
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
