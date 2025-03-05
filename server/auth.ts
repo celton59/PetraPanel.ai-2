@@ -51,11 +51,12 @@ export function setupAuth(app: Express) {
     next();
   });
   
-  // La configuración base debe ser lo más simple posible para evitar problemas
+  // La configuración de sesión optimizada para formularios tradicionales
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID || "petra-panel-secret",
-    resave: false,
-    saveUninitialized: false,
+    secret: process.env.REPL_ID || "petra-panel-secret-key-optimized",
+    resave: true, // Cambiado a true para forzar resguardar la sesión
+    saveUninitialized: true, // Cambiado para asegurar que la sesión se guarde
+    name: 'petra_session', // Nombre personalizado para evitar detección de bots
     cookie: {
       // SIEMPRE poner secure: false para Cloudflare Flexible SSL
       secure: false,
@@ -66,8 +67,11 @@ export function setupAuth(app: Express) {
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
+      stale: false, // No usar sesiones antiguas
+      ttl: 86400 // 1 día en segundos
     }),
-    proxy: true // Mantener proxy para manejar las cabeceras correctamente
+    proxy: true, // Mantener proxy para manejar las cabeceras correctamente
+    rolling: true // Renovar la cookie en cada petición
   };
 
   app.use(session(sessionSettings));
@@ -78,12 +82,28 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         console.log("Authenticating user:", username);
+        console.log("Authentication type: Traditional Form");
+        
+        // Validación básica de entrada
+        if (!username || !password) {
+          console.error("Missing username or password");
+          return done(null, false, { message: "Nombre de usuario y contraseña son requeridos" });
+        }
+        
+        console.log(`Buscando usuario: ${username}`);
         
         // Buscar usuarios ignorando mayúsculas/minúsculas
         const usersResult = await db
           .select()
           .from(users);
           
+        if (!usersResult || usersResult.length === 0) {
+          console.error("No users found in database");
+          return done(null, false, { message: "No se encontraron usuarios en la base de datos" });
+        }
+        
+        console.log(`Se encontraron ${usersResult.length} usuarios`);
+        
         // Filtrar manualmente para encontrar la coincidencia insensible a mayúsculas/minúsculas
         const user = usersResult.find(u => 
           u.username.toLowerCase() === username.toLowerCase() ||
@@ -92,14 +112,19 @@ export function setupAuth(app: Express) {
         );
 
         if (!user) {
-          return done(null, false, { message: "Incorrect username." });
+          console.error(`Usuario ${username} no encontrado`);
+          return done(null, false, { message: "Usuario no encontrado" });
         }
+        
+        console.log(`Usuario ${username} encontrado, verificando contraseña`);
 
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
-          return done(null, false, { message: "Incorrect password." });
+          console.error(`Contraseña incorrecta para usuario ${username}`);
+          return done(null, false, { message: "Contraseña incorrecta" });
         }
-
+        
+        console.log(`Autenticación exitosa para ${username}`);
         return done(null, user);
       } catch (err) {
         console.error("Authentication error:", err);
@@ -135,49 +160,63 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log("Recibida petición de login:", {
-      contentType: req.headers['content-type'],
-      body: req.body
-    });
+    console.log("=== INICIO DIAGNÓSTICO DE LOGIN ===");
+    console.log("Dirección IP:", req.ip);
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Método de la petición:", req.method);
+    console.log("Tipo de contenido:", req.headers['content-type']);
+    console.log("Cuerpo de la petición:", req.body);
+    console.log("Cookies:", req.headers.cookie);
+    console.log("URL completa:", req.url);
+    console.log("=== FIN DIAGNÓSTICO DE LOGIN ===");
+    
+    // Verificar que los datos del formulario estén presentes
+    if (!req.body || !req.body.username || !req.body.password) {
+      console.error("Error: Faltan datos del formulario");
+      return res.redirect('/?error=missing_form_data');
+    }
     
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
-          return res.status(500).json({ success: false, message: "Error interno del servidor" });
-        } else {
-          return res.redirect('/?error=server_error');
-        }
+        return res.redirect('/?error=server_error');
       }
       
       if (!user) {
         console.error("Credenciales incorrectas:", info?.message);
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
-          return res.status(401).json({ success: false, message: info?.message || "Credenciales incorrectas" });
-        } else {
-          return res.redirect('/?error=invalid_credentials');
-        }
+        return res.redirect('/?error=invalid_credentials');
       }
       
       req.login(user, (loginErr: any) => {
         if (loginErr) {
           console.error("Session error:", loginErr);
-          if (req.xhr || req.headers.accept?.includes('application/json')) {
-            return res.status(500).json({ success: false, message: "Error al crear la sesión" });
-          } else {
-            return res.redirect('/?error=session_error');
-          }
+          return res.redirect('/?error=session_error');
         }
         
         console.log("Login successful for user:", user.username);
-        // Técnica directa: redirección desde el servidor
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
-          // Si es una petición AJAX, enviamos JSON
-          return res.status(200).json({ success: true, redirectTo: "/" });
-        } else {
-          // Si es una petición normal, redirigimos directamente
+        console.log("Session ID:", req.sessionID);
+        console.log("Cookie settings:", req.session.cookie);
+        
+        // Asegurar que la cookie de sesión se establezca correctamente
+        // Configurar opciones de cookie manualmente
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 días
+        req.session.cookie.httpOnly = true;
+        req.session.cookie.secure = false; // Importante para Cloudflare Flexible
+        req.session.cookie.path = '/';
+        
+        // Guardar la sesión explícitamente
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error al guardar la sesión:", err);
+            return res.redirect('/?error=session_save_error');
+          }
+          
+          console.log("Sesión guardada correctamente");
+          console.log("Redirigiendo a /");
+          
+          // Redirección directa (sin JSON para formularios tradicionales)
           return res.redirect('/');
-        }
+        });
       });
     })(req, res, next);
   });
@@ -217,26 +256,33 @@ export function setupAuth(app: Express) {
   // });
 
   app.post("/api/logout", (req, res) => {
+    console.log("=== INICIO DIAGNÓSTICO DE LOGOUT ===");
+    console.log("Dirección IP:", req.ip);
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Método de la petición:", req.method);
+    console.log("Tipo de contenido:", req.headers['content-type']);
+    console.log("Cookies:", req.headers.cookie);
+    console.log("URL completa:", req.url);
+    console.log("Usuario autenticado:", req.isAuthenticated());
+    console.log("=== FIN DIAGNÓSTICO DE LOGOUT ===");
+    
     const username = req.user?.username;
+    console.log("Cerrando sesión para usuario:", username);
+    
     req.logout((err) => {
       if (err) {
         console.error("Logout error for user:", username, err);
-        return res.status(500).json({ success: false, message: "Error al cerrar sesión" });
+        return res.redirect('/?error=logout_error');
       }
-      console.log("User logged out successfully:", username);
       
-      // Técnica directa: redirección desde el servidor
-      if (req.xhr || req.headers.accept?.includes('application/json')) {
-        // Si es una petición AJAX, enviamos JSON
-        return res.status(200).json({ 
-          success: true, 
-          message: "Sesión cerrada correctamente",
-          redirectTo: "/" 
-        });
-      } else {
-        // Si es una petición normal, redirigimos directamente
-        return res.redirect('/');
-      }
+      console.log("User logged out successfully:", username);
+      console.log("Redirigiendo al inicio después del logout");
+      
+      // Limpiar la cookie de sesión
+      res.clearCookie('connect.sid');
+      
+      // Simplificar usando solo redirección directa
+      return res.redirect('/');
     });
   });
 

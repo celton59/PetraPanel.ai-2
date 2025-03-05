@@ -90,13 +90,8 @@ export default function AuthPage() {
               method="POST" 
               className="space-y-6"
               onSubmit={(e) => {
-                const isValid = form.formState.isValid;
-                if (!isValid) {
-                  e.preventDefault();
-                  form.handleSubmit(onSubmit)(e);
-                } else {
-                  setIsLoading(true);
-                }
+                // Siempre mostramos el indicador de carga cuando se envía el formulario
+                setIsLoading(true);
               }}
             >
               <div className="space-y-2">
@@ -174,6 +169,21 @@ export default function AuthPage() {
                   </>
                 )}
               </Button>
+              
+              {/* Elemento para capturar errores de URL */}
+              {window.location.search.includes('error=') && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded text-red-600 text-sm">
+                  {window.location.search.includes('error=invalid_credentials') && (
+                    <p>Nombre de usuario o contraseña incorrectos.</p>
+                  )}
+                  {window.location.search.includes('error=server_error') && (
+                    <p>Error del servidor. Inténtalo de nuevo más tarde.</p>
+                  )}
+                  {window.location.search.includes('error=session_error') && (
+                    <p>Error al crear la sesión. Inténtalo de nuevo.</p>
+                  )}
+                </div>
+              )}
             </form>
           </CardContent>
           
