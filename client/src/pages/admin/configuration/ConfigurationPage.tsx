@@ -7,6 +7,7 @@ import { ProjectsTab } from "./tabs/project/ProjectsTab";
 import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
 import { RatesTab } from "../accounting/RatesTab";
 import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
+import TitulinTab from "./tabs/titulin/TitulinTab";
 
 /**
  * Página de configuración del administrador que contiene diferentes pestañas
@@ -33,6 +34,7 @@ export default function ConfigurationPage() {
           <TabsList className="w-full justify-start h-12 mb-8">
             <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
             <TabsTrigger value="proyectos">Proyectos</TabsTrigger>
+            <TabsTrigger value="titulin">Titulín</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="workflow">Flujo de trabajo</TabsTrigger>
             <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
@@ -45,6 +47,10 @@ export default function ConfigurationPage() {
           
           <TabsContent value="proyectos" className="space-y-4">
             <ProjectsTab />
+          </TabsContent>
+
+          <TabsContent value="titulin" className="space-y-4">
+            <TitulinTab />
           </TabsContent>
           
           <TabsContent value="roles" className="space-y-4">
