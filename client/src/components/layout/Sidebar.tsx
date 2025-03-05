@@ -27,8 +27,7 @@ export function Sidebar({ className }: SidebarProps) {
     { icon: Leaf, label: "Titulin", path: "/titulin" },
     { icon: Languages, label: "Traductor", path: "/traductor", tooltip: "Traductor de videos" },
     ...(isAdmin ? [
-      { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" },
-      { icon: Bell, label: "Notificaciones", path: "/admin/notifications", tooltip: "Gestión de notificaciones" }
+      { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" }
     ] : []),
   ];
 
