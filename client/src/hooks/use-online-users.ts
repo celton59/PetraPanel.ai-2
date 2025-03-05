@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from './use-user';
+import axios from 'axios';
 
 export interface OnlineUser {
   userId: number;
@@ -15,11 +16,28 @@ export function useOnlineUsers() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useRestFallback, setUseRestFallback] = useState(false);
   const { user } = useUser();
   
   // Referencias para mantener estado entre renders
   const wsRef = useRef<WebSocket | null>(null);
   const heartbeatIntervalRef = useRef<number | null>(null);
+  const restFallbackIntervalRef = useRef<number | null>(null);
+  
+  // Función para obtener usuarios activos mediante API REST
+  const fetchOnlineUsersRest = async () => {
+    try {
+      const response = await axios.get('/api/online-users');
+      if (response.data.success && Array.isArray(response.data.data)) {
+        setOnlineUsers(response.data.data);
+        setIsConnected(true);
+        setError(null);
+      }
+    } catch (err) {
+      console.error('Error al obtener usuarios en línea vía REST:', err);
+      setError('Error al actualizar usuarios activos');
+    }
+  };
   
   useEffect(() => {
     const connectToWebsocket = () => {
@@ -51,6 +69,7 @@ export function useOnlineUsers() {
           console.log('Conexión WebSocket establecida');
           setIsConnected(true);
           setIsConnecting(false);
+          setUseRestFallback(false);
           
           // Enviar información de inicio de sesión
           socket.send(JSON.stringify({
@@ -101,14 +120,18 @@ export function useOnlineUsers() {
             heartbeatIntervalRef.current = null;
           }
           
+          // Cambiar a modo REST si hay muchos intentos fallidos
+          setUseRestFallback(true);
+          
           // Intentar reconectar después de un tiempo
           setTimeout(connectToWebsocket, 5000);
         };
         
         socket.onerror = (e) => {
           console.error('Error en conexión WebSocket:', e);
-          setError('Error en la conexión. Reconectando...');
+          setError('Error en la conexión. Usando alternativa...');
           setIsConnected(false);
+          setUseRestFallback(true);
           
           // El evento onclose se disparará automáticamente
         };
@@ -117,12 +140,32 @@ export function useOnlineUsers() {
         setError('Error al conectar con el servidor');
         setIsConnected(false);
         setIsConnecting(false);
+        setUseRestFallback(true);
       }
+    };
+    
+    // Iniciar modo REST si WebSocket falla
+    const setupRestFallback = () => {
+      // Limpiar intervalo existente si hay
+      if (restFallbackIntervalRef.current) {
+        window.clearInterval(restFallbackIntervalRef.current);
+        restFallbackIntervalRef.current = null;
+      }
+      
+      // Obtener datos inmediatamente
+      fetchOnlineUsersRest();
+      
+      // Configurar intervalo para actualizaciones periódicas
+      restFallbackIntervalRef.current = window.setInterval(fetchOnlineUsersRest, 30000); // cada 30 segundos
     };
     
     // Conectar solo si hay un usuario autenticado
     if (user?.id) {
-      connectToWebsocket();
+      if (useRestFallback) {
+        setupRestFallback();
+      } else {
+        connectToWebsocket();
+      }
     } else {
       // Desconectar si no hay usuario
       if (wsRef.current) {
@@ -133,6 +176,11 @@ export function useOnlineUsers() {
       if (heartbeatIntervalRef.current) {
         window.clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
+      }
+      
+      if (restFallbackIntervalRef.current) {
+        window.clearInterval(restFallbackIntervalRef.current);
+        restFallbackIntervalRef.current = null;
       }
       
       setIsConnected(false);
@@ -150,13 +198,19 @@ export function useOnlineUsers() {
         window.clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
       }
+      
+      if (restFallbackIntervalRef.current) {
+        window.clearInterval(restFallbackIntervalRef.current);
+        restFallbackIntervalRef.current = null;
+      }
     };
-  }, [user?.id]);
+  }, [user?.id, useRestFallback]);
   
   return {
     onlineUsers,
     isConnected,
     isConnecting,
-    error
+    error,
+    usingFallback: useRestFallback
   };
 }

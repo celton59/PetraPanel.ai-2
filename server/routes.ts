@@ -15,6 +15,7 @@ import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
+import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
 import VideoController from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
@@ -905,6 +906,36 @@ export function registerRoutes(app: Express): Server {
         res.status(500).json({
           success: false,
           message: "Error al obtener estadísticas del usuario"
+        });
+      }
+    });
+
+    // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
+    app.get("/api/online-users", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const onlineUsersService = getOnlineUsersService();
+        if (!onlineUsersService) {
+          return res.status(503).json({
+            success: false,
+            message: "El servicio de usuarios en línea no está disponible"
+          });
+        }
+
+        // Registra la actividad del usuario actual mediante REST
+        if (req.user) {
+          onlineUsersService.registerUserActivity(req.user);
+        }
+
+        const activeUsers = onlineUsersService.getActiveUsers();
+        res.json({
+          success: true,
+          data: activeUsers
+        });
+      } catch (error) {
+        console.error("Error fetching online users:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener usuarios en línea"
         });
       }
     });
