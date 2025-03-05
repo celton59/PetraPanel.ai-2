@@ -1,4 +1,4 @@
-import { BarChart, Home, Languages, Leaf, Menu, Settings, Video, Shield } from "lucide-react";
+import { BarChart, Home, Languages, Leaf, Menu, Search, Settings, Video, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -8,6 +8,7 @@ import { useUser } from "@/hooks/use-user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AnimatedLogo } from "./AnimatedLogo";
 import { LogoWithBlink } from "./LogoWithBlink";
+import { SearchButton } from "@/components/global-search";
 
 interface SidebarProps {
   className?: string;
@@ -138,6 +139,9 @@ export function Sidebar({ className }: SidebarProps) {
                   </div>
                 </div>
                 <div className="flex-1 p-4">
+                  <div className="mb-4">
+                    <SearchButton variant="outline" className="w-full justify-start" />
+                  </div>
                   <NavLinks />
                 </div>
                 <div className="p-4 border-t bg-muted/30 text-xs text-center text-muted-foreground">

@@ -104,7 +104,7 @@ export function GlobalSearch() {
   // Filtrar resultados según la pestaña activa
   const getFilteredResults = () => {
     if (activeTab === 'all') return results;
-    return results.filter(item => item.type === activeTab);
+    return results.filter((item: SearchItem) => item.type === activeTab as SearchItemType);
   };
   
   // Obtener resultados agrupados por tipo
@@ -250,7 +250,7 @@ export function GlobalSearch() {
                       ) : (
                         // Mostrar resultados filtrados por tipo
                         <CommandGroup>
-                          {getFilteredResults().map(item => (
+                          {getFilteredResults().map((item: SearchItem) => (
                             <SearchResultItem 
                               key={`${item.type}-${item.id}`}
                               item={item} 
@@ -301,7 +301,7 @@ export function GlobalSearch() {
                   {/* Elementos visitados recientemente */}
                   {recentlyVisited.length > 0 && (
                     <CommandGroup heading="Visitados recientemente">
-                      {recentlyVisited.map((item) => (
+                      {recentlyVisited.map((item: SearchItem) => (
                         <SearchResultItem 
                           key={`recent-${item.type}-${item.id}`}
                           item={item} 
