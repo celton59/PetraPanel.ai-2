@@ -142,8 +142,10 @@ export function useGlobalSearch() {
         await new Promise(resolve => setTimeout(resolve, 300));
         
         // Realizar la búsqueda a través del endpoint /api/search
+        // Asegurarse de enviar las cookies de sesión para autenticación
         const response = await axios.get('/api/search', {
-          params: { q: query }
+          params: { q: query },
+          withCredentials: true
         });
         
         return response.data;
@@ -174,67 +176,8 @@ export function useGlobalSearch() {
     setOpen(false);
   };
   
-  // Mock de datos para desarrollo mientras no tengamos endpoint
-  const getMockResults = (): SearchItem[] => {
-    if (!shouldSearch) return [];
-    
-    const lowerQuery = query.toLowerCase();
-    
-    // Resultados de prueba con tipos correctos
-    const mockData: SearchItem[] = [
-      {
-        id: 1,
-        title: 'Cómo optimizar videos para YouTube',
-        subtitle: 'Tutorial de SEO',
-        type: 'video',
-        url: '/videos/1',
-        thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video1',
-        status: 'completed',
-        tags: ['tutorial', 'seo', 'youtube']
-      },
-      {
-        id: 2,
-        title: 'Los mejores plugins para WordPress 2025',
-        subtitle: 'Guía completa',
-        type: 'video',
-        url: '/videos/2',
-        thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video2',
-        status: 'content_review',
-        tags: ['wordpress', 'plugins', 'web']
-      },
-      {
-        id: 1,
-        title: 'Marketing Digital',
-        type: 'project',
-        url: '/projects/1',
-        icon: '💼',
-      },
-      {
-        id: 2,
-        title: 'Tutoriales de código',
-        type: 'project',
-        url: '/projects/2',
-        icon: '💻',
-      },
-      {
-        id: 1,
-        title: 'Ana González',
-        subtitle: 'Diseñadora UX',
-        type: 'user',
-        url: '/users/1',
-        thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
-      }
-    ];
-    
-    return mockData.filter(item => 
-      item.title.toLowerCase().includes(lowerQuery) || 
-      item.subtitle?.toLowerCase().includes(lowerQuery) ||
-      item.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))
-    );
-  };
-  
-  // Usar datos reales cuando tengamos el endpoint, mientras tanto usar mock
-  const results = searchResults.data?.results || getMockResults();
+  // Usar los resultados de la API
+  const results = searchResults.data?.results || [];
   const isLoading = searchResults.isLoading;
   
   return {

@@ -926,6 +926,111 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
+    
+    // Endpoint para búsqueda global
+    app.get("/api/search", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const query = (req.query.q as string || '').toLowerCase();
+        
+        // Si no hay query, devolver resultados vacíos
+        if (!query || query.length < 2) {
+          return res.json({ results: [] });
+        }
+        
+        // Simulación de resultados de búsqueda (mock)
+        const results = [
+          // Videos
+          {
+            id: 1,
+            title: 'Cómo optimizar videos para YouTube',
+            subtitle: 'Tutorial SEO',
+            type: 'video',
+            url: '/videos/1',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video1',
+            status: 'completed',
+            tags: ['tutorial', 'seo', 'youtube']
+          },
+          {
+            id: 2,
+            title: 'Los mejores plugins para WordPress 2025',
+            subtitle: 'Guía completa',
+            type: 'video',
+            url: '/videos/2',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video2',
+            status: 'content_review',
+            tags: ['wordpress', 'plugins', 'web']
+          },
+          // Proyectos
+          {
+            id: 1,
+            title: 'Marketing Digital',
+            type: 'project',
+            url: '/projects/1',
+            icon: '💼',
+          },
+          {
+            id: 2,
+            title: 'Tutoriales de código',
+            type: 'project',
+            url: '/projects/2',
+            icon: '💻',
+          },
+          // Usuarios
+          {
+            id: 1,
+            title: 'Ana González',
+            subtitle: 'Diseñadora UX',
+            type: 'user',
+            url: '/users/1',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
+          },
+          {
+            id: 2,
+            title: 'Carlos Martínez',
+            subtitle: 'Editor de video',
+            type: 'user',
+            url: '/users/2',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
+          },
+          // Canales
+          {
+            id: 1,
+            title: 'TechTutorials',
+            subtitle: 'Canal YouTube',
+            type: 'channel',
+            url: '/titulin/channels/1',
+            icon: '📺',
+          },
+          // Configuración
+          {
+            id: 1,
+            title: 'Ajustes de perfil',
+            type: 'settings',
+            url: '/profile',
+            icon: '⚙️',
+          },
+          {
+            id: 2,
+            title: 'Configuración de notificaciones',
+            type: 'settings',
+            url: '/settings/notifications',
+            icon: '🔔',
+          }
+        ];
+        
+        // Filtrar resultados según query
+        const filteredResults = results.filter(item => 
+          item.title.toLowerCase().includes(query) || 
+          (item.subtitle && item.subtitle.toLowerCase().includes(query)) ||
+          (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+        );
+        
+        return res.json({ results: filteredResults });
+      } catch (error) {
+        console.error('Error en búsqueda global:', error);
+        return res.status(500).json({ success: false, message: 'Error al realizar la búsqueda' });
+      }
+    });
 
     const httpServer = createServer(app);
     return httpServer;
