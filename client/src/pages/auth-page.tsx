@@ -89,8 +89,8 @@ export default function AuthPage() {
         // Mostrar mensaje de éxito
         toast.success('Inicio de sesión exitoso');
         
-        // Actualizar el estado del usuario
-        window.location.href = '/';
+        // Redirección más rápida usando replace
+        window.location.replace('/');
       }
     } catch (error: any) {
       console.error('Error de inicio de sesión:', error);
@@ -102,7 +102,7 @@ export default function AuthPage() {
         setError('Error al conectar con el servidor');
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false);lse);
     }
   };
 

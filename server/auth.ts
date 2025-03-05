@@ -244,45 +244,27 @@ export function setupAuth(app: Express) {
         req.session.cookie.secure = false; // Importante para Cloudflare Flexible
         req.session.cookie.path = '/';
         
-        // Guardar la sesión explícitamente
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error al guardar la sesión:", err);
-            
-            // Detectar si es una petición JSON
-            const isJsonRequest = req.headers['content-type']?.includes('application/json');
-            
-            if (isJsonRequest) {
-              return res.status(500).json({ 
-                success: false, 
-                message: "Error al guardar la sesión" 
-              });
-            } else {
-              return res.redirect('/?error=session_save_error');
+        // Sesión guardada 
+        console.log("Sesión establecida correctamente");
+        
+        // Detectar si es una petición JSON
+        const isJsonRequest = req.headers['content-type']?.includes('application/json');
+        
+        if (isJsonRequest) {
+          return res.status(200).json({ 
+            success: true, 
+            message: "Inicio de sesión exitoso",
+            user: {
+              id: user.id,
+              username: user.username,
+              role: user.role,
+              fullName: user.fullName
             }
-          }
-          
-          console.log("Sesión guardada correctamente");
-          
-          // Detectar si es una petición JSON
-          const isJsonRequest = req.headers['content-type']?.includes('application/json');
-          
-          if (isJsonRequest) {
-            return res.status(200).json({ 
-              success: true, 
-              message: "Inicio de sesión exitoso",
-              user: {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-                fullName: user.fullName
-              }
-            });
-          } else {
-            // Para formularios tradicionales
-            return res.redirect('/');
-          }
-        });
+          });
+        } else {
+          // Para formularios tradicionales, redirección inmediata
+          return res.redirect('/');
+        }
       });
     })(req, res, next);
   });
