@@ -1,12 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useState } from "react";
-import { UsersTab } from "@/pages/settings/tabs/users/UsersTab";
-import { RolesTab } from "@/pages/settings/tabs/roles/RolesTab";
-import { ProjectsTab } from "@/pages/settings/tabs/project/ProjectsTab";
-import { VideoFlowTab } from "@/pages/settings/tabs/workflow/VideoFlowTab";
-import { RatesTab } from "@/pages/settings/tabs/accounting/RatesTab";
-import { FinanceConfigTab } from "@/pages/settings/tabs/accounting/FinanceConfigTab";
+import { UsersTab } from "./tabs/users/UsersTab";
+import { RolesTab } from "./tabs/roles/RolesTab";
+import { ProjectsTab } from "./tabs/project/ProjectsTab";
+import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
+import { RatesTab } from "../accounting/RatesTab";
+import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
 
 /**
  * Página de configuración del administrador que contiene diferentes pestañas

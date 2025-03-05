@@ -9,7 +9,6 @@ import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import VideosPage from "@/pages/videos/VideosPage";
-import StatsPage from "@/pages/stats/StatsPage.new";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
@@ -19,8 +18,8 @@ import TitulinPage from "./pages/titulin/TitulinPage";
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
 import AdminStatsPage from "@/pages/admin/StatsPage";
-import AccountingPage from "@/pages/admin/AccountingPage";
-import ConfigurationPage from "@/pages/admin/ConfigurationPage";
+import AccountingPage from "@/pages/admin/accounting/AccountingPage";
+import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -55,7 +54,6 @@ function Router() {
       <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
-      <Route path="/estadisticas" component={() => <ProtectedRoute component={StatsPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       
       {/* Rutas de administración - solo accesibles para administradores */}

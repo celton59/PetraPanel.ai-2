@@ -4,14 +4,13 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { PaymentIcon, MoneyIcon, TasksIcon, PendingIcon } from "@/components/CustomIcons";
 import StatsCard from "@/components/StatsCard";
 import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon } from "lucide-react";
 import ActionCard from '@/components/ActionCard';
-import { RolesTab } from '@/pages/settings/tabs/roles/RolesTab';
-import { UsersTab } from '@/pages/settings/tabs/users/UsersTab';
-import { ProjectsTab } from '@/pages/settings/tabs/project/ProjectsTab';
+import { RolesTab } from './configuration/tabs/roles/RolesTab';
+import { UsersTab } from './configuration/tabs/users/UsersTab';
+import { ProjectsTab } from './configuration/tabs/project/ProjectsTab';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');

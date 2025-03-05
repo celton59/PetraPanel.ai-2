@@ -1,9 +1,9 @@
 import React from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AccountingMetrics } from '@/pages/settings/tabs/accounting/AccountingMetrics';
-import { PaymentsTab } from '@/pages/settings/tabs/accounting/PaymentsTab';
-import { ReportsTab } from '@/pages/settings/tabs/accounting/ReportsTab';
+import { AccountingMetrics } from './AccountingMetrics';
+import { PaymentsTab } from './PaymentsTab';
+import { ReportsTab } from './ReportsTab';
 
 export default function AccountingPage() {
   return (
