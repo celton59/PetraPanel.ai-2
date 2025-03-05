@@ -20,6 +20,7 @@ import AdminPage from "@/pages/admin/AdminPage";
 import AdminStatsPage from "@/pages/admin/StatsPage";
 import AccountingPage from "@/pages/admin/accounting/AccountingPage";
 import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
+import NotificationsAdminPage from "@/pages/admin/notifications/NotificationsAdminPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -63,6 +64,7 @@ function Router() {
           <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
           <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
           <Route path="/admin/configuration" component={() => <ProtectedRoute component={ConfigurationPage} />} />
+          <Route path="/admin/notifications" component={() => <ProtectedRoute component={NotificationsAdminPage} />} />
         </>
       )}
       
