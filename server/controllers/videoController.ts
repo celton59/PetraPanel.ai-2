@@ -14,7 +14,7 @@ import {
 import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
-import { s3, PutObjectCommand, getSignedUrl } from "../lib/s3"
+import { s3, PutObjectCommand, getSignedUrl } from "../services/s3"
 import { type Express } from "express";
 import multer from "multer";
 
