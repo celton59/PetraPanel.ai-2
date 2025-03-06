@@ -75,18 +75,14 @@ export function ImagePreview({
         {/* Skeleton loader */}
         {isLoading && showPlaceholder && (
           <div className="absolute inset-0 z-10 bg-muted flex items-center justify-center">
-            <div className="bg-muted-foreground/20 rounded-full p-4">
-              <IoImageOutline className="h-12 w-12 text-muted-foreground" />
-            </div>
+            <IoImageOutline className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
 
         {/* Error state */}
         {isError && showPlaceholder && (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <div className="bg-muted-foreground/20 rounded-full p-4">
-              <IoImageOutline className="h-12 w-12 text-muted-foreground" />
-            </div>
+            <IoImageOutline className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
 
@@ -110,9 +106,7 @@ export function ImagePreview({
           />
         ) : !isError && showPlaceholder ? (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <div className="bg-muted-foreground/20 rounded-full p-4">
-              <IoImageOutline className="h-12 w-12 text-muted-foreground" />
-            </div>
+            <IoImageOutline className="h-10 w-10 text-muted-foreground/30" />
           </div>
         ) : null}
 
