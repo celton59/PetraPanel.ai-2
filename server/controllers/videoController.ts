@@ -433,15 +433,64 @@ async function uploadThumbnail(
 
     const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
 
-    // Si es una miniatura, procesarla con sharp
-    const processedImage = await sharp(file.buffer).resize(1280, 720).toBuffer();
+    // Si es una miniatura, procesarla con sharp en diferentes resoluciones
+    // Crear versión optimizada para tamaño completo (1280x720)
+    const processedImageFull = await sharp(file.buffer)
+      .resize({ 
+        width: 1280, 
+        height: 720, 
+        fit: 'cover',
+        position: 'centre'
+      })
+      .jpeg({ quality: 90, progressive: true })
+      .toBuffer();
 
-    // Subir la miniatura procesada al bucket
-    await s3.send(new PutObjectCommand({
-      Bucket: bucketName,
-      Key: objectKey,
-      Body: processedImage
-    }));
+    // Crear versión para vista previa (640x360)
+    const processedImagePreview = await sharp(file.buffer)
+      .resize({ 
+        width: 640, 
+        height: 360, 
+        fit: 'cover',
+        position: 'centre'
+      })
+      .jpeg({ quality: 85, progressive: true })
+      .toBuffer();
+
+    // Crear versión thumbnail para listas (320x180)
+    const processedImageThumb = await sharp(file.buffer)
+      .resize({ 
+        width: 320, 
+        height: 180, 
+        fit: 'cover',
+        position: 'centre'
+      })
+      .jpeg({ quality: 80, progressive: true })
+      .toBuffer();
+
+    // Extraer metadatos de la imagen
+    const metadata = await sharp(file.buffer).metadata();
+
+    // Subir la miniatura procesada en sus diferentes versiones al bucket
+    await Promise.all([
+      s3.send(new PutObjectCommand({
+        Bucket: bucketName,
+        Key: objectKey,
+        Body: processedImageFull,
+        ContentType: 'image/jpeg'
+      })),
+      s3.send(new PutObjectCommand({
+        Bucket: bucketName,
+        Key: objectKey.replace('.jpg', '_preview.jpg'),
+        Body: processedImagePreview,
+        ContentType: 'image/jpeg'
+      })),
+      s3.send(new PutObjectCommand({
+        Bucket: bucketName,
+        Key: objectKey.replace('.jpg', '_thumb.jpg'),
+        Body: processedImageThumb,
+        ContentType: 'image/jpeg'
+      }))
+    ]);
 
     await db
     .update(videos)
