@@ -1,8 +1,9 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
+import { Loader2, Search, Youtube, PlayCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -18,131 +19,116 @@ import { toast } from "sonner";
 import { ProjectSelector } from "@/components/project/ProjectSelector";
 import { Project, YoutubeChannel, YoutubeVideo } from "@db/schema";
 import { DataTable } from "./DataTable";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 
+// Interfaz para los datos de paginación
+interface PaginationMetadata {
+  page: number;
+  limit: number;
+  totalVideos: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+// Interfaz para la respuesta del servidor
+interface VideosResponse {
+  videos: YoutubeVideo[];
+  pagination: PaginationMetadata;
+}
 
 export default function TitulinPage() {
   const queryClient = useQueryClient();
   const [titleFilter, setTitleFilter] = useState("");
   const [channelFilter, setYoutubeChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null);
+  const [targetProjectId, setTargetProjectId] = useState<number | null>(null);
+  const [_, setLocation] = useWouterLocation();
+  
+  // Estado para la paginación
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [paginationMetadata, setPaginationMetadata] = useState<PaginationMetadata | null>(null);
 
-  const analyzeEvergeenMutation = useMutation({
-    mutationFn: async (videoId: number) => {
-      const response = await axios.post(`/api/titulin/videos/${videoId}/analyze`);
-      return response.data;
+  // Consultar canales
+  const { data: channels, isLoading: isLoadingChannels } = useQuery({
+    queryKey: ["youtube-channels"],
+    queryFn: async () => {
+      const { data } = await axios.get<YoutubeChannel[]>("/api/titulin/channels");
+      return data;
+    },
+  });
+
+  // Consultar todos los proyectos
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data } = await axios.get<Project[]>("/api/projects");
+      return data;
+    },
+  });
+
+  // Consultar videos con paginación
+  const {
+    data: videosData,
+    isLoading: isLoadingVideos,
+    isFetching: isFetchingVideos,
+  } = useQuery({
+    queryKey: ["youtube-videos", channelFilter, page, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      
+      // Añadir parámetros de paginación
+      params.append("page", page.toString());
+      params.append("limit", limit.toString());
+      
+      // Añadir filtro de canal si es necesario
+      if (channelFilter !== "all") {
+        params.append("channelId", channelFilter);
+      }
+
+      const { data } = await axios.get<VideosResponse>(`/api/titulin/videos?${params.toString()}`);
+      
+      // Guardar los metadatos de paginación
+      setPaginationMetadata(data.pagination);
+      
+      return data;
+    },
+  });
+
+  const videos = videosData?.videos || [];
+
+  // Mutación para enviar video a optimizar
+  const sendToOptimize = useMutation({
+    mutationFn: async ({ videoId, projectId }: { videoId: number; projectId: number }) => {
+      const { data } = await axios.post(`/api/titulin/send-to-optimize`, {
+        videoId,
+        projectId,
+      });
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
-      toast.success("Análisis completado", {
-        description: "El video ha sido analizado correctamente"
-      });
+      toast.success("¡Video enviado a optimizar con éxito!");
+      setSelectedVideo(null);
     },
     onError: (error) => {
-      console.error("Error analyzing video:", error);
-      toast.error("Error", {
-        description: "No se pudo analizar el video",
-      });
-    }
-  });
-
-  const { data: videos, isLoading } = useQuery({
-    queryKey: ["youtube-videos", channelFilter],
-    queryFn: async () => {
-      const response = await axios.get("/api/titulin/videos", {
-        params: channelFilter !== "all" ? { channelId: channelFilter } : undefined
-      });
-      return response.data;
+      console.error("Error al enviar a optimizar:", error);
+      toast.error("Error al enviar el video a optimizar");
     },
   });
 
-  const { data: channels } = useQuery<YoutubeChannel[]>({
-    queryKey: ["youtube-channels"],
-    queryFn: async () => {
-      const response = await axios.get("/api/titulin/channels");
-      return response.data;
-    },
-  });
-
-  const filteredVideos: YoutubeVideo[] = videos?.filter((video: YoutubeVideo) => {
-    const matchesTitle = video.title.toLowerCase().includes(titleFilter.toLowerCase());
-    return matchesTitle;
-  }) || [];
-
-  // Calculate statistics
-  const totalVideos = videos?.length || 0;
-  const viewsCount = videos?.reduce((acc: number, video: YoutubeVideo) => acc + (video.viewCount || 0), 0) || 0;
-  const likesCount = videos?.reduce((acc: number, video: YoutubeVideo) => acc + (video.likeCount || 0), 0) || 0;
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "-";
-    try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return "-";
-      return format(date, "PPp", { locale: es });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "-";
-    }
-  };
-
-  const formatLastUpdate = (dateString: string | null) => {
-    if (!dateString) return "No hay datos";
-    try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return "Fecha inválida";
-      return `Hace ${formatDistanceToNow(date, { locale: es })}`;
-    } catch (error) {
-      console.error("Error formatting last update:", error);
-      return "Error en fecha";
-    }
-  };
-
-  const getLastUpdateInfo = () => {
-    if (!channels || channels.length === 0) return "No hay canales";
-
-    if (channelFilter !== "all") {
-      const selectedYoutubeChannel = channels.find(c => c.channelId === channelFilter);
-      return selectedYoutubeChannel ? formatLastUpdate(selectedYoutubeChannel.lastVideoFetch as unknown as string | null) : "Canal no encontrado";
-    }
-
-    const lastUpdate = channels.reduce((latest: Date | null, channel) => {
-      if (!channel.lastVideoFetch) return latest;
-      if (!latest) return channel.lastVideoFetch;
-      return channel.lastVideoFetch > latest ? channel.lastVideoFetch : latest;
-    }, null);
-
-    return formatLastUpdate(lastUpdate as string | null);
-  };
-
-  const formatDuration = (duration: string | null) => {
-    if (!duration) return "-";
-
-    try {
-      const hours = duration.match(/(\d+)H/)?.[1];
-      const minutes = duration.match(/(\d+)M/)?.[1];
-      const seconds = duration.match(/(\d+)S/)?.[1];
-
-      const h = parseInt(hours || "0");
-      const m = parseInt(minutes || "0");
-      const s = parseInt(seconds || "0");
-
-      if (h > 0) {
-        return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-      }
-      if (m > 0) {
-        return `${m}:${s.toString().padStart(2, "0")}`;
-      }
-      return `0:${s.toString().padStart(2, "0")}`;
-    } catch (error) {
-      console.error("Error formatting duration:", error);
-      return "-";
-    }
-  };
-
-  const getYoutubeChannelName = (channelId: string) => {
-    const channel = channels?.find(c => c.channelId === channelId);
-    return channel?.name || channelId;
-  };
+  const filteredVideos = videos.filter((video) =>
+    video.title.toLowerCase().includes(titleFilter.toLowerCase())
+  );
 
   const columns: ColumnDef<YoutubeVideo>[] = [
     {
@@ -198,330 +184,390 @@ export default function TitulinPage() {
     },
     {
       accessorKey: "publishedAt",
-      header: "Publicado",
-      cell: ({ row }) => (
-        <span>{formatDate(row.original.publishedAt as string | null)}</span>
-      ),
-    },
-    {
-      accessorKey: "duration",
-      header: "Duración",
-      cell: ({ row }) => (
-        <span>{formatDuration(row.original.duration)}</span>
-      ),
-    },
-    {
-      accessorKey: "channelId",
-      header: "Canal",
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate">
-          {getYoutubeChannelName(row.original.channelId)}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "analysisData",
-      header: "Evergreen",
+      header: "Publicación",
       cell: ({ row }) => {
-        const video = row.original;
+        const date = row.original.publishedAt
+          ? parseISO(row.original.publishedAt.toString())
+          : null;
 
-        if (!video.analyzed) {
-          return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => analyzeEvergeenMutation.mutate(video.id)}
-              disabled={analyzeEvergeenMutation.isPending}
-              className="w-full"
-            >
-              {analyzeEvergeenMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <PlayCircle className="h-4 w-4 mr-2" />
-              )}
-              Analizar
-            </Button>
-          );
-        }
-
-        if (!video.analyzed) {
-          return (
-            <Badge variant="outline" className="text-muted-foreground">
-              No analizado
-            </Badge>
-          );
-        }
-
-        return (
-          <div className="space-y-1">
-            <Badge variant={video.isEvergreen ? "default" : "secondary"}>
-              {video.isEvergreen ? "Evergreen" : "No Evergreen"}
-            </Badge>
-            <div className="text-xs text-muted-foreground">
-              {Math.round(parseFloat(video.evergreenConfidence ?? '0')  * 100)}% confianza
-            </div>
-          </div>
+        return date && isValid(date) ? (
+          <span title={format(date, "PPP", { locale: es })}>
+            {formatDistanceToNow(date, { addSuffix: true, locale: es })}
+          </span>
+        ) : (
+          <span>Desconocido</span>
         );
       },
     },
     {
       id: "actions",
       header: "Acciones",
-      cell: ({ row }) => {
-        const video = row.original;
-        return (
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => setSelectedVideo(video)}
-            className="w-full"
-            disabled={Boolean(video.sentToOptimize)}
+            onClick={() => setSelectedVideo(row.original)}
           >
-            {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
+            <PlayCircle className="h-4 w-4 mr-1" />
+            Detalles
           </Button>
-        );
-      }
-    }
+        </div>
+      ),
+    },
   ];
 
-  const handleDownloadCSV = () => {
-    if (!videos?.length) {
-      toast.error("No hay videos", {
-        description: "No hay videos para descargar.",
-      });
-      return;
+  function handlePageChange(newPage: number) {
+    if (newPage >= 1 && (!paginationMetadata || newPage <= paginationMetadata.totalPages)) {
+      setPage(newPage);
+      window.scrollTo(0, 0);
     }
-
-    // Crear el contenido del CSV con los títulos filtrados
-    const titlesForCSV = filteredVideos.map(video => ({
-      title: video.title,
-      views: video.viewCount,
-      likes: video.likeCount,
-      published: formatDate(video.publishedAt as string | null),
-      channel: getYoutubeChannelName(video.channelId),
-      isEvergreen: video.isEvergreen ? "Sí" : "No",
-      confidence: video.evergreenConfidence ? `${Math.round(parseFloat(video.evergreenConfidence) * 100)}%` : "N/A"
-    }));
-
-    const headers = ["Título", "Vistas", "Likes", "Fecha de Publicación", "Canal", "Evergreen", "Confianza"];
-
-    // Agregar BOM para UTF-8
-    const BOM = '\uFEFF';
-    const csvContent = BOM + [
-      headers.join(";"),  // Usar punto y coma como separador
-      ...titlesForCSV.map(row => [
-        `"${row.title.replace(/"/g, '""')}"`, // Escapar comillas dobles
-        row.views,
-        row.likes,
-        `"${row.published}"`,
-        `"${row.channel.replace(/"/g, '""')}"`,
-        `"${row.isEvergreen}"`,
-        `"${row.confidence}"`
-      ].join(";"))
-    ].join("\n");
-
-    // Crear el blob especificando UTF-8
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", "titulos_titulin.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Liberar memoria
-  };
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
   }
 
-  return (
-    <div className="container mx-auto py-10">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center gap-3 mb-8">
-          <Youtube className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Videos de YouTube</h1>
-        </div>
+  function renderPaginationItems() {
+    if (!paginationMetadata) return null;
+    
+    const { page: currentPage, totalPages } = paginationMetadata;
+    const items = [];
+    
+    // Siempre mostrar la primera página
+    items.push(
+      <PaginationItem key="first">
+        <PaginationLink 
+          isActive={currentPage === 1}
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+    
+    // Si hay muchas páginas, mostrar elipsis después de la primera página
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="ellipsis1">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+    
+    // Mostrar páginas alrededor de la página actual
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (i <= 1 || i >= totalPages) continue;
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink 
+            isActive={currentPage === i}
+            onClick={() => handlePageChange(i)}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Si hay muchas páginas, mostrar elipsis antes de la última página
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis2">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+    
+    // Siempre mostrar la última página si hay más de una página
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key="last">
+          <PaginationLink 
+            isActive={currentPage === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    return items;
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-primary">{totalVideos}</div>
-            <div className="text-sm text-muted-foreground">Videos Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-green-600">{viewsCount.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Vistas Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-yellow-500">{likesCount.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Likes Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-blue-500">{getLastUpdateInfo()}</div>
-            <div className="text-sm text-muted-foreground">Última Actualización</div>
-          </Card>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por título..."
-              value={titleFilter}
-              onChange={(e) => setTitleFilter(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-2"
-              disabled={!videos?.length}
-            >
-              <Download className="h-4 w-4" />
-              Descargar CSV
-            </Button>
-
-            <Select
-              value={channelFilter}
-              onValueChange={setYoutubeChannelFilter}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Filtrar por canal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los canales</SelectItem>
-                {channels?.map((channel) => (
-                  <SelectItem key={channel.id} value={channel.channelId}>
-                    {channel.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <p>{filteredVideos.length}</p>
-
-        <DataTable columns={columns} data={filteredVideos} />
-
-        <SendToOptimizeDialog
-          video={selectedVideo!}
-          open={!!selectedVideo}
-          onOpenChange={(open) => !open && setSelectedVideo(null)}
-        />
-      </motion.div>
-    </div>
-  );
-}
-
-
-interface SendToOptimizeDialogProps {
-  video: YoutubeVideo;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialogProps) {
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setLocation] = useWouterLocation();
-
-  const handleSubmit = async () => {
-    if (!selectedProject) {
-      toast.error("Error", {        
-        description: "Debes seleccionar un proyecto",
-      });
+  function handleSendToOptimize() {
+    if (!selectedVideo || !targetProjectId) {
+      toast.error("Selecciona un proyecto válido");
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      // Enviar a optimización
-      const response = await axios.post("/api/videos", {
-        projectId: selectedProject,
-        title: video.title,
-        description: video.description,
-        youtubeId: video.videoId,
-        sourceId: video.id
-      });
+    sendToOptimize.mutate({
+      videoId: selectedVideo.id,
+      projectId: targetProjectId,
+    });
+  }
 
-      // Marcar como enviado a optimización
-      await axios.post(`/api/titulin/videos/${video.id}/sent-to-optimize`, {
-        projectId: selectedProject
-      });
+  // Función para renderizar el diálogo de detalle de video
+  const renderVideoDialog = () => {
+    if (!selectedVideo) return null;
 
-      toast.success("Éxito", {
-        description: "Video enviado a optimización"
-      });
+    return (
+      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {selectedVideo.title}
+            </DialogTitle>
+          </DialogHeader>
 
-      onOpenChange(false);
-      setLocation("/videos");
-    } catch (error) {
-      console.error("Error sending video to optimization:", error);
-      toast.error("Error", {
-        description: "No se pudo enviar el video a optimización",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+            <div className="space-y-4">
+              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                {selectedVideo.thumbnailUrl ? (
+                  <img
+                    src={selectedVideo.thumbnailUrl.replace('default', 'maxresdefault')}
+                    alt={selectedVideo.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = selectedVideo.thumbnailUrl || "https://via.placeholder.com/640x360?text=No+Image";
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    No preview available
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`https://youtube.com/watch?v=${selectedVideo.videoId}`, '_blank')}
+                >
+                  <Youtube className="h-4 w-4 mr-2" />
+                  Ver en YouTube
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  Descripción
+                </h3>
+                <div className="text-sm border rounded-md p-3 h-[150px] overflow-y-auto whitespace-pre-line">
+                  {selectedVideo.description || "Sin descripción"}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                    Vistas
+                  </h3>
+                  <p>{Number(selectedVideo.viewCount || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                    Likes
+                  </h3>
+                  <p>{Number(selectedVideo.likeCount || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                    Comentarios
+                  </h3>
+                  <p>
+                    {Number(selectedVideo.commentCount || 0).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                    Publicado
+                  </h3>
+                  <p>
+                    {selectedVideo.publishedAt
+                      ? format(new Date(selectedVideo.publishedAt), "dd/MM/yyyy")
+                      : "Desconocido"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  Etiquetas
+                </h3>
+                <div className="flex flex-wrap gap-1">
+                  {selectedVideo.tags && selectedVideo.tags.length > 0 ? (
+                    selectedVideo.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      Sin etiquetas
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {!selectedVideo.sentToOptimize && (
+                <div className="mt-4 pt-4 border-t">
+                  <h3 className="text-sm font-medium mb-2">
+                    Enviar a optimizar
+                  </h3>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <ProjectSelector
+                        projects={projects || []}
+                        value={targetProjectId}
+                        onChange={setTargetProjectId}
+                        placeholder="Selecciona un proyecto"
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleSendToOptimize}
+                      disabled={sendToOptimize.isPending || !targetProjectId}
+                    >
+                      {sendToOptimize.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Enviar
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enviar a Optimización</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <h3 className="font-medium">Selecciona un proyecto</h3>
-            <p className="text-sm text-muted-foreground">
-              El video será optimizado dentro del proyecto seleccionado
-            </p>
-          </div>
-          <ProjectSelector
-            value={selectedProject?.id ?? null}
-            onChange={setSelectedProject}
-          />
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!selectedProject || isSubmitting}
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Enviar
-            </Button>
+    <div className="container mx-auto py-6 max-w-7xl">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Titulin</h1>
+          <p className="text-muted-foreground">
+            Explorador de videos de YouTube para optimización de contenido
+          </p>
+        </div>
+      </div>
+
+      <Card className="mb-6">
+        <div className="p-4 md:p-6 space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Buscar videos por título..."
+                  className="pl-8"
+                  value={titleFilter}
+                  onChange={(e) => setTitleFilter(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="w-full sm:w-[260px]">
+              <Select
+                value={channelFilter}
+                onValueChange={setYoutubeChannelFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por canal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los canales</SelectItem>
+                  {channels?.map((channel) => (
+                    <SelectItem key={channel.id} value={channel.channelId}>
+                      {channel.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-full sm:w-[140px]">
+              <Select
+                value={limit.toString()}
+                onValueChange={(value) => setLimit(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Mostrar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 por página</SelectItem>
+                  <SelectItem value="25">25 por página</SelectItem>
+                  <SelectItem value="50">50 por página</SelectItem>
+                  <SelectItem value="100">100 por página</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </Card>
+
+      {isLoadingVideos ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : videos.length === 0 ? (
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium">No hay videos disponibles</h3>
+          <p className="text-muted-foreground mt-1">
+            Intenta cambiar los filtros o añadir más canales
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <DataTable
+            columns={columns}
+            data={filteredVideos}
+            isFetching={isFetchingVideos}
+          />
+          
+          {paginationMetadata && paginationMetadata.totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={!paginationMetadata.hasPrevPage}
+                    />
+                  </PaginationItem>
+                  
+                  {renderPaginationItems()}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={!paginationMetadata.hasNextPage}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+              
+              <div className="text-center text-sm text-muted-foreground mt-2">
+                Mostrando {filteredVideos.length} de {paginationMetadata.totalVideos} videos • 
+                Página {paginationMetadata.page} de {paginationMetadata.totalPages}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {renderVideoDialog()}
+    </div>
   );
 }
