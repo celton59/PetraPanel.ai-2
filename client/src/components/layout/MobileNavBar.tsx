@@ -278,8 +278,25 @@ export function MobileNavBar() {
               </nav>
             </div>
             <div className="p-4 border-t bg-muted/30 text-xs text-center text-muted-foreground">
-              <div className="flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center gap-2">
                 <span>© PetraPanel 2025</span>
+                <div 
+                  className="flex items-center justify-center cursor-pointer hover:text-primary transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsMenuOpen(false);
+                    setTimeout(() => {
+                      const button = document.querySelector('button[data-version-info="true"]');
+                      if (button && button instanceof HTMLElement) {
+                        button.click();
+                      }
+                    }, 300);
+                  }}
+                >
+                  <Info className="h-3 w-3 mr-1" />
+                  <span>Historial de versiones</span>
+                </div>
               </div>
             </div>
           </div>
