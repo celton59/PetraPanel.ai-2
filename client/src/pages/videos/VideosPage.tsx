@@ -41,7 +41,7 @@ import { useState, useEffect } from "react";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
@@ -373,7 +373,7 @@ export default function VideosPage() {
                         {video.seriesNumber || "Sin serie"}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {video.updatedAt ? formatDate(video.updatedAt) : (video.createdAt ? formatDate(video.createdAt) : '')}
+                        {video.updatedAt ? new Date(video.updatedAt).toLocaleDateString() : (video.createdAt ? new Date(video.createdAt).toLocaleDateString() : '')}
                       </span>
                     </div>
                   </div>
