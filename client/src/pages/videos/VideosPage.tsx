@@ -53,37 +53,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-// Estados visibles por rol
-const VISIBLE_STATES = {
-  optimizer: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "en_revision",
-  ],
-  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
-  reviewer: [
-    "optimize_review",
-    "title_corrections",
-    "upload_review",
-    "completed",
-    "en_revision",
-  ],
-  admin: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "upload_review",
-    "media_corrections",
-    "review",
-    "youtube_ready",
-    "completed",
-    "en_revision",
-  ],
-} as const;
-
 const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   admin: [],
   optimizer: ["available", "content_corrections"],
@@ -110,12 +79,12 @@ export default function VideosPage() {
   const { 
     videos, 
     isLoading, 
-    isFetching,
     deleteVideo, 
     updateVideo,
     page,
     paginationMetadata,
     changePage,
+    changeLimit
   } = useVideos();
 
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
@@ -206,10 +175,10 @@ export default function VideosPage() {
 
   function getTableView() {
     return (
-      <div className="rounded-lg border bg-card shadow-sm overflow-hidden relative">
+      <div className="">
         {/* Accent gradient para la tabla de videos */}
         <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
-        <div className="overflow-x-auto pt-1">
+        <div className="shadow-sm overflow-hidden relative bg-card rounded-lg border overflow-x-auto pt-1">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -335,6 +304,7 @@ export default function VideosPage() {
             </TableBody>
           </Table>
         </div>
+        
         {paginationMetadata && paginationMetadata.totalPages > 1 && (
           <div className="mt-8">
             <Pagination>
@@ -657,7 +627,7 @@ export default function VideosPage() {
   };
 
   // Función para renderizar los elementos de paginación
-  const renderPaginationItems = () => {
+  function renderPaginationItems () {
     if (!paginationMetadata) return null;
 
     const { page: currentPage, totalPages } = paginationMetadata;
@@ -757,9 +727,6 @@ export default function VideosPage() {
             onProjectChange={setProjectId}
             showFilters={showFilters}
             onToggleFilters={() => setShowFilters(!showFilters)}
-            visibleStates={
-              VISIBLE_STATES[user?.role as keyof typeof VISIBLE_STATES] || []
-            }
           />
           <div className="flex items-center gap-2 ml-auto">
             <Button

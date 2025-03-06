@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema';
 import { toast } from "sonner";
 import { useState } from "react";
-import axios from "axios";
 
 export type PaginationMetadata = {
   page: number;
@@ -16,7 +15,6 @@ export type PaginationMetadata = {
 
 export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl' >
 
-export const getRoleStatus = 1
 
 export type ApiVideo = {
   [K in keyof Video]: Video[K];
@@ -42,14 +40,6 @@ export function useVideos() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [paginationMetadata, setPaginationMetadata] = useState<PaginationMetadata>({
-    page: 1,
-    limit: 10,
-    totalVideos: 0,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
 
   const {
     data: videosData,
@@ -71,7 +61,6 @@ export function useVideos() {
       }
       
       const data = await res.json();
-      setPaginationMetadata(data.pagination);
       return data;
     },
     retry: 1,
@@ -201,7 +190,7 @@ export function useVideos() {
     deleteVideo: deleteVideoMutation.mutateAsync,
     page,
     limit,
-    paginationMetadata,
+    paginationMetadata: videosData?.pagination,
     changePage,
     changeLimit
   };

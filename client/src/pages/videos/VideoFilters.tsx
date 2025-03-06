@@ -23,8 +23,6 @@ interface VideoFiltersProps {
   projectId: string;
   onProjectChange: (value: string) => void;
   showFilters: boolean;
-  onToggleFilters: () => void;
-  visibleStates?: readonly string[];
 }
 
 export function VideoFilters({
@@ -39,7 +37,6 @@ export function VideoFilters({
   projectId,
   onProjectChange,
   showFilters,
-  onToggleFilters,
 }: VideoFiltersProps) {
   return (
     <div className="space-y-4">
