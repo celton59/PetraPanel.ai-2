@@ -1,4 +1,4 @@
-import { Bell, Home, Menu, Video, Languages, Leaf, Settings, Shield } from "lucide-react";
+import { Bell, Home, Menu, Video, Languages, Leaf, Settings, Shield, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -8,6 +8,8 @@ import { useState } from "react";
 import { LogoWithBlink } from "./LogoWithBlink";
 import { useNotifications } from "@/hooks/use-notifications";
 import { MobileNotificationCenter } from "@/components/notifications/MobileNotificationCenter";
+import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator";
+import { useOnlineUsers } from "@/hooks/use-online-users";
 
 export function MobileNavBar() {
   const [location] = useLocation();
@@ -15,6 +17,7 @@ export function MobileNavBar() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user } = useUser();
   const { unreadCount } = useNotifications();
+  const { onlineUsers } = useOnlineUsers();
 
   const isAdmin = user?.role === 'admin';
 
@@ -133,6 +136,38 @@ export function MobileNavBar() {
                 </div>
               </div>
             </div>
+            
+            {/* Sección de usuarios en línea */}
+            <div className="p-3 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1 text-sm font-medium">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span>Usuarios en línea</span>
+                  <span className="bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 rounded-full ml-1">{onlineUsers.length}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {onlineUsers.length > 0 ? (
+                  onlineUsers.slice(0, 5).map((user) => (
+                    <div 
+                      key={user.userId} 
+                      className="flex items-center gap-1 bg-muted/40 rounded-full px-2 py-0.5 text-xs"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                      <span className="font-medium">{user.username}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-muted-foreground">No hay usuarios en línea</div>
+                )}
+                {onlineUsers.length > 5 && (
+                  <div className="text-xs text-muted-foreground bg-muted/40 rounded-full px-2 py-0.5">
+                    +{onlineUsers.length - 5} más
+                  </div>
+                )}
+              </div>
+            </div>
+            
             <div className="flex-1 p-4">
               <nav className="flex flex-col gap-2">
                 {fullMenuItems.map((item) => {
