@@ -74,29 +74,27 @@ export function ImagePreview({
       >
         {/* Skeleton loader */}
         {isLoading && showPlaceholder && (
-          <Skeleton className="absolute inset-0 z-10" />
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-shimmer bg-[length:400%_100%]"/>
         )}
 
         {/* Error state */}
         {isError && showPlaceholder && (
-          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 via-muted to-destructive/5 flex items-center justify-center animate-gradient-xy">
             <div className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-lg border border-border bg-muted/30 backdrop-blur-sm flex items-center justify-center shadow-sm">
+              <div className="w-12 h-12 rounded-lg border border-destructive/20 bg-muted/30 backdrop-blur-sm flex items-center justify-center shadow-sm animate-in fade-in duration-500">
                 <svg 
-                  className="h-5 w-5 text-muted-foreground/70" 
+                  className="h-6 w-6 text-destructive/60 animate-pulse-opacity" 
                   xmlns="http://www.w3.org/2000/svg" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
-                  strokeWidth="2" 
+                  strokeWidth="1.5" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
                 >
-                  <path d="M2 12.5A3.5 3.5 0 0 1 5.5 9h13A3.5 3.5 0 0 1 22 12.5v1a3.5 3.5 0 0 1-3.5 3.5h-13A3.5 3.5 0 0 1 2 13.5z" />
-                  <path d="m2 12.5 7-3.5" />
-                  <path d="m15 9 7 3.5v1L15 17" />
-                  <path d="m15 17-7-3.5" />
-                  <path d="M15 9 8 5.5" />
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
               </div>
             </div>
@@ -122,16 +120,16 @@ export function ImagePreview({
             loading="lazy"
           />
         ) : !isError && showPlaceholder ? (
-          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-lg border border-border bg-muted/30 backdrop-blur-sm flex items-center justify-center shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-muted to-primary/5 flex items-center justify-center animate-gradient-xy">
+            <div className="flex flex-col items-center animate-in fade-in duration-500">
+              <div className="w-12 h-12 rounded-lg border border-border/60 bg-muted/40 backdrop-blur-sm flex items-center justify-center shadow-sm hover:border-primary/40 transition-all duration-500">
                 <svg 
-                  className="h-5 w-5 text-muted-foreground/70" 
+                  className="h-6 w-6 text-primary/50" 
                   xmlns="http://www.w3.org/2000/svg" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
-                  strokeWidth="2" 
+                  strokeWidth="1.5" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
                 >
