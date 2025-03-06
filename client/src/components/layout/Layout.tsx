@@ -2,6 +2,7 @@ import { Sidebar } from "./Sidebar"
 import { UserMenu } from "./UserMenu"
 import { useLocation } from "wouter"
 import { SearchButton, GlobalSearch } from "@/components/global-search"
+import { MobileNavBar } from "./MobileNavBar"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -25,9 +26,12 @@ export function Layout({ children }: LayoutProps) {
           <UserMenu />
         </div>
       </header>
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 md:px-8 py-4 md:py-8 pb-20 md:pb-8">
         {children}
       </main>
+      
+      {/* Barra de navegación inferior para móviles */}
+      <MobileNavBar />
       
       {/* Global search component (diálogo) */}
       <GlobalSearch />
