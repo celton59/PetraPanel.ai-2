@@ -157,7 +157,7 @@ export function VersionInfo() {
           >
             <span className="flex items-center gap-1">
               <Info className="h-3 w-3" />
-              PetraPanel v{currentVersion.version} • Actualizado: {currentVersion.date}
+              Historial de versiones
             </span>
           </Button>
         </TooltipTrigger>
