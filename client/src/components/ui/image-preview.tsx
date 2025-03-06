@@ -79,7 +79,7 @@ export function ImagePreview({
         {/* Error state */}
         {isError && showPlaceholder && (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <FileImage className="h-5 w-5 text-muted-foreground/50" />
+            <FileImage className="h-8 w-8 text-muted-foreground" />
           </div>
         )}
 
@@ -103,7 +103,7 @@ export function ImagePreview({
           />
         ) : !isError && showPlaceholder ? (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <FileImage className="h-5 w-5 text-muted-foreground/50" />
+            <FileImage className="h-8 w-8 text-muted-foreground" />
           </div>
         ) : null}
 
