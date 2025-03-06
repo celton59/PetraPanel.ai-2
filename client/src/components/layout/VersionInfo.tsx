@@ -33,15 +33,27 @@ interface ChangelogEntry {
 const versionHistory: ChangelogEntry[] = [
   {
     version: '2.5.0',
-    date: '01.03.2025',
+    date: '06.03.2025',
     changes: [
+      { 
+        type: 'new', 
+        description: 'Sistema de versionado con historial detallado de cambios y actualizaciones'
+      },
       { 
         type: 'new', 
         description: 'Vista optimizada para dispositivos móviles con interfaz de tarjetas y gestos táctiles'
       },
       { 
         type: 'new', 
-        description: 'Sistema de notificaciones en tiempo real con WebSockets'
+        description: 'Sistema de notificaciones en tiempo real con WebSockets y persistencia'
+      },
+      { 
+        type: 'new', 
+        description: 'Indicadores de usuarios conectados en tiempo real con WebSockets'
+      },
+      { 
+        type: 'improved', 
+        description: 'Navegación por gestos desde los bordes de la pantalla con indicadores visuales'
       },
       { 
         type: 'improved', 
@@ -49,11 +61,15 @@ const versionHistory: ChangelogEntry[] = [
       },
       { 
         type: 'improved', 
-        description: 'Navegación por gestos desde los bordes de la pantalla'
+        description: 'Experiencia táctil optimizada para dispositivos móviles'
       },
       { 
         type: 'fixed', 
         description: 'Corrección de errores en la visualización de estados de videos'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Ajustes en el formato y presentación de fechas en la interfaz'
       }
     ]
   },
