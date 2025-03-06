@@ -38,13 +38,13 @@ export function Layout({ children }: LayoutProps) {
       <GlobalSearch />
       
       {/* Información de versión (pie de página) - Móvil y escritorio */}
-      <footer className="md:flex items-center justify-center border-t py-2">
+      <footer className="flex items-center justify-center border-t py-2">
         {/* En móvil, posicionamos el footer justo arriba de la navbar */}
-        <div className="flex md:hidden fixed bottom-[48px] left-0 right-0 justify-center border-t py-1 bg-background text-xs">
+        <div className="md:hidden fixed bottom-[48px] left-0 right-0 justify-center border-t py-1 bg-background text-xs flex">
           <VersionInfo />
         </div>
         
-        {/* Versión para escritorio se mantiene */}
+        {/* Versión para escritorio */}
         <div className="hidden md:block">
           <VersionInfo />
         </div>
