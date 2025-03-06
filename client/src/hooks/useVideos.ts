@@ -1,7 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { User, Video } from '@db/schema'
-import { toast } from "sonner";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { User, Video } from '@db/schema';
+import { toast } from "sonner";
+import { useState } from "react";
+import axios from "axios";
+
+export type PaginationMetadata = {
+  page: number;
+  limit: number;
+  totalVideos: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
 
 export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl' >
 
@@ -22,27 +33,46 @@ export type ApiVideo = {
   uploaderUsername: User["username"]
 }
 
-export function useVideos(): {
+interface VideosResponse {
   videos: ApiVideo[];
-  isLoading: boolean;
-  createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
-  updateVideo: ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number; updateRequest: UpdateVideoData }) => Promise<any>;
-  deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
-} {
+  pagination: PaginationMetadata;
+}
+
+export function useVideos() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [paginationMetadata, setPaginationMetadata] = useState<PaginationMetadata>({
+    page: 1,
+    limit: 10,
+    totalVideos: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
 
-  const queryKey = ['/api/videos']
-
-  const { data: videos, isLoading } = useQuery<ApiVideo[]>({
-    queryKey,
+  const {
+    data: videosData,
+    isLoading,
+    isFetching,
+  } = useQuery<VideosResponse>({
+    queryKey: ["/api/videos", page, limit],
     queryFn: async () => {
-      const res = await fetch(queryKey[0], {
+      const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("limit", limit.toString());
+
+      const res = await fetch(`/api/videos?${params.toString()}`, {
         credentials: "include"
       });
+      
       if (!res.ok) {
         throw new Error("Error al cargar los videos");
       }
-      return res.json();
+      
+      const data = await res.json();
+      setPaginationMetadata(data.pagination);
+      return data;
     },
     retry: 1,
     refetchOnWindowFocus: false,
@@ -81,11 +111,15 @@ export function useVideos(): {
   });
 
   const updateVideoMutation = useMutation({
-    mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
-      
-
-      console.log('Datos de actualización:', updateRequest);
-
+    mutationFn: async ({
+      videoId,
+      projectId,
+      updateRequest,
+    }: {
+      videoId: number;
+      projectId: number;
+      updateRequest: UpdateVideoData;
+    }) => {
       const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -100,8 +134,9 @@ export function useVideos(): {
 
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
       toast.success("Video actualizado", {
         description: "El video se ha actualizado correctamente",
       });
@@ -114,7 +149,13 @@ export function useVideos(): {
   });
 
   const deleteVideoMutation = useMutation({
-    mutationFn: async ({videoId, projectId } : { videoId: number, projectId: number }) => {
+    mutationFn: async ({
+      videoId,
+      projectId,
+    }: {
+      videoId: number;
+      projectId: number;
+    }) => {
       const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
         method: "DELETE",
         credentials: "include",
@@ -128,7 +169,7 @@ export function useVideos(): {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
       toast.success("Video eliminado", {
         description: "El video se ha eliminado correctamente",
       });
@@ -140,11 +181,28 @@ export function useVideos(): {
     },
   });
 
+  // Función para cambiar de página
+  const changePage = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  // Función para cambiar el límite de elementos por página
+  const changeLimit = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1); // Resetear a la primera página cuando cambia el límite
+  };
+
   return {
-    videos: videos ?? [],
+    videos: videosData?.videos || [],
     isLoading,
+    isFetching,
     createVideo: createVideoMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
     deleteVideo: deleteVideoMutation.mutateAsync,
+    page,
+    limit,
+    paginationMetadata,
+    changePage,
+    changeLimit
   };
 }
