@@ -74,7 +74,11 @@ export function ImagePreview({
       >
         {/* Skeleton loader */}
         {isLoading && showPlaceholder && (
-          <div className="absolute inset-0 z-10 bg-muted" />
+          <div className="absolute inset-0 z-10 bg-muted flex items-center justify-center">
+            <div className="bg-muted-foreground/20 rounded-full p-4">
+              <IoImageOutline className="h-12 w-12 text-muted-foreground" />
+            </div>
+          </div>
         )}
 
         {/* Error state */}
