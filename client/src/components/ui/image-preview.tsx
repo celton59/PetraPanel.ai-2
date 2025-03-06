@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Eye, ZoomIn, ZoomOut, X, Layout } from "lucide-react";
+import { Eye, ZoomIn, ZoomOut, X, Layout, Image, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -79,7 +79,7 @@ export function ImagePreview({
         {/* Error state */}
         {isError && showPlaceholder && (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <Layout className="h-4 w-4 text-muted-foreground/40" />
+            <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
           </div>
         )}
 
@@ -103,7 +103,7 @@ export function ImagePreview({
           />
         ) : !isError && showPlaceholder ? (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <Layout className="h-4 w-4 text-muted-foreground/40" />
+            <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
           </div>
         ) : null}
 
