@@ -3,6 +3,7 @@ import { UserMenu } from "./UserMenu"
 import { useLocation } from "wouter"
 import { SearchButton, GlobalSearch } from "@/components/global-search"
 import { MobileNavBar } from "./MobileNavBar"
+import { VersionInfo } from "./VersionInfo"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -35,6 +36,11 @@ export function Layout({ children }: LayoutProps) {
       
       {/* Global search component (diálogo) */}
       <GlobalSearch />
+      
+      {/* Información de versión (pie de página) */}
+      <footer className="hidden md:flex items-center justify-center border-t py-2">
+        <VersionInfo />
+      </footer>
     </div>
   )
 }

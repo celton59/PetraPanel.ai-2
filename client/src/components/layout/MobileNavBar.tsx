@@ -1,4 +1,4 @@
-import { Bell, Home, Menu, Video, Languages, Leaf, Settings, Shield, Users } from "lucide-react";
+import { Bell, Home, Menu, Video, Languages, Leaf, Settings, Shield, Users, Info } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -14,6 +14,7 @@ import { useSwipeable } from "react-swipeable";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ArrowRightFromLine, ArrowLeftFromLine } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { VersionInfo } from "./VersionInfo";
 
 export function MobileNavBar() {
   const [location] = useLocation();
@@ -277,7 +278,23 @@ export function MobileNavBar() {
               </nav>
             </div>
             <div className="p-4 border-t bg-muted/30 text-xs text-center text-muted-foreground">
-              <p>PetraPanel v1.0</p>
+              <div 
+                className="flex items-center justify-center cursor-pointer hover:text-primary transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsMenuOpen(false);
+                  setTimeout(() => {
+                    const button = document.querySelector('button[data-version-info="true"]');
+                    if (button && button instanceof HTMLElement) {
+                      button.click();
+                    }
+                  }, 300);
+                }}
+              >
+                <Info className="h-3 w-3 mr-1" />
+                <span>PetraPanel v2.5.0 • Actualizado: 01.03.2025</span>
+              </div>
             </div>
           </div>
         </SheetContent>
