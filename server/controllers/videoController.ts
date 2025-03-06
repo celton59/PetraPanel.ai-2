@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, or, desc, getTableColumns, aliasedTable, isNull } from "drizzle-orm";
+import { eq, and, or, desc, getTableColumns, aliasedTable, isNull, sql } from "drizzle-orm";
 import {
   videos,
   users,
@@ -246,7 +246,30 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 }
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
+
+  // Parámetros de paginación (obligatorios)
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  // Validar parámetros de paginación
+  if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+    return res.status(400).json({
+        success: false,
+        message: "Los parámetros de paginación son inválidos. 'page' y 'limit' son requeridos y deben ser números positivos."
+      });
+  }
+
+  // Calcular el offset
+  const offset = (page - 1) * limit;
+  
+  
   try {
+
+    // Consulta para obtener el total de videos (para metadata de paginación)
+    const [countResult] = await db.select({
+      count: sql`count(*)`.mapWith(Number)
+    }).from(videos);
+    
     const query = db
       .selectDistinct({
         ...getTableColumns(videos),
@@ -332,11 +355,29 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
             : eq(projectAccess.userId, req.user!.id!),
         ),
       )
-      .orderBy(desc(videos.updatedAt)); // Moved orderBy after where
+      .orderBy(desc(videos.updatedAt))
+      .limit(limit)
+      .offset(offset)
 
     const result = await query.execute();
 
-    return res.status(200).json(result);
+    // Calcular metadata de paginación
+    const totalVideos = countResult?.count || 0;
+    const totalPages = Math.ceil(totalVideos / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return res.status(200).json({
+      videos: result,
+      pagination: {
+        page,
+        limit,
+        totalVideos,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
+    });
   } catch (error) {
     console.error("Error fetching all videos:", error);
     return res.status(500).json({
