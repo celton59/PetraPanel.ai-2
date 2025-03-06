@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Eye, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Eye, ZoomIn, ZoomOut, X, Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -66,29 +66,20 @@ export function ImagePreview({
     <>
       <div
         className={cn(
-          "relative bg-muted rounded-lg overflow-hidden",
+          "relative rounded-lg overflow-hidden",
           aspectClasses[aspectRatio],
-          isLoading && "animate-pulse",
           className
         )}
       >
         {/* Skeleton loader */}
         {isLoading && showPlaceholder && (
-          <Skeleton className="absolute inset-0 z-10" />
+          <div className="absolute inset-0 z-10 bg-muted" />
         )}
 
         {/* Error state */}
         {isError && showPlaceholder && (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <div className="w-full h-full flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-muted-foreground/40">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                <rect width="3" height="9" x="7" y="7" rx="1"></rect>
-                <rect width="3" height="5" x="14" y="7" rx="1"></rect>
-                <rect width="3" height="9" x="14" y="12" rx="1"></rect>
-                <rect width="3" height="5" x="7" y="12" rx="1"></rect>
-              </svg>
-            </div>
+            <Layout className="h-4 w-4 text-muted-foreground/40" />
           </div>
         )}
 
@@ -112,15 +103,7 @@ export function ImagePreview({
           />
         ) : !isError && showPlaceholder ? (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <div className="w-full h-full flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-muted-foreground/40">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                <rect width="3" height="9" x="7" y="7" rx="1"></rect>
-                <rect width="3" height="5" x="14" y="7" rx="1"></rect>
-                <rect width="3" height="9" x="14" y="12" rx="1"></rect>
-                <rect width="3" height="5" x="7" y="12" rx="1"></rect>
-              </svg>
-            </div>
+            <Layout className="h-4 w-4 text-muted-foreground/40" />
           </div>
         ) : null}
 
