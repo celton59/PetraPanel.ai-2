@@ -2,6 +2,7 @@ import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
+import { ImagePreview } from "@/components/ui/image-preview";
 import {
   Eye,
   Trash2,
@@ -483,21 +484,20 @@ export default function VideosPage() {
           >
             {/* Gradient accent en tarjetas grid */}
             <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0 z-10"></div>
-            <div className="aspect-video bg-muted relative">
-              {video.thumbnailUrl ? (
-                <img
-                  src={video.thumbnailUrl}
-                  alt={video.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                  <Layout className="h-4 w-4" />
-                </div>
-              )}
+            <div 
+              className="relative" 
+              onClick={() => handleVideoClick(video)}
+            >
+              <ImagePreview
+                src={video.thumbnailUrl}
+                alt={video.title}
+                aspectRatio="video"
+                enableZoom={false}
+                showPlaceholder={true}
+                className="cursor-pointer"
+              />
               <div
                 className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                onClick={() => handleVideoClick(video)}
               >
                 <Eye className="h-6 w-6 text-white" />
               </div>
