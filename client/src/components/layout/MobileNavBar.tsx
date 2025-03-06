@@ -353,66 +353,38 @@ export function MobileNavBar() {
         </>
       )}
       
-      {/* Barra de navegación fija en la parte inferior para móviles */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 py-1 px-2">
-        <div className="flex items-center justify-around">
-          {navItems.map((item) => {
-            const isActive = !item.path.startsWith('#') && isActiveRoute(item.path);
-            
-            if (item.path.startsWith('#')) {
-              return (
-                <Button
-                  key={item.label}
-                  variant="ghost"
-                  size="sm"
-                  onClick={item.onClick}
-                  className="flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16 relative"
-                >
-                  <item.icon className={cn(
-                    "h-5 w-5 mb-1",
-                    item.path === '#notifications' && unreadCount > 0 
-                      ? "text-primary animate-pulse" 
-                      : "text-muted-foreground"
-                  )} />
-                  {item.badge && (
-                    <span className="absolute top-1 right-1 flex items-center justify-center min-w-5 h-5 text-xs 
-                      font-bold text-white bg-red-500 rounded-full px-1 animate-pulse">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {item.label}
-                  </span>
-                </Button>
-              );
-            }
-
-            return (
-              <Link
-                key={item.label}
-                href={item.path}
-                className={cn(
-                  "flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground"
-                )}
-              >
-                <item.icon className={cn(
-                  "h-5 w-5 mb-1",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )} />
-                <span className={cn(
-                  "text-xs font-medium",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}>
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Botones flotantes para navegación (reemplazan a la barra inferior) */}
+      <div className="md:hidden fixed bottom-4 right-4 flex flex-col gap-2 z-50">
+        {/* Botón flotante para notificaciones */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsNotificationsOpen(true)}
+          className={cn(
+            "h-12 w-12 rounded-full shadow-md border border-border bg-background/95 backdrop-blur-sm",
+            unreadCount > 0 ? "animate-pulse" : ""
+          )}
+        >
+          <div className="relative">
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full px-0.5">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
+        </Button>
+        
+        {/* Botón flotante para menú */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsMenuOpen(true)}
+          className="h-12 w-12 rounded-full shadow-md border border-border bg-background/95 backdrop-blur-sm"
+        >
+          <Menu className="h-5 w-5 text-muted-foreground" />
+        </Button>
+      </div>
 
       {/* Menú lateral completo */}
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
