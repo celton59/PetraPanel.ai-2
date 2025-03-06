@@ -43,6 +43,15 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -98,7 +107,17 @@ export default function VideosPage() {
     );
   }
 
-  const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
+  const { 
+    videos, 
+    isLoading, 
+    isFetching,
+    deleteVideo, 
+    updateVideo,
+    page,
+    paginationMetadata,
+    changePage,
+  } = useVideos();
+
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
     undefined,
   );
@@ -181,24 +200,6 @@ export default function VideosPage() {
       );
     }
 
-    // if (status !== "all") {
-    //   return video.status === status;
-    // }
-
-    // if (assignedTo !== "all") {
-    //   return video.assigned_to === assignedTo;
-    // }
-
-    // if (projectId !== "all") {
-    //   return video.project_id === projectId;
-    // }
-
-    // if (dateRange) {
-    //   return (
-    //     video.created_at >= dateRange.startDate &&
-    //     video.created_at <= dateRange.endDate
-    //   );
-    // }
 
     return true;
   })
@@ -334,6 +335,34 @@ export default function VideosPage() {
             </TableBody>
           </Table>
         </div>
+        {paginationMetadata && paginationMetadata.totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={!paginationMetadata.hasPrevPage}
+                  />
+                </PaginationItem>
+
+                {renderPaginationItems()}
+
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={!paginationMetadata.hasNextPage}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
+              Página {paginationMetadata.page} de {paginationMetadata.totalPages}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -433,6 +462,34 @@ export default function VideosPage() {
           </div>
         ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
+        {paginationMetadata && paginationMetadata.totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={!paginationMetadata.hasPrevPage}
+                  />
+                </PaginationItem>
+
+                {renderPaginationItems()}
+
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={!paginationMetadata.hasNextPage}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
+              Página {paginationMetadata.page} de {paginationMetadata.totalPages}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -528,6 +585,35 @@ export default function VideosPage() {
           </div>
         ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
+
+        {paginationMetadata && paginationMetadata.totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={!paginationMetadata.hasPrevPage}
+                  />
+                </PaginationItem>
+
+                {renderPaginationItems()}
+
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={!paginationMetadata.hasNextPage}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
+              Página {paginationMetadata.page} de {paginationMetadata.totalPages}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -552,7 +638,7 @@ export default function VideosPage() {
                 setUpdatingVideoId(undefined);
                 setSelectedVideo(undefined);                
               }              
-                            
+
             } catch (err) {
               console.log(err);
               toast.error("Error al actualizar el video");
@@ -562,6 +648,73 @@ export default function VideosPage() {
       </Dialog>
     );
   }
+
+  // Función para manejar el cambio de página
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= (paginationMetadata?.totalPages || 1)) {
+      changePage(newPage);
+    }
+  };
+
+  // Función para renderizar los elementos de paginación
+  const renderPaginationItems = () => {
+    if (!paginationMetadata) return null;
+
+    const { page: currentPage, totalPages } = paginationMetadata;
+    const pages = [];
+
+    // Mostrar primera página
+    if (currentPage > 2) {
+      pages.push(
+        <PaginationItem key="first">
+          <PaginationLink onClick={() => handlePageChange(1)}>1</PaginationLink>
+        </PaginationItem>
+      );
+
+      // Mostrar elipsis si hay muchas páginas
+      if (currentPage > 3) {
+        pages.push(
+          <PaginationItem key="ellipsis-start">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+    }
+
+    // Páginas alrededor de la actual
+    for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
+      pages.push(
+        <PaginationItem key={i}>
+          <PaginationLink 
+            isActive={i === currentPage}
+            onClick={() => handlePageChange(i)}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    // Mostrar elipsis si hay muchas páginas
+    if (currentPage < totalPages - 2) {
+      pages.push(
+        <PaginationItem key="ellipsis-end">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+
+      // Mostrar última página
+      pages.push(
+        <PaginationItem key="last">
+          <PaginationLink onClick={() => handlePageChange(totalPages)}>
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    return pages;
+  };
 
   return (
     <div className="min-h-screen bg-background">
