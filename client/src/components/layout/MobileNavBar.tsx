@@ -107,22 +107,28 @@ export function MobileNavBar() {
       {/* Áreas para detectar los gestos táctiles en los bordes laterales */}
       {isMobile && (
         <>
-          {/* Área para detectar swipe desde el borde izquierdo con indicador */}
+          {/* Área para detectar swipe desde el borde izquierdo con indicador mejorado */}
           <div 
             {...swipeHandlers}
-            className="md:hidden fixed top-0 bottom-0 left-0 w-8 z-20"
+            className="md:hidden fixed top-0 bottom-0 left-0 w-12 z-20"
             aria-hidden="true"
           >
-            <div className="absolute top-1/2 -mt-16 left-0 h-32 w-1 bg-primary/20 rounded-r-full opacity-50 animate-pulse" />
+            <div className="absolute top-1/2 -mt-24 left-0 h-48 flex items-center">
+              <div className="w-2 h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent rounded-r-full opacity-70 animate-pulse" />
+              <div className="ml-1 w-[3px] h-16 bg-gradient-to-b from-transparent via-primary/20 to-transparent rounded-r-full opacity-60 animate-pulse" />
+            </div>
           </div>
           
-          {/* Área para detectar swipe desde el borde derecho con indicador */}
+          {/* Área para detectar swipe desde el borde derecho con indicador mejorado */}
           <div 
             {...swipeHandlers}
-            className="md:hidden fixed top-0 bottom-0 right-0 w-8 z-20"
+            className="md:hidden fixed top-0 bottom-0 right-0 w-12 z-20"
             aria-hidden="true"
           >
-            <div className="absolute top-1/2 -mt-16 right-0 h-32 w-1 bg-primary/20 rounded-l-full opacity-50 animate-pulse" />
+            <div className="absolute top-1/2 -mt-24 right-0 h-48 flex items-center">
+              <div className="ml-auto w-[3px] h-16 bg-gradient-to-b from-transparent via-primary/20 to-transparent rounded-l-full opacity-60 animate-pulse" />
+              <div className="mr-auto w-2 h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent rounded-l-full opacity-70 animate-pulse" />
+            </div>
           </div>
         </>
       )}
@@ -308,30 +314,55 @@ export function MobileNavBar() {
       <AnimatePresence>
         {showSwipeHelp && isMobile && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center px-4"
           >
-            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-[300px] text-center">
-              <h3 className="text-base font-medium mb-4">Navegación por gestos</h3>
+            <div className="bg-background/90 backdrop-blur-md p-5 rounded-xl shadow-xl border border-primary/10 max-w-[330px] text-center">
+              <div className="text-primary mb-1 flex justify-center">
+                <span className="inline-block w-12 h-1 bg-primary/20 rounded-full" />
+              </div>
+              <h3 className="text-lg font-medium mb-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Navegación por gestos</h3>
               
-              <div className="flex justify-between items-center gap-4 mb-4">
-                <div className="flex flex-col items-center">
-                  <div className="rounded-full bg-primary/10 p-3 mb-2">
-                    <ArrowRightFromLine className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-xs">Desliza desde el borde izquierdo</span>
+              <div className="flex justify-between items-stretch gap-6 mb-5 mt-4">
+                <div className="flex-1 flex flex-col items-center">
+                  <motion.div 
+                    className="rounded-xl bg-primary/10 p-3 mb-3 border border-primary/10"
+                    initial={{ x: -10 }}
+                    animate={{ x: 0 }}
+                    transition={{ repeat: 2, duration: 0.8, delay: 0.5 }}
+                  >
+                    <ArrowRightFromLine className="h-6 w-6 text-primary" />
+                  </motion.div>
+                  <span className="text-sm">Desliza desde <br/><strong className="text-primary">borde izquierdo</strong></span>
+                  <span className="text-xs text-muted-foreground mt-1">Abre el menú</span>
                 </div>
-                <div className="flex flex-col items-center">
-                  <div className="rounded-full bg-primary/10 p-3 mb-2">
-                    <ArrowLeftFromLine className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-xs">Desliza desde el borde derecho</span>
+                <div className="bg-muted/30 w-px h-auto rounded-full mx-2" />
+                <div className="flex-1 flex flex-col items-center">
+                  <motion.div 
+                    className="rounded-xl bg-primary/10 p-3 mb-3 border border-primary/10"
+                    initial={{ x: 10 }}
+                    animate={{ x: 0 }}
+                    transition={{ repeat: 2, duration: 0.8, delay: 1.5 }}
+                  >
+                    <ArrowLeftFromLine className="h-6 w-6 text-primary" />
+                  </motion.div>
+                  <span className="text-sm">Desliza desde <br/><strong className="text-primary">borde derecho</strong></span>
+                  <span className="text-xs text-muted-foreground mt-1">Abre notificaciones</span>
                 </div>
               </div>
               
-              <p className="text-xs text-muted-foreground">Accede rápidamente al menú y a las notificaciones con gestos táctiles.</p>
+              <div className="flex justify-center">
+                <motion.div 
+                  className="px-4 py-1.5 rounded-full text-xs bg-primary/10 text-primary font-medium"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                >
+                  Este mensaje desaparecerá automáticamente
+                </motion.div>
+              </div>
             </div>
           </motion.div>
         )}
