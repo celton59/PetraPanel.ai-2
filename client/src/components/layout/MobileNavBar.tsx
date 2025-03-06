@@ -107,27 +107,101 @@ export function MobileNavBar() {
       {/* Áreas para detectar los gestos táctiles en los bordes laterales */}
       {isMobile && (
         <>
-          {/* Área para detectar swipe desde el borde izquierdo con indicador mejorado */}
+          {/* Área para detectar swipe desde el borde izquierdo con indicador mejorado y estilizado */}
           <div 
             {...swipeHandlers}
             className="md:hidden fixed top-0 bottom-0 left-0 w-12 z-20"
             aria-hidden="true"
           >
-            <div className="absolute top-1/2 -mt-24 left-0 h-48 flex items-center">
-              <div className="w-2 h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent rounded-r-full opacity-70 animate-pulse" />
-              <div className="ml-1 w-[3px] h-16 bg-gradient-to-b from-transparent via-primary/20 to-transparent rounded-r-full opacity-60 animate-pulse" />
+            {/* Indicador principal elegante */}
+            <div className="absolute inset-y-0 left-0 flex flex-col justify-center items-start">
+              <motion.div 
+                className="w-1 h-[40%] rounded-r-xl bg-gradient-to-b from-primary/5 via-primary/30 to-primary/5"
+                animate={{ 
+                  opacity: [0.4, 0.7, 0.4]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+            </div>
+            
+            {/* Indicadores de puntos animados con efecto brillo */}
+            <div className="absolute inset-y-0 left-2 flex flex-col justify-center items-start gap-8">
+              <motion.div 
+                className="w-2 h-2 rounded-full bg-gradient-to-r from-primary/60 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.3)]"
+                animate={{ 
+                  x: [0, 4, 0],
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{ duration: 2.5, delay: 0.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div 
+                className="w-2 h-2 rounded-full bg-gradient-to-r from-primary/60 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.3)]"
+                animate={{ 
+                  x: [0, 4, 0],
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{ duration: 2.5, delay: 1.3, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div 
+                className="w-2 h-2 rounded-full bg-gradient-to-r from-primary/60 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.3)]"
+                animate={{ 
+                  x: [0, 4, 0],
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{ duration: 2.5, delay: 2.1, repeat: Infinity, ease: "easeInOut" }}
+              />
             </div>
           </div>
           
-          {/* Área para detectar swipe desde el borde derecho con indicador mejorado */}
+          {/* Área para detectar swipe desde el borde derecho con indicador mejorado y estilizado */}
           <div 
             {...swipeHandlers}
             className="md:hidden fixed top-0 bottom-0 right-0 w-12 z-20"
             aria-hidden="true"
           >
-            <div className="absolute top-1/2 -mt-24 right-0 h-48 flex items-center">
-              <div className="ml-auto w-[3px] h-16 bg-gradient-to-b from-transparent via-primary/20 to-transparent rounded-l-full opacity-60 animate-pulse" />
-              <div className="mr-auto w-2 h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent rounded-l-full opacity-70 animate-pulse" />
+            {/* Indicador principal elegante */}
+            <div className="absolute inset-y-0 right-0 flex flex-col justify-center items-end">
+              <motion.div 
+                className="w-1 h-[40%] rounded-l-xl bg-gradient-to-b from-primary/5 via-primary/30 to-primary/5"
+                animate={{ 
+                  opacity: [0.4, 0.7, 0.4]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+            </div>
+            
+            {/* Indicadores de puntos animados con efecto brillo */}
+            <div className="absolute inset-y-0 right-2 flex flex-col justify-center items-end gap-8">
+              <motion.div 
+                className="w-2 h-2 rounded-full bg-gradient-to-l from-primary/60 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.3)]"
+                animate={{ 
+                  x: [0, -4, 0],
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{ duration: 2.5, delay: 0.8, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div 
+                className="w-2 h-2 rounded-full bg-gradient-to-l from-primary/60 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.3)]"
+                animate={{ 
+                  x: [0, -4, 0],
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{ duration: 2.5, delay: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div 
+                className="w-2 h-2 rounded-full bg-gradient-to-l from-primary/60 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.3)]"
+                animate={{ 
+                  x: [0, -4, 0],
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{ duration: 2.5, delay: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              />
             </div>
           </div>
         </>
