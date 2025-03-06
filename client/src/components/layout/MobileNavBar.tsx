@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { LogoWithBlink } from "./LogoWithBlink";
 import { useNotifications } from "@/hooks/use-notifications";
-import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { MobileNotificationCenter } from "@/components/notifications/MobileNotificationCenter";
 
 export function MobileNavBar() {
   const [location] = useLocation();
@@ -74,11 +74,13 @@ export function MobileNavBar() {
                 >
                   <item.icon className={cn(
                     "h-5 w-5 mb-1",
-                    "text-muted-foreground"
+                    item.path === '#notifications' && unreadCount > 0 
+                      ? "text-primary animate-pulse" 
+                      : "text-muted-foreground"
                   )} />
                   {item.badge && (
                     <span className="absolute top-1 right-1 flex items-center justify-center min-w-5 h-5 text-xs 
-                      font-bold text-white bg-red-500 rounded-full px-1">
+                      font-bold text-white bg-red-500 rounded-full px-1 animate-pulse">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   )}
@@ -169,7 +171,7 @@ export function MobileNavBar() {
         </SheetContent>
       </Sheet>
 
-      {/* Panel de notificaciones */}
+      {/* Panel de notificaciones optimizado para móvil */}
       <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
         <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0">
           <div className="flex flex-col h-full overflow-hidden">
@@ -181,8 +183,8 @@ export function MobileNavBar() {
                 </div>
               )}
             </div>
-            <div className="flex-1 overflow-auto">
-              <NotificationCenter />
+            <div className="flex-1 overflow-hidden">
+              <MobileNotificationCenter />
             </div>
           </div>
         </SheetContent>
