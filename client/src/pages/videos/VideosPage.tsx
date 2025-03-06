@@ -305,56 +305,6 @@ export default function VideosPage() {
             </TableBody>
           </Table>
         </div>
-
-        {paginationMetadata && (
-          <div className="mt-8">
-            <div className="flex justify-end mb-4">
-              <div className="w-full sm:w-[140px]">
-                <Select
-                  value={String(paginationMetadata.limit)}
-                  onValueChange={(value) => changeLimit(Number(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Mostrar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 por página</SelectItem>
-                    <SelectItem value="25">25 por página</SelectItem>
-                    <SelectItem value="50">50 por página</SelectItem>
-                    <SelectItem value="100">100 por página</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {paginationMetadata.totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={!paginationMetadata.hasPrevPage}
-                  />
-                </PaginationItem>
-
-                {renderPaginationItems()}
-
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={!paginationMetadata.hasNextPage}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            )}
-
-            <div className="text-center text-sm text-muted-foreground mt-2">
-              Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
-              Página {paginationMetadata.page} de {paginationMetadata.totalPages}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -454,55 +404,6 @@ export default function VideosPage() {
           </div>
         ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
-        {paginationMetadata && (
-          <div className="mt-8">
-            <div className="flex justify-end mb-4">
-              <div className="w-full sm:w-[140px]">
-                <Select
-                  value={String(paginationMetadata.limit)}
-                  onValueChange={(value) => changeLimit(Number(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Mostrar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 por página</SelectItem>
-                    <SelectItem value="25">25 por página</SelectItem>
-                    <SelectItem value="50">50 por página</SelectItem>
-                    <SelectItem value="100">100 por página</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {paginationMetadata.totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={!paginationMetadata.hasPrevPage}
-                  />
-                </PaginationItem>
-
-                {renderPaginationItems()}
-
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={!paginationMetadata.hasNextPage}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            )}
-
-            <div className="text-center text-sm text-muted-foreground mt-2">
-              Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
-              Página {paginationMetadata.page} de {paginationMetadata.totalPages}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -598,56 +499,6 @@ export default function VideosPage() {
           </div>
         ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
-
-        {paginationMetadata && (
-          <div className="mt-8">
-            <div className="flex justify-end mb-4">
-              <div className="w-full sm:w-[140px]">
-                <Select
-                  value={String(paginationMetadata.limit)}
-                  onValueChange={(value) => changeLimit(Number(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Mostrar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 por página</SelectItem>
-                    <SelectItem value="25">25 por página</SelectItem>
-                    <SelectItem value="50">50 por página</SelectItem>
-                    <SelectItem value="100">100 por página</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {paginationMetadata.totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={!paginationMetadata.hasPrevPage}
-                  />
-                </PaginationItem>
-
-                {renderPaginationItems()}
-
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={!paginationMetadata.hasNextPage}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            )}
-
-            <div className="text-center text-sm text-muted-foreground mt-2">
-              Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
-              Página {paginationMetadata.page} de {paginationMetadata.totalPages}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -684,7 +535,7 @@ export default function VideosPage() {
   }
 
   // Función para manejar el cambio de página
-  const handlePageChange = (newPage: number) => {
+  function handlePageChange (newPage: number) {
     if (newPage >= 1 && newPage <= (paginationMetadata?.totalPages || 1)) {
       changePage(newPage);
     }
@@ -776,7 +627,7 @@ export default function VideosPage() {
         </div>
       </div>
 
-      <div className="mb-8 space-y-4">
+      <div className="mb-4 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <VideoFilters
             searchTerm={searchTerm}
@@ -792,6 +643,7 @@ export default function VideosPage() {
             showFilters={showFilters}
             onToggleFilters={() => setShowFilters(!showFilters)}
           />
+          
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant={showFilters ? "secondary" : "ghost"}
@@ -829,6 +681,26 @@ export default function VideosPage() {
         </div>
       </div>
 
+      { paginationMetadata && 
+        <div className="mb-4 w-full sm:w-[140px]">
+          <Select
+            value={String(paginationMetadata.limit)}
+            onValueChange={(value) => changeLimit(Number(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Mostrar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 por página</SelectItem>
+              <SelectItem value="25">25 por página</SelectItem>
+              <SelectItem value="50">50 por página</SelectItem>
+              <SelectItem value="100">100 por página</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      }
+      
+      
       <div className="rounded-lg">
         {viewMode === "table"
           ? getTableView()
@@ -836,6 +708,38 @@ export default function VideosPage() {
             ? getGridView()
             : getListView()}
       </div>
+
+      {paginationMetadata && (
+        <div className="mt-8">
+
+          {paginationMetadata.totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={!paginationMetadata.hasPrevPage}
+                />
+              </PaginationItem>
+
+              {renderPaginationItems()}
+
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={!paginationMetadata.hasNextPage}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+          )}
+
+          <div className="text-center text-sm text-muted-foreground mt-2">
+            Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
+            Página {paginationMetadata.page} de {paginationMetadata.totalPages}
+          </div>
+        </div>
+      )}
 
       {selectedVideo && getVideoDialog()}
     </div>
