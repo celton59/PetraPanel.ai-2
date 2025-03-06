@@ -52,6 +52,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   admin: [],
@@ -304,9 +305,29 @@ export default function VideosPage() {
             </TableBody>
           </Table>
         </div>
-        
-        {paginationMetadata && paginationMetadata.totalPages > 1 && (
+
+        {paginationMetadata && (
           <div className="mt-8">
+            <div className="flex justify-end mb-4">
+              <div className="w-full sm:w-[140px]">
+                <Select
+                  value={String(paginationMetadata.limit)}
+                  onValueChange={(value) => changeLimit(Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mostrar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 por página</SelectItem>
+                    <SelectItem value="25">25 por página</SelectItem>
+                    <SelectItem value="50">50 por página</SelectItem>
+                    <SelectItem value="100">100 por página</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {paginationMetadata.totalPages > 1 && (
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
@@ -326,6 +347,7 @@ export default function VideosPage() {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+            )}
 
             <div className="text-center text-sm text-muted-foreground mt-2">
               Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
@@ -432,8 +454,28 @@ export default function VideosPage() {
           </div>
         ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
-        {paginationMetadata && paginationMetadata.totalPages > 1 && (
+        {paginationMetadata && (
           <div className="mt-8">
+            <div className="flex justify-end mb-4">
+              <div className="w-full sm:w-[140px]">
+                <Select
+                  value={String(paginationMetadata.limit)}
+                  onValueChange={(value) => changeLimit(Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mostrar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 por página</SelectItem>
+                    <SelectItem value="25">25 por página</SelectItem>
+                    <SelectItem value="50">50 por página</SelectItem>
+                    <SelectItem value="100">100 por página</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {paginationMetadata.totalPages > 1 && (
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
@@ -453,6 +495,7 @@ export default function VideosPage() {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+            )}
 
             <div className="text-center text-sm text-muted-foreground mt-2">
               Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
@@ -556,8 +599,28 @@ export default function VideosPage() {
         ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
 
-        {paginationMetadata && paginationMetadata.totalPages > 1 && (
+        {paginationMetadata && (
           <div className="mt-8">
+            <div className="flex justify-end mb-4">
+              <div className="w-full sm:w-[140px]">
+                <Select
+                  value={String(paginationMetadata.limit)}
+                  onValueChange={(value) => changeLimit(Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mostrar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 por página</SelectItem>
+                    <SelectItem value="25">25 por página</SelectItem>
+                    <SelectItem value="50">50 por página</SelectItem>
+                    <SelectItem value="100">100 por página</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {paginationMetadata.totalPages > 1 && (
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
@@ -577,6 +640,7 @@ export default function VideosPage() {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+            )}
 
             <div className="text-center text-sm text-muted-foreground mt-2">
               Mostrando {videos.length} de {paginationMetadata.totalVideos} videos • 
