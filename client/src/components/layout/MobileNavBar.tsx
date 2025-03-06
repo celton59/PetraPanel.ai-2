@@ -107,284 +107,92 @@ export function MobileNavBar() {
       {/* Áreas para detectar los gestos táctiles en los bordes laterales */}
       {isMobile && (
         <>
-          {/* Área para detectar swipe desde el borde izquierdo con indicador mejorado y estilizado */}
+          {/* Área para detectar swipe desde el borde izquierdo con indicador mejorado */}
           <div 
             {...swipeHandlers}
             className="md:hidden fixed top-0 bottom-0 left-0 w-12 z-20"
             aria-hidden="true"
           >
-            {/* Indicador principal elegante con efecto de resplandor */}
-            <div className="absolute inset-y-0 left-0 flex flex-col justify-center items-start">
-              <motion.div 
-                className="relative w-1.5 h-[45%] overflow-hidden rounded-r-xl bg-gradient-to-b from-primary/10 via-primary/60 to-primary/10 border-r-[0.5px] border-primary/30"
-                animate={{ 
-                  opacity: [0.5, 0.8, 0.5]
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                {/* Efecto de resplandor interno */}
-                <motion.div 
-                  className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent to-white/20"
-                  animate={{ 
-                    x: ['-100%', '100%', '-100%']
-                  }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </motion.div>
-              
-              {/* Indicador de dirección sutil */}
-              <div className="absolute left-2 inset-y-0 flex flex-col justify-center space-y-1">
-                <motion.div
-                  className="w-1 h-1 rounded-full bg-primary/40"
-                  animate={{ x: [0, 2, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse", delay: 1 }}
-                />
-              </div>
-            </div>
-            
-            {/* Indicadores de puntos animados con efecto de brillo mejorado */}
-            <div className="absolute inset-y-0 left-2 flex flex-col justify-center items-start gap-8">
-              {/* Primer punto con efecto de arrastre */}
-              <div className="relative">
-                <motion.div 
-                  className="relative z-10 w-2 h-2 rounded-full bg-gradient-to-r from-primary/70 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.5)]"
-                  animate={{ 
-                    x: [0, 4, 0],
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [0.85, 1.05, 0.85]
-                  }}
-                  transition={{ duration: 2.2, delay: 0.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {/* Efecto de brillo interior */}
-                  <motion.div 
-                    className="absolute inset-0 rounded-full bg-white/40"
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.5, delay: 0.7, repeat: Infinity }}
-                  />
-                </motion.div>
-                {/* Estela del punto */}
-                <motion.div 
-                  className="absolute top-0 left-0 w-2 h-2 rounded-full bg-primary/30 blur-[1px]"
-                  animate={{ 
-                    x: [-2, 2, -2],
-                    opacity: [0, 0.7, 0]
-                  }}
-                  transition={{ duration: 2.2, delay: 0.6, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
-              
-              {/* Segundo punto con efecto de arrastre */}
-              <div className="relative">
-                <motion.div 
-                  className="relative z-10 w-2 h-2 rounded-full bg-gradient-to-r from-primary/70 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.5)]"
-                  animate={{ 
-                    x: [0, 4, 0],
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [0.85, 1.05, 0.85]
-                  }}
-                  transition={{ duration: 2.2, delay: 1.3, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <motion.div 
-                    className="absolute inset-0 rounded-full bg-white/40"
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.5, delay: 1.5, repeat: Infinity }}
-                  />
-                </motion.div>
-                <motion.div 
-                  className="absolute top-0 left-0 w-2 h-2 rounded-full bg-primary/30 blur-[1px]"
-                  animate={{ 
-                    x: [-2, 2, -2],
-                    opacity: [0, 0.7, 0]
-                  }}
-                  transition={{ duration: 2.2, delay: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
-              
-              {/* Tercer punto con efecto de arrastre */}
-              <div className="relative">
-                <motion.div 
-                  className="relative z-10 w-2 h-2 rounded-full bg-gradient-to-r from-primary/70 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.5)]"
-                  animate={{ 
-                    x: [0, 4, 0],
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [0.85, 1.05, 0.85]
-                  }}
-                  transition={{ duration: 2.2, delay: 2.1, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <motion.div 
-                    className="absolute inset-0 rounded-full bg-white/40"
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.5, delay: 2.3, repeat: Infinity }}
-                  />
-                </motion.div>
-                <motion.div 
-                  className="absolute top-0 left-0 w-2 h-2 rounded-full bg-primary/30 blur-[1px]"
-                  animate={{ 
-                    x: [-2, 2, -2],
-                    opacity: [0, 0.7, 0]
-                  }}
-                  transition={{ duration: 2.2, delay: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
+            <div className="absolute top-1/2 -mt-24 left-0 h-48 flex items-center">
+              <div className="w-2 h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent rounded-r-full opacity-70 animate-pulse" />
+              <div className="ml-1 w-[3px] h-16 bg-gradient-to-b from-transparent via-primary/20 to-transparent rounded-r-full opacity-60 animate-pulse" />
             </div>
           </div>
           
-          {/* Área para detectar swipe desde el borde derecho con indicador mejorado y estilizado */}
+          {/* Área para detectar swipe desde el borde derecho con indicador mejorado */}
           <div 
             {...swipeHandlers}
             className="md:hidden fixed top-0 bottom-0 right-0 w-12 z-20"
             aria-hidden="true"
           >
-            {/* Indicador principal elegante con efecto de resplandor */}
-            <div className="absolute inset-y-0 right-0 flex flex-col justify-center items-end">
-              <motion.div 
-                className="relative w-1.5 h-[45%] overflow-hidden rounded-l-xl bg-gradient-to-b from-primary/10 via-primary/60 to-primary/10 border-l-[0.5px] border-primary/30"
-                animate={{ 
-                  opacity: [0.5, 0.8, 0.5]
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                {/* Efecto de resplandor interno */}
-                <motion.div 
-                  className="absolute inset-0 w-full h-full bg-gradient-to-l from-transparent to-white/20"
-                  animate={{ 
-                    x: ['100%', '-100%', '100%']
-                  }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </motion.div>
-              
-              {/* Indicador de dirección sutil */}
-              <div className="absolute right-2 inset-y-0 flex flex-col justify-center space-y-1">
-                <motion.div
-                  className="w-1 h-1 rounded-full bg-primary/40"
-                  animate={{ x: [0, -2, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse", delay: 1 }}
-                />
-              </div>
-            </div>
-            
-            {/* Indicadores de puntos animados con efecto de brillo mejorado */}
-            <div className="absolute inset-y-0 right-2 flex flex-col justify-center items-end gap-8">
-              {/* Primer punto con efecto de arrastre */}
-              <div className="relative">
-                <motion.div 
-                  className="relative z-10 w-2 h-2 rounded-full bg-gradient-to-l from-primary/70 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.5)]"
-                  animate={{ 
-                    x: [0, -4, 0],
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [0.85, 1.05, 0.85]
-                  }}
-                  transition={{ duration: 2.2, delay: 0.7, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {/* Efecto de brillo interior */}
-                  <motion.div 
-                    className="absolute inset-0 rounded-full bg-white/40"
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.5, delay: 0.9, repeat: Infinity }}
-                  />
-                </motion.div>
-                {/* Estela del punto */}
-                <motion.div 
-                  className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary/30 blur-[1px]"
-                  animate={{ 
-                    x: [2, -2, 2],
-                    opacity: [0, 0.7, 0]
-                  }}
-                  transition={{ duration: 2.2, delay: 0.8, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
-              
-              {/* Segundo punto con efecto de arrastre */}
-              <div className="relative">
-                <motion.div 
-                  className="relative z-10 w-2 h-2 rounded-full bg-gradient-to-l from-primary/70 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.5)]"
-                  animate={{ 
-                    x: [0, -4, 0],
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [0.85, 1.05, 0.85]
-                  }}
-                  transition={{ duration: 2.2, delay: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <motion.div 
-                    className="absolute inset-0 rounded-full bg-white/40"
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.5, delay: 1.7, repeat: Infinity }}
-                  />
-                </motion.div>
-                <motion.div 
-                  className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary/30 blur-[1px]"
-                  animate={{ 
-                    x: [2, -2, 2],
-                    opacity: [0, 0.7, 0]
-                  }}
-                  transition={{ duration: 2.2, delay: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
-              
-              {/* Tercer punto con efecto de arrastre */}
-              <div className="relative">
-                <motion.div 
-                  className="relative z-10 w-2 h-2 rounded-full bg-gradient-to-l from-primary/70 to-primary/90 shadow-[0_0_5px_rgba(var(--primary),0.5)]"
-                  animate={{ 
-                    x: [0, -4, 0],
-                    opacity: [0.5, 0.9, 0.5],
-                    scale: [0.85, 1.05, 0.85]
-                  }}
-                  transition={{ duration: 2.2, delay: 2.3, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <motion.div 
-                    className="absolute inset-0 rounded-full bg-white/40"
-                    animate={{ opacity: [0, 0.5, 0] }}
-                    transition={{ duration: 1.5, delay: 2.5, repeat: Infinity }}
-                  />
-                </motion.div>
-                <motion.div 
-                  className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary/30 blur-[1px]"
-                  animate={{ 
-                    x: [2, -2, 2],
-                    opacity: [0, 0.7, 0]
-                  }}
-                  transition={{ duration: 2.2, delay: 2.4, repeat: Infinity, ease: "easeInOut" }}
-                />
-              </div>
+            <div className="absolute top-1/2 -mt-24 right-0 h-48 flex items-center">
+              <div className="ml-auto w-[3px] h-16 bg-gradient-to-b from-transparent via-primary/20 to-transparent rounded-l-full opacity-60 animate-pulse" />
+              <div className="mr-auto w-2 h-24 bg-gradient-to-b from-transparent via-primary/40 to-transparent rounded-l-full opacity-70 animate-pulse" />
             </div>
           </div>
         </>
       )}
       
-      {/* Botones flotantes para navegación (reemplazan a la barra inferior) */}
-      <div className="md:hidden fixed bottom-4 right-4 flex flex-col gap-2 z-50">
-        {/* Botón flotante para notificaciones */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsNotificationsOpen(true)}
-          className={cn(
-            "h-12 w-12 rounded-full shadow-md border border-border bg-background/95 backdrop-blur-sm",
-            unreadCount > 0 ? "animate-pulse" : ""
-          )}
-        >
-          <div className="relative">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full px-0.5">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </div>
-        </Button>
-        
-        {/* Botón flotante para menú */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsMenuOpen(true)}
-          className="h-12 w-12 rounded-full shadow-md border border-border bg-background/95 backdrop-blur-sm"
-        >
-          <Menu className="h-5 w-5 text-muted-foreground" />
-        </Button>
-      </div>
+      {/* Barra de navegación fija en la parte inferior para móviles */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 py-1 px-2">
+        <div className="flex items-center justify-around">
+          {navItems.map((item) => {
+            const isActive = !item.path.startsWith('#') && isActiveRoute(item.path);
+            
+            if (item.path.startsWith('#')) {
+              return (
+                <Button
+                  key={item.label}
+                  variant="ghost"
+                  size="sm"
+                  onClick={item.onClick}
+                  className="flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16 relative"
+                >
+                  <item.icon className={cn(
+                    "h-5 w-5 mb-1",
+                    item.path === '#notifications' && unreadCount > 0 
+                      ? "text-primary animate-pulse" 
+                      : "text-muted-foreground"
+                  )} />
+                  {item.badge && (
+                    <span className="absolute top-1 right-1 flex items-center justify-center min-w-5 h-5 text-xs 
+                      font-bold text-white bg-red-500 rounded-full px-1 animate-pulse">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {item.label}
+                  </span>
+                </Button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.label}
+                href={item.path}
+                className={cn(
+                  "flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground"
+                )}
+              >
+                <item.icon className={cn(
+                  "h-5 w-5 mb-1",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )} />
+                <span className={cn(
+                  "text-xs font-medium",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* Menú lateral completo */}
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -512,77 +320,44 @@ export function MobileNavBar() {
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center px-4"
           >
-            <div className="bg-background/90 backdrop-blur-md p-6 rounded-xl shadow-xl border border-primary/10 max-w-[350px] text-center relative overflow-hidden">
-              {/* Decoración de fondo */}
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute -left-10 -top-10 w-40 h-40 rounded-full bg-gradient-to-br from-primary/60 to-primary/10 blur-xl" />
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-gradient-to-tl from-primary/60 to-primary/10 blur-xl" />
-              </div>
-              
-              {/* Indicador de diálogo */}
+            <div className="bg-background/90 backdrop-blur-md p-5 rounded-xl shadow-xl border border-primary/10 max-w-[330px] text-center">
               <div className="text-primary mb-1 flex justify-center">
-                <motion.span 
-                  className="inline-block w-12 h-1 bg-gradient-to-r from-primary/20 via-primary/50 to-primary/20 rounded-full"
-                  animate={{ width: ["45px", "35px", "45px"] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
+                <span className="inline-block w-12 h-1 bg-primary/20 rounded-full" />
               </div>
+              <h3 className="text-lg font-medium mb-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Navegación por gestos</h3>
               
-              {/* Título con efecto de gradiente */}
-              <h3 className="text-xl font-medium mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Navegación por gestos
-              </h3>
-              
-              <div className="flex justify-between items-stretch gap-6 mb-5 mt-5">
-                {/* Panel izquierdo */}
+              <div className="flex justify-between items-stretch gap-6 mb-5 mt-4">
                 <div className="flex-1 flex flex-col items-center">
                   <motion.div 
-                    className="relative rounded-xl bg-primary/5 p-3.5 mb-3 border border-primary/20 shadow-sm overflow-hidden"
-                    initial={{ x: -15 }}
+                    className="rounded-xl bg-primary/10 p-3 mb-3 border border-primary/10"
+                    initial={{ x: -10 }}
                     animate={{ x: 0 }}
                     transition={{ repeat: 2, duration: 0.8, delay: 0.5 }}
                   >
-                    <ArrowRightFromLine className="h-6 w-6 text-primary relative z-10" />
-                    {/* Resplandor interior */}
-                    <motion.div 
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent"
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
-                    />
+                    <ArrowRightFromLine className="h-6 w-6 text-primary" />
                   </motion.div>
-                  <span className="text-sm font-medium">Desliza desde <br/><strong className="text-primary">borde izquierdo</strong></span>
-                  <span className="text-xs text-muted-foreground mt-1">Abre el menú principal</span>
+                  <span className="text-sm">Desliza desde <br/><strong className="text-primary">borde izquierdo</strong></span>
+                  <span className="text-xs text-muted-foreground mt-1">Abre el menú</span>
                 </div>
-                
-                {/* Separador central */}
-                <div className="bg-gradient-to-b from-muted/10 via-muted/40 to-muted/10 w-px h-auto rounded-full mx-2" />
-                
-                {/* Panel derecho */}
+                <div className="bg-muted/30 w-px h-auto rounded-full mx-2" />
                 <div className="flex-1 flex flex-col items-center">
                   <motion.div 
-                    className="relative rounded-xl bg-primary/5 p-3.5 mb-3 border border-primary/20 shadow-sm overflow-hidden"
-                    initial={{ x: 15 }}
+                    className="rounded-xl bg-primary/10 p-3 mb-3 border border-primary/10"
+                    initial={{ x: 10 }}
                     animate={{ x: 0 }}
                     transition={{ repeat: 2, duration: 0.8, delay: 1.5 }}
                   >
-                    <ArrowLeftFromLine className="h-6 w-6 text-primary relative z-10" />
-                    {/* Resplandor interior */}
-                    <motion.div 
-                      className="absolute inset-0 bg-gradient-to-l from-transparent via-primary/20 to-transparent"
-                      animate={{ x: ['100%', '-100%'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1, delay: 0.8 }}
-                    />
+                    <ArrowLeftFromLine className="h-6 w-6 text-primary" />
                   </motion.div>
-                  <span className="text-sm font-medium">Desliza desde <br/><strong className="text-primary">borde derecho</strong></span>
+                  <span className="text-sm">Desliza desde <br/><strong className="text-primary">borde derecho</strong></span>
                   <span className="text-xs text-muted-foreground mt-1">Abre notificaciones</span>
                 </div>
               </div>
               
-              {/* Mensaje de cierre automático */}
-              <div className="flex justify-center mt-2">
+              <div className="flex justify-center">
                 <motion.div 
-                  className="px-4 py-1.5 rounded-full text-xs bg-primary/10 text-primary font-medium shadow-inner border border-primary/10"
-                  animate={{ opacity: [0.7, 1, 0.7], boxShadow: ['inset 0 1px 2px rgba(0,0,0,0.1)', 'inset 0 1px 4px rgba(0,0,0,0.2)', 'inset 0 1px 2px rgba(0,0,0,0.1)'] }}
+                  className="px-4 py-1.5 rounded-full text-xs bg-primary/10 text-primary font-medium"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ repeat: Infinity, duration: 2 }}
                 >
                   Este mensaje desaparecerá automáticamente
