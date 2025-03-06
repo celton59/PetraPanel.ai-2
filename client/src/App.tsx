@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -14,6 +15,7 @@ import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
 import { GuideProvider } from "@/components/help/GuideContext";
 import TitulinPage from "./pages/titulin/TitulinPage";
+import { SplashScreen } from "@/components/splash/SplashScreen";
 
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
@@ -74,6 +76,23 @@ function Router() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  
+  // Recuperar preferencia del usuario de localStorage
+  useEffect(() => {
+    const hasSeenSplash = localStorage.getItem('hasSeenSplash');
+    // Si el usuario ya vio la animación anteriormente, no mostrarla de nuevo
+    if (hasSeenSplash) {
+      setShowSplash(false);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    // Almacenar que el usuario ya vio la animación
+    localStorage.setItem('hasSeenSplash', 'true');
+    setShowSplash(false);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <GuideProvider>
@@ -84,11 +103,12 @@ function App() {
           richColors
           duration={3000}
         />
-        <Router>
-          {/* <Switch>
-            <Route path="/*" component={Layout} />
-          </Switch> */}
-        </Router>
+        
+        {showSplash ? (
+          <SplashScreen onComplete={handleSplashComplete} />
+        ) : (
+          <Router />
+        )}
       </GuideProvider>
     </QueryClientProvider>
   );
