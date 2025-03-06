@@ -148,7 +148,7 @@ export const actionRates = pgTable("action_rates", {
 
 export const youtube_videos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
-  videoId: text("video_id").notNull().unique(),
+  youtubeId: text("youtube_id").notNull().unique(),
   channelId: text("channel_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),

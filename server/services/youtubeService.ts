@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { youtube_channels, youtube_videos, YoutubeVideo, InsertYoutubeVideo } from '@db/schema';
+import { youtube_videos, YoutubeVideo, InsertYoutubeVideo } from '@db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from "@db";
 
@@ -132,7 +132,7 @@ export class YouTubeService {
       // Optimized query: Get existing video IDs from database
       const startTime = Date.now();
       const existingVideos: Pick<YoutubeVideo, 'videoId' | 'updatedAt'>[] = await db.select({
-        videoId: youtube_videos.videoId,
+        videoId: youtube_videos.youtubeId,
         updatedAt: youtube_videos.updatedAt
       })
       .from(youtube_videos)
@@ -258,10 +258,10 @@ export class YouTubeService {
       // Using a Set for O(1) lookups
       const existingVideoIds = new Set<string>();
       const existingVideos = await db
-        .select({ videoId: youtube_videos.videoId })
+        .select({ videoId: youtube_videos.youtubeId })
         .from(youtube_videos)
         .where(inArray(
-          youtube_videos.videoId, 
+          youtube_videos.youtubeId, 
           videos.map(v => v.videoId)
         ));
 
@@ -303,7 +303,7 @@ export class YouTubeService {
                 ...video,
                 updatedAt: new Date(),
               })
-              .where(eq(youtube_videos.videoId, video.videoId));
+              .where(eq(youtube_videos.youtubeId, video.videoId));
           }
         }
       }

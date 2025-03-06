@@ -136,7 +136,9 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     console.log("Login successful for user:", req.user?.username);
-    res.json(req.user);
+    const userToReturn = JSON.parse(JSON.stringify(req.user))
+    delete userToReturn.password;
+    res.json(userToReturn);
   });
 
   // app.post("/api/register", async (req, res) => {
@@ -187,7 +189,9 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      return res.json(req.user);
+      const userToReturn = JSON.parse(JSON.stringify(req.user))
+      delete userToReturn.password;
+      return res.json(userToReturn);
     }
     res.status(401).send("No autenticado");
   });

@@ -1,8 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, getTableColumns, desc, sql } from "drizzle-orm";
+import { eq, getTableColumns, desc, sql } from "drizzle-orm";
 import {
   youtube_videos,
-  youtube_channels
+  youtube_channels,
+  videos
 } from "@db/schema";
 import { db } from "@db";
 import { type Express } from "express";
@@ -259,10 +260,89 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
 
 }
 
+async function sendToOptimize (req: Request, res: Response): Promise<Response> {
+
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para agregar canales',
+    });
+  }
+
+  try {
+    const { videoId } = req.params;
+    // Get videoId and projectId from body
+    const { projectId } = req.body as { projectId: number }
+    // Check if videoId and projectId are provided
+    if (!videoId || !projectId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se ha especificado el videoId o el projectId',
+      });
+    }
+
+    // Get the youtube video from the database
+    const youtubeVideo = await db.select({
+      ...getTableColumns(youtube_videos)
+    }).from(youtube_videos).where(eq(youtube_videos.id, parseInt(videoId))).execute();
+
+    // Check if the youtube video exists
+    if (!youtubeVideo.at(0)) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se ha encontrado el video',
+      });
+    }
+  
+    if (youtubeVideo.at(0)?.sentToOptimize) {
+      return res.status(400).json({
+        success: false,
+        message: 'El video ya está optimizado',
+      });
+    }
+
+    // Insert the video into the database and set the sentToOptimize flag to true
+    await db.transaction(async (trx) => {
+        await trx.insert(videos)
+          .values({
+            projectId: projectId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            title: youtubeVideo.at(0)!.title,
+            createdBy: req.user?.id,
+            description: youtubeVideo.at(0)!.description,
+            status: 'available',
+            tags: youtubeVideo.at(0)!.tags?.toString(),
+            thumbnailUrl: youtubeVideo.at(0)!.thumbnailUrl,
+            youtubeUrl: `https://www.youtube.com/watch?v=${youtubeVideo.at(0)!.youtubeId}`,
+          })
+          .returning();
+
+        await trx.update(youtube_videos).set({
+          sentToOptimize: true,
+          updatedAt: new Date()
+        }).where(eq(youtube_videos.id, parseInt(videoId)));
+    });
+
+    return res.status(200).json({
+      success: true
+    })
+    
+  }
+  catch (error) {
+    console.error('Error adding channel:', error);
+    return res.status(500).json({ 
+      error: 'Error al añadir canal',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+}
+
 export function setUpTitulinRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
   app.post('/api/titulin/channels', requireAuth, addChannel )
   app.get('/api/titulin/channels', requireAuth, getChannels )
   app.delete('/api/titulin/channels/:channelId', requireAuth, deleteChannel )
   app.post('/api/titulin/channels/:channelId/sync', requireAuth, syncChannel )
   app.get('/api/titulin/videos', requireAuth, getVideos )
+  app.post('/api/titulin/videos/:videoId/send-to-optimize', requireAuth, sendToOptimize)
 }

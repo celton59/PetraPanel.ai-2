@@ -3,21 +3,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Youtube, PlayCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useLocation as useWouterLocation } from "wouter";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectSelector } from "@/components/project/ProjectSelector";
-import { Project, YoutubeChannel, YoutubeVideo } from "@db/schema";
+import { YoutubeChannel, YoutubeVideo } from "@db/schema";
 import { DataTable } from "./DataTable";
 import { 
   Pagination, 
@@ -51,7 +49,6 @@ export default function TitulinPage() {
   const [channelFilter, setYoutubeChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null);
   const [targetProjectId, setTargetProjectId] = useState<number | null>(null);
-  const [_, setLocation] = useWouterLocation();
   
   // Estado para la paginación
   const [page, setPage] = useState(1);
@@ -59,19 +56,10 @@ export default function TitulinPage() {
   const [paginationMetadata, setPaginationMetadata] = useState<PaginationMetadata | null>(null);
 
   // Consultar canales
-  const { data: channels, isLoading: isLoadingChannels } = useQuery({
+  const { data: channels } = useQuery({
     queryKey: ["youtube-channels"],
     queryFn: async () => {
       const { data } = await axios.get<YoutubeChannel[]>("/api/titulin/channels");
-      return data;
-    },
-  });
-
-  // Consultar todos los proyectos
-  const { data: projects } = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      const { data } = await axios.get<Project[]>("/api/projects");
       return data;
     },
   });
@@ -109,14 +97,15 @@ export default function TitulinPage() {
   // Mutación para enviar video a optimizar
   const sendToOptimize = useMutation({
     mutationFn: async ({ videoId, projectId }: { videoId: number; projectId: number }) => {
-      const { data } = await axios.post(`/api/titulin/send-to-optimize`, {
-        videoId,
+      const { data } = await axios.post(`/api/titulin/videos/${videoId}/send-to-optimize`, {
         projectId,
       });
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
+
       toast.success("¡Video enviado a optimizar con éxito!");
       setSelectedVideo(null);
     },
@@ -305,7 +294,7 @@ export default function TitulinPage() {
   }
 
   // Función para renderizar el diálogo de detalle de video
-  const renderVideoDialog = () => {
+  function renderVideoDialog () {
     if (!selectedVideo) return null;
 
     return (
@@ -419,10 +408,8 @@ export default function TitulinPage() {
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <ProjectSelector
-                        projects={projects || []}
                         value={targetProjectId}
-                        onChange={setTargetProjectId}
-                        placeholder="Selecciona un proyecto"
+                        onChange={ p => setTargetProjectId(p.id) }
                       />
                     </div>
                     <Button 

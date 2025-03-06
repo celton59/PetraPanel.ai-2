@@ -85,85 +85,10 @@ export function registerRoutes(app: Express): Server {
     // Register translator routes. Requiring authentication.
     app.use('/api/translator', requireAuth, translatorRouter);
 
-
-    // Rutas de estadísticas
-    app.get("/api/stats/overall", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const stats = await db
-          .select({
-            total_videos: sql<number>`count(distinct ${videos.id})`,
-            total_optimizations: count(videos.optimizedTitle),
-            total_uploads: count(videos.videoUrl),
-          })
-          .from(videos);
-
-        res.json({
-          success: true,
-          data: stats[0]
-        });
-      } catch (error) {
-        console.error("Error fetching overall stats:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener estadísticas generales"
-        });
-      }
-    });
-
-    app.get("/api/stats/optimizations", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const stats = await db
-          .select({
-            userId: videos.currentReviewerId,
-            username: users.username,
-            fullName: users.fullName,
-            optimizations: count(),
-          })
-          .from(videos)
-          .innerJoin(users, eq(users.id, videos.currentReviewerId))
-          .where(sql`${videos.optimizedTitle} is not null`)
-          .groupBy(videos.currentReviewerId, users.username, users.fullName);
-
-        res.json(stats);
-      } catch (error) {
-        console.error("Error fetching optimization stats:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener estadísticas de optimizaciones"
-        });
-      }
-    });
-
-    app.get("/api/stats/uploads", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const stats = await db
-          .select({
-            userId: videos.createdById,
-            username: users.username,
-            fullName: users.fullName,
-            uploads: count(),
-          })
-          .from(videos)
-          .innerJoin(users, eq(users.id, videos.createdById))
-          .where(sql`${videos.videoUrl} is not null`)
-          .groupBy(videos.createdById, users.username, users.fullName);
-
-        res.json(stats);
-      } catch (error) {
-        console.error("Error fetching upload stats:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener estadísticas de subidas"
-        });
-      }
-    });
-
     // Projects routes
-
     setUpProjectRoutes(requireAuth, app)
 
     // Videos routes
-    
     setUpVideoRoutes(requireAuth, app)
 
     // Titulin
