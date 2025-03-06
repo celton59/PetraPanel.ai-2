@@ -136,62 +136,82 @@ export function MobileNavBar() {
       
       {/* Barra de navegación fija en la parte inferior para móviles */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 py-1 px-2">
-        <div className="flex items-center justify-around">
-          {navItems.map((item) => {
-            const isActive = !item.path.startsWith('#') && isActiveRoute(item.path);
-            
-            if (item.path.startsWith('#')) {
+        <div className="flex flex-col">
+          <div className="flex items-center justify-around">
+            {navItems.map((item) => {
+              const isActive = !item.path.startsWith('#') && isActiveRoute(item.path);
+              
+              if (item.path.startsWith('#')) {
+                return (
+                  <Button
+                    key={item.label}
+                    variant="ghost"
+                    size="sm"
+                    onClick={item.onClick}
+                    className="flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16 relative"
+                  >
+                    <item.icon className={cn(
+                      "h-5 w-5 mb-1",
+                      item.path === '#notifications' && unreadCount > 0 
+                        ? "text-primary animate-pulse" 
+                        : "text-muted-foreground"
+                    )} />
+                    {item.badge && (
+                      <span className="absolute top-1 right-1 flex items-center justify-center min-w-5 h-5 text-xs 
+                        font-bold text-white bg-red-500 rounded-full px-1 animate-pulse">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {item.label}
+                    </span>
+                  </Button>
+                );
+              }
+
               return (
-                <Button
+                <Link
                   key={item.label}
-                  variant="ghost"
-                  size="sm"
-                  onClick={item.onClick}
-                  className="flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16 relative"
+                  href={item.path}
+                  className={cn(
+                    "flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground"
+                  )}
                 >
                   <item.icon className={cn(
                     "h-5 w-5 mb-1",
-                    item.path === '#notifications' && unreadCount > 0 
-                      ? "text-primary animate-pulse" 
-                      : "text-muted-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )} />
-                  {item.badge && (
-                    <span className="absolute top-1 right-1 flex items-center justify-center min-w-5 h-5 text-xs 
-                      font-bold text-white bg-red-500 rounded-full px-1 animate-pulse">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className={cn(
+                    "text-xs font-medium",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}>
                     {item.label}
                   </span>
-                </Button>
+                </Link>
               );
-            }
-
-            return (
-              <Link
-                key={item.label}
-                href={item.path}
-                className={cn(
-                  "flex flex-col items-center justify-center px-1 py-2 rounded-lg w-16",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground"
-                )}
-              >
-                <item.icon className={cn(
-                  "h-5 w-5 mb-1",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )} />
-                <span className={cn(
-                  "text-xs font-medium",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}>
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
+            })}
+          </div>
+          
+          {/* Versión simplificada del historial de versiones en el footer de la navbar móvil */}
+          <div className="mt-1 px-2 pb-1 flex justify-center items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[10px] text-muted-foreground h-auto py-1 px-2"
+              onClick={() => {
+                const button = document.querySelector('button[data-version-info="true"]');
+                if (button && button instanceof HTMLElement) {
+                  button.click();
+                }
+              }}
+            >
+              <Info className="h-3 w-3 mr-1" />
+              <span>Historial de versiones</span>
+            </Button>
+          </div>
         </div>
       </nav>
 
@@ -278,25 +298,8 @@ export function MobileNavBar() {
               </nav>
             </div>
             <div className="p-4 border-t bg-muted/30 text-xs text-center text-muted-foreground">
-              <div className="flex flex-col items-center justify-center gap-2">
+              <div className="flex items-center justify-center">
                 <span>© PetraPanel 2025</span>
-                <div 
-                  className="flex items-center justify-center cursor-pointer hover:text-primary transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsMenuOpen(false);
-                    setTimeout(() => {
-                      const button = document.querySelector('button[data-version-info="true"]');
-                      if (button && button instanceof HTMLElement) {
-                        button.click();
-                      }
-                    }, 300);
-                  }}
-                >
-                  <Info className="h-3 w-3 mr-1" />
-                  <span>Historial de versiones</span>
-                </div>
               </div>
             </div>
           </div>
