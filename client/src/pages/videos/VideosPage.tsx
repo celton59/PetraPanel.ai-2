@@ -43,7 +43,6 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
-import { Pagination } from "@/components/ui/pagination"; // Added import for Pagination
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -99,7 +98,7 @@ export default function VideosPage() {
     );
   }
 
-  const { videos, isLoading, deleteVideo, updateVideo, paginationMetadata } = useVideos(); // Added paginationMetadata
+  const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
     undefined,
   );
@@ -108,7 +107,6 @@ export default function VideosPage() {
     undefined,
   );
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
-  const [currentPage, setCurrentPage] = useState(1); // Added pagination state
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -182,9 +180,28 @@ export default function VideosPage() {
         (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
-    return true;
-  });
 
+    // if (status !== "all") {
+    //   return video.status === status;
+    // }
+
+    // if (assignedTo !== "all") {
+    //   return video.assigned_to === assignedTo;
+    // }
+
+    // if (projectId !== "all") {
+    //   return video.project_id === projectId;
+    // }
+
+    // if (dateRange) {
+    //   return (
+    //     video.created_at >= dateRange.startDate &&
+    //     video.created_at <= dateRange.endDate
+    //   );
+    // }
+
+    return true;
+  })
 
   function getTableView() {
     return (
@@ -309,7 +326,7 @@ export default function VideosPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {(!filteredVideos || filteredVideos.length === 0) && ( // Changed to filteredVideos
+              {(!videos || videos.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={12}>{renderEmptyState()}</TableCell>
                 </TableRow>
@@ -324,7 +341,7 @@ export default function VideosPage() {
   function getGridView() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredVideos?.map((video) => ( // Changed to filteredVideos
+        {videos?.map((video) => (
           <div
             key={video.id}
             className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
@@ -415,21 +432,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()} {/* Changed to filteredVideos */}
-
-        {/* Pagination controls for grid view */}
-        {paginationMetadata && paginationMetadata.totalPages > 1 && (
-          <div className="mt-6">
-            <Pagination
-              pageCount={paginationMetadata.totalPages}
-              currentPage={currentPage}
-              onPageChange={(page) => setCurrentPage(page)}
-            />
-            <div className="text-center text-sm text-muted-foreground mt-2">
-              Mostrando {filteredVideos.length} de {paginationMetadata.totalVideos} videos • Página {currentPage} de {paginationMetadata.totalPages}
-            </div>
-          </div>
-        )}
+        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
@@ -437,7 +440,7 @@ export default function VideosPage() {
   function getListView() {
     return (
       <div className="space-y-4">
-        {filteredVideos?.map((video: any) => ( // Changed to filteredVideos
+        {videos?.map((video: any) => (
           <div
             key={video.id}
             className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer relative overflow-hidden"
@@ -524,21 +527,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!filteredVideos || filteredVideos.length === 0) && renderEmptyState()} {/* Changed to filteredVideos */}
-
-        {/* Pagination controls for list view */}
-        {paginationMetadata && paginationMetadata.totalPages > 1 && (
-          <div className="mt-6">
-            <Pagination
-              pageCount={paginationMetadata.totalPages}
-              currentPage={currentPage}
-              onPageChange={(page) => setCurrentPage(page)}
-            />
-            <div className="text-center text-sm text-muted-foreground mt-2">
-              Mostrando {filteredVideos.length} de {paginationMetadata.totalVideos} videos • Página {currentPage} de {paginationMetadata.totalPages}
-            </div>
-          </div>
-        )}
+        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
@@ -563,7 +552,7 @@ export default function VideosPage() {
                 setUpdatingVideoId(undefined);
                 setSelectedVideo(undefined);                
               }              
-
+                            
             } catch (err) {
               console.log(err);
               toast.error("Error al actualizar el video");
