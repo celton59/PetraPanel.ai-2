@@ -229,18 +229,15 @@ export default function VideosPage() {
                 <TableRow key={video.id} className="group">
                   {/* Miniatura */}
                   <TableCell>
-                    <div className="w-16 h-12 bg-muted rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                      {video.thumbnailUrl ? (
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.optimizedTitle ?? video.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                          <Layout className="h-4 w-4" />
-                        </div>
-                      )}
+                    <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
+                      <ImagePreview
+                        src={video.thumbnailUrl}
+                        alt={video.optimizedTitle ?? video.title}
+                        aspectRatio="video"
+                        enableZoom={false}
+                        showPlaceholder={true}
+                        className="h-full"
+                      />
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
@@ -378,18 +375,14 @@ export default function VideosPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="h-14 w-20 flex-shrink-0 bg-muted rounded overflow-hidden">
-                    {video.thumbnailUrl ? (
-                      <img
-                        src={video.thumbnailUrl}
-                        alt={video.title}
-                        className="w-full h-full object-cover object-center"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-muted">
-                        <Layout className="h-4 w-4 text-muted-foreground/40" />
-                      </div>
-                    )}
+                  <div className="h-14 w-20 flex-shrink-0 rounded overflow-hidden">
+                    <ImagePreview
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      aspectRatio="video"
+                      enableZoom={false}
+                      showPlaceholder={true}
+                    />
                   </div>
                 </div>
                 
@@ -583,18 +576,14 @@ export default function VideosPage() {
           >
             {/* Gradient accent en tarjetas list */}
             <div className="h-full w-1 bg-gradient-to-b from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
-            <div className="w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-              {video.thumbnailUrl ? (
-                <img
-                  src={video.thumbnailUrl}
-                  alt={video.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                  <Layout className="h-4 w-4" />
-                </div>
-              )}
+            <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0">
+              <ImagePreview
+                src={video.thumbnailUrl}
+                alt={video.title}
+                aspectRatio="video"
+                enableZoom={false}
+                showPlaceholder={true}
+              />
             </div>
             <div className="flex-grow min-w-0">
               <h3 className="font-medium mb-1 truncate">
