@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { LogoWithBlink } from "./LogoWithBlink";
 import { useNotifications } from "@/hooks/use-notifications";
 import { MobileNotificationCenter } from "@/components/notifications/MobileNotificationCenter";
@@ -12,17 +12,39 @@ import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator";
 import { useOnlineUsers } from "@/hooks/use-online-users";
 import { useSwipeable } from "react-swipeable";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ArrowRightFromLine, ArrowLeftFromLine } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export function MobileNavBar() {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [showSwipeHelp, setShowSwipeHelp] = useState(false);
   const { user } = useUser();
   const { unreadCount } = useNotifications();
   const { onlineUsers } = useOnlineUsers();
   const isMobile = useIsMobile();
 
   const isAdmin = user?.role === 'admin';
+  
+  // Mostrar ayuda de gestos solo en la primera sesión del usuario
+  useEffect(() => {
+    // Verificar si es la primera vez que el usuario accede
+    const hasSeenSwipeHelp = localStorage.getItem('hasSeenSwipeHelp');
+    
+    if (isMobile && !hasSeenSwipeHelp) {
+      // Mostrar la ayuda después de un breve retraso
+      setTimeout(() => {
+        setShowSwipeHelp(true);
+        
+        // Ocultar después de 5 segundos
+        setTimeout(() => {
+          setShowSwipeHelp(false);
+          localStorage.setItem('hasSeenSwipeHelp', 'true');
+        }, 5000);
+      }, 1000);
+    }
+  }, [isMobile]);
 
   // Un conjunto reducido de elementos de navegación para la barra inferior
   const navItems = [
@@ -85,19 +107,23 @@ export function MobileNavBar() {
       {/* Áreas para detectar los gestos táctiles en los bordes laterales */}
       {isMobile && (
         <>
-          {/* Área para detectar swipe desde el borde izquierdo */}
+          {/* Área para detectar swipe desde el borde izquierdo con indicador */}
           <div 
             {...swipeHandlers}
             className="md:hidden fixed top-0 bottom-0 left-0 w-8 z-20"
             aria-hidden="true"
-          />
+          >
+            <div className="absolute top-1/2 -mt-16 left-0 h-32 w-1 bg-primary/20 rounded-r-full opacity-50 animate-pulse" />
+          </div>
           
-          {/* Área para detectar swipe desde el borde derecho */}
+          {/* Área para detectar swipe desde el borde derecho con indicador */}
           <div 
             {...swipeHandlers}
             className="md:hidden fixed top-0 bottom-0 right-0 w-8 z-20"
             aria-hidden="true"
-          />
+          >
+            <div className="absolute top-1/2 -mt-16 right-0 h-32 w-1 bg-primary/20 rounded-l-full opacity-50 animate-pulse" />
+          </div>
         </>
       )}
       
@@ -277,6 +303,39 @@ export function MobileNavBar() {
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Ayuda de gestos táctiles para usuarios móviles */}
+      <AnimatePresence>
+        {showSwipeHelp && isMobile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center"
+          >
+            <div className="bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-[300px] text-center">
+              <h3 className="text-base font-medium mb-4">Navegación por gestos</h3>
+              
+              <div className="flex justify-between items-center gap-4 mb-4">
+                <div className="flex flex-col items-center">
+                  <div className="rounded-full bg-primary/10 p-3 mb-2">
+                    <ArrowRightFromLine className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-xs">Desliza desde el borde izquierdo</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="rounded-full bg-primary/10 p-3 mb-2">
+                    <ArrowLeftFromLine className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-xs">Desliza desde el borde derecho</span>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">Accede rápidamente al menú y a las notificaciones con gestos táctiles.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
