@@ -4,12 +4,14 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { LogoWithBlink } from "./LogoWithBlink";
 import { useNotifications } from "@/hooks/use-notifications";
 import { MobileNotificationCenter } from "@/components/notifications/MobileNotificationCenter";
 import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator";
 import { useOnlineUsers } from "@/hooks/use-online-users";
+import { useSwipeable } from "react-swipeable";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function MobileNavBar() {
   const [location] = useLocation();
@@ -18,6 +20,7 @@ export function MobileNavBar() {
   const { user } = useUser();
   const { unreadCount } = useNotifications();
   const { onlineUsers } = useOnlineUsers();
+  const isMobile = useIsMobile();
 
   const isAdmin = user?.role === 'admin';
 
@@ -58,8 +61,46 @@ export function MobileNavBar() {
     return location.startsWith(path);
   };
 
+  // Configurar los manejadores de gestos táctiles
+  const swipeHandlers = useSwipeable({
+    onSwipedRight: () => {
+      if (isMobile && !isMenuOpen) {
+        setIsMenuOpen(true);
+      }
+    },
+    onSwipedLeft: () => {
+      if (isMobile && !isNotificationsOpen) {
+        setIsNotificationsOpen(true);
+      }
+    },
+    // Configuración para hacer que los gestos sean más responsivos
+    trackMouse: false,
+    trackTouch: true,
+    delta: 10,       // Cantidad mínima de movimiento para considerar un swipe
+    rotationAngle: 0
+  });
+
   return (
     <>
+      {/* Áreas para detectar los gestos táctiles en los bordes laterales */}
+      {isMobile && (
+        <>
+          {/* Área para detectar swipe desde el borde izquierdo */}
+          <div 
+            {...swipeHandlers}
+            className="md:hidden fixed top-0 bottom-0 left-0 w-8 z-20"
+            aria-hidden="true"
+          />
+          
+          {/* Área para detectar swipe desde el borde derecho */}
+          <div 
+            {...swipeHandlers}
+            className="md:hidden fixed top-0 bottom-0 right-0 w-8 z-20"
+            aria-hidden="true"
+          />
+        </>
+      )}
+      
       {/* Barra de navegación fija en la parte inferior para móviles */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 py-1 px-2">
         <div className="flex items-center justify-around">
@@ -123,7 +164,11 @@ export function MobileNavBar() {
 
       {/* Menú lateral completo */}
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <SheetContent side="left" className="w-[280px] p-0">
+        <SheetContent 
+          side="left" 
+          className="w-[280px] p-0"
+          aria-label="Menú de navegación"
+        >
           <div className="flex flex-col h-full">
             <div className="flex items-center p-4 border-b bg-muted/30">
               <div className="flex items-center gap-2">
@@ -208,17 +253,25 @@ export function MobileNavBar() {
 
       {/* Panel de notificaciones optimizado para móvil */}
       <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0">
+        <SheetContent 
+          side="right" 
+          className="w-[320px] sm:w-[380px] p-0"
+          aria-label="Centro de notificaciones"
+        >
           <div className="flex flex-col h-full overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold text-lg">Notificaciones</h3>
+              <h3 className="font-semibold text-lg" id="notifications-heading">Notificaciones</h3>
               {unreadCount > 0 && (
                 <div className="bg-primary/10 text-primary text-sm font-medium px-2 py-1 rounded-md">
                   {unreadCount} {unreadCount === 1 ? 'nueva' : 'nuevas'}
                 </div>
               )}
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div 
+              className="flex-1 overflow-hidden" 
+              aria-labelledby="notifications-heading"
+              role="region"
+            >
               <MobileNotificationCenter />
             </div>
           </div>
