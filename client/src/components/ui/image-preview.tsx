@@ -79,22 +79,27 @@ export function ImagePreview({
 
         {/* Error state */}
         {isError && showPlaceholder && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted">
-            <svg
-              className="h-8 w-8 text-muted-foreground/30"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-              <circle cx="12" cy="13" r="3" />
-            </svg>
+          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 rounded-lg border border-border bg-muted/30 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                <svg 
+                  className="h-5 w-5 text-muted-foreground/70" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12.5A3.5 3.5 0 0 1 5.5 9h13A3.5 3.5 0 0 1 22 12.5v1a3.5 3.5 0 0 1-3.5 3.5h-13A3.5 3.5 0 0 1 2 13.5z" />
+                  <path d="m2 12.5 7-3.5" />
+                  <path d="m15 9 7 3.5v1L15 17" />
+                  <path d="m15 17-7-3.5" />
+                  <path d="M15 9 8 5.5" />
+                </svg>
+              </div>
+            </div>
           </div>
         )}
 
@@ -117,22 +122,27 @@ export function ImagePreview({
             loading="lazy"
           />
         ) : !isError && showPlaceholder ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted">
-            <svg
-              className="h-8 w-8 text-muted-foreground/30"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-              <circle cx="12" cy="13" r="3" />
-            </svg>
+          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 rounded-lg border border-border bg-muted/30 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                <svg 
+                  className="h-5 w-5 text-muted-foreground/70" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12.5A3.5 3.5 0 0 1 5.5 9h13A3.5 3.5 0 0 1 22 12.5v1a3.5 3.5 0 0 1-3.5 3.5h-13A3.5 3.5 0 0 1 2 13.5z" />
+                  <path d="m2 12.5 7-3.5" />
+                  <path d="m15 9 7 3.5v1L15 17" />
+                  <path d="m15 17-7-3.5" />
+                  <path d="M15 9 8 5.5" />
+                </svg>
+              </div>
+            </div>
           </div>
         ) : null}
 
