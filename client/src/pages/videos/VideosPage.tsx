@@ -205,22 +205,24 @@ export default function VideosPage() {
 
   function getTableView() {
     return (
-      <div className="rounded-lg border bg-card shadow-sm overflow-hidden relative">
-        {/* Accent gradient para la tabla de videos */}
-        <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
-        <div className="overflow-x-auto pt-1">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="">Miniatura</TableHead>
-                <TableHead className="">Serie</TableHead>
-                <TableHead className="">Título</TableHead>
-                <TableHead className="">Estado</TableHead>
-                <TableHead className="">Colaboradores</TableHead>
-                <TableHead className="">Actualización</TableHead>
-                <TableHead className=" text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
+      <div>
+        {/* Vista de tabla para escritorio */}
+        <div className="hidden md:block rounded-lg border bg-card shadow-sm overflow-hidden relative">
+          {/* Accent gradient para la tabla de videos */}
+          <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
+          <div className="overflow-x-auto pt-1">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="">Miniatura</TableHead>
+                  <TableHead className="">Serie</TableHead>
+                  <TableHead className="">Título</TableHead>
+                  <TableHead className="">Estado</TableHead>
+                  <TableHead className="">Colaboradores</TableHead>
+                  <TableHead className="">Actualización</TableHead>
+                  <TableHead className=" text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="group">
@@ -334,6 +336,139 @@ export default function VideosPage() {
             </TableBody>
           </Table>
         </div>
+      </div>
+
+      {/* Vista móvil optimizada: tarjetas con deslizamiento */}
+      <div className="md:hidden space-y-4">
+        {filteredVideos?.map((video) => (
+          <div
+            key={video.id}
+            className="bg-card rounded-lg border shadow-sm overflow-hidden"
+            onClick={() => handleVideoClick(video)}
+          >
+            <div className="flex items-start relative">
+              {/* Barra lateral de color según estado */}
+              <div className={cn(
+                "absolute left-0 top-0 bottom-0 w-1.5",
+                video.status === "available" ? "bg-indigo-500" :
+                video.status === "content_corrections" ? "bg-orange-500" :
+                video.status === "content_review" ? "bg-sky-500" :
+                video.status === "upload_media" ? "bg-amber-500" :
+                video.status === "media_corrections" ? "bg-pink-500" :
+                video.status === "media_review" ? "bg-violet-500" :
+                video.status === "final_review" ? "bg-teal-500" :
+                video.status === "completed" ? "bg-emerald-500" : "bg-gray-500"
+              )} />
+              
+              {/* Información principal */}
+              <div className="flex-1 p-3 pl-4">
+                {/* Encabezado con miniatura y estado */}
+                <div className="flex justify-between items-start gap-3 mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-sm line-clamp-2">
+                      {video.optimizedTitle || video.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {video.seriesNumber || "Sin serie"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {video.updatedAt ? formatDate(video.updatedAt) : (video.createdAt ? formatDate(video.createdAt) : '')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-14 w-20 flex-shrink-0 bg-muted rounded overflow-hidden">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover object-center"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <Layout className="h-4 w-4 text-muted-foreground/40" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Pie con estado y colaboradores */}
+                <div className="flex flex-wrap justify-between items-center mt-2">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "text-xs capitalize mb-1",
+                      getStatusBadgeColor(video.status)
+                    )}
+                  >
+                    {getStatusLabel(user!.role, video)}
+                  </Badge>
+                  <div className="mt-1">
+                    <UserBadges video={video} compact />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Acciones con botones más grandes para móvil */}
+            <div className="flex border-t px-3 py-2 bg-muted/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground flex-1 h-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVideoClick(video);
+                }}
+              >
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+                Ver
+              </Button>
+              {user?.role === "admin" && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive flex-1 h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Eliminar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        ¿Eliminar este video?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() =>
+                          deleteVideo({
+                            videoId: video.id,
+                            projectId: video.projectId,
+                          })
+                        }
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
+        ))}
+        
+        {(!videos || videos.length === 0) && renderEmptyState()}
+      </div>
       </div>
     );
   }
