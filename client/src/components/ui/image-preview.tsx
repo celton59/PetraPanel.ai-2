@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Eye, ZoomIn, ZoomOut, X, FileImage } from "lucide-react";
+import { Eye, ZoomIn, ZoomOut, X } from "lucide-react";
+import { IoImageOutline } from "react-icons/io5";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -79,7 +80,9 @@ export function ImagePreview({
         {/* Error state */}
         {isError && showPlaceholder && (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <FileImage className="h-8 w-8 text-muted-foreground" />
+            <div className="bg-muted-foreground/20 rounded-full p-4">
+              <IoImageOutline className="h-12 w-12 text-muted-foreground" />
+            </div>
           </div>
         )}
 
@@ -103,7 +106,9 @@ export function ImagePreview({
           />
         ) : !isError && showPlaceholder ? (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
-            <FileImage className="h-8 w-8 text-muted-foreground" />
+            <div className="bg-muted-foreground/20 rounded-full p-4">
+              <IoImageOutline className="h-12 w-12 text-muted-foreground" />
+            </div>
           </div>
         ) : null}
 

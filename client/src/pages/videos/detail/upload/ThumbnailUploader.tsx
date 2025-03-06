@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Upload, Crop, FileImage } from "lucide-react";
+import { AlertCircle, Upload, Crop } from "lucide-react";
+import { IoImageOutline } from "react-icons/io5";
 import { useRef, useState } from "react";
 import { ImagePreview } from '@/components/ui/image-preview';
 import { useImageOptimization } from '@/hooks/use-image-optimization';
@@ -131,7 +132,7 @@ export function ThumbnailUploader({
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
             >
-              <FileImage className="h-4 w-4" />
+              <IoImageOutline className="h-4 w-4" />
               <span className="hidden sm:inline">Elegir</span>
             </Button>
             {selectedFile && (
