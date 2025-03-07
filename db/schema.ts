@@ -28,6 +28,7 @@ export const projects = pgTable("projects", {
   prefix: text("prefix"),
   current_number: integer("current_number").default(0),
   description: text("description"),
+  youtubeChannelId: text("youtube_channel_id").references(() => youtube_channels.channelId),
   createdAt: timestamp("created_at").defaultNow()
 });
 
