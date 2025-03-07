@@ -159,6 +159,32 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
+    // YouTube Channels route
+    app.get("/api/youtube-channels", requireAuth, async (req: Request, res: Response) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({
+            success: false,
+            message: "No autenticado"
+          });
+        }
+        
+        const channels = await db.select().from(youtube_channels).where(eq(youtube_channels.active, true));
+        
+        return res.status(200).json({
+          success: true,
+          data: channels,
+          message: "Canales obtenidos correctamente"
+        });
+      } catch (error) {
+        console.error("Error fetching YouTube channels:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Error al obtener los canales de YouTube"
+        });
+      }
+    });
+
     // Projects routes
 
     app.post("/api/projects", requireAuth, ProjectController.createProject);

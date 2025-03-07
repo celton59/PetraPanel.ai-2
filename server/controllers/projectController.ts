@@ -4,7 +4,7 @@ import { videos, users, projectAccess, InsertProject, projects } from "@db/schem
 import { db } from "@db";
 
 async function createProject(req: Request, res: Response): Promise<Response> {
-  const { name, prefix, description } = req.body;
+  const { name, prefix, description, youtubeChannelId } = req.body;
 
   const user = req.user!;
 
@@ -26,6 +26,7 @@ async function createProject(req: Request, res: Response): Promise<Response> {
       name,
       prefix: prefix || null,
       description: description || null,
+      youtubeChannelId: youtubeChannelId || null,
       current_number: 0
     };
 
@@ -89,7 +90,7 @@ async function getProjects(req: Request, res: Response): Promise<Response> {
 
 async function updateProject(req: Request, res: Response): Promise<Response> {
   const { id } = req.params;
-  const { name, description, prefix } = req.body;
+  const { name, description, prefix, youtubeChannelId } = req.body;
 
   const user = req.user!;
   if (user.role !== "admin")
@@ -100,7 +101,12 @@ async function updateProject(req: Request, res: Response): Promise<Response> {
   
   try {
     const [result] = await db.update(projects)
-      .set({ name, description, prefix })
+      .set({ 
+        name, 
+        description, 
+        prefix,
+        youtubeChannelId: youtubeChannelId || null
+      })
       .where(eq(projects.id, parseInt(id)))
       .returning();
 
