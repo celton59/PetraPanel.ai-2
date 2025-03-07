@@ -54,7 +54,7 @@ export const VideoUploadProgress: React.FC<VideoUploadProgressProps> = ({
   onCancel,
   className = "" 
 }) => {
-  const { isUploading, progress, uploadedParts, totalParts, uploadSpeed, estimatedTimeRemaining } = progressState;
+  const { isUploading, progress, uploadSpeed, estimatedTimeRemaining } = progressState;
   
   // Asegurar que el progreso esté entre 0 y 100
   const normalizedProgress = Math.min(100, Math.max(0, progress));
@@ -106,7 +106,7 @@ export const VideoUploadProgress: React.FC<VideoUploadProgressProps> = ({
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
               )}
               <span>
-                {uploadedParts} de {totalParts} partes
+                Procesando...
               </span>
             </div>
           </div>
