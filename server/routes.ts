@@ -931,6 +931,27 @@ export function registerRoutes(app: Express): Server {
       }
     });
     
+    // Endpoint para obtener canales de YouTube disponibles
+    app.get("/api/youtube-channels", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const channels = await db.select().from(youtube_channels)
+          .where(eq(youtube_channels.active, true))
+          .orderBy(asc(youtube_channels.name));
+        
+        return res.json({
+          success: true,
+          data: channels
+        });
+      } catch (error) {
+        console.error('Error al obtener canales de YouTube:', error);
+        return res.status(500).json({ 
+          success: false,
+          message: 'Error al obtener canales de YouTube',
+          details: error instanceof Error ? error.message : 'Error desconocido'
+        });
+      }
+    });
+    
     // Endpoint para búsqueda global
     app.get("/api/search", requireAuth, async (req: Request, res: Response) => {
       try {
