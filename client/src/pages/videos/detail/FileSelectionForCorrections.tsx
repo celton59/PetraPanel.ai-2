@@ -1,10 +1,12 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Video as VideoIcon, Maximize2, Info } from "lucide-react";
+import { AlertCircle, Video as VideoIcon, Maximize2, Info, Download, Share2 } from "lucide-react";
 import { VideoUploader } from "./upload/VideoUploader";
 import { ThumbnailUploader } from "./upload/ThumbnailUploader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ImagePreview } from "@/components/ui/image-preview";
+import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+import { toast } from "sonner";
 import { ApiVideo } from "@/hooks/useVideos";
 
 interface FileSelectionForCorrectionsProps {
@@ -112,16 +114,27 @@ export function FileSelectionForCorrections({
             ) : video.thumbnailUrl ? (
               <div 
                 className="group aspect-video bg-muted rounded-lg overflow-hidden" 
-                onClick={() => video.thumbnailUrl && window.open(video.thumbnailUrl, '_blank')}
               >
-                <ImagePreview
+                <ThumbnailPreview
                   src={video.thumbnailUrl || ''}
                   alt="Miniatura del video"
                   aspectRatio="video"
                   enableZoom={true}
-                  description="Previsualización de miniatura"
-                  metaInfo="Haz clic para abrir en tamaño completo"
+                  title={video.optimizedTitle || video.title || "Miniatura del video"}
+                  showHoverActions={true}
+                  showPlayButton={false}
                   className="cursor-pointer transition-all"
+                  onShare={() => {
+                    if (video.thumbnailUrl) {
+                      navigator.clipboard.writeText(video.thumbnailUrl);
+                      toast.success("Enlace de miniatura copiado al portapapeles");
+                    }
+                  }}
+                  onDownload={() => {
+                    if (video.thumbnailUrl) {
+                      window.open(video.thumbnailUrl, '_blank');
+                    }
+                  }}
                 />
               </div>
             ) : (

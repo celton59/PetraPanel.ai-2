@@ -1,10 +1,11 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { Progress } from "@/components/ui/progress";
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { UploadProgressState } from "@/services/videoUploader";
 import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
+import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 
 interface CorrectionUploadFieldsProps {
   videoFile: File | null;
@@ -124,9 +125,43 @@ export function CorrectionUploadFields({
       />
       
       {file ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Archivo seleccionado:</p>
-          <p className="text-sm text-muted-foreground">{file.name}</p>
+        <div className="space-y-3 relative">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-medium">Archivo seleccionado:</p>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-6 w-6 rounded-full hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onFileChange(null);
+              }}
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          </div>
+          
+          {type === 'image' && (
+            <div className="w-full h-36 my-2 mx-auto overflow-hidden max-w-xs relative">
+              <ThumbnailPreview
+                src={URL.createObjectURL(file)}
+                alt="Vista previa"
+                aspectRatio="video"
+                enableZoom={true}
+                showPlaceholder={true}
+                title={file.name}
+                showHoverActions={true}
+                showPlayButton={false}
+                className="h-full w-full object-cover rounded-md"
+              />
+            </div>
+          )}
+          
+          <p className="text-sm text-muted-foreground truncate max-w-full">
+            {file.name} · {(file.size / (1024 * 1024)).toFixed(2)} MB
+          </p>
+          
           {isUploading && uploadProgress && (
             <VideoUploadProgress 
               progressState={{
@@ -138,7 +173,7 @@ export function CorrectionUploadFields({
           )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-sm font-medium">
             {needsCorrection ? 
               `Arrastra y suelta tu ${type === 'video' ? 'video' : 'miniatura'} corregido aquí` :
@@ -146,9 +181,25 @@ export function CorrectionUploadFields({
             }
           </p>
           {needsCorrection && (
-            <p className="text-sm text-muted-foreground">
-              O haz clic para seleccionar un archivo
-            </p>
+            <>
+              <p className="text-sm text-muted-foreground">
+                O haz clic para seleccionar un archivo
+              </p>
+              <div className="w-12 h-12 mx-auto opacity-20">
+                {type === 'video' ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}

@@ -379,13 +379,16 @@ export default function VideosPage() {
                     </div>
                   </div>
                   <div className="h-14 w-20 flex-shrink-0 rounded overflow-hidden">
-                    <ImagePreview
+                    <ThumbnailPreview
                       src={video.thumbnailUrl}
                       alt={video.title}
                       aspectRatio="video"
                       enableZoom={true}
                       showPlaceholder={true}
-                      description={video.optimizedTitle || video.title}
+                      title={video.optimizedTitle || video.title}
+                      duration={video.seriesNumber ? `S${video.seriesNumber}` : undefined}
+                      showHoverActions={false}
+                      className="h-full"
                     />
                   </div>
                 </div>
