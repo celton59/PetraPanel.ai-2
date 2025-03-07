@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Project } from '@db/schema';
-import { YouTubeChannelSelector } from "@/components/youtube/YouTubeChannelSelector";
+import { AuthorizedYouTubeChannelSelector } from "@/components/youtube/AuthorizedYouTubeChannelSelector";
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -100,7 +100,7 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
               <FormItem>
                 <FormLabel>Canal de YouTube</FormLabel>
                 <FormControl>
-                  <YouTubeChannelSelector 
+                  <AuthorizedYouTubeChannelSelector 
                     value={field.value} 
                     onChange={field.onChange} 
                   />

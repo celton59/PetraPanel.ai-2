@@ -22,7 +22,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Project } from '@db/schema';
 import { useState } from "react";
-import { YouTubeChannelSelector } from "@/components/youtube/YouTubeChannelSelector";
+import { AuthorizedYouTubeChannelSelector } from "@/components/youtube/AuthorizedYouTubeChannelSelector";
 
 const projectSchema = z.object({
   id: z.number(),
@@ -127,7 +127,7 @@ export function ProjectEditDialog({
                 <FormItem>
                   <FormLabel>Canal de YouTube</FormLabel>
                   <FormControl>
-                    <YouTubeChannelSelector 
+                    <AuthorizedYouTubeChannelSelector 
                       value={field.value} 
                       onChange={field.onChange} 
                     />
