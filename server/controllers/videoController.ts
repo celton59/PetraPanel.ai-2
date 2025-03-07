@@ -546,6 +546,48 @@ async function initiateMultipartUpload(
     });
   }
 
+  // MODO SIMULACIÓN para desarrollo local: Verificar si estamos en modo desarrollo
+  if (process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true') {
+    console.log("[MOCK S3] Simulando carga multiparte para:", originalName);
+    
+    // Generar una clave única para el objeto
+    const timestamp = Date.now();
+    const randomId = Math.round(Math.random() * 1e9);
+    const extension = originalName.split('.').pop() || 'mp4';
+    const key = `videos/video/${timestamp}-${randomId}.${extension}`;
+    
+    // Simular upload ID único
+    const uploadId = `mockupload-${timestamp}-${randomId}`;
+    
+    // Calculamos el tamaño de cada parte (5MB mínimo)
+    const partSize = Math.max(5 * 1024 * 1024, Math.ceil(fileSize / 10000));
+    
+    // Calculamos el número de partes
+    const numParts = Math.ceil(fileSize / partSize);
+    
+    // Generar URLs simuladas para cada parte
+    const parts = Array.from({ length: numParts }, (_, i) => ({
+      partNumber: i + 1,
+      url: `http://localhost:5000/mock-s3-upload/${key}/${uploadId}/${i+1}`
+    }));
+    
+    // URL simulada del archivo final
+    const fileUrl = `http://localhost:5000/mock-s3/${key}`;
+    
+    return res.json({
+      success: true,
+      message: 'Carga multiparte iniciada (SIMULACIÓN)',
+      data: {
+        uploadId,
+        key,
+        parts,
+        fileUrl,
+        numParts,
+        partSize
+      }
+    });
+  }
+
   try {
     // Determinar el número de partes basado en el tamaño del archivo
     // Cada parte será de aproximadamente 5MB, excepto posiblemente la última
@@ -624,6 +666,22 @@ async function completeMultipartUpload(
     });
   }
 
+  // MODO SIMULACIÓN para desarrollo local
+  if (process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true') {
+    console.log("[MOCK S3] Simulando completado de carga multiparte para:", key);
+    console.log("[MOCK S3] Upload ID:", uploadId);
+    console.log("[MOCK S3] Partes recibidas:", parts.length);
+    
+    // URL simulada del archivo final
+    const fileUrl = `http://localhost:5000/mock-s3/${key}`;
+    
+    return res.json({
+      success: true,
+      url: fileUrl,
+      message: 'Carga multiparte completada correctamente (SIMULACIÓN)',
+    });
+  }
+
   try {
     // Usar nuestra función de utilidad para completar la carga multiparte
     const fileUrl = await completeS3Upload(key, uploadId, parts);
@@ -666,6 +724,17 @@ async function abortMultipartUpload(
     return res.status(400).json({ 
       success: false, 
       message: "Se requieren ID de carga y clave para abortar la carga" 
+    });
+  }
+
+  // MODO SIMULACIÓN para desarrollo local
+  if (process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true') {
+    console.log("[MOCK S3] Simulando aborto de carga multiparte para:", key);
+    console.log("[MOCK S3] Upload ID a abortar:", uploadId);
+    
+    return res.json({
+      success: true,
+      message: 'Carga multiparte abortada correctamente (SIMULACIÓN)',
     });
   }
 
