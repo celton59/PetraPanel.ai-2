@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Video as VideoIcon } from "lucide-react";
+import { AlertCircle, Video as VideoIcon, Maximize2, Info } from "lucide-react";
 import { VideoUploader } from "./upload/VideoUploader";
 import { ThumbnailUploader } from "./upload/ThumbnailUploader";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,9 +21,9 @@ export function FileSelectionForCorrections({
   selectedFiles,
   onSelectionChange,
 }: FileSelectionForCorrectionsProps) {
-  // Determinar si los archivos necesitan corrección basado en metadata
-  const needsVideoCorrection = video.metadata?.corrections?.files.video?.needsCorrection || false;
-  const needsThumbnailCorrection = video.metadata?.corrections?.files.thumbnail?.needsCorrection || false;
+  // Determinar si los archivos necesitan corrección basado en flags del video
+  const needsVideoCorrection = video.mediaVideoNeedsCorrection || false;
+  const needsThumbnailCorrection = video.mediaThumbnailNeedsCorrection || false;
 
   return (
     <div className="space-y-4">
@@ -46,15 +46,18 @@ export function FileSelectionForCorrections({
             <h3 className="font-medium">Video</h3>
             {video.status === "media_corrections" && needsVideoCorrection && selectedFiles.video ? (
               <VideoUploader
-                videoUrl={video.metadata?.corrections?.files.video?.originalUrl || video.videoUrl}
+                videoUrl={video.videoUrl}
                 onUploadComplete={(url) => {
                   // La lógica de actualización se maneja en el componente padre
                 }}
               />
             ) : video.videoUrl ? (
-              <div className="group aspect-video bg-muted rounded-lg overflow-hidden relative" onClick={() => window.open(video.videoUrl, '_blank')}>
+              <div 
+                className="group aspect-video bg-muted rounded-lg overflow-hidden relative" 
+                onClick={() => video.videoUrl && window.open(video.videoUrl, '_blank')}
+              >
                 <video
-                  src={video.videoUrl}
+                  src={video.videoUrl || undefined}
                   className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
                   controls
                 />
@@ -101,15 +104,18 @@ export function FileSelectionForCorrections({
             <h3 className="font-medium">Miniatura</h3>
             {video.status === "media_corrections" && needsThumbnailCorrection && selectedFiles.thumbnail ? (
               <ThumbnailUploader
-                thumbnailUrl={video.metadata?.corrections?.files.thumbnail?.originalUrl || video.thumbnailUrl}
+                thumbnailUrl={video.thumbnailUrl}
                 onUploadComplete={(url) => {
                   // La lógica de actualización se maneja en el componente padre
                 }}
               />
             ) : video.thumbnailUrl ? (
-              <div className="group aspect-video bg-muted rounded-lg overflow-hidden" onClick={() => window.open(video.thumbnailUrl, '_blank')}>
+              <div 
+                className="group aspect-video bg-muted rounded-lg overflow-hidden" 
+                onClick={() => video.thumbnailUrl && window.open(video.thumbnailUrl, '_blank')}
+              >
                 <ImagePreview
-                  src={video.thumbnailUrl}
+                  src={video.thumbnailUrl || ''}
                   alt="Miniatura del video"
                   aspectRatio="video"
                   enableZoom={true}
