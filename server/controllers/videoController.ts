@@ -795,7 +795,35 @@ export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, nex
       fileSize: 1024 * 1024 * 1024 // 1GB limit
     }
   })
-  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", requireAuth, thumbailUpload.single('file'), uploadThumbnail);
+  
+  // Endpoint para cargar miniaturas
+  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", 
+    requireAuth, 
+    thumbailUpload.single('file'), 
+    uploadThumbnail
+  );
 
-  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", requireAuth, getVideoUploadUrl);
+  // Endpoint para iniciar carga multiparte (nuevo método recomendado)
+  app.post("/api/projects/:projectId/videos/:videoId/initiate-multipart-upload", 
+    requireAuth, 
+    initiateMultipartUpload
+  );
+  
+  // Endpoint para completar carga multiparte
+  app.post("/api/projects/:projectId/videos/:videoId/complete-multipart-upload", 
+    requireAuth, 
+    completeMultipartUpload
+  );
+  
+  // Endpoint para abortar carga multiparte
+  app.post("/api/projects/:projectId/videos/:videoId/abort-multipart-upload", 
+    requireAuth, 
+    abortMultipartUpload
+  );
+
+  // Endpoint legado para compatibilidad con versiones anteriores
+  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", 
+    requireAuth, 
+    getVideoUploadUrl
+  );
 }
