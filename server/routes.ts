@@ -1210,7 +1210,13 @@ export function registerRoutes(app: Express): Server {
         
         // 4. Obtener canales de YouTube
         try {
-          const channelsResult = await db.select().from(youtube_channels).limit(15);
+          // Seleccionar explícitamente las columnas que necesitamos para evitar errores
+          const channelsResult = await db.select({
+            id: youtube_channels.id,
+            name: youtube_channels.name,
+            thumbnailUrl: youtube_channels.thumbnailUrl,
+            channelId: youtube_channels.channelId
+          }).from(youtube_channels).limit(15);
           
           dbYoutubeChannels = channelsResult.map(channel => ({
             id: channel.id,
