@@ -13,26 +13,31 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Project } from '@db/schema'
+import { Project } from '@db/schema';
 import { useState } from "react";
+import { YouTubeChannelSelector } from "@/components/youtube/YouTubeChannelSelector";
 
 const projectSchema = z.object({
   id: z.number(),
   name: z.string().min(1, "El nombre es requerido"),
   prefix: z.string().min(1, "El prefijo es requerido"),
-  description: z.string()
+  description: z.string(),
+  youtubeChannelId: z.string().nullable().optional()
 });
+
+type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface ProjectEditDialogProps {
   project: Project;
   isSubmitting: boolean;
-  onUpdateProject: (data: Pick<Project, 'name' | 'description' | 'prefix' | 'id'>) => Promise<void>;
+  onUpdateProject: (data: ProjectFormData) => Promise<void>;
 }
 
 export function ProjectEditDialog({
@@ -42,27 +47,21 @@ export function ProjectEditDialog({
 }: ProjectEditDialogProps) {
 
   const [opened, setOpened] = useState(false);
-
-  console.log("PROJECT", project)
   
-  const form = useForm<Pick<Project, 'name' | 'description' | 'prefix' | 'id'>>({
+  const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       id: project.id,
       name: project.name,
       prefix: project.prefix,
-      description: project.description
+      description: project.description,
+      youtubeChannelId: project.youtubeChannelId as string | null || null
     },
   });
 
-  const onSubmit = async (data: Pick<Project, 'name' | 'prefix' | 'id' | 'description'>) => {
+  const onSubmit = async (data: ProjectFormData) => {
     try {
-      await onUpdateProject({
-        id: data.id,
-        name: data.name,
-        prefix: data.prefix,
-        description: project.description
-      });
+      await onUpdateProject(data);
       setOpened(false);
     } catch (error) {
       console.error("Error updating project:", error);
@@ -117,6 +116,25 @@ export function ProjectEditDialog({
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="youtubeChannelId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Canal de YouTube</FormLabel>
+                  <FormControl>
+                    <YouTubeChannelSelector 
+                      value={field.value} 
+                      onChange={field.onChange} 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Canal al que se publicarán los videos de este proyecto
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
