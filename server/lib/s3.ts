@@ -19,17 +19,32 @@ export {
 };
 export { getSignedUrl };
 
+// Variables de configuración de AWS
+const AWS_REGION = process.env.AWS_REGION;
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+
+// Verificar que tenemos todas las credenciales necesarias
+if (!AWS_REGION || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY || !BUCKET_NAME) {
+  console.warn("[AWS S3] Faltan credenciales o configuración de AWS", {
+    region: AWS_REGION ? "Configurado" : "Falta",
+    accessKey: AWS_ACCESS_KEY_ID ? "Configurado" : "Falta",
+    secretKey: AWS_SECRET_ACCESS_KEY ? "Configurado" : "Falta",
+    bucket: BUCKET_NAME ? "Configurado" : "Falta",
+  });
+}
+
 // Crear cliente S3
 export const s3 = new S3Client({
-  region: process.env.AWS_REGION || "eu-west-1", // Cambiado a la región correcta según el error
+  region: AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: AWS_SECRET_ACCESS_KEY || "",
   },
+  // La API de AWS S3 maneja CORS automáticamente cuando se configura en el bucket
+  // No se necesita configuración adicional aquí para pre-signed URLs
 });
-
-// Nombre del bucket S3
-const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "petrafiles";
 
 /**
  * Interfaz para representar la configuración de una parte en una carga multiparte
@@ -76,6 +91,15 @@ export function generateS3Key(originalName: string, prefix: string = ""): string
 }
 
 /**
+ * Genera una URL pública para un objeto en S3
+ * @param key Clave del objeto en S3
+ * @returns URL pública del objeto
+ */
+export function getPublicS3Url(key: string): string {
+  return `https://${BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+}
+
+/**
  * Obtiene una URL firmada para subir un archivo directamente a S3
  * @param key Nombre del archivo en S3
  * @param contentType Tipo de contenido MIME del archivo
@@ -92,7 +116,7 @@ export async function getSignedUploadUrl(key: string, contentType: string, expir
   const uploadUrl = await getSignedUrl(s3, command, { expiresIn });
   
   // Generar la URL pública del archivo
-  const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+  const fileUrl = getPublicS3Url(key);
   
   return { uploadUrl, fileUrl };
 }
@@ -145,7 +169,7 @@ export async function initiateMultipartUpload(
   }
   
   // Generar la URL pública del archivo
-  const fileUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+  const fileUrl = getPublicS3Url(key);
   
   return {
     uploadId: UploadId,
@@ -182,7 +206,7 @@ export async function completeMultipartUpload(
   await s3.send(command);
   
   // Devolver la URL pública del archivo
-  return `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+  return getPublicS3Url(key);
 }
 
 /**
