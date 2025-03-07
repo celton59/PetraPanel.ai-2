@@ -234,9 +234,10 @@ export default function VideosPage() {
                         src={video.thumbnailUrl}
                         alt={video.optimizedTitle ?? video.title}
                         aspectRatio="video"
-                        enableZoom={false}
+                        enableZoom={true}
                         showPlaceholder={true}
                         className="h-full"
+                        description={video.optimizedTitle ?? video.title}
                       />
                     </div>
                   </TableCell>
@@ -380,8 +381,9 @@ export default function VideosPage() {
                       src={video.thumbnailUrl}
                       alt={video.title}
                       aspectRatio="video"
-                      enableZoom={false}
+                      enableZoom={true}
                       showPlaceholder={true}
+                      description={video.optimizedTitle || video.title}
                     />
                   </div>
                 </div>
@@ -485,15 +487,12 @@ export default function VideosPage() {
                 src={video.thumbnailUrl}
                 alt={video.title}
                 aspectRatio="video"
-                enableZoom={false}
+                enableZoom={true}
                 showPlaceholder={true}
                 className="cursor-pointer"
+                description={video.optimizedTitle || video.title}
+                metaInfo={`${video.seriesNumber ? `Serie ${video.seriesNumber} • ` : ''}${video.updatedAt ? formatDate(video.updatedAt, false) : ''}`}
               />
-              <div
-                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-              >
-                <Eye className="h-6 w-6 text-white" />
-              </div>
             </div>
             <div className="p-4">
               <div className="mb-2 flex justify-between items-center">
@@ -581,8 +580,10 @@ export default function VideosPage() {
                 src={video.thumbnailUrl}
                 alt={video.title}
                 aspectRatio="video"
-                enableZoom={false}
+                enableZoom={true}
                 showPlaceholder={true}
+                description={video.optimizedTitle || video.title}
+                metaInfo={video.seriesNumber ? `Serie ${video.seriesNumber}` : undefined}
               />
             </div>
             <div className="flex-grow min-w-0">
