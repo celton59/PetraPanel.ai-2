@@ -546,9 +546,8 @@ async function initiateMultipartUpload(
     });
   }
 
-  // MODO SIMULACIÓN para desarrollo local: Verificar si estamos en modo desarrollo
-  // Forzar modo simulación por ahora debido a problemas con las credenciales
-  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  // MODO SIMULACIÓN solo si está explícitamente activado
+  const useMockS3 = process.env.MOCK_S3 === 'true';
   if (useMockS3) {
     console.log("[MOCK S3] Simulando carga multiparte para:", originalName);
     
@@ -668,9 +667,8 @@ async function completeMultipartUpload(
     });
   }
 
-  // MODO SIMULACIÓN para desarrollo local
-  // Forzar modo simulación por ahora debido a problemas con las credenciales
-  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  // MODO SIMULACIÓN solo si está explícitamente activado
+  const useMockS3 = process.env.MOCK_S3 === 'true';
   if (useMockS3) {
     console.log("[MOCK S3] Simulando completado de carga multiparte para:", key);
     console.log("[MOCK S3] Upload ID:", uploadId);
@@ -731,9 +729,8 @@ async function abortMultipartUpload(
     });
   }
 
-  // MODO SIMULACIÓN para desarrollo local
-  // Forzar modo simulación por ahora debido a problemas con las credenciales
-  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  // MODO SIMULACIÓN solo si está explícitamente activado
+  const useMockS3 = process.env.MOCK_S3 === 'true';
   if (useMockS3) {
     console.log("[MOCK S3] Simulando aborto de carga multiparte para:", key);
     console.log("[MOCK S3] Upload ID a abortar:", uploadId);
@@ -778,9 +775,8 @@ async function getVideoUploadUrl(
   if (!originalName)
     return res.status(400).json({ success: false, message: "No se subió ningún archivo" })
 
-  // MODO SIMULACIÓN para desarrollo local
-  // Forzar modo simulación por ahora debido a problemas con las credenciales
-  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  // MODO SIMULACIÓN solo si está explícitamente activado
+  const useMockS3 = process.env.MOCK_S3 === 'true';
   if (useMockS3) {
     console.log("[MOCK S3] Simulando generación de URL firmada para:", originalName);
     
