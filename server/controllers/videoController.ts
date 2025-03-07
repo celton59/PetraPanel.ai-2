@@ -669,7 +669,9 @@ async function completeMultipartUpload(
   }
 
   // MODO SIMULACIÓN para desarrollo local
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true') {
+  // Forzar modo simulación por ahora debido a problemas con las credenciales
+  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  if (useMockS3) {
     console.log("[MOCK S3] Simulando completado de carga multiparte para:", key);
     console.log("[MOCK S3] Upload ID:", uploadId);
     console.log("[MOCK S3] Partes recibidas:", parts.length);
@@ -730,7 +732,9 @@ async function abortMultipartUpload(
   }
 
   // MODO SIMULACIÓN para desarrollo local
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true') {
+  // Forzar modo simulación por ahora debido a problemas con las credenciales
+  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  if (useMockS3) {
     console.log("[MOCK S3] Simulando aborto de carga multiparte para:", key);
     console.log("[MOCK S3] Upload ID a abortar:", uploadId);
     
@@ -774,6 +778,30 @@ async function getVideoUploadUrl(
   if (!originalName)
     return res.status(400).json({ success: false, message: "No se subió ningún archivo" })
 
+  // MODO SIMULACIÓN para desarrollo local
+  // Forzar modo simulación por ahora debido a problemas con las credenciales
+  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  if (useMockS3) {
+    console.log("[MOCK S3] Simulando generación de URL firmada para:", originalName);
+    
+    // Generar una clave única para el objeto
+    const timestamp = Date.now();
+    const randomId = Math.round(Math.random() * 1e9);
+    const extension = originalName.split('.').pop() || 'mp4';
+    const key = `videos/video/${timestamp}-${randomId}.${extension}`;
+    
+    // URLs simuladas
+    const uploadUrl = `http://localhost:5000/mock-s3-upload/${key}`;
+    const fileUrl = `http://localhost:5000/mock-s3/${key}`;
+    
+    return res.json({
+      success: true,
+      url: fileUrl,
+      uploadUrl: uploadUrl,
+      message: 'Presigned URL generada (SIMULACIÓN)',
+    });
+  }
+  
   try {
     // Generar clave única para el objeto en S3
     const objectKey = generateS3Key(originalName, 'videos/video');
