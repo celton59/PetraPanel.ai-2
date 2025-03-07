@@ -13,7 +13,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "@/hooks/use-user";
 import { CorrectionUploadFields } from "./CorrectionUploadFields";
-import { VideoUploader } from "@/services/videoUploader";
+import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
+import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
+
+// Estado inicial de progreso vacío
+const emptyProgressState: UploadProgressState = {
+  isUploading: false,
+  progress: 0,
+  uploadedParts: 0,
+  totalParts: 0,
+  uploadSpeed: 0,
+  estimatedTimeRemaining: 0
+};
 
 interface MediaCorrectionsDetailProps {
   video: ApiVideo;
@@ -27,7 +38,8 @@ export function MediaCorrectionsDetail({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState>(emptyProgressState);
+  const [uploader, setUploader] = useState<VideoUploader | null>(null);
 
   const { user } = useUser();
 
@@ -55,19 +67,43 @@ export function MediaCorrectionsDetail({
     if (!videoFile) throw new Error("No hay archivo de video para subir");
 
     try {
-      // Crear la instancia del uploader
+      // Crear la instancia del uploader y guardarla para posible cancelación
       const videoUploader = new VideoUploader(video.projectId, video.id, videoFile);
+      setUploader(videoUploader);
 
       // Configurar el callback de progreso
       videoUploader.onProgress((progressState) => {
-        setUploadProgress(progressState.progress);
+        setUploadProgress(progressState);
       });
 
       // Iniciar la carga multiparte
-      return await videoUploader.upload();
+      const url = await videoUploader.upload();
+      
+      // Limpiar referencia al uploader
+      setUploader(null);
+      
+      return url;
     } catch (error: any) {
       console.error("Error al subir el video:", error);
+      // Asegurarse de limpiar el uploader en caso de error
+      setUploader(null);
       throw new Error(error.message || "Error al subir el video");
+    }
+  }
+
+  // Función para cancelar la carga en curso
+  const handleCancelUpload = async () => {
+    if (uploader) {
+      try {
+        await uploader.cancel();
+        toast.info("Carga cancelada");
+      } catch (error) {
+        console.error("Error al cancelar la carga:", error);
+      } finally {
+        setUploader(null);
+        setIsUploading(false);
+        setUploadProgress(emptyProgressState);
+      }
     }
   }
 
@@ -104,7 +140,7 @@ export function MediaCorrectionsDetail({
       toast.error(error.message || "Error al enviar correcciones");
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      setUploadProgress(emptyProgressState);
     }
   }
 
@@ -204,6 +240,15 @@ export function MediaCorrectionsDetail({
 
         {/* Contenedor para los campos de corrección */}
         <div className="bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/30 dark:to-gray-900/10 border border-gray-200 dark:border-gray-800 rounded-md p-4 shadow-sm">
+          {isUploading && videoFile && (
+            <div className="mb-4">
+              <VideoUploadProgress 
+                progressState={uploadProgress}
+                onCancel={handleCancelUpload}
+              />
+            </div>
+          )}
+          
           <CorrectionUploadFields
             videoFile={videoFile}
             thumbnailFile={thumbnailFile}

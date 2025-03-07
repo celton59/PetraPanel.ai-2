@@ -3,6 +3,8 @@ import { AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { UploadProgressState } from "@/services/videoUploader";
+import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
 
 interface CorrectionUploadFieldsProps {
   videoFile: File | null;
@@ -10,10 +12,20 @@ interface CorrectionUploadFieldsProps {
   onVideoFileChange: (file: File | null) => void;
   onThumbnailFileChange: (file: File | null) => void;
   isUploading?: boolean;
-  uploadProgress?: number;
+  uploadProgress?: UploadProgressState;
   needsVideoCorrection?: boolean;
   needsThumbnailCorrection?: boolean;
 }
+
+// Estado inicial de progreso vacío para usar como valor por defecto
+const emptyProgressState: UploadProgressState = {
+  isUploading: false,
+  progress: 0,
+  uploadedParts: 0,
+  totalParts: 0,
+  uploadSpeed: 0,
+  estimatedTimeRemaining: 0
+};
 
 export function CorrectionUploadFields({
   videoFile,
@@ -21,7 +33,7 @@ export function CorrectionUploadFields({
   onVideoFileChange,
   onThumbnailFileChange,
   isUploading,
-  uploadProgress = 0,
+  uploadProgress = emptyProgressState,
   needsVideoCorrection = false,
   needsThumbnailCorrection = false
 }: CorrectionUploadFieldsProps) {
@@ -85,7 +97,7 @@ export function CorrectionUploadFields({
     accept: string;
     type: 'video' | 'image';
     isUploading?: boolean;
-    uploadProgress?: number;
+    uploadProgress?: UploadProgressState;
     needsCorrection?: boolean;
   }) => (
     <div
@@ -115,8 +127,14 @@ export function CorrectionUploadFields({
         <div className="space-y-2">
           <p className="text-sm font-medium">Archivo seleccionado:</p>
           <p className="text-sm text-muted-foreground">{file.name}</p>
-          {isUploading && (
-            <Progress value={uploadProgress} className="h-1" />
+          {isUploading && uploadProgress && (
+            <VideoUploadProgress 
+              progressState={{
+                ...uploadProgress,
+                isUploading: true
+              }}
+              className="mt-2"
+            />
           )}
         </div>
       ) : (
