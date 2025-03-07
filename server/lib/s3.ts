@@ -179,7 +179,7 @@ export async function completeMultipartUpload(
     },
   });
   
-  await S3.send(command);
+  await s3.send(command);
   
   // Devolver la URL pública del archivo
   return `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
@@ -200,5 +200,5 @@ export async function abortMultipartUpload(
     UploadId: uploadId,
   });
   
-  await S3.send(command);
+  await s3.send(command);
 }

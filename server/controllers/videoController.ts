@@ -567,47 +567,22 @@ async function initiateMultipartUpload(
     // URL final del archivo
     const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
 
-    // Iniciar la carga multiparte en S3
-    const createCommand = new CreateMultipartUploadCommand({
-      Bucket: bucketName,
-      Key: objectKey,
-      ContentType: contentType
-    });
-
-    const { UploadId } = await s3.send(createCommand);
-
-    if (!UploadId) {
-      throw new Error('No se pudo iniciar la carga multiparte');
-    }
-
-    // Generar URLs presignadas para cada parte
-    const parts = await Promise.all(
-      Array.from({ length: numParts }, async (_, i) => {
-        const partNumber = i + 1;
-        const command = new UploadPartCommand({
-          Bucket: bucketName,
-          Key: objectKey,
-          UploadId,
-          PartNumber: partNumber,
-        });
-
-        const url = await getSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hora de validez
-
-        return {
-          partNumber,
-          url
-        };
-      })
+    // Usar nuestra función de utilidad para iniciar la carga multiparte
+    const result = await initiateS3Upload(
+      objectKey,
+      contentType,
+      fileSize,
+      3600 // URL expira en 1 hora
     );
 
     // Responder con la información necesaria para continuar la carga
     return res.status(200).json({
       success: true,
       data: {
-        uploadId: UploadId,
-        key: objectKey,
-        parts,
-        fileUrl,
+        uploadId: result.uploadId,
+        key: result.key,
+        parts: result.parts,
+        fileUrl: result.fileUrl,
         numParts,
         partSize: PART_SIZE
       },
@@ -650,20 +625,8 @@ async function completeMultipartUpload(
   }
 
   try {
-    // Completar la carga multiparte en S3
-    const command = new CompleteMultipartUploadCommand({
-      Bucket: bucketName,
-      Key: key,
-      UploadId: uploadId,
-      MultipartUpload: {
-        Parts: parts
-      }
-    });
-
-    await s3.send(command);
-
-    // URL final del archivo
-    const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${key}`;
+    // Usar nuestra función de utilidad para completar la carga multiparte
+    const fileUrl = await completeS3Upload(key, uploadId, parts);
 
     return res.status(200).json({
       success: true,
@@ -707,14 +670,8 @@ async function abortMultipartUpload(
   }
 
   try {
-    // Abortar la carga multiparte en S3
-    const command = new AbortMultipartUploadCommand({
-      Bucket: bucketName,
-      Key: key,
-      UploadId: uploadId
-    });
-
-    await s3.send(command);
+    // Usar nuestra función de utilidad para abortar la carga multiparte
+    await abortS3Upload(key, uploadId);
 
     return res.status(200).json({
       success: true,
@@ -747,18 +704,15 @@ async function getVideoUploadUrl(
     return res.status(400).json({ success: false, message: "No se subió ningún archivo" })
 
   try {
-    // Fix to handle filenames with multiple dots by taking the last part as extension
-    const fileExtension = originalName.substring(originalName.lastIndexOf('.') + 1);
-    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExtension}`;
-    const objectKey = `videos/video/${uniqueFilename}`;
-
-    const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
-
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: objectKey
-    });
-    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 5 });
+    // Generar clave única para el objeto en S3
+    const objectKey = generateS3Key(originalName, 'videos/video');
+    
+    // Obtener URL firmada usando nuestra función de utilidad
+    const { uploadUrl: signedUrl, fileUrl } = await getSignedUploadUrl(
+      objectKey, 
+      'video/mp4', 
+      60 * 5
+    );
 
     return res.json({
       success: true,
