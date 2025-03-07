@@ -17,6 +17,7 @@ import { promisify } from "util";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
+import youtubeRouter from "./routes/youtube";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
@@ -85,6 +86,9 @@ export function registerRoutes(app: Express): Server {
 
     // Register translator routes. Requiring authentication.
     app.use('/api/translator', requireAuth, translatorRouter);
+    
+    // Register YouTube routes
+    app.use('/api/youtube', youtubeRouter);
 
 
     // Rutas de estadísticas
