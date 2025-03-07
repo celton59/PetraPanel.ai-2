@@ -211,8 +211,8 @@ export function MediaCorrectionsDetail({
             onThumbnailFileChange={setThumbnailFile}
             isUploading={isUploading}
             uploadProgress={uploadProgress}
-            needsVideoCorrection={video.mediaVideoNeedsCorrection}
-            needsThumbnailCorrection={video.mediaThumbnailNeedsCorrection}
+            needsVideoCorrection={video.mediaVideoNeedsCorrection || false}
+            needsThumbnailCorrection={video.mediaThumbnailNeedsCorrection || false}
           />
         </div>
       </div>

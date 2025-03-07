@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/hooks/use-user";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import MediaReviewDetail from "./detail/MediaReviewDetail";
+import { MediaCorrectionsDetail } from "./detail/MediaCorrectionsDetail";
 import { ApiVideo } from "@/hooks/useVideos";
 
 const statusDescriptions: Record<VideoStatus, string> = {
@@ -81,9 +82,15 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
           />
         );
       case "upload_media":
-      case "media_corrections":
         return (
           <UploadContentDetail
+            video={video}
+            onUpdate={onUpdate}
+          />
+        );
+      case "media_corrections":
+        return (
+          <MediaCorrectionsDetail
             video={video}
             onUpdate={onUpdate}
           />
