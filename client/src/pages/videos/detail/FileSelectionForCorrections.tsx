@@ -1,13 +1,14 @@
-import { Video } from "@db/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, Video as VideoIcon } from "lucide-react";
 import { VideoUploader } from "./upload/VideoUploader";
 import { ThumbnailUploader } from "./upload/ThumbnailUploader";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ImagePreview } from "@/components/ui/image-preview";
+import { ApiVideo } from "@/hooks/useVideos";
 
 interface FileSelectionForCorrectionsProps {
-  video: Video;
+  video: ApiVideo;
   selectedFiles: {
     video: boolean;
     thumbnail: boolean;
@@ -51,12 +52,22 @@ export function FileSelectionForCorrections({
                 }}
               />
             ) : video.videoUrl ? (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer" onClick={() => window.open(video.videoUrl, '_blank')}>
+              <div className="group aspect-video bg-muted rounded-lg overflow-hidden relative" onClick={() => window.open(video.videoUrl, '_blank')}>
                 <video
                   src={video.videoUrl}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
                   controls
                 />
+                
+                {/* Indicador de clic para abrir */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="bg-black/50 p-2 rounded-full">
+                    <Maximize2 className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                
+                {/* Brillo en los bordes al hacer hover */}
+                <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity rounded-lg ring-2 ring-white/30 dark:ring-white/20"/>
               </div>
             ) : (
               <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
@@ -96,11 +107,15 @@ export function FileSelectionForCorrections({
                 }}
               />
             ) : video.thumbnailUrl ? (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer" onClick={() => window.open(video.thumbnailUrl, '_blank')}>
-                <img
+              <div className="group aspect-video bg-muted rounded-lg overflow-hidden" onClick={() => window.open(video.thumbnailUrl, '_blank')}>
+                <ImagePreview
                   src={video.thumbnailUrl}
                   alt="Miniatura del video"
-                  className="w-full h-full object-cover"
+                  aspectRatio="video"
+                  enableZoom={true}
+                  description="Previsualización de miniatura"
+                  metaInfo="Haz clic para abrir en tamaño completo"
+                  className="cursor-pointer transition-all"
                 />
               </div>
             ) : (
