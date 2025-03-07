@@ -3,6 +3,7 @@ import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ImagePreview } from "@/components/ui/image-preview";
+import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import {
   Eye,
   Trash2,
@@ -230,14 +231,15 @@ export default function VideosPage() {
                   {/* Miniatura */}
                   <TableCell>
                     <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                      <ImagePreview
+                      <ThumbnailPreview
                         src={video.thumbnailUrl}
                         alt={video.optimizedTitle ?? video.title}
                         aspectRatio="video"
                         enableZoom={true}
                         showPlaceholder={true}
                         className="h-full"
-                        description={video.optimizedTitle ?? video.title}
+                        title={video.optimizedTitle ?? video.title}
+                        showHoverActions={false}
                       />
                     </div>
                   </TableCell>
@@ -483,15 +485,29 @@ export default function VideosPage() {
               className="relative" 
               onClick={() => handleVideoClick(video)}
             >
-              <ImagePreview
+              <ThumbnailPreview
                 src={video.thumbnailUrl}
                 alt={video.title}
                 aspectRatio="video"
                 enableZoom={true}
                 showPlaceholder={true}
                 className="cursor-pointer"
-                description={video.optimizedTitle || video.title}
-                metaInfo={`${video.seriesNumber ? `Serie ${video.seriesNumber} • ` : ''}${video.updatedAt ? formatDate(video.updatedAt, false) : ''}`}
+                title={video.optimizedTitle || video.title}
+                publishDate={video.updatedAt ? formatDate(video.updatedAt, false) : ''}
+                duration={video.seriesNumber ? `Serie ${video.seriesNumber}` : undefined}
+                showHoverActions={true}
+                showPlayButton={true}
+                onShare={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/videos?id=${video.id}`);
+                  toast.success("Enlace copiado al portapapeles");
+                }}
+                onDownload={() => {
+                  if (video.videoUrl) {
+                    window.open(video.videoUrl, '_blank');
+                  } else {
+                    toast.error("Video no disponible para descarga");
+                  }
+                }}
               />
             </div>
             <div className="p-4">
@@ -576,14 +592,16 @@ export default function VideosPage() {
             {/* Gradient accent en tarjetas list */}
             <div className="h-full w-1 bg-gradient-to-b from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
             <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0">
-              <ImagePreview
+              <ThumbnailPreview
                 src={video.thumbnailUrl}
                 alt={video.title}
                 aspectRatio="video"
                 enableZoom={true}
                 showPlaceholder={true}
-                description={video.optimizedTitle || video.title}
-                metaInfo={video.seriesNumber ? `Serie ${video.seriesNumber}` : undefined}
+                title={video.optimizedTitle || video.title}
+                duration={video.seriesNumber ? `Serie ${video.seriesNumber}` : undefined}
+                showHoverActions={false}
+                className="h-full"
               />
             </div>
             <div className="flex-grow min-w-0">
