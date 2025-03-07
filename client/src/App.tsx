@@ -15,9 +15,6 @@ import { PageGuide } from "@/components/help/PageGuide";
 import { GuideProvider } from "@/components/help/GuideContext";
 import TitulinPage from "./pages/titulin/TitulinPage";
 
-// Importar configuración
-import YouTubeSettings from "@/pages/settings/youtube";
-
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
 import AdminStatsPage from "@/pages/admin/StatsPage";
@@ -59,7 +56,6 @@ function Router() {
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
-      <Route path="/configuracion/youtube" component={() => <ProtectedRoute component={YouTubeSettings} />} />
       
       {/* Rutas de administración - solo accesibles para administradores */}
       { user.role === 'admin' && (

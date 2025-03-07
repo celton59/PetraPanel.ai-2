@@ -28,7 +28,6 @@ export const projects = pgTable("projects", {
   prefix: text("prefix"),
   current_number: integer("current_number").default(0),
   description: text("description"),
-  youtubeChannelId: text("youtube_channel_id").references(() => youtube_channels.channelId),
   createdAt: timestamp("created_at").defaultNow()
 });
 
@@ -116,15 +115,12 @@ export const youtube_channels = pgTable("youtube_channels", {
   description: text("description"),
   subscriberCount: integer("subscriber_count"),
   videoCount: integer("video_count"),
-  uploadsPlaylistId: text("uploads_playlist_id"),
-  userId: integer("user_id")
-    .references(() => users.id, { onDelete: "set null" }),
   lastVideoFetch: timestamp("last_video_fetch"),
   lastAnalysis: timestamp("last_analysis"),
   active: boolean("active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+   createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  });
 // Tabla para configurar las tarifas por acción según el rol
 export const actionRates = pgTable("action_rates", {
   id: serial("id").primaryKey(),

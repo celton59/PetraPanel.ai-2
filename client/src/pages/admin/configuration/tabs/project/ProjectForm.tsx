@@ -10,40 +10,33 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Project } from '@db/schema';
-import { AuthorizedYouTubeChannelSelector } from "@/components/youtube/AuthorizedYouTubeChannelSelector";
+import { Project } from '@db/schema'
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   prefix: z.string().min(1, "El prefijo es requerido"),
-  description: z.string(),
-  youtubeChannelId: z.string().nullable().optional()
+  description: z.string()
 });
-
-type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface ProjectFormProps {
   isSubmitting: boolean;
-  onAddProject: (data: ProjectFormData) => Promise<void>;
+  onAddProject: (data: Pick<Project, 'name' | 'prefix' | 'description'>) => Promise<void>;
 }
 
 export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
-  const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
-    defaultValues: {
-      name: "",
-      prefix: "",
-      description: "",
-      youtubeChannelId: null
-    }
+  const form = useForm<Pick<Project, 'name' | 'prefix' | 'description'>>({
+    resolver: zodResolver(projectSchema)
   });
 
-  const onSubmit = async (data: ProjectFormData) => {
+  const onSubmit = async (data: Pick<Project, 'name' | 'prefix' | 'description'>) => {
     try {
-      await onAddProject(data);
+      await onAddProject({
+        name: data.name,
+        prefix: data.prefix,
+        description: data.description
+      });
       form.reset();
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -89,25 +82,6 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
                 <FormControl>
                   <Input placeholder="Descripción del Proyecto" {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="youtubeChannelId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Canal de YouTube</FormLabel>
-                <FormControl>
-                  <AuthorizedYouTubeChannelSelector 
-                    value={field.value} 
-                    onChange={field.onChange} 
-                  />
-                </FormControl>
-                <FormDescription>
-                  Canal al que se publicarán los videos de este proyecto
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
