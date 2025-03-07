@@ -14,18 +14,18 @@ import {
 import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { 
-  s3, 
-  PutObjectCommand, 
-  getSignedUrl,
-  CreateMultipartUploadCommand,
-  UploadPartCommand,
-  CompleteMultipartUploadCommand,
-  AbortMultipartUploadCommand,
-  ListPartsCommand,
-  InitiateMultipartUploadResponse,
+  generateS3Key, 
+  initiateMultipartUpload as initiateS3Upload, 
+  completeMultipartUpload as completeS3Upload, 
+  abortMultipartUpload as abortS3Upload,
+  getSignedUploadUrl,
   CompletedPart
 } from "../lib/s3"
+
+// Cliente S3 para métodos antiguos
+import { s3 } from "../lib/s3"
 import { type Express } from "express";
 import multer from "multer";
 
