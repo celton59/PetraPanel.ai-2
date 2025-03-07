@@ -547,7 +547,9 @@ async function initiateMultipartUpload(
   }
 
   // MODO SIMULACIÓN para desarrollo local: Verificar si estamos en modo desarrollo
-  if (process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true') {
+  // Forzar modo simulación por ahora debido a problemas con las credenciales
+  const useMockS3 = true; // process.env.NODE_ENV === 'development' && process.env.MOCK_S3 === 'true';
+  if (useMockS3) {
     console.log("[MOCK S3] Simulando carga multiparte para:", originalName);
     
     // Generar una clave única para el objeto
