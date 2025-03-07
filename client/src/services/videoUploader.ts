@@ -25,14 +25,16 @@ interface CompletedPart {
 
 /**
  * Interface para el estado del progreso de carga
+ * Simplificada para mostrar solo información relevante al usuario
  */
 export interface UploadProgressState {
   isUploading: boolean;
   progress: number;
-  uploadedParts: number;
-  totalParts: number;
   uploadSpeed: number; // en bytes por segundo
   estimatedTimeRemaining: number; // en segundos
+  // Mantenemos estos campos para uso interno, pero no los mostramos al usuario
+  uploadedParts: number;
+  totalParts: number;
 }
 
 export type UploadProgressCallback = (progress: UploadProgressState) => void;
