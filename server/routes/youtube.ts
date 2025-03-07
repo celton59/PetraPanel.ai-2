@@ -1,328 +1,323 @@
-import express, { Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { google } from 'googleapis';
 import { db } from '@db';
 import { youtube_channels } from '@db/schema';
 import { eq } from 'drizzle-orm';
 
-const router = express.Router();
+const router = Router();
 
-// Configuración de OAuth2
+// Configurar cliente OAuth para YouTube
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.BASE_URL || 'http://localhost:5000'}/api/youtube/callback`
+  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/youtube/callback'
 );
 
-// Configuración de la API de YouTube
-const youtube = google.youtube({
-  version: 'v3',
-  auth: oauth2Client
-});
+// Alcances necesarios para acceder a la API de YouTube
+const SCOPES = [
+  'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/youtubepartner',
+  'https://www.googleapis.com/auth/youtube',
+  'https://www.googleapis.com/auth/youtube.force-ssl'
+];
 
-// Middleware para verificar si el usuario está autenticado
+// Middleware para verificar autenticación
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ success: false, message: "No autenticado" });
+  if (!req.session.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'No autorizado'
+    });
   }
   next();
 };
 
-// Ruta para iniciar el proceso de autorización
+// Iniciar flujo de autorización con YouTube
 router.get('/authorize', requireAuth, (req: Request, res: Response) => {
-  // Guardar el ID del usuario en la sesión
-  if (req.session) {
-    req.session.userId = req.user?.id;
-  }
-
-  // Generar la URL de autorización
-  const scopes = [
-    'https://www.googleapis.com/auth/youtube.readonly',
-    'https://www.googleapis.com/auth/youtube.force-ssl'
-  ];
-
+  // Almacenar el ID del usuario en la sesión para recuperarlo después del callback
+  req.session.userId = req.session.user?.id;
+  
+  // Generar URL de autorización
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
-    scope: scopes,
-    include_granted_scopes: true
+    scope: SCOPES,
+    include_granted_scopes: true,
+    prompt: 'consent' // Siempre solicitar consentimiento para recibir refresh_token
   });
-
+  
+  // Redirigir a la URL de autorización de Google
   res.redirect(authUrl);
 });
 
-// Ruta para el callback de autorización
+// Callback después de la autorización con Google
 router.get('/callback', async (req: Request, res: Response) => {
   const { code } = req.query;
   
   if (!code) {
-    return res.redirect('/settings/youtube?error=no_code');
+    return res.redirect('/configuracion/youtube?error=no_code');
   }
-
+  
   try {
     // Intercambiar código por tokens
     const { tokens } = await oauth2Client.getToken(code as string);
     oauth2Client.setCredentials(tokens);
-
-    // Guardar tokens en la sesión del usuario
-    if (req.session) {
-      req.session.tokens = tokens;
+    
+    // Obtener el usuario desde la sesión
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.redirect('/configuracion/youtube?error=no_user');
     }
-
-    // Obtener canales asociados a la cuenta
-    const response = await youtube.channels.list({
-      part: ['snippet,contentDetails,statistics'],
-      mine: true
+    
+    // Guardar tokens en la sesión del usuario
+    req.session.tokens = tokens;
+    
+    // Obtener canales disponibles para este usuario
+    const youtube = google.youtube({
+      version: 'v3',
+      auth: oauth2Client
     });
-
-    if (response.data.items && response.data.items.length > 0) {
-      // Para cada canal encontrado, guardar en la base de datos
-      for (const channel of response.data.items) {
-        if (channel.id) {
-          // Verificar si el canal ya existe
-          const existingChannel = await db
-            .select()
-            .from(youtube_channels)
-            .where(eq(youtube_channels.channelId, channel.id))
-            .limit(1);
-
-          if (existingChannel.length === 0) {
-            // Insertar nuevo canal
-            await db.insert(youtube_channels).values({
-              channelId: channel.id,
+    
+    // Obtener los canales a los que tiene acceso el usuario
+    const channelsResponse = await youtube.channels.list({
+      mine: true,
+      part: ['snippet', 'statistics', 'contentDetails']
+    });
+    
+    // Almacenar canales en la base de datos
+    if (channelsResponse.data.items && channelsResponse.data.items.length > 0) {
+      for (const channel of channelsResponse.data.items) {
+        // Verificar si el canal ya existe
+        const existingChannel = await db.query.youtube_channels.findFirst({
+          where: eq(youtube_channels.channelId, channel.id || '')
+        });
+        
+        if (!existingChannel) {
+          // Insertar nuevo canal
+          await db.insert(youtube_channels).values({
+            channelId: channel.id || '',
+            name: channel.snippet?.title || 'Canal sin nombre',
+            description: channel.snippet?.description || null,
+            thumbnailUrl: channel.snippet?.thumbnails?.default?.url || null,
+            url: `https://youtube.com/channel/${channel.id}`,
+            subscriberCount: Number(channel.statistics?.subscriberCount) || 0,
+            videoCount: Number(channel.statistics?.videoCount) || 0,
+            uploadsPlaylistId: channel.contentDetails?.relatedPlaylists?.uploads || null,
+            userId: userId,
+            lastVideoFetch: null,
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        } else {
+          // Actualizar canal existente
+          await db.update(youtube_channels)
+            .set({
               name: channel.snippet?.title || 'Canal sin nombre',
-              url: `https://www.youtube.com/channel/${channel.id}`,
-              thumbnailUrl: channel.snippet?.thumbnails?.default?.url || null,
               description: channel.snippet?.description || null,
-              subscriberCount: parseInt(channel.statistics?.subscriberCount || '0'),
-              videoCount: parseInt(channel.statistics?.videoCount || '0'),
-              lastVideoFetch: null,
-              lastAnalysis: null,
-              active: true,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-          } else {
-            // Actualizar canal existente
-            await db
-              .update(youtube_channels)
-              .set({
-                name: channel.snippet?.title || existingChannel[0].name,
-                thumbnailUrl: channel.snippet?.thumbnails?.default?.url || existingChannel[0].thumbnailUrl,
-                description: channel.snippet?.description || existingChannel[0].description,
-                subscriberCount: parseInt(channel.statistics?.subscriberCount || '0'),
-                videoCount: parseInt(channel.statistics?.videoCount || '0'),
-                active: true,
-                updatedAt: new Date()
-              })
-              .where(eq(youtube_channels.channelId, channel.id));
-          }
+              thumbnailUrl: channel.snippet?.thumbnails?.default?.url || null,
+              subscriberCount: Number(channel.statistics?.subscriberCount) || 0,
+              videoCount: Number(channel.statistics?.videoCount) || 0,
+              updatedAt: new Date(),
+              userId: userId,
+              active: true
+            })
+            .where(eq(youtube_channels.channelId, channel.id || ''));
         }
       }
     }
-
-    // Redireccionar a la configuración con éxito
-    res.redirect('/settings/youtube?success=true');
     
+    res.redirect('/configuracion/youtube?success=true');
   } catch (error) {
-    console.error('Error al procesar callback de YouTube:', error);
-    res.redirect('/settings/youtube?error=auth_failed');
+    console.error('Error en el callback de YouTube:', error);
+    res.redirect('/configuracion/youtube?error=auth_failed');
   }
 });
 
-// Ruta para obtener canales autorizados
+// Obtener canales autorizados del usuario actual
 router.get('/authorized-channels', requireAuth, async (req: Request, res: Response) => {
   try {
-    const channels = await db
-      .select()
-      .from(youtube_channels)
-      .where(eq(youtube_channels.active, true));
-
-    res.json({
+    const userId = req.session.user?.id;
+    
+    // Obtener canales del usuario desde la base de datos
+    const channels = await db.select({
+      id: youtube_channels.id,
+      channelId: youtube_channels.channelId,
+      title: youtube_channels.name,
+      customUrl: youtube_channels.url,
+      thumbnailUrl: youtube_channels.thumbnailUrl,
+      subscriberCount: youtube_channels.subscriberCount,
+      videoCount: youtube_channels.videoCount,
+      isConnected: youtube_channels.active
+    })
+    .from(youtube_channels)
+    .where(eq(youtube_channels.userId, userId as number));
+    
+    return res.json({
       success: true,
-      data: channels.map(channel => ({
-        id: channel.channelId,
-        title: channel.name,
-        customUrl: channel.url,
-        thumbnailUrl: channel.thumbnailUrl,
-        subscriberCount: channel.subscriberCount,
-        videoCount: channel.videoCount,
-        isConnected: true
-      }))
+      data: channels
     });
   } catch (error) {
     console.error('Error al obtener canales autorizados:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error al obtener canales autorizados'
     });
   }
 });
 
-// Ruta para conectar un canal manualmente
+// Conectar canal manualmente por URL
 router.post('/connect-channel', requireAuth, async (req: Request, res: Response) => {
-  const { url } = req.body;
-  
-  if (!url) {
-    return res.status(400).json({
-      success: false,
-      message: 'URL del canal es requerida'
-    });
-  }
-
   try {
-    // Extraer ID o username del canal de la URL
-    const channelIdentifier = extractChannelIdentifier(url);
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        message: 'La URL del canal es requerida'
+      });
+    }
     
+    // Extraer identificador del canal desde la URL
+    const channelIdentifier = extractChannelIdentifier(url);
     if (!channelIdentifier) {
       return res.status(400).json({
         success: false,
-        message: 'URL de canal inválida'
+        message: 'URL de canal no válida'
       });
     }
-
-    let channelId: string;
-    const apiKey = process.env.YOUTUBE_API_KEY;
     
-    if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        message: 'API Key de YouTube no configurada'
-      });
-    }
-
-    // Configurar YouTube API con API Key
-    const youtubeApi = google.youtube({
+    // Inicializar API de YouTube
+    const youtube = google.youtube({
       version: 'v3',
-      auth: apiKey
+      auth: process.env.YOUTUBE_API_KEY
     });
-
-    // Si es username, buscar ID por username
-    if (channelIdentifier.type === 'username') {
-      const searchResponse = await youtubeApi.search.list({
-        part: ['snippet'],
-        q: channelIdentifier.value,
-        type: ['channel'],
-        maxResults: 1
+    
+    // Obtener información del canal
+    let channelResponse;
+    if (channelIdentifier.type === 'id') {
+      channelResponse = await youtube.channels.list({
+        id: [channelIdentifier.value],
+        part: ['snippet', 'statistics', 'contentDetails']
       });
-
-      if (!searchResponse.data.items?.length) {
-        return res.status(404).json({
-          success: false,
-          message: 'Canal no encontrado'
+    } else { // username o custom URL
+      channelResponse = await youtube.channels.list({
+        forUsername: channelIdentifier.value,
+        part: ['snippet', 'statistics', 'contentDetails']
+      });
+      
+      // Si no se encuentra por username, intentar búsqueda por término
+      if (!channelResponse.data.items || channelResponse.data.items.length === 0) {
+        const searchResponse = await youtube.search.list({
+          q: channelIdentifier.value,
+          type: ['channel'],
+          part: ['snippet'],
+          maxResults: 1
         });
+        
+        if (searchResponse.data.items && searchResponse.data.items.length > 0) {
+          const channelId = searchResponse.data.items[0].id?.channelId;
+          if (channelId) {
+            channelResponse = await youtube.channels.list({
+              id: [channelId],
+              part: ['snippet', 'statistics', 'contentDetails']
+            });
+          }
+        }
       }
-
-      channelId = searchResponse.data.items[0].snippet!.channelId!;
-    } else {
-      channelId = channelIdentifier.value;
     }
-
-    // Obtener detalles del canal
-    const response = await youtubeApi.channels.list({
-      part: ['snippet,contentDetails,statistics'],
-      id: [channelId]
-    });
-
-    if (!response.data.items?.length) {
+    
+    // Verificar si se encontró el canal
+    if (!channelResponse.data.items || channelResponse.data.items.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Canal no encontrado'
+        message: 'No se encontró el canal de YouTube'
       });
     }
-
-    const channel = response.data.items[0];
-
+    
+    const channel = channelResponse.data.items[0];
+    const userId = req.session.user?.id;
+    
     // Verificar si el canal ya existe
-    const existingChannel = await db
-      .select()
-      .from(youtube_channels)
-      .where(eq(youtube_channels.channelId, channelId))
-      .limit(1);
-
-    if (existingChannel.length === 0) {
+    const existingChannel = await db.query.youtube_channels.findFirst({
+      where: eq(youtube_channels.channelId, channel.id || '')
+    });
+    
+    if (existingChannel) {
+      // Actualizar canal existente
+      await db.update(youtube_channels)
+        .set({
+          name: channel.snippet?.title || 'Canal sin nombre',
+          description: channel.snippet?.description || null,
+          thumbnailUrl: channel.snippet?.thumbnails?.default?.url || null,
+          subscriberCount: Number(channel.statistics?.subscriberCount) || 0,
+          videoCount: Number(channel.statistics?.videoCount) || 0,
+          updatedAt: new Date(),
+          userId: userId as number,
+          active: true
+        })
+        .where(eq(youtube_channels.channelId, channel.id || ''));
+    } else {
       // Insertar nuevo canal
       await db.insert(youtube_channels).values({
-        channelId: channelId,
+        channelId: channel.id || '',
         name: channel.snippet?.title || 'Canal sin nombre',
-        url: `https://www.youtube.com/channel/${channelId}`,
-        thumbnailUrl: channel.snippet?.thumbnails?.default?.url || null,
         description: channel.snippet?.description || null,
-        subscriberCount: parseInt(channel.statistics?.subscriberCount || '0'),
-        videoCount: parseInt(channel.statistics?.videoCount || '0'),
+        thumbnailUrl: channel.snippet?.thumbnails?.default?.url || null,
+        url: `https://youtube.com/channel/${channel.id}`,
+        subscriberCount: Number(channel.statistics?.subscriberCount) || 0,
+        videoCount: Number(channel.statistics?.videoCount) || 0,
+        uploadsPlaylistId: channel.contentDetails?.relatedPlaylists?.uploads || null,
+        userId: userId as number,
         lastVideoFetch: null,
-        lastAnalysis: null,
         active: true,
         createdAt: new Date(),
         updatedAt: new Date()
       });
-    } else {
-      // Actualizar canal existente
-      await db
-        .update(youtube_channels)
-        .set({
-          name: channel.snippet?.title || existingChannel[0].name,
-          thumbnailUrl: channel.snippet?.thumbnails?.default?.url || existingChannel[0].thumbnailUrl,
-          description: channel.snippet?.description || existingChannel[0].description,
-          subscriberCount: parseInt(channel.statistics?.subscriberCount || '0'),
-          videoCount: parseInt(channel.statistics?.videoCount || '0'),
-          active: true,
-          updatedAt: new Date()
-        })
-        .where(eq(youtube_channels.channelId, channelId));
     }
-
-    res.json({
+    
+    return res.json({
       success: true,
-      data: {
-        id: channelId,
-        title: channel.snippet?.title,
-        customUrl: channel.snippet?.customUrl,
-        thumbnailUrl: channel.snippet?.thumbnails?.default?.url,
-        subscriberCount: parseInt(channel.statistics?.subscriberCount || '0'),
-        videoCount: parseInt(channel.statistics?.videoCount || '0'),
-        isConnected: true
-      },
       message: 'Canal conectado correctamente'
     });
   } catch (error) {
     console.error('Error al conectar canal:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Error al conectar canal'
     });
   }
 });
 
-// Función para extraer identificador de canal de una URL
+// Función auxiliar para extraer identificador de canal desde URL
 function extractChannelIdentifier(url: string): { type: 'id' | 'username', value: string } | null {
   try {
-    url = url.replace(/\/$/, '');
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
     
-    // Caso: ID directo (UC...)
-    if (url.startsWith('UC')) {
-      return { type: 'id', value: url };
+    // Formato: youtube.com/channel/UC...
+    if (path.includes('/channel/')) {
+      const channelId = path.split('/channel/')[1].split('/')[0];
+      return { type: 'id', value: channelId };
     }
     
-    // Caso: @username
-    if (url.includes('@')) {
-      const username = url.split('@').pop()!;
+    // Formato: youtube.com/c/NombreCanal
+    if (path.includes('/c/')) {
+      const username = path.split('/c/')[1].split('/')[0];
       return { type: 'username', value: username };
     }
     
-    // Caso: /channel/UC...
-    if (url.includes('/channel/')) {
-      const id = url.split('/channel/').pop()!.split('?')[0];
-      return { type: 'id', value: id };
+    // Formato: youtube.com/@usuario
+    if (path.includes('/@')) {
+      const username = path.split('/@')[1].split('/')[0];
+      return { type: 'username', value: username };
     }
     
-    // Caso: /c/customName
-    if (url.includes('/c/')) {
-      const customUrl = url.split('/c/').pop()!.split('?')[0];
-      return { type: 'username', value: customUrl };
+    // Formato: youtube.com/user/NombreUsuario
+    if (path.includes('/user/')) {
+      const username = path.split('/user/')[1].split('/')[0];
+      return { type: 'username', value: username };
     }
     
-    // Caso: URL de canal simple
-    const parts = url.split('/');
-    return { type: 'username', value: parts[parts.length - 1].split('?')[0] };
+    return null;
   } catch (error) {
     console.error('Error al extraer identificador de canal:', error);
     return null;

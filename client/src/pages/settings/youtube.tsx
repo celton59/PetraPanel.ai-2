@@ -107,7 +107,7 @@ export default function YouTubeSettings() {
       <h1 className="text-3xl font-bold mb-8">Configuración de YouTube</h1>
       
       {showSuccess && (
-        <Alert className="mb-6" variant="success">
+        <Alert className="mb-6 border-green-500 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400 dark:border-green-800">
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>Conexión exitosa</AlertTitle>
           <AlertDescription>
