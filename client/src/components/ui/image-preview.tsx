@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Eye, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Eye, ZoomIn, ZoomOut, X, Maximize2, Info } from "lucide-react";
 import { IoImageOutline } from "react-icons/io5";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,8 @@ interface ImagePreviewProps {
   enableZoom?: boolean;
   previewTitle?: string;
   showPlaceholder?: boolean;
+  description?: string;
+  metaInfo?: string;
 }
 
 export function ImagePreview({
@@ -31,11 +33,14 @@ export function ImagePreview({
   enableZoom = true,
   previewTitle = "Vista previa",
   showPlaceholder = true,
+  description,
+  metaInfo,
 }: ImagePreviewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Reset loading state when src changes
   useEffect(() => {
@@ -67,10 +72,13 @@ export function ImagePreview({
     <>
       <div
         className={cn(
-          "relative rounded-lg overflow-hidden",
+          "group relative rounded-lg overflow-hidden",
           aspectClasses[aspectRatio],
-          className
+          className,
+          src && !isLoading && !isError && "hover:shadow-[0_0_15px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-shadow duration-300"
         )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Skeleton loader */}
         {isLoading && showPlaceholder && (
@@ -92,9 +100,10 @@ export function ImagePreview({
             src={src}
             alt={alt}
             className={cn(
-              "w-full h-full object-cover transition-opacity duration-200",
+              "w-full h-full object-cover transition-all duration-300",
               isLoading ? "opacity-0" : "opacity-100",
-              onClick && "cursor-pointer"
+              onClick && "cursor-pointer",
+              "group-hover:scale-[1.03]" // Efecto zoom suave al hacer hover
             )}
             onLoad={() => setIsLoading(false)}
             onError={() => {
@@ -103,6 +112,7 @@ export function ImagePreview({
             }}
             onClick={handleClick}
             loading="lazy"
+            style={{transformOrigin: 'center center'}}
           />
         ) : !isError && showPlaceholder ? (
           <div className="absolute inset-0 bg-muted flex items-center justify-center">
@@ -110,16 +120,59 @@ export function ImagePreview({
           </div>
         ) : null}
 
-        {/* Zoom indicator */}
-        {enableZoom && src && !isLoading && !isError && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleClick}
+        {/* Hover overlay con información y efecto de oscurecimiento */}
+        {src && !isLoading && !isError && (
+          <div 
+            className={cn(
+              "absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent",
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3"
+            )}
           >
-            <ZoomIn className="h-3 w-3" />
-          </Button>
+            {description && (
+              <p className="text-white text-sm font-medium mb-1 line-clamp-2">{description}</p>
+            )}
+            {metaInfo && (
+              <p className="text-white/80 text-xs">{metaInfo}</p>
+            )}
+          </div>
+        )}
+
+        {/* Iconos de zoom y maximizar en hover */}
+        {src && !isLoading && !isError && (
+          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {enableZoom && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 rounded-full bg-white/80 text-gray-800 hover:bg-white transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImagePreviewOpen(true);
+                }}
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            )}
+            {(description || metaInfo) && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 rounded-full bg-white/80 text-gray-800 hover:bg-white transition-colors"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Brillo en los bordes al hacer hover */}
+        {src && !isLoading && !isError && (
+          <div className={cn(
+            "absolute inset-0 pointer-events-none",
+            "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+            "rounded-lg",
+            "ring-2 ring-white/30 dark:ring-white/20"
+          )}/>
         )}
       </div>
 
