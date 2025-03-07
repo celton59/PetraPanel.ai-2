@@ -29,8 +29,8 @@ import { s3 } from "../lib/s3"
 import { type Express } from "express";
 import multer from "multer";
 
-const bucketName = process.env.AWS_BUCKET_NAME!;
-const awsRegion = process.env.AWS_REGION!;
+const bucketName = process.env.AWS_BUCKET_NAME || "petrafiles";
+const awsRegion = process.env.AWS_REGION || "eu-west-1";
 
 const contentReviewer = aliasedTable(users, "contentReviewer");
 const mediaReviewer = aliasedTable(users, "mediaReviewer");

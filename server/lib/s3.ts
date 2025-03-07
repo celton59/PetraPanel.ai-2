@@ -21,7 +21,7 @@ export { getSignedUrl };
 
 // Crear cliente S3
 export const s3 = new S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
+  region: process.env.AWS_REGION || "eu-west-1", // Cambiado a la región correcta según el error
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
@@ -29,7 +29,7 @@ export const s3 = new S3Client({
 });
 
 // Nombre del bucket S3
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || "petrafiles";
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "petrafiles";
 
 /**
  * Interfaz para representar la configuración de una parte en una carga multiparte
