@@ -14,7 +14,18 @@ import {
 import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
-import { s3, PutObjectCommand, getSignedUrl } from "../lib/s3"
+import { 
+  s3, 
+  PutObjectCommand, 
+  getSignedUrl,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  ListPartsCommand,
+  InitiateMultipartUploadResponse,
+  CompletedPart
+} from "../lib/s3"
 import { type Express } from "express";
 import multer from "multer";
 
@@ -512,6 +523,217 @@ async function uploadThumbnail(
   }
 }
 
+/**
+ * Inicia una carga multiparte para un video
+ * @param req Request con el nombre original del archivo y tamaño del video
+ * @param res Response
+ * @returns Response con las URLs firmadas para cada parte y el ID de la carga
+ */
+async function initiateMultipartUpload(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  if (!req.user?.role) {
+    return res.status(403).json({ success: false, message: "No tienes permisos para editar videos" });
+  }
+
+  const { originalName, fileSize, contentType = 'video/mp4' } = req.body;
+
+  if (!originalName || !fileSize) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Se requiere el nombre y tamaño del archivo" 
+    });
+  }
+
+  try {
+    // Determinar el número de partes basado en el tamaño del archivo
+    // Cada parte será de aproximadamente 5MB, excepto posiblemente la última
+    const PART_SIZE = 5 * 1024 * 1024; // 5MB en bytes
+    const numParts = Math.ceil(fileSize / PART_SIZE);
+    
+    if (numParts > 10000) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "El archivo es demasiado grande para la carga multiparte (máximo 10,000 partes)" 
+      });
+    }
+
+    // Generar nombre de archivo único
+    const fileExtension = originalName.substring(originalName.lastIndexOf('.') + 1);
+    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${fileExtension}`;
+    const objectKey = `videos/video/${uniqueFilename}`;
+    
+    // URL final del archivo
+    const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
+
+    // Iniciar la carga multiparte en S3
+    const createCommand = new CreateMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      ContentType: contentType
+    });
+
+    const { UploadId } = await s3.send(createCommand);
+
+    if (!UploadId) {
+      throw new Error('No se pudo iniciar la carga multiparte');
+    }
+
+    // Generar URLs presignadas para cada parte
+    const parts = await Promise.all(
+      Array.from({ length: numParts }, async (_, i) => {
+        const partNumber = i + 1;
+        const command = new UploadPartCommand({
+          Bucket: bucketName,
+          Key: objectKey,
+          UploadId,
+          PartNumber: partNumber,
+        });
+
+        const url = await getSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hora de validez
+
+        return {
+          partNumber,
+          url
+        };
+      })
+    );
+
+    // Responder con la información necesaria para continuar la carga
+    return res.status(200).json({
+      success: true,
+      data: {
+        uploadId: UploadId,
+        key: objectKey,
+        parts,
+        fileUrl,
+        numParts,
+        partSize: PART_SIZE
+      },
+      message: 'Carga multiparte iniciada correctamente',
+    });
+
+  } catch (error: any) {
+    console.error("Error al iniciar carga multiparte:", error);
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Error al iniciar la carga del video',
+    });
+  }
+}
+
+/**
+ * Completa una carga multiparte para un video
+ * @param req Request con el ID de la carga, la clave del objeto y las partes
+ * @param res Response
+ * @returns Response con la URL del archivo final
+ */
+async function completeMultipartUpload(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  if (!req.user?.role) {
+    return res.status(403).json({ 
+      success: false, 
+      message: "No tienes permisos para editar videos" 
+    });
+  }
+
+  const { uploadId, key, parts } = req.body;
+
+  if (!uploadId || !key || !parts?.length) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Se requieren ID de carga, clave y partes para completar la carga" 
+    });
+  }
+
+  try {
+    // Completar la carga multiparte en S3
+    const command = new CompleteMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: key,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: parts
+      }
+    });
+
+    await s3.send(command);
+
+    // URL final del archivo
+    const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${key}`;
+
+    return res.status(200).json({
+      success: true,
+      url: fileUrl,
+      message: 'Carga multiparte completada correctamente',
+    });
+
+  } catch (error: any) {
+    console.error("Error al completar carga multiparte:", error);
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Error al completar la carga del video',
+    });
+  }
+}
+
+/**
+ * Aborta una carga multiparte para un video
+ * @param req Request con el ID de la carga y la clave del objeto
+ * @param res Response
+ * @returns Response con la confirmación de la cancelación
+ */
+async function abortMultipartUpload(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  if (!req.user?.role) {
+    return res.status(403).json({ 
+      success: false, 
+      message: "No tienes permisos para editar videos" 
+    });
+  }
+
+  const { uploadId, key } = req.body;
+
+  if (!uploadId || !key) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Se requieren ID de carga y clave para abortar la carga" 
+    });
+  }
+
+  try {
+    // Abortar la carga multiparte en S3
+    const command = new AbortMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: key,
+      UploadId: uploadId
+    });
+
+    await s3.send(command);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Carga multiparte abortada correctamente',
+    });
+
+  } catch (error: any) {
+    console.error("Error al abortar carga multiparte:", error);
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Error al abortar la carga del video',
+    });
+  }
+}
+
+/**
+ * Método anterior para compatibilidad (será deprecado)
+ * Obtiene una URL firmada para subir un video directamente
+ */
 async function getVideoUploadUrl(
   req: Request,
   res: Response,
