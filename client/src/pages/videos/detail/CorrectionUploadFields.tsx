@@ -138,9 +138,9 @@ export function CorrectionUploadFields({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {needsVideoCorrection && (
-        <div>
+        <div className="space-y-2">
           <Label className="mb-2 block">Video Corregido</Label>
           <FileUploadZone
             file={videoFile}
@@ -165,7 +165,7 @@ export function CorrectionUploadFields({
       )}
 
       {needsThumbnailCorrection && (
-        <div>
+        <div className="space-y-2">
           <Label className="mb-2 block">Miniatura Corregida</Label>
           <FileUploadZone
             file={thumbnailFile}
@@ -186,6 +186,12 @@ export function CorrectionUploadFields({
               Formatos soportados: JPG, PNG. Resolución recomendada: 1280x720
             </AlertDescription>
           </Alert>
+        </div>
+      )}
+      
+      {!needsVideoCorrection && !needsThumbnailCorrection && (
+        <div className="py-8 text-center">
+          <p className="text-gray-500 text-sm">No se han solicitado correcciones para este video.</p>
         </div>
       )}
     </div>

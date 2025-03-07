@@ -109,8 +109,8 @@ export function MediaCorrectionsDetail({
   }
 
   return (
-    <ScrollArea className="max-h-[65vh] pr-4">
-      <div className="p-4">
+    <ScrollArea className="max-h-[65vh]">
+      <div className="p-4 pr-6">
         {/* Alerta de correcciones compacta */}
         {video.mediaReviewComments?.at(0) && (
           <div className="mb-4">
@@ -211,8 +211,8 @@ export function MediaCorrectionsDetail({
             onThumbnailFileChange={setThumbnailFile}
             isUploading={isUploading}
             uploadProgress={uploadProgress}
-            needsVideoCorrection={video.mediaVideoNeedsCorrection || false}
-            needsThumbnailCorrection={video.mediaThumbnailNeedsCorrection || false}
+            needsVideoCorrection={Boolean(video.mediaVideoNeedsCorrection)}
+            needsThumbnailCorrection={Boolean(video.mediaThumbnailNeedsCorrection)}
           />
         </div>
       </div>
