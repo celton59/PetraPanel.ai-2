@@ -146,144 +146,256 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
 
   function getStep2Content() {
     return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+      <div className="space-y-4">
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {selectedProject && (
+              <Card className="border-primary/20 bg-primary/5 overflow-hidden">
+                <div className="p-4 flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <FolderIcon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Proyecto seleccionado</h4>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium">{selectedProject?.name}</span> &bull; <span className="text-xs">{selectedProject?.id}</span>
+                    </p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="ml-auto h-7 w-7" 
+                    onClick={() => setStep(1)}
+                  >
+                    <CircleSlash className="h-4 w-4 text-muted-foreground/70" />
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        <Card className="overflow-hidden border-primary/20">
+          <CardHeader className="bg-muted/50 pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileVideo className="h-5 w-5 text-primary" />
+              Detalles del video
+            </CardTitle>
+            <CardDescription>
+              {activeTab === "single" 
+                ? "Completa la información básica para tu nuevo video" 
+                : "Crea múltiples videos a partir de una lista de títulos"}
+            </CardDescription>
+          </CardHeader>
+
+          <div className="border-b border-muted px-6 pt-2">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
             >
-              {selectedProject && (
-                <Card className="border-primary/20 bg-primary/5 overflow-hidden">
-                  <div className="p-4 flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <FolderIcon className="h-4 w-4 text-primary" />
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="single" className="flex items-center gap-1.5">
+                  <VideoIcon className="h-4 w-4" />
+                  Video único
+                </TabsTrigger>
+                <TabsTrigger value="bulk" className="flex items-center gap-1.5">
+                  <FileStack className="h-4 w-4" />
+                  Carga masiva
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          <CardContent className="p-6 space-y-6">
+            <AnimatePresence mode="wait">
+              {activeTab === "single" ? (
+                <motion.div
+                  key="single-form"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                      >
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Título del Video</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Ej: Introducción a React Hooks"
+                                  {...field}
+                                  className="bg-background"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Un título descriptivo y conciso para tu video
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                      >
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Descripción</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Describe el contenido del video..."
+                                  className="min-h-[120px] resize-none bg-background"
+                                  {...field}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                <div className="flex justify-between">
+                                  <span>Añade una descripción para tu video</span>
+                                  <span className="text-xs font-mono">
+                                    {(field.value?.length || 0)}/500
+                                  </span>
+                                </div>
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </motion.div>
+                      
+                      <div className="flex justify-between pt-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setStep(1)}
+                          size="sm"
+                        >
+                          Atrás
+                        </Button>
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={isSubmitting || !form.formState.isValid}
+                          className="gap-1.5"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Creando...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Crear Video
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="bulk-form"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4"
+                >
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex gap-2 items-start">
+                      <div className="bg-primary/10 p-1.5 rounded text-primary">
+                        <ListPlus className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Lista de Títulos</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Ingresa un título por línea. Se creará un video por cada línea.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">Proyecto seleccionado</h4>
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-medium">{selectedProject?.name}</span> &bull; <span className="text-xs">{selectedProject?.id}</span>
-                      </p>
+                    
+                    <Textarea
+                      value={bulkTitles}
+                      onChange={(e) => setBulkTitles(e.target.value)}
+                      placeholder="Título 1&#10;Título 2&#10;Título 3&#10;..."
+                      className="min-h-[150px] bg-background"
+                    />
+                    
+                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <FileTextIcon className="h-3.5 w-3.5" />
+                        <span>
+                          {bulkTitles.split('\n').filter(line => line.trim().length > 0).length} títulos
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => setBulkTitles('')}
+                      >
+                        Limpiar
+                      </Button>
                     </div>
+                  </div>
+
+                  <div className="flex justify-between pt-4">
                     <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="ml-auto h-7 w-7" 
+                      type="button" 
+                      variant="outline" 
                       onClick={() => setStep(1)}
+                      size="sm"
                     >
-                      <CircleSlash className="h-4 w-4 text-muted-foreground/70" />
+                      Atrás
+                    </Button>
+                    <Button
+                      onClick={handleBulkSubmit}
+                      size="sm"
+                      disabled={isSubmitting || !bulkTitles.trim()}
+                      className="gap-1.5"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creando videos...
+                        </>
+                      ) : (
+                        <>
+                          <FileStack className="h-4 w-4" />
+                          Crear {bulkTitles.split('\n').filter(line => line.trim().length > 0).length} Videos
+                        </>
+                      )}
                     </Button>
                   </div>
-                </Card>
+                </motion.div>
               )}
-            </motion.div>
-          </AnimatePresence>
-
-          <Card className="overflow-hidden border-primary/20">
-            <CardHeader className="bg-muted/50">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileVideo className="h-5 w-5 text-primary" />
-                Detalles del video
-              </CardTitle>
-              <CardDescription>
-                Completa la información básica para tu nuevo video
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="p-6 space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título del Video</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ej: Introducción a React Hooks"
-                          {...field}
-                          className="bg-background"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Un título descriptivo y conciso para tu video
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descripción</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe el contenido del video..."
-                          className="min-h-[120px] resize-none bg-background"
-                          {...field}
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        <div className="flex justify-between">
-                          <span>Añade una descripción para tu video</span>
-                          <span className="text-xs font-mono">
-                            {(field.value?.length || 0)}/500
-                          </span>
-                        </div>
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
-            </CardContent>
-            
-            <CardFooter className="bg-muted/30 px-6 py-3 border-t flex justify-between">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setStep(1)}
-                size="sm"
-              >
-                Atrás
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isSubmitting || !form.formState.isValid}
-                className="gap-1.5"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Creando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Crear Video
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </form>
-      </Form>
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -313,6 +425,57 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       console.error("Error creating video:", error);
       toast.error("Error", {
         description: error.message || "No se pudo crear el video",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+  
+  async function handleBulkSubmit() {
+    if (!selectedProject) {
+      toast.error("Error", {
+        description: "Debes seleccionar un proyecto",
+      });
+      return;
+    }
+
+    // Obtener lista de títulos no vacíos
+    const titles = bulkTitles
+      .split('\n')
+      .map(line => line.trim())
+      .filter(title => title.length > 0);
+
+    if (titles.length === 0) {
+      toast.error("Error", {
+        description: "Debes ingresar al menos un título",
+      });
+      return;
+    }
+
+    // Confirmar si hay muchos títulos (más de 10)
+    if (titles.length > 10) {
+      if (!window.confirm(`¿Estás seguro que deseas crear ${titles.length} videos?`)) {
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createBulkVideos({
+        projectId: selectedProject.id,
+        titles,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
+      resetForm();
+    } catch (error: any) {
+      console.error("Error creating videos in bulk:", error);
+      toast.error("Error", {
+        description: error.message || "No se pudieron crear los videos en masa",
       });
     } finally {
       setIsSubmitting(false);

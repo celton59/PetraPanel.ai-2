@@ -849,10 +849,10 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
     });
   }
 
-  if (req.user?.role !== "admin") {
+  if (!["admin", "manager", "creator"].includes(req.user?.role || "")) {
     return res.status(403).json({
       success: false,
-      message: "Solo los administradores pueden crear videos en masa"
+      message: "No tienes permisos para crear videos en masa"
     });
   }
 
