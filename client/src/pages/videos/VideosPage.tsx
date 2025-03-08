@@ -889,7 +889,7 @@ export default function VideosPage() {
                   <span>Modo selección</span>
                   <div className="relative ml-1 group">
                     <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
-                    <div className="fixed hidden group-hover:block right-4 z-50 bg-card shadow-lg rounded-lg border p-3 w-[280px] animate-in fade-in-50 zoom-in-95">
+                    <div className="absolute hidden group-hover:block right-0 top-0 mt-6 z-50 bg-card shadow-lg rounded-lg border p-3 w-[280px] animate-in fade-in-50 zoom-in-95">
                       <div className="text-xs text-muted-foreground">
                         <p className="font-semibold mb-1 text-foreground">Consejos de selección:</p>
                         <ul className="list-disc pl-4 space-y-1.5">
