@@ -1,102 +1,24 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Lock, Activity, Eye, EyeOff } from "lucide-react";
-import { useUser } from "@/hooks/use-user";
-import { AvatarUpload } from "./AvatarUpload";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from "sonner";
-import NotificationSettings from "./NotificationSettings";
-import { ActivityFeed } from "./ActivityFeed";
-
-const profileSchema = z.object({
-  fullName: z.string().min(1, "El nombre es requerido"),
-  username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
-  bio: z.string().optional(),
-  phone: z.string()
-    .transform(val => val === "" ? undefined : val)
-    .refine(
-      val => !val || val.replace(/\D/g, '').length >= 9, 
-      "El teléfono debe tener al menos 9 dígitos"
-    )
-    .optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
+import { useUser } from "@/hooks/use-user";
+import { ProfileHeader } from "./components/ProfileHeader";
+import { PersonalInfoSection } from "./components/PersonalInfoSection";
+import { PasswordSection } from "./components/PasswordSection";
+import { NotificationsSection } from "./components/NotificationsSection";
+import { ActivitySection } from "./components/ActivitySection";
 
 export default function ProfilePage() {
   const { user, refetch } = useUser();
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      fullName: user?.fullName || '',
-      username: user?.username || '',
-      bio: user?.bio || '',
-      phone: user?.phone || ''
-    },
-    mode: "onChange",
-  });
-
-  useEffect(() => {
-    if (user) {
-      form.reset({
-        fullName: user.fullName || '',
-        username: user.username || '',
-        bio: user.bio || '',
-        phone: user.phone || ''
-      });
-    }
-  }, [user, form]);
-
-  const onSubmit = async (data: ProfileFormValues) => {
-    setIsUpdating(true);
-    try {
-      const response = await fetch('/api/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-
-      // Asegurarse de restablecer el estado de carga incluso si hay un error de red
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al actualizar el perfil');
-      }
-
-      const responseData = await response.json();
-      await refetch();
-
-      toast("Perfil actualizado", {
-        description: "Tu información ha sido actualizada correctamente",
-      });
-
-      // Marcar el formulario como "pristine" después de una actualización exitosa
-      form.reset(data);
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error("Error", {
-        description: error.message || "No se pudo actualizar el perfil. Por favor, intenta de nuevo.",
-      });
-    } finally {
-      // Asegurarse de que el estado de carga siempre se restablezca
-      setIsUpdating(false);
-    }
-  };
+  if (!user) {
+    return (
+      <div className="container max-w-4xl mx-auto p-4 space-y-6">
+        <div className="text-center p-8">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
@@ -107,31 +29,7 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <Card className="overflow-hidden bg-card">
-        <div className="relative p-6">
-          <div className="absolute inset-0 h-32 bg-gradient-to-r from-primary/10 via-primary/5 to-background" />
-          <div className="relative flex flex-col md:flex-row items-center gap-6">
-            <AvatarUpload
-              url={user?.avatarUrl}
-              onUploadComplete={refetch}
-              size="lg"
-            />
-            <div className="space-y-2 text-center md:text-left">
-              <h2 className="text-2xl font-semibold text-primary">
-                {user?.username || 'Usuario'}
-              </h2>
-              <p className="text-muted-foreground">
-                {user?.email || 'usuario@example.com'}
-              </p>
-              <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                <Badge variant="outline" className="capitalize">
-                  {user?.role || 'Usuario'}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+      <ProfileHeader user={user} refetch={refetch} />
 
       <Tabs defaultValue="personal" className="w-full">
         <TabsList className="w-full justify-start">
@@ -142,263 +40,19 @@ export default function ProfilePage() {
         </TabsList>
 
         <TabsContent value="personal" className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-1">
-                  Información Personal
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Actualiza tu información personal y de contacto
-                </p>
-              </div>
-
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre completo</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Tu nombre completo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre de usuario</FormLabel>
-                          <FormControl>
-                            <Input placeholder="@usuario" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Correo electrónico</Label>
-                      <Input
-                        type="email"
-                        value={user?.email || ''}
-                        disabled
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Teléfono</FormLabel>
-                          <FormControl>
-                            <Input type="tel" placeholder="+34 600 000 000" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="bio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Biografía</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Cuéntanos un poco sobre ti..."
-                            className="min-h-[100px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
-                      disabled={isUpdating || !form.formState.isValid || !form.formState.isDirty}
-                    >
-                      {isUpdating && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Guardar cambios
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+          <PersonalInfoSection user={user} refetch={refetch} />
         </TabsContent>
-        <TabsContent value="seguridad" className="mt-6"> {/* Added TabsContent for "seguridad" */}
-          <Card className="p-6 space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Lock className="h-5 w-5 text-primary/70" />
-                <h3 className="text-lg font-medium">Cambiar Contraseña</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Actualiza tu contraseña de acceso.
-              </p>
-            </div>
-
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const currentPassword = formData.get('currentPassword') as string;
-              const newPassword = formData.get('newPassword') as string;
-              
-              // Referencia al botón para controlar el estado de carga
-              let submitButton: HTMLButtonElement | null = null;
-              try {
-                if (e && e.currentTarget) {
-                  submitButton = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
-                  if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Actualizando...';
-                  }
-                }
-              } catch (buttonError) {
-                console.error("Error al acceder al botón:", buttonError);
-              }
-
-              try {
-                const response = await fetch('/api/profile/password', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ currentPassword, newPassword }),
-                });
-
-                if (!response.ok) {
-                  const errorData = await response.json();
-                  throw new Error(errorData.message || 'Error al cambiar la contraseña');
-                }
-
-                // Mostrar toast
-                try {
-                  toast.success("Contraseña actualizada", {
-                    description: "Tu contraseña ha sido cambiada correctamente",
-                    duration: 5000, // Duración más larga
-                  });
-                } catch (toastError) {
-                  console.error("Error mostrando toast:", toastError);
-                  // Solo si el toast falla, mostramos alerta como respaldo
-                  alert("Contraseña actualizada correctamente");
-                }
-
-                // Limpiar los campos después de una actualización exitosa
-                try {
-                  if (e && e.currentTarget) {
-                    const passwordInputs = e.currentTarget.querySelectorAll('input[type="password"]');
-                    passwordInputs.forEach(input => {
-                      (input as HTMLInputElement).value = '';
-                    });
-                  }
-                } catch (cleanError) {
-                  console.error("Error al limpiar campos:", cleanError);
-                }
-              } catch (error: any) {
-                // Mostrar toast de error
-                try {
-                  toast.error("Error", {
-                    description: error.message || "No se pudo actualizar la contraseña",
-                  });
-                } catch (toastError) {
-                  console.error("Error mostrando toast de error:", toastError);
-                  // Solo si el toast falla, mostramos alerta como respaldo
-                  alert(`Error: ${error.message || "No se pudo actualizar la contraseña"}`);
-                }
-              } finally {
-                // Restaurar el botón
-                if (submitButton) {
-                  submitButton.disabled = false;
-                  submitButton.innerHTML = 'Actualizar contraseña';
-                }
-              }
-            }} className="space-y-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Contraseña actual</Label>
-                  <div className="relative">
-                    <Input
-                      id="currentPassword"
-                      name="currentPassword"
-                      type={showCurrentPassword ? "text" : "password"}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    >
-                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">Nueva contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      id="newPassword"
-                      name="newPassword"
-                      type={showNewPassword ? "text" : "password"}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <Button type="submit">Actualizar contraseña</Button>
-            </form>
-          </Card>
+        
+        <TabsContent value="seguridad" className="mt-6">
+          <PasswordSection />
         </TabsContent>
+        
         <TabsContent value="notificaciones" className="mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-medium">Preferencias de notificaciones</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Configura cómo y cuándo quieres recibir notificaciones sobre actividades importantes.
-            </p>
-            <NotificationSettings />
-          </div>
+          <NotificationsSection />
         </TabsContent>
+        
         <TabsContent value="actividad" className="mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-medium">Historial de actividad</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Revisa tu historial de actividad reciente en la plataforma.
-            </p>
-            <ActivityFeed />
-          </div>
+          <ActivitySection />
         </TabsContent>
       </Tabs>
     </div>
