@@ -181,12 +181,6 @@ export default function VideosPage() {
             ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
             : "Comienza agregando tu primer video usando el botón superior"}
         </p>
-        {user?.role === "admin" && (
-          <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nuevo Video
-          </Button>
-        )}
       </div>
     );
   }
@@ -1028,6 +1022,10 @@ export default function VideosPage() {
           
           {user?.role === "admin" && (
             <>
+              <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nuevo Video
+              </Button>
               <Link href="/videos/trash">
                 <Button 
                   variant="outline" 
