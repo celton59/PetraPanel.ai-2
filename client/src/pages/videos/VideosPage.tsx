@@ -932,9 +932,9 @@ export default function VideosPage() {
               <ThumbnailPreview
                 src={video.thumbnailUrl}
                 alt={video.title}
-                fill={true}
+                aspectRatio="video"
                 showPlaceholder={true}
-                className="object-cover"
+                className="object-cover h-full w-full"
               />
             </div>
             
