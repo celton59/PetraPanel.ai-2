@@ -91,7 +91,7 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 import React from 'react';
 
-const VideosPage = React.memo(function VideosPage() {
+function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
 
   if (isUserLoading) {
@@ -975,4 +975,5 @@ const VideosPage = React.memo(function VideosPage() {
   );
 }
 
-export default VideosPage;
+// Aplicamos React.memo para evitar renderizaciones innecesarias
+export default React.memo(VideosPage);
