@@ -676,8 +676,24 @@ export default function VideosPage() {
           <div
             key={video.id}
             className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer relative overflow-hidden"
-            onClick={() => handleVideoClick(video)}
+            onClick={() => !selectMode && handleVideoClick(video)}
           >
+            {/* Selection checkbox in select mode */}
+            {selectMode && (
+              <div 
+                className="absolute top-2 left-2 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleVideoSelection(video.id);
+                }}
+              >
+                <Checkbox 
+                  checked={selectedVideos.includes(video.id)}
+                  className="h-5 w-5 border-2"
+                />
+              </div>
+            )}
+            
             {/* Gradient accent en tarjetas list */}
             <div className="h-full w-1 bg-gradient-to-b from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
             <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0">
@@ -841,6 +857,59 @@ export default function VideosPage() {
               VISIBLE_STATES[user?.role as keyof typeof VISIBLE_STATES] || []
             }
           />
+          
+          {user?.role === "admin" && (
+            <div className="flex items-center gap-2">
+              {selectMode && selectedVideos.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="gap-1">
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar ({selectedVideos.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        ¿Eliminar {selectedVideos.length} videos?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleBulkDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              
+              <Button
+                variant={selectMode ? "default" : "outline"}
+                size="sm"
+                className="gap-1"
+                onClick={toggleSelectionMode}
+              >
+                {selectMode ? (
+                  <>
+                    <CheckSquare className="h-4 w-4" />
+                    Terminar selección
+                  </>
+                ) : (
+                  <>
+                    <Square className="h-4 w-4" />
+                    Seleccionar videos
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant={showFilters ? "secondary" : "ghost"}
