@@ -561,22 +561,40 @@ export default function VideosPage() {
         {filteredVideos?.map((video) => (
           <div
             key={video.id}
-            className="group video-card relative rounded-lg border shadow-sm overflow-hidden transition-all hover:shadow-md bg-card"
+            className={cn(
+              "group video-card relative rounded-lg border shadow-sm overflow-hidden transition-all hover:shadow-md bg-card",
+              selectedVideos.includes(video.id) && "ring-2 ring-primary"
+            )}
             data-video-id={video.id}
             onClick={() => !selectMode && handleVideoClick(video)}
           >
             {/* Selection checkbox overlay */}
-            {selectMode && (
-              <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
-                data-state={selectMode ? "visible" : "hidden"}>
+            {user?.role === "admin" && (
+              <div 
+                className={cn(
+                  "absolute top-2 left-2 z-10 transition-all duration-200",
+                  selectMode 
+                    ? "opacity-100 scale-100" 
+                    : "opacity-0 scale-75 pointer-events-none group-hover:opacity-100 group-hover:scale-100",
+                  selectedVideos.includes(video.id) && "!opacity-100 !scale-100"
+                )}
+              >
                 <div className={cn(
-                  "p-1.5 rounded-md transition-colors", 
-                  selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  "p-1.5 rounded-md transition-colors shadow-sm", 
+                  selectedVideos.includes(video.id) 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-background/90 backdrop-blur-sm hover:bg-background"
                 )}>
                   <Checkbox
                     checked={selectedVideos.includes(video.id)}
-                    onCheckedChange={() => toggleSelectVideo(video.id)}
-                    className="h-4 w-4 border-2 transition-all duration-200"
+                    onCheckedChange={(e) => {
+                      toggleSelectVideo(video.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "h-4 w-4 border-2 transition-all duration-200",
+                      selectedVideos.includes(video.id) && "border-primary-foreground"
+                    )}
                     aria-label={`Seleccionar video ${video.title}`}
                   />
                 </div>
@@ -634,22 +652,40 @@ export default function VideosPage() {
         {filteredVideos?.map((video) => (
           <div
             key={video.id}
-            className="group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
+            className={cn(
+              "group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all",
+              selectedVideos.includes(video.id) && "ring-2 ring-primary"
+            )}
             data-video-id={video.id}
             onClick={() => !selectMode && handleVideoClick(video)}
           >
-            {/* Selection checkbox overlay */}
-            {selectMode && (
-              <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
-                data-state={selectMode ? "visible" : "hidden"}>
+            {/* Selection checkbox at left side */}
+            {user?.role === "admin" && (
+              <div 
+                className={cn(
+                  "flex-shrink-0 mr-3 transition-all duration-200",
+                  selectMode 
+                    ? "opacity-100" 
+                    : "opacity-0 group-hover:opacity-100",
+                  selectedVideos.includes(video.id) && "!opacity-100"
+                )}
+              >
                 <div className={cn(
                   "p-1.5 rounded-md transition-colors", 
-                  selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  selectedVideos.includes(video.id) 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted/80 hover:bg-muted"
                 )}>
                   <Checkbox
                     checked={selectedVideos.includes(video.id)}
-                    onCheckedChange={() => toggleSelectVideo(video.id)}
-                    className="h-4 w-4 border-2 transition-all duration-200"
+                    onCheckedChange={(e) => {
+                      toggleSelectVideo(video.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "h-4 w-4 border-2 transition-all duration-200",
+                      selectedVideos.includes(video.id) && "border-primary-foreground"
+                    )}
                     aria-label={`Seleccionar video ${video.title}`}
                   />
                 </div>
