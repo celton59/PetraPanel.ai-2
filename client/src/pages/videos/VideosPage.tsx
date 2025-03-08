@@ -879,13 +879,25 @@ export default function VideosPage() {
           {user?.role === "admin" && (
             <Button
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 relative"
               onClick={toggleSelectionMode}
             >
               {selectMode ? (
                 <>
                   <CheckSquare className="w-4 h-4" />
-                  Modo selección
+                  <span>Modo selección</span>
+                  {/* Tooltip con instrucciones de selección */}
+                  <div className="absolute mt-2 right-0 top-full z-50 bg-card shadow-lg rounded-lg border p-3 w-64 animate-in slide-in-from-top-5 fade-in-20">
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-semibold mb-1 text-foreground">Consejos de selección:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Arrastra para seleccionar múltiples videos</li>
+                        <li>Mantén <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Shift</kbd> para añadir a la selección</li>
+                        <li>Presiona <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd> para salir</li>
+                        <li>Usa <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Ctrl+A</kbd> para seleccionar todo</li>
+                      </ul>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
