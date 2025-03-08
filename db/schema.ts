@@ -96,7 +96,12 @@ export const videos = pgTable("videos", {
   mediaVideoNeedsCorrection: boolean("media_video_needs_correction"),
   mediaThumbnailNeedsCorrection: boolean("media_thumbnail_needs_correction"),
   
-  publishedAt: timestamp("published_at")
+  publishedAt: timestamp("published_at"),
+  
+  // Campos para la papelera
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: integer("deleted_by").references(() => users.id)
 });
 
 export type Video = typeof videos.$inferSelect
