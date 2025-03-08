@@ -79,13 +79,8 @@ export default function VideosPage() {
   // Estado para el modal de nuevo video
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
 
-  // Abrir directamente el diálogo de nuevo video si la URL tiene ?new=true
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("new") === "true") {
-      setNewVideoDialogOpen(true);
-    }
-  }, []);
+  // Ya no abrimos automáticamente el diálogo por URL para evitar duplicación
+  // Esto evita tener dos formas de abrir el mismo diálogo
 
   function canSeeVideoDetails(video: ApiVideo): boolean {
     if (!user) return false;

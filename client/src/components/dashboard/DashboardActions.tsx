@@ -16,7 +16,7 @@ export const DashboardActions = () => {
       description: "Crear y subir un nuevo video",
       iconColor: "text-blue-500",
       iconBgColor: "bg-blue-500/10",
-      onClick: () => setLocation('/videos?new=true')
+      onClick: () => setLocation('/videos')
     }] : []),
     
     {
