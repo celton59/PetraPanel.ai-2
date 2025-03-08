@@ -229,8 +229,8 @@ export function registerRoutes(app: Express): Server {
           });
         }
 
-        console.log("Verificando contraseña con passwordUtils.verify...");
-        const isValidPassword = await passwordUtils.verify(currentPassword, user[0].password);
+        console.log("Verificando contraseña con passwordUtils.compare...");
+        const isValidPassword = await passwordUtils.compare(currentPassword, user[0].password);
         console.log("Resultado de verificación:", isValidPassword);
 
         if (!isValidPassword) {
