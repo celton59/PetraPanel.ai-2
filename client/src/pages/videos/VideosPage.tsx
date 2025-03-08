@@ -66,6 +66,17 @@ const VISIBLE_STATES = {
     "completed",
     "en_revision",
   ],
+  content_reviewer: [
+    "optimize_review",
+    "title_corrections",
+    "completed",
+    "en_revision",
+  ],
+  media_reviewer: [
+    "media_corrections",
+    "upload_review",
+    "completed",
+  ],
   admin: [
     "pending",
     "in_progress",
