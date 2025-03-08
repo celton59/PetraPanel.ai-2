@@ -25,6 +25,30 @@ import { setupNotificationRoutes } from "./routes/notifications";
 
 const scryptAsync = promisify(scrypt);
 
+// Funciones de hash y verificación consistentes para contraseñas
+const passwordUtils = {
+  hash: async (password: string) => {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
+  },
+  verify: async (suppliedPassword: string, storedPassword: string) => {
+    try {
+      const [hashedPassword, salt] = storedPassword.split(".");
+      const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
+      const suppliedPasswordBuf = (await scryptAsync(
+        suppliedPassword,
+        salt,
+        64,
+      )) as Buffer;
+      return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+    } catch (error) {
+      console.error("Error verificando contraseña:", error);
+      return false;
+    }
+  }
+};
+
 const avatarStorage = multer.diskStorage({
   destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
     const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
@@ -47,9 +71,7 @@ const avatarUpload = multer({
 });
 
 async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return passwordUtils.hash(password);
 }
 
 export function registerRoutes(app: Express): Server {
@@ -232,15 +254,11 @@ export function registerRoutes(app: Express): Server {
           });
         }
 
-        console.log("Stored password:", user[0].password);
-        const [hash, salt] = user[0].password.split(".");
-        console.log("Split password - hash:", hash, "salt:", salt);
-        const buf = (await scryptAsync(currentPassword, salt, 64)) as Buffer;
-        const hashedPassword = `${buf.toString("hex")}.${salt}`;
-        console.log("Calculated hash:", hashedPassword);
-        console.log("Comparison:", hashedPassword === user[0].password);
+        console.log("Verificando contraseña con passwordUtils.verify...");
+        const isValidPassword = await passwordUtils.verify(currentPassword, user[0].password);
+        console.log("Resultado de verificación:", isValidPassword);
 
-        if (hashedPassword !== user[0].password) {
+        if (!isValidPassword) {
           return res.status(400).json({
             success: false,
             message: "Contraseña actual incorrecta"

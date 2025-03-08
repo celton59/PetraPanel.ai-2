@@ -17,7 +17,9 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
-const crypto = {
+
+// Objeto crypto con métodos consistentes para manejo de contraseñas
+export const passwordUtils = {
   hash: async (password: string) => {
     const salt = randomBytes(16).toString("hex");
     const buf = (await scryptAsync(password, salt, 64)) as Buffer;
@@ -95,7 +97,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Incorrect username." });
         }
 
-        const isMatch = await crypto.compare(password, user.password);
+        const isMatch = await passwordUtils.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });
         }
@@ -155,7 +157,7 @@ export function setupAuth(app: Express) {
   //       return res.status(400).send("Username already taken");
   //     }
 
-  //     const hashedPassword = await crypto.hash(password);
+  //     const hashedPassword = await passwordUtils.hash(password);
   //     const [user] = await db
   //       .insert(users)
   //       .values({ username, password: hashedPassword, role: "youtuber" })
