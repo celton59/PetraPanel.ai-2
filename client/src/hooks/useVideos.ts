@@ -269,7 +269,7 @@ export function useVideos(): {
 
   // Nueva función para obtener los videos en la papelera, memoizada para evitar recreación
   const getTrashVideos = useCallback(async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
-    const res = await fetch(`/api/projects/${projectId}/trash`, {
+    const res = await fetch(`/api/projects/${projectId}/videos?trash=true`, {
       credentials: "include",
     });
 
