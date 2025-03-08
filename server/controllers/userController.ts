@@ -3,10 +3,7 @@ import { z } from "zod";
 import { users, projectAccess } from "@db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { db } from "@db";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
+import { passwordUtils } from "../auth.js";
 
 const createUserSchema = z.object({
   username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).max(30, { message: "El nombre de usuario debe tener como máximo 30 caracteres" }),
@@ -35,10 +32,9 @@ const updateUserSchema = z.object({
 type CreateUserSchema = z.infer<typeof createUserSchema>;
 type UpdateUserSchema = z.infer<typeof updateUserSchema>;
 
+// Usamos passwordUtils.hash de auth.js
 async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return passwordUtils.hash(password);
 }
 
 export async function createUser(

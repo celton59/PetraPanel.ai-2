@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth.js";
+import { setupAuth, passwordUtils } from "./auth.js";
 import { db } from "@db";
 import { 
   users, videos, actionRates, userActions, payments, projects, youtube_channels
@@ -11,8 +11,7 @@ import path from "path";
 import sharp from "sharp";
 import fs from "fs";
 import express from "express";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+// Importamos el módulo de autenticación que contiene las funciones de hash y verificación de contraseñas
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
@@ -23,31 +22,7 @@ import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
 
-const scryptAsync = promisify(scrypt);
-
-// Funciones de hash y verificación consistentes para contraseñas
-const passwordUtils = {
-  hash: async (password: string) => {
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    return `${buf.toString("hex")}.${salt}`;
-  },
-  verify: async (suppliedPassword: string, storedPassword: string) => {
-    try {
-      const [hashedPassword, salt] = storedPassword.split(".");
-      const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
-      const suppliedPasswordBuf = (await scryptAsync(
-        suppliedPassword,
-        salt,
-        64,
-      )) as Buffer;
-      return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
-    } catch (error) {
-      console.error("Error verificando contraseña:", error);
-      return false;
-    }
-  }
-};
+// Utilizamos passwordUtils importado desde auth.ts
 
 const avatarStorage = multer.diskStorage({
   destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
