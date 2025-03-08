@@ -887,20 +887,17 @@ export default function VideosPage() {
                 <div className="flex items-center gap-2">
                   <CheckSquare className="w-4 h-4" />
                   <span>Modo selección</span>
-                  <div className="relative ml-1 group">
-                    <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
-                    <div className="absolute hidden group-hover:block right-0 top-0 mt-6 z-50 bg-card shadow-lg rounded-lg border p-3 w-[280px] animate-in fade-in-50 zoom-in-95">
-                      <div className="text-xs text-muted-foreground">
-                        <p className="font-semibold mb-1 text-foreground">Consejos de selección:</p>
-                        <ul className="list-disc pl-4 space-y-1.5">
-                          <li>Haz clic y arrastra el cursor sobre los videos para seleccionar múltiples elementos</li>
-                          <li>Mantén presionada la tecla <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Shift</kbd> mientras seleccionas para añadir a la selección actual</li>
-                          <li>Presiona <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd> para salir del modo selección</li>
-                          <li>Usa <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Ctrl+A</kbd> para seleccionar todos los videos</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
+                  <span 
+                    className="ml-1 cursor-help"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.info("Consejos de selección: Haz clic y arrastra para seleccionar múltiples videos. Usa Shift para añadir a la selección. Presiona Esc para salir. Usa Ctrl+A para seleccionar todo.", { 
+                        duration: 10000 
+                      });
+                    }}
+                  >
+                    <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                  </span>
                 </div>
               ) : (
                 <>
