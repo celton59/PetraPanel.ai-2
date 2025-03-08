@@ -1,7 +1,7 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
-import { UserBadges } from "@/components/video/UserBadges";
+import { UserBadges } from "@/components/video/UserBadgesSimple";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import {
   Eye,
