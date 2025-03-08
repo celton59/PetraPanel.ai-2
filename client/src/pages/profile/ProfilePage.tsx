@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Lock, Activity } from "lucide-react";
+import { Loader2, Bell, Lock, Activity, Eye, EyeOff } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 import { AvatarUpload } from "./AvatarUpload";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,8 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const { user, refetch } = useUser();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -331,21 +333,43 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Contraseña actual</Label>
-                  <Input
-                    id="currentPassword"
-                    name="currentPassword"
-                    type="password"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      name="currentPassword"
+                      type={showCurrentPassword ? "text" : "password"}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    >
+                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">Nueva contraseña</Label>
-                  <Input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      name="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               </div>
               <Button type="submit">Actualizar contraseña</Button>
