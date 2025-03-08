@@ -1,7 +1,15 @@
-import { Link } from "wouter";
-import { User } from "@/types/user";
 import { Button } from "@/components/ui/button";
-import { Filter, Grid3x3, LayoutGrid, List, Recycle, Plus, CheckSquare } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  CheckSquare,
+  Grid,
+  LayoutGrid,
+  LayoutList,
+  ListFilter,
+  Plus,
+  Table,
+} from "lucide-react";
+import { User } from "@/types/user";
 
 interface VideoToolbarProps {
   user: User;
@@ -15,8 +23,8 @@ interface VideoToolbarProps {
 }
 
 export function VideoToolbar({ 
-  user, 
-  viewMode, 
+  user,
+  viewMode,
   setViewMode,
   selectMode,
   toggleSelectionMode,
@@ -25,82 +33,64 @@ export function VideoToolbar({
   setNewVideoDialogOpen
 }: VideoToolbarProps) {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <h1 className="text-2xl font-bold tracking-tight">Videos</h1>
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sticky top-0 z-10 py-2 bg-background/90 backdrop-blur-sm">
+      <div className="flex flex-col mb-2 md:mb-0">
+        <h1 className="text-2xl font-bold mb-1">Videos</h1>
+        <p className="text-sm text-muted-foreground">
+          Gestiona todos los videos del sistema
+        </p>
+      </div>
       
-      <div className="flex items-center gap-2">
-        {/* View Mode Toggles */}
-        <div className="hidden sm:flex border rounded-md overflow-hidden">
-          <Button 
-            variant={viewMode === "grid" ? "default" : "ghost"} 
-            size="sm"
-            className="rounded-none border-0"
-            onClick={() => setViewMode("grid")}
-            title="Vista de cuadrícula"
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </Button>
-          <Button 
-            variant={viewMode === "table" ? "default" : "ghost"} 
-            size="sm"
-            className="rounded-none border-0"
-            onClick={() => setViewMode("table")}
-            title="Vista de tabla"
-          >
-            <Grid3x3 className="w-4 h-4" />
-          </Button>
-          <Button 
-            variant={viewMode === "list" ? "default" : "ghost"} 
-            size="sm"
-            className="rounded-none border-0"
-            onClick={() => setViewMode("list")}
-            title="Vista de lista"
-          >
-            <List className="w-4 h-4" />
-          </Button>
-        </div>
-        
-        {/* Selection Mode Toggle */}
-        {user?.role === "admin" && (
-          <Button 
-            variant={selectMode ? "default" : "outline"} 
-            size="sm"
-            onClick={toggleSelectionMode}
-            className="gap-2"
-            title="Modo selección"
-          >
-            <CheckSquare className="w-4 h-4" />
-            Selección
-          </Button>
-        )}
-        
-        {/* Filters Toggle */}
-        <Button 
-          variant={showFilters ? "default" : "outline"} 
+      <div className="flex flex-wrap gap-2 w-full md:w-auto">
+        {/* Botón para mostrar filtros */}
+        <Button
+          variant={showFilters ? "default" : "outline"}
           size="sm"
           onClick={() => setShowFilters(!showFilters)}
-          className="gap-2"
+          className="text-xs"
         >
-          <Filter className="w-4 h-4" />
+          <ListFilter className="h-3.5 w-3.5 mr-1.5" />
           Filtros
         </Button>
         
+        {/* Botón para modo selección (solo admins) */}
         {user?.role === "admin" && (
-          <>
-            <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nuevo Video
-            </Button>
-            <Link href="/videos/trash">
-              <Button 
-                variant="outline" 
-                className="gap-2"
-              >
-                <Recycle className="w-4 h-4" />
-                Papelera
-              </Button>
-            </Link>
-          </>
+          <Button
+            variant={selectMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleSelectionMode}
+            className="text-xs"
+          >
+            <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
+            {selectMode ? "Cancelar selección" : "Seleccionar"}
+          </Button>
+        )}
+        
+        {/* Selector de vista */}
+        <div className="border rounded-md overflow-hidden">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "table" | "grid" | "list")}>
+            <ToggleGroupItem value="grid" size="sm" className="px-2.5 py-1">
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" size="sm" className="px-2.5 py-1">
+              <LayoutList className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="table" size="sm" className="px-2.5 py-1">
+              <Table className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        
+        {/* Botón para crear nuevo video (solo para admin) */}
+        {user?.role === "admin" && (
+          <Button
+            onClick={() => setNewVideoDialogOpen(true)}
+            size="sm"
+            className="ml-auto text-xs"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Nuevo Video
+          </Button>
         )}
       </div>
     </div>

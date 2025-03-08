@@ -1,81 +1,118 @@
-import { ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
-import { es } from "date-fns/locale";
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
+/**
+ * Utility function to merge Tailwind classes with clsx
+ */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
 /**
- * Genera iniciales a partir de un nombre completo
- * @param name Nombre completo para generar iniciales
- * @returns Iniciales (máximo 2 caracteres)
+ * Formats a date string into a localized date-time format.
+ * Example: "2023-01-15T10:30:00Z" -> "15 Jan 2023 10:30"
+ * 
+ * @param dateString The ISO date string to format
+ * @param includeTime Whether to include time in the formatted string
+ * @returns Formatted date string
  */
-export function getInitials(name?: string | null): string {
-  if (!name) return "?";
+export function formatDate(dateString: string, includeTime: boolean = false): string {
+  if (!dateString) return '-';
   
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return '-';
+    }
+    
+    const options: Intl.DateTimeFormatOptions = {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      ...(includeTime && { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    return date.toLocaleDateString('es-ES', options);
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return '-';
+  }
 }
 
 /**
- * Formatea una fecha con formato inteligente basado en su cercanía al presente
- * @param date Fecha a formatear
- * @param includeTime Indica si incluir la hora en el formato
- * @returns Texto formateado de la fecha
+ * Truncates a string to a specified length and adds ellipsis if truncated
+ * 
+ * @param str The string to truncate
+ * @param maxLength Maximum length of the resulting string
+ * @returns Truncated string
  */
-export function formatDate(date: Date | string | number | null, includeTime: boolean = false): string {
-  if (!date) return "";
+export function truncateString(str: string, maxLength: number): string {
+  if (!str) return '';
+  if (str.length <= maxLength) return str;
   
-  const dateObj = new Date(date);
-  
-  if (isToday(dateObj)) {
-    return includeTime 
-      ? `Hoy a las ${format(dateObj, "HH:mm")}`
-      : "Hoy";
-  }
-  
-  if (isYesterday(dateObj)) {
-    return includeTime 
-      ? `Ayer a las ${format(dateObj, "HH:mm")}`
-      : "Ayer";
-  }
-  
-  // Si es menos de 7 días, mostramos "hace X días"
-  if (new Date().getTime() - dateObj.getTime() < 7 * 24 * 60 * 60 * 1000) {
-    return formatDistanceToNow(dateObj, { addSuffix: true, locale: es });
-  }
-  
-  // Para fechas más antiguas, formato completo
-  return includeTime
-    ? format(dateObj, "d MMM yyyy, HH:mm", { locale: es })
-    : format(dateObj, "d MMM yyyy", { locale: es });
+  return str.substring(0, maxLength) + '...';
 }
 
 /**
- * Formatea una fecha específicamente para notificaciones (formato corto)
+ * Debounces a function call by a specified delay
+ * 
+ * @param fn The function to debounce
+ * @param delay Delay in milliseconds
+ * @returns Debounced function
  */
-export function formatNotificationDate(date: Date | string | number | null): string {
-  if (!date) return "";
+export function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   
-  const dateObj = new Date(date);
+  return function (...args: Parameters<T>): void {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    
+    timeoutId = setTimeout(() => {
+      fn(...args);
+      timeoutId = null;
+    }, delay);
+  };
+}
+
+/**
+ * Generates a random ID string
+ * 
+ * @param length Length of the ID to generate (default: 8)
+ * @returns Random ID string
+ */
+export function generateId(length: number = 8): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
   
-  if (isToday(dateObj)) {
-    return format(dateObj, "HH:mm");
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   
-  if (isYesterday(dateObj)) {
-    return "Ayer";
-  }
+  return result;
+}
+
+/**
+ * Formats a number of bytes into a readable file size string
+ * Example: 1024 -> "1 KB"
+ * 
+ * @param bytes Number of bytes
+ * @param decimals Number of decimal places in the result
+ * @returns Formatted file size string
+ */
+export function formatFileSize(bytes: number, decimals: number = 2): string {
+  if (bytes === 0) return '0 Bytes';
   
-  // Si es menos de 7 días, mostramos el día
-  if (new Date().getTime() - dateObj.getTime() < 7 * 24 * 60 * 60 * 1000) {
-    return format(dateObj, "EEE", { locale: es });
-  }
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   
-  // Para fechas más antiguas, formato corto
-  return format(dateObj, "d MMM", { locale: es });
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }

@@ -1,16 +1,7 @@
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { useState } from "react";
 
 interface BulkDeleteActionProps {
   selectedVideos: number[];
@@ -18,45 +9,60 @@ interface BulkDeleteActionProps {
 }
 
 export function BulkDeleteAction({ selectedVideos, handleBulkDelete }: BulkDeleteActionProps) {
-  if (selectedVideos.length === 0) return null;
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await handleBulkDelete();
+    } finally {
+      setIsDeleting(false);
+      setShowConfirmDialog(false);
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2 pl-2 rounded-md bg-muted py-2">
-      <span className="text-sm font-medium">
-        {selectedVideos.length} videos seleccionados
-      </span>
-      <div className="ml-auto flex items-center gap-2">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="gap-1"
-              data-delete-selected
-            >
-              <Trash2 className="w-4 h-4" />
-              Eliminar ({selectedVideos.length})
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleBulkDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Eliminar {selectedVideos.length} videos
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+    <>
+      <div className="bg-background border rounded-lg p-2 shadow-sm fixed bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-2">
+        <span className="text-sm px-2">
+          {selectedVideos.length} {selectedVideos.length === 1 ? "video seleccionado" : "videos seleccionados"}
+        </span>
+        <Button 
+          variant="destructive" 
+          size="sm"
+          onClick={() => setShowConfirmDialog(true)}
+          className="gap-1.5"
+          data-delete-selected
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Eliminar
+        </Button>
       </div>
-    </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar {selectedVideos.length} {selectedVideos.length === 1 ? "video" : "videos"}? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

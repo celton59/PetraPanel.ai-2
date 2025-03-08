@@ -1,6 +1,4 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -9,25 +7,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { ThumbnailPreview } from "@/components/common/ThumbnailPreview";
-import { UserBadges } from "@/components/video/UserBadges";
 import { ApiVideo } from "@/types/api";
 import { User } from "@/types/user";
-import { Eye, Trash2 } from "lucide-react";
 
 interface TableViewProps {
   videos: ApiVideo[];
@@ -54,175 +43,205 @@ export function TableView({
   canSeeVideoDetails,
   deleteVideo,
   user,
-  renderEmptyState,
+  renderEmptyState
 }: TableViewProps) {
-  return (
-    <div className="space-y-6">
-      {/* Vista de tabla para escritorio */}
-      <div className="hidden md:block rounded-lg border bg-card shadow-sm overflow-hidden relative">
-        {/* Accent gradient para la tabla de videos */}
-        <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
-        <div className="overflow-x-auto pt-1">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                {user?.role === "admin" && selectMode && (
-                  <TableHead className="w-[40px]">
-                    <div className={cn(
-                      "p-1.5 rounded-md transition-colors", 
-                      selectedVideos.length === filteredVideos.length && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
-                    )}>
-                      <Checkbox 
-                        checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                        className="h-4 w-4 border-2 transition-all duration-200"
-                        aria-label="Seleccionar todos"
-                      />
-                    </div>
-                  </TableHead>
-                )}
-                <TableHead className="">Miniatura</TableHead>
-                <TableHead className="">Serie</TableHead>
-                <TableHead className="">Título</TableHead>
-                <TableHead className="">Estado</TableHead>
-                <TableHead className="">Colaboradores</TableHead>
-                <TableHead className="">Actualización</TableHead>
-                <TableHead className=" text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredVideos?.map((video) => (
-                <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
-                  {/* Selection checkbox */}
-                  {user?.role === "admin" && selectMode && (
-                    <TableCell className="w-[40px]">
-                      <div className={cn(
-                        "p-1.5 rounded-md transition-colors", 
-                        selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
-                      )}>
-                        <Checkbox 
-                          checked={selectedVideos.includes(video.id)}
-                          onCheckedChange={() => toggleSelectVideo(video.id)}
-                          className="h-4 w-4 border-2 transition-all duration-200"
-                          aria-label={`Seleccionar video ${video.title}`}
-                        />
-                      </div>
-                    </TableCell>
-                  )}
-                  {/* Miniatura */}
-                  <TableCell>
-                    <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                      <ThumbnailPreview
-                        src={video.thumbnailUrl}
-                        alt={video.optimizedTitle ?? video.title}
-                        aspectRatio="video"
-                        enableZoom={true}
-                        showPlaceholder={true}
-                        className="h-full"
-                        title={video.optimizedTitle ?? video.title}
-                        showHoverActions={false}
-                      />
-                    </div>
-                  </TableCell>
-                  {/* Serie */}
-                  <TableCell className="font-medium text-center">
-                    {video.seriesNumber || "-"}
-                  </TableCell>
-                  {/* Título */}
-                  <TableCell
-                    className={cn("font-medium max-w-md", canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : "")}
-                    onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
-                  >
-                    <div className="space-y-1">
-                      <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
-                    </div>
-                  </TableCell>
-                  {/* Estado */}
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "capitalize text-xs",
-                        getStatusBadgeColor(video.status)
-                      )}
-                    >
-                      {getStatusLabel(user!.role, video)}
-                    </Badge>
-                  </TableCell>
-                  {/* Contributors */}
-                  <TableCell>
-                    <UserBadges video={video} compact={true} />
-                  </TableCell>
-                  {/* Updated */}
-                  <TableCell className="text-muted-foreground text-sm">
-                    {formatDate(video.updatedAt, false)}
-                  </TableCell>
-                  {/* Actions */}
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {canSeeVideoDetails(video) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleVideoClick(video)}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Ver detalles</span>
-                        </Button>
-                      )}
-                      {user?.role === "admin" && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Eliminar</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Se eliminará permanentemente el video y
-                                todos sus archivos asociados.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter className="gap-2">
-                              <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => {
-                                  deleteVideo({
-                                    videoId: video.id,
-                                    projectId: video.projectId,
-                                  });
-                                }}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!videos || videos.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-64">
-                    {renderEmptyState()}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+  const [sortColumn, setSortColumn] = useState<string>("updatedAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Renderizar el ícono de ordenamiento
+  const renderSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return null;
+    }
+    return sortDirection === "asc" ? (
+      <ChevronUp className="h-3 w-3" />
+    ) : (
+      <ChevronDown className="h-3 w-3" />
+    );
+  };
+
+  if (filteredVideos.length === 0) {
+    return (
+      <div className="flex justify-center mt-10">
+        {renderEmptyState()}
       </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border">
+      <Table className="w-full">
+        <TableHeader>
+          <TableRow>
+            {/* Checkbox de selección para todos */}
+            {user?.role === "admin" && selectMode && (
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={selectedVideos.length > 0 && selectedVideos.length === filteredVideos.length}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Seleccionar todos"
+                />
+              </TableHead>
+            )}
+            
+            {/* Columna de miniatura */}
+            <TableHead className="w-24">
+              Miniatura
+            </TableHead>
+            
+            {/* Columna de título */}
+            <TableHead
+              className="cursor-pointer"
+              onClick={() => handleSort("title")}
+            >
+              <div className="flex items-center gap-1">
+                Título
+                {renderSortIcon("title")}
+              </div>
+            </TableHead>
+            
+            {/* Columna de estado */}
+            <TableHead
+              className="cursor-pointer"
+              onClick={() => handleSort("status")}
+            >
+              <div className="flex items-center gap-1">
+                Estado
+                {renderSortIcon("status")}
+              </div>
+            </TableHead>
+            
+            {/* Columna de proyecto */}
+            <TableHead className="hidden md:table-cell">
+              Proyecto
+            </TableHead>
+            
+            {/* Columna de asignado a */}
+            <TableHead className="hidden lg:table-cell">
+              Asignado a
+            </TableHead>
+            
+            {/* Columna de última actualización */}
+            <TableHead
+              className="cursor-pointer"
+              onClick={() => handleSort("updatedAt")}
+            >
+              <div className="flex items-center gap-1">
+                Actualización
+                {renderSortIcon("updatedAt")}
+              </div>
+            </TableHead>
+            
+            {/* Columna de acciones */}
+            {user?.role === "admin" && !selectMode && (
+              <TableHead className="w-10">
+                Acciones
+              </TableHead>
+            )}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredVideos.map((video) => (
+            <TableRow
+              key={video.id}
+              className={cn(
+                "video-card h-16",
+                canSeeVideoDetails(video) && "cursor-pointer hover:bg-muted/50",
+                selectedVideos.includes(video.id) && "bg-muted"
+              )}
+              data-video-id={video.id}
+              onClick={() => !selectMode && canSeeVideoDetails(video) && handleVideoClick(video)}
+            >
+              {/* Checkbox de selección */}
+              {user?.role === "admin" && selectMode && (
+                <TableCell className="p-2">
+                  <Checkbox
+                    checked={selectedVideos.includes(video.id)}
+                    onCheckedChange={() => toggleSelectVideo(video.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Seleccionar video ${video.title}`}
+                  />
+                </TableCell>
+              )}
+              
+              {/* Miniatura */}
+              <TableCell className="p-2">
+                <div className="w-20 h-12 overflow-hidden rounded">
+                  <ThumbnailPreview
+                    src={video.thumbnailUrl}
+                    alt={video.title}
+                    aspectRatio="video"
+                    enableZoom={false}
+                    showPlaceholder={true}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </TableCell>
+              
+              {/* Título */}
+              <TableCell className="font-medium">
+                <div className="line-clamp-2 max-w-xs">
+                  {video.optimizedTitle || video.title}
+                </div>
+              </TableCell>
+              
+              {/* Estado */}
+              <TableCell>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs capitalize whitespace-nowrap",
+                    getStatusBadgeColor(video.status)
+                  )}
+                >
+                  {getStatusLabel(user!.role, video)}
+                </Badge>
+              </TableCell>
+              
+              {/* Proyecto */}
+              <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                {video.projectName || "-"}
+              </TableCell>
+              
+              {/* Asignado a */}
+              <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                {video.assignedToName || "No asignado"}
+              </TableCell>
+              
+              {/* Última actualización */}
+              <TableCell className="text-muted-foreground text-sm">
+                {formatDate(video.updatedAt)}
+              </TableCell>
+              
+              {/* Acciones */}
+              {user?.role === "admin" && !selectMode && (
+                <TableCell className="p-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteVideo({ videoId: video.id, projectId: video.projectId });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

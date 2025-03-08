@@ -1,4 +1,4 @@
-import React, { useState, useRef, CSSProperties } from "react";
+import React, { CSSProperties } from "react";
 
 interface DragSelectionContainerProps {
   children: React.ReactNode;
@@ -21,43 +21,43 @@ export function DragSelectionContainer({
   handleDragMove,
   handleDragEnd
 }: DragSelectionContainerProps) {
-  const dragSelectionRef = useRef<HTMLDivElement>(null);
-
-  // Calcular las coordenadas del rectángulo de selección
+  // Función para generar el estilo CSS del rectángulo de selección
   const getSelectionRectStyle = (): CSSProperties => {
-    if (!dragStartPosition || !dragCurrentPosition) return {};
-    
-    // Calcular coordenadas relativas al viewport
+    if (!isDragging || !dragStartPosition || !dragCurrentPosition) {
+      return {
+        display: 'none'
+      };
+    }
+
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
-    
-    // Calcular coordenadas relativas al contenedor (fixed para el viewport)
+
     return {
-      position: 'fixed', // Posición fija respecto al viewport
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
+      position: 'fixed',
+      left,
+      top,
+      width,
+      height,
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      border: '1px solid rgba(59, 130, 246, 0.6)',
+      pointerEvents: 'none',
+      zIndex: 50
     };
   };
 
   return (
-    <div 
+    <div
       className="relative"
-      onMouseDown={handleDragStart}
-      onMouseMove={handleDragMove}
-      onMouseUp={handleDragEnd}
-      onMouseLeave={handleDragEnd}
+      onMouseDown={selectMode ? handleDragStart : undefined}
+      onMouseMove={isDragging && selectMode ? handleDragMove : undefined}
+      onMouseUp={isDragging && selectMode ? handleDragEnd : undefined}
+      onMouseLeave={isDragging && selectMode ? handleDragEnd : undefined}
     >
       {/* Rectángulo de selección */}
-      {isDragging && selectMode && (
-        <div
-          ref={dragSelectionRef}
-          className="fixed bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
-          style={getSelectionRectStyle()}
-        ></div>
+      {selectMode && isDragging && (
+        <div style={getSelectionRectStyle()} />
       )}
       
       {children}
