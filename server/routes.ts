@@ -232,9 +232,13 @@ export function registerRoutes(app: Express): Server {
           });
         }
 
-        const [salt, hash] = user[0].password.split(".");
+        console.log("Stored password:", user[0].password);
+        const [hash, salt] = user[0].password.split(".");
+        console.log("Split password - hash:", hash, "salt:", salt);
         const buf = (await scryptAsync(currentPassword, salt, 64)) as Buffer;
         const hashedPassword = `${buf.toString("hex")}.${salt}`;
+        console.log("Calculated hash:", hashedPassword);
+        console.log("Comparison:", hashedPassword === user[0].password);
 
         if (hashedPassword !== user[0].password) {
           return res.status(400).json({
