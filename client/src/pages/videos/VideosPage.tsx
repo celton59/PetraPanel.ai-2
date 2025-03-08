@@ -89,10 +89,9 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   youtuber: ["upload_media", "media_corrections"],
 };
 
-// Importando React para usar React.memo
 import React from 'react';
 
-function VideosPage() {
+const VideosPage = React.memo(function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
 
   if (isUserLoading) {
@@ -164,12 +163,6 @@ function VideosPage() {
             ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
             : "Comienza agregando tu primer video usando el botón superior"}
         </p>
-        {user?.role === "admin" && (
-          <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nuevo Video
-          </Button>
-        )}
       </div>
     );
   }
@@ -982,5 +975,4 @@ function VideosPage() {
   );
 }
 
-// Aplicamos React.memo para evitar renderizaciones innecesarias
-export default React.memo(VideosPage);
+export default VideosPage;
