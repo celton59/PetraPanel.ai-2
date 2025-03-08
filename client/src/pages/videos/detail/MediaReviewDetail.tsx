@@ -537,61 +537,61 @@ export default function MediaReviewDetail({
           </div>
         </Card>
 
-        {/* Final Review Decision */}
+        {/* Final Review Decision - Centrado en publicación de YouTube */}
         {video.status === "final_review" && (
           <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-green-600 to-green-500 dark:from-green-600 dark:via-green-500 dark:to-green-600"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-red-600 to-red-500 dark:from-red-600 dark:via-red-700 dark:to-red-600"></div>
             <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 rounded-md bg-green-50 dark:bg-green-900/50">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="font-medium text-green-700 dark:text-green-300 text-sm">Revisión Final</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-1.5 rounded-md bg-red-50 dark:bg-red-900/50">
+                  <Youtube className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="py-1 h-7 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 border-0 text-white"
-                    onClick={() => setYoutubeDialogOpen(true)}
-                  >
-                    <Youtube className="w-3.5 h-3.5 mr-1" />
-                    Publicar en YouTube
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="py-1 h-7 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 text-white"
-                    onClick={() => onUpdate({
-                      status: 'completed'
-                    })}
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Completar sin publicar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="py-1 h-7"
-                    onClick={handleReject}
-                  >
-                    <XCircle className="w-3.5 h-3.5 mr-1" />
-                    Rechazar
-                  </Button>
+                <div>
+                  <h3 className="font-medium text-red-700 dark:text-red-300 text-base">Publicar en YouTube</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Este video está listo para ser publicado en YouTube</p>
                 </div>
               </div>
               
-              <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
-                  Comentarios de Revisión Final
-                </label>
-                <Textarea
-                  placeholder="Escribe aquí los motivos del rechazo o sugerencias finales..."
-                  value={reviewComments}
-                  onChange={(e) => setReviewComments(e.target.value)}
-                  className="min-h-[80px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-green-200 dark:border-green-800/70 focus-visible:ring-green-500/30 focus-visible:border-green-300"
-                />
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-100 dark:border-red-800/50 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="text-red-600 dark:text-red-400 mt-0.5">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-700 dark:text-red-300">Información importante</h4>
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                      Una vez publicado en YouTube, este video avanzará a estado "Completado" y ya no se podrá editar.
+                      Verifica toda la información antes de proceder.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap justify-center gap-4 mt-4">
+                <Button
+                  size="lg"
+                  onClick={() => setYoutubeDialogOpen(true)}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 py-2 px-6"
+                >
+                  <Youtube className="mr-2 h-5 w-5" />
+                  Publicar ahora en YouTube
+                </Button>
+                <Button
+                  variant="outline"
+                  className="py-2 px-4 border-green-200 text-green-600 hover:text-green-700 hover:border-green-300 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20"
+                  onClick={() => onUpdate({ status: 'completed' })}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                  Completar sin YouTube
+                </Button>
+                <Button
+                  variant="outline"
+                  className="py-2 px-4 border-amber-200 text-amber-600 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                  onClick={() => onUpdate({ status: 'media_review' })}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1.5" />
+                  Volver a revisión de medios
+                </Button>
               </div>
             </div>
           </Card>
