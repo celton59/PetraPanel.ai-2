@@ -50,35 +50,37 @@ import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
+// Estados visibles según el rol del usuario
+// Basado en los estados definidos en el esquema: 'available', 'content_corrections', 'content_review', 'upload_media', 'media_corrections', 'media_review', 'final_review', 'completed'
 const VISIBLE_STATES: Record<User["role"], readonly string[]> = {
   optimizer: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "en_revision",
-  ],
-  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
-  reviewer: [
-    "optimize_review",
-    "title_corrections",
-    "upload_review",
+    "available",
+    "content_corrections",
     "completed",
-    "en_revision",
+  ],
+  youtuber: [
+    "upload_media", 
+    "media_corrections", 
+    "final_review", 
+    "completed"
+  ],
+  reviewer: [
+    "content_review",
+    "media_review",
+    "final_review",
+    "completed",
   ],
   content_reviewer: ["content_review"],
   media_reviewer: ["media_review"],
   admin: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "upload_review",
+    "available",
+    "content_corrections",
+    "content_review",
+    "upload_media",
     "media_corrections",
-    "review",
-    "youtube_ready",
+    "media_review",
+    "final_review",
     "completed",
-    "en_revision",
   ],
 } as const;
 
@@ -360,14 +362,18 @@ function VideosPage() {
 
     // Aplicar filtro por fecha
     if (dateRange && dateRange.from && dateRange.to) {
-      const videoDate = new Date(video.createdAt);
-      const fromDate = new Date(dateRange.from);
-      const toDate = new Date(dateRange.to);
-      
-      // Ajustar la fecha final para incluir todo el día
-      toDate.setHours(23, 59, 59, 999);
-      
-      return videoDate >= fromDate && videoDate <= toDate;
+      // Asegurarnos de que video.createdAt no sea null antes de crear la fecha
+      if (video.createdAt) {
+        const videoDate = new Date(video.createdAt);
+        const fromDate = new Date(dateRange.from);
+        const toDate = new Date(dateRange.to);
+        
+        // Ajustar la fecha final para incluir todo el día
+        toDate.setHours(23, 59, 59, 999);
+        
+        return videoDate >= fromDate && videoDate <= toDate;
+      }
+      return false;
     }
 
     return true;
