@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, or, desc, getTableColumns, aliasedTable, isNull } from "drizzle-orm";
+import { eq, and, or, desc, getTableColumns, aliasedTable, isNull, inArray } from "drizzle-orm";
 import {
   videos,
   users,
@@ -300,7 +300,7 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
         .from(videos)
         .where(and(
           eq(videos.projectId, projectId),
-          videos.id.in(validVideoIds)
+          inArray(videos.id, validVideoIds)
         ));
       
       const foundIds = videosToDelete.map(v => v.id);
@@ -314,7 +314,7 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
         .delete(videos)
         .where(and(
           eq(videos.projectId, projectId),
-          videos.id.in(foundIds)
+          inArray(videos.id, foundIds)
         ));
       
       return { 
@@ -1011,6 +1011,7 @@ export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, nex
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo)
 
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo)
+  app.delete("/api/projects/:projectId/videos", requireAuth, bulkDeleteVideos)
 
   // Video upload endpoint
   const thumbailUpload = multer({ 

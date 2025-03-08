@@ -29,6 +29,7 @@ export function useVideos(): {
   createBulkVideos: ({ projectId, titles }: { projectId: number, titles: string[] }) => Promise<any>;
   updateVideo: ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number; updateRequest: UpdateVideoData }) => Promise<any>;
   deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
+  bulkDeleteVideos: ({projectId, videoIds} : { projectId: number, videoIds: number[] }) => Promise<any>;
 } {
   const queryClient = useQueryClient();
 
@@ -167,8 +168,37 @@ export function useVideos(): {
       });
     },
     onError: (error: Error) => {
-      toast("Error", {
+      toast.error("Error", {
         description: error.message || "No se pudo eliminar el video",
+      });
+    },
+  });
+
+  const bulkDeleteVideosMutation = useMutation({
+    mutationFn: async ({projectId, videoIds} : { projectId: number, videoIds: number[] }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoIds }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Error al eliminar los videos en masa");
+      }
+
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Videos eliminados", {
+        description: data.message || `Se han eliminado ${data.deleted || 0} videos correctamente`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudieron eliminar los videos en masa",
       });
     },
   });
@@ -180,5 +210,6 @@ export function useVideos(): {
     createBulkVideos: createBulkVideosMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
     deleteVideo: deleteVideoMutation.mutateAsync,
+    bulkDeleteVideos: bulkDeleteVideosMutation.mutateAsync,
   };
 }
