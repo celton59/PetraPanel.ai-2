@@ -572,8 +572,24 @@ export default function VideosPage() {
             <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0 z-10"></div>
             <div 
               className="relative" 
-              onClick={() => handleVideoClick(video)}
+              onClick={() => !selectMode && handleVideoClick(video)}
             >
+              {/* Selection checkbox for grid view */}
+              {selectMode && (
+                <div 
+                  className="absolute top-2 left-2 z-20 bg-background/80 rounded-md p-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelectVideo(video.id);
+                  }}
+                >
+                  <Checkbox 
+                    checked={selectedVideos.includes(video.id)}
+                    onCheckedChange={() => toggleSelectVideo(video.id)}
+                    className="h-5 w-5 border-2"
+                  />
+                </div>
+              )}
               <ThumbnailPreview
                 src={video.thumbnailUrl}
                 alt={video.title}
