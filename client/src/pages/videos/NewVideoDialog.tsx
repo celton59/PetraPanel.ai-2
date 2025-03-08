@@ -707,12 +707,6 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button className="bg-primary text-white hover:bg-primary/90">
-          <VideoIcon className="mr-2 h-4 w-4" />
-          Nuevo Video
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden max-h-[90vh]">
         <div className="bg-muted/80 px-6 py-4 border-b">
           <DialogHeader>
