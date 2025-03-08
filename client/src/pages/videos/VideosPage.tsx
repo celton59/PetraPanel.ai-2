@@ -1035,7 +1035,7 @@ export default function VideosPage() {
                   <Recycle className="w-4 h-4" />
                   Papelera
                 </Button>
-              </Link>k>
+              </Link>
             </>
           )}
         </div>
