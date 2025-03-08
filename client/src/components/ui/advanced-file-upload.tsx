@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -6,6 +6,77 @@ import { VideoPreview } from "@/components/ui/video-preview";
 import { toast } from "sonner";
 import { X, Upload, FileText, Film, Image as ImageIcon, FileUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Hook para crear clases dinámicas de hover y active
+function useHoverActiveClasses(
+  baseClassName: string | undefined,
+  hoverClassName: string | undefined,
+  activeClassName: string | undefined
+) {
+  // Si no hay clases personalizadas, devolvemos la clase base
+  if (!hoverClassName && !activeClassName) return baseClassName;
+  
+  // Generamos una clase única para este componente usando un ID aleatorio
+  const uniqueId = Math.random().toString(36).substring(2, 9);
+  const uniqueClass = `adv-upload-${uniqueId}`;
+  
+  useEffect(() => {
+    if (!hoverClassName && !activeClassName) return;
+    
+    // Crear elemento de estilo
+    const style = document.createElement('style');
+    let css = '';
+    
+    // Añadir reglas CSS para hover si se proporciona
+    if (hoverClassName) {
+      css += `.${uniqueClass}:hover { ${processClassesToCss(hoverClassName)} }\n`;
+    }
+    
+    // Añadir reglas CSS para active si se proporciona
+    if (activeClassName) {
+      css += `.${uniqueClass}:active { ${processClassesToCss(activeClassName)} }\n`;
+    }
+    
+    style.textContent = css;
+    document.head.appendChild(style);
+    
+    // Limpiar al desmontar
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, [hoverClassName, activeClassName, uniqueClass]);
+  
+  // Combinar la clase base con la clase única
+  return baseClassName ? `${baseClassName} ${uniqueClass}` : uniqueClass;
+}
+
+// Función auxiliar para convertir clases Tailwind en reglas CSS directas
+function processClassesToCss(className: string): string {
+  // Para nuestro caso simple, podemos aplicar unas cuantas transformaciones comunes
+  let css = '';
+  
+  // Propiedades para bordes
+  if (className.includes('border-')) {
+    css += 'border-color: var(--hover-border-color, currentColor); ';
+  }
+  
+  // Propiedades para fondos
+  if (className.includes('bg-')) {
+    css += 'background-color: var(--hover-bg-color, rgba(59, 130, 246, 0.1)); ';
+  }
+  
+  // Propiedades para sombras
+  if (className.includes('shadow-')) {
+    css += 'box-shadow: var(--hover-shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)); ';
+  }
+  
+  // Propiedades para transformaciones
+  if (className.includes('scale-')) {
+    css += 'transform: scale(var(--hover-scale, 1.02)); ';
+  }
+  
+  return css || 'opacity: 0.95;'; // Valor por defecto si no se detectan propiedades
+}
 
 interface AdvancedFileUploadProps {
   accept?: string;
@@ -39,6 +110,8 @@ export function AdvancedFileUpload({
   initialFile = null,
   previewUrl = null,
   className,
+  hoverClassName,
+  activeClassName,
   label = "Selecciona un archivo",
   sublabel = "o arrastra y suelta aquí",
   loading = false,
@@ -52,6 +125,8 @@ export function AdvancedFileUpload({
   actionIcon,
   onActionClick
 }: AdvancedFileUploadProps) {
+  // Utilizar el hook para aplicar clases de hover y active
+  const combinedClassName = useHoverActiveClasses(className, hoverClassName, activeClassName);
   const [file, setFile] = useState<File | null>(initialFile);
   const [isDragging, setIsDragging] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
@@ -278,7 +353,7 @@ export function AdvancedFileUpload({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className="space-y-4">
       <div
         className={cn(
           "relative border-2 border-dashed rounded-lg overflow-hidden transition-all duration-300",
@@ -286,7 +361,7 @@ export function AdvancedFileUpload({
           (disabled || loading) && "opacity-60 cursor-not-allowed",
           error && "border-destructive",
           hasFile && showPreview ? "p-2" : "p-6",
-          className
+          combinedClassName
         )}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
