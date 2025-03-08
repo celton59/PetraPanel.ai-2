@@ -1,24 +1,19 @@
 import { Video, Target, Youtube, Rocket } from "lucide-react";
 import ActionCard from "@/components/ActionCard";
 import { useLocation } from "wouter";
-import { useUser } from "@/hooks/use-user";
 
 export const DashboardActions = () => {
   const [, setLocation] = useLocation();
-  const { user } = useUser();
-  
-  // Solo mostrar la opción de "Nuevo Video" para administradores
-  const userActions = [
-    // Acción condicional para "Nuevo Video" - solo para admins
-    ...(user?.role === "admin" ? [{
+
+  const actions = [
+    {
       icon: Video,
       title: "Nuevo Video",
       description: "Crear y subir un nuevo video",
       iconColor: "text-blue-500",
       iconBgColor: "bg-blue-500/10",
-      onClick: () => setLocation('/videos')
-    }] : []),
-    
+      onClick: () => setLocation('/videos?new=true')
+    },
     {
       icon: Target,
       title: "Optimizar SEO",
@@ -41,13 +36,13 @@ export const DashboardActions = () => {
       description: "Nueva idea de contenido",
       iconColor: "text-purple-500",
       iconBgColor: "bg-purple-500/10",
-      onClick: () => setLocation('/videos')
+      onClick: () => setLocation('/videos?new=true')
     },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 p-1">
-      {userActions.map((action) => (
+      {actions.map((action) => (
         <ActionCard 
           key={action.title} 
           {...action}

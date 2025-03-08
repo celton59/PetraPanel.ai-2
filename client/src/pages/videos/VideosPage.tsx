@@ -1,7 +1,8 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
-import { UserBadges } from "@/components/video/UserBadgesSimple";
+import { UserBadges } from "@/components/video/UserBadges";
+import { ImagePreview } from "@/components/ui/image-preview";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import {
   Eye,
@@ -15,6 +16,7 @@ import {
   Image as ImageIcon,
   CheckSquare,
   Square,
+  Recycle,
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -27,16 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { VideoFilters } from "./VideoFilters";
-import { formatDate } from "@/lib/utils";
-import { DateRange } from "react-day-picker";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,58 +41,128 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { getStatusLabel, getStatusBadgeColor } from "@/lib/status-labels";
-import { VideoStatus } from "@db/schema";
-import { User } from "@/hooks/use-user";
+import { toast } from "sonner";
+import { Dialog } from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
+import { VideoFilters } from "./VideoFilters";
+import type { DateRange } from "react-day-picker";
+import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
+import { cn, formatDate } from "@/lib/utils";
+import { User, VideoStatus } from "@db/schema";
+import { Link } from "wouter";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// Estados visibles por rol
+const VISIBLE_STATES = {
+  optimizer: [
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "en_revision",
+  ],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
+  reviewer: [
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
+    "completed",
+    "en_revision",
+  ],
+  content_reviewer: [
+    "optimize_review",
+    "title_corrections",
+    "completed",
+    "en_revision",
+  ],
+  media_reviewer: [
+    "media_corrections",
+    "upload_review",
+    "completed",
+  ],
+  admin: [
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
+    "media_corrections",
+    "review",
+    "youtube_ready",
+    "completed",
+    "en_revision",
+  ],
+} as const;
+
+const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
+  admin: [],
+  optimizer: ["available", "content_corrections"],
+  reviewer: ["content_review", "media_review"],
+  content_reviewer: ['content_review'],
+  media_reviewer: ['media_review'],
+  youtuber: ["upload_media", "media_corrections"],
+};
 
 export default function VideosPage() {
-  const { user } = useUser();
-  const { videos, isLoading, isError, deleteVideo, bulkDeleteVideos } = useVideos();
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | null>(null);
+  const { user, isLoading: isUserLoading } = useUser();
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center bg-background w-full">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
+    undefined,
+  );
+  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
+    undefined,
+  );
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
-  const [selectMode, setSelectMode] = useState<boolean>(false);
+  const [selectMode, setSelectMode] = useState(false);
   
-  // Estados para arrastrar selección
-  const [isDragging, setIsDragging] = useState<boolean>(false);
+  // Estados para selección por arrastre
+  const [isDragging, setIsDragging] = useState(false);
   const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
   const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
   const dragSelectionRef = useRef<HTMLDivElement>(null);
-  
-  // Estados para filtros y ordenación
+  const [lastSelectionUpdate, setLastSelectionUpdate] = useState(0);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("new") === "true") {
+      setNewVideoDialogOpen(true);
+      window.history.replaceState({}, "", "/videos");
+    }
+  }, []);
+
+  // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [status, setStatus] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [assignedTo, setAssignedTo] = useState("all");
   const [projectId, setProjectId] = useState("all");
-  const [showFilters, setShowFilters] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  // Estado para la vista
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
-  
-  // Estado para el modal de nuevo video
-  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-
-  // Ya no abrimos automáticamente el diálogo por URL para evitar duplicación
-  // Esto evita tener dos formas de abrir el mismo diálogo
+  if (!user) return null;
 
   function canSeeVideoDetails(video: ApiVideo): boolean {
-    if (!user) return false;
-    
-    // Admins pueden ver todos los detalles
-    if (user.role === "admin") return true;
-    
-    // Los optimizadores solo pueden ver videos asignados a ellos
-    // o que estén en estados específicos que les corresponden
-    if (user.role === "optimizer") {
-      // Si el video está asignado al usuario actual
-      if (video.optimizerId === user.id) return true;
-      
-      // Si el video está en un estado que corresponde al rol del usuario
-      const optimizerStates = ["pending", "in_progress", "optimize_review", "title_corrections", "en_revision"];
-      return optimizerStates.includes(video.status);
-    }
-    
-    return false;
+    if (user?.role === "admin") return true;
+
+    return DETAILS_PERMISSION[user!.role].includes(video.status);
   }
 
   async function handleVideoClick(video: ApiVideo) {
@@ -118,6 +181,12 @@ export default function VideosPage() {
             ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
             : "Comienza agregando tu primer video usando el botón superior"}
         </p>
+        {user?.role === "admin" && (
+          <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nuevo Video
+          </Button>
+        )}
       </div>
     );
   }
@@ -188,6 +257,23 @@ export default function VideosPage() {
     // Solo permitir arrastre con botón izquierdo
     if (e.button !== 0) return;
     
+    // Si estamos en un control que no debe iniciar el drag, ignoramos
+    if (
+      e.target instanceof HTMLButtonElement || 
+      e.target instanceof HTMLInputElement || 
+      e.target instanceof HTMLAnchorElement || 
+      (e.target as Element).closest('button') ||
+      (e.target as Element).closest('a') ||
+      (e.target as Element).closest('input')
+    ) {
+      return;
+    }
+    
+    // Vaciar selección previa si no se está presionando la tecla Shift
+    if (!e.shiftKey) {
+      setSelectedVideos([]);
+    }
+    
     setIsDragging(true);
     setDragStartPosition({ x: e.clientX, y: e.clientY });
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
@@ -201,39 +287,71 @@ export default function VideosPage() {
     
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
+    // Solo actualizamos la selección cada cierto tiempo para mejorar el rendimiento
+    const now = Date.now();
+    if (now - lastSelectionUpdate < 50) return; // Limitar a 20 actualizaciones por segundo
+    
     // Detectar elementos en el rectángulo de selección
-    if (dragSelectionRef.current) {
-      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+    const selectionRect = {
+      left: Math.min(dragStartPosition!.x, e.clientX),
+      top: Math.min(dragStartPosition!.y, e.clientY),
+      right: Math.max(dragStartPosition!.x, e.clientX),
+      bottom: Math.max(dragStartPosition!.y, e.clientY),
+      width: Math.abs(e.clientX - dragStartPosition!.x),
+      height: Math.abs(e.clientY - dragStartPosition!.y)
+    } as DOMRect;
+    
+    // Obtener todos los elementos de video en la vista actual
+    const videoElements = document.querySelectorAll('.video-card');
+    const newSelectedVideos = [...selectedVideos]; // Copia para modificar
+    
+    videoElements.forEach((element) => {
+      const videoRect = element.getBoundingClientRect();
+      const videoId = Number(element.getAttribute('data-video-id'));
       
-      // Obtener todos los elementos de video en la vista actual
-      const videoElements = document.querySelectorAll('.video-card');
+      if (!videoId) return;
       
-      videoElements.forEach((element) => {
-        const videoRect = element.getBoundingClientRect();
-        const videoId = Number(element.getAttribute('data-video-id'));
-        
-        // Verificar si el elemento está dentro del rectángulo de selección
-        if (
-          videoId &&
-          rectanglesIntersect(selectionRect, videoRect)
-        ) {
-          // Verificar si ya está seleccionado
-          if (!selectedVideos.includes(videoId)) {
-            setSelectedVideos(prev => [...prev, videoId]);
-          }
+      // Verificar si el elemento está dentro del rectángulo de selección
+      if (rectanglesIntersect(selectionRect, videoRect)) {
+        // Añadir a la selección si no está ya
+        if (!newSelectedVideos.includes(videoId)) {
+          newSelectedVideos.push(videoId);
         }
-      });
-    }
+      }
+    });
+    
+    setSelectedVideos(newSelectedVideos);
+    setLastSelectionUpdate(now);
     
     e.preventDefault();
   };
   
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
+    
+    // Una última actualización de la selección
+    if (dragStartPosition && dragCurrentPosition) {
+      const selectionRect = {
+        left: Math.min(dragStartPosition.x, dragCurrentPosition.x),
+        top: Math.min(dragStartPosition.y, dragCurrentPosition.y),
+        right: Math.max(dragStartPosition.x, dragCurrentPosition.x),
+        bottom: Math.max(dragStartPosition.y, dragCurrentPosition.y),
+        width: Math.abs(dragCurrentPosition.x - dragStartPosition.x),
+        height: Math.abs(dragCurrentPosition.y - dragStartPosition.y)
+      } as DOMRect;
+      
+      // Si el rectángulo es muy pequeño, probablemente sea un clic accidental
+      // así que ignoramos la selección en ese caso
+      if (selectionRect.width < 5 && selectionRect.height < 5) {
+        // No hacemos nada, probablemente fue un clic accidental
+      }
+    }
     
     setIsDragging(false);
     setDragStartPosition(null);
     setDragCurrentPosition(null);
+    
+    e.preventDefault();
   };
   
   // Función para verificar si dos rectángulos se intersectan
@@ -250,12 +368,15 @@ export default function VideosPage() {
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
+    // Calcular coordenadas relativas al viewport
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
+    // Calcular coordenadas relativas al contenedor (fixed para el viewport)
     return {
+      position: 'fixed', // Posición fija respecto al viewport
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
@@ -264,15 +385,45 @@ export default function VideosPage() {
   };
   
   const filteredVideos = videos.filter((video) => {
-    if (searchTerm) {
-      return (
+    // Primero verificamos el término de búsqueda
+    if (searchTerm && !(
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (video.seriesNumber && video.seriesNumber.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.creatorName && video.creatorName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      )) {
+      return false;
+    }
+
+    // Verificar filtro de estado
+    if (status !== "all" && video.status !== status) {
+      return false;
+    }
+
+    // Verificar filtro de asignación
+    if (assignedTo !== "all" && video.assignedToId?.toString() !== assignedTo) {
+      return false;
+    }
+
+    // Verificar filtro de proyecto
+    if (projectId !== "all" && video.projectId?.toString() !== projectId) {
+      return false;
+    }
+
+    // Verificar filtro de fecha
+    if (dateRange && dateRange.from && dateRange.to) {
+      const videoDate = new Date(video.createdAt);
+      const fromDate = new Date(dateRange.from);
+      const toDate = new Date(dateRange.to);
+      
+      // Ajustar la fecha final para incluir todo el día
+      toDate.setHours(23, 59, 59, 999);
+      
+      if (videoDate < fromDate || videoDate > toDate) {
+        return false;
+      }
     }
 
     return true;
@@ -405,34 +556,32 @@ export default function VideosPage() {
                     {/* Estado */}
                     <TableCell>
                       <Badge
+                        variant="secondary"
                         className={cn(
-                          getStatusBadgeColor(video.status as VideoStatus),
-                          "text-xs font-medium py-1.5"
+                          "capitalize text-xs",
+                          getStatusBadgeColor(video.status)
                         )}
                       >
-                        {getStatusLabel(user?.role || "user", video)}
+                        {getStatusLabel(user!.role, video)}
                       </Badge>
                     </TableCell>
-                    {/* Colaboradores */}
+                    {/* Contributors */}
                     <TableCell>
-                      <UserBadges
-                        creator={video.creatorName}
-                        optimizer={video.optimizerName}
-                      />
+                      <UserBadges video={video} compact={true} />
                     </TableCell>
-                    {/* Fecha */}
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(new Date(video.updatedAt || video.createdAt), true)}
+                    {/* Updated */}
+                    <TableCell className="text-muted-foreground text-sm">
+                      {formatDate(video.updatedAt, false)}
                     </TableCell>
-                    {/* Acciones */}
+                    {/* Actions */}
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2">
                         {canSeeVideoDetails(video) && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
                             onClick={() => handleVideoClick(video)}
+                            className="text-muted-foreground hover:text-foreground"
                           >
                             <Eye className="h-4 w-4" />
                             <span className="sr-only">Ver detalles</span>
@@ -444,23 +593,29 @@ export default function VideosPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                className="text-muted-foreground hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Eliminar video</span>
+                                <span className="sr-only">Eliminar</span>
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>¿Eliminar este video?</AlertDialogTitle>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. El video se moverá a la papelera.
+                                  Esta acción no se puede deshacer. Se eliminará permanentemente el video y
+                                  todos sus archivos asociados.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogFooter className="gap-2">
+                                <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => deleteVideo(video.id)}
+                                  onClick={() => {
+                                    deleteVideo({
+                                      videoId: video.id,
+                                      projectId: video.projectId,
+                                    });
+                                  }}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Eliminar
@@ -473,141 +628,56 @@ export default function VideosPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {(!videos || videos.length === 0) && renderEmptyState()}
               </TableBody>
             </Table>
           </div>
         </div>
-        
-        {/* Vista móvil de la tabla como tarjetas */}
-        <div className="md:hidden space-y-4">
-          {filteredVideos?.map((video) => (
-            <Card key={video.id} className="overflow-hidden video-card" data-video-id={video.id}>
-              <CardContent className="p-3 flex items-start gap-4">
-                <div className="w-20 rounded overflow-hidden flex-shrink-0">
-                  <ThumbnailPreview
-                    src={video.thumbnailUrl}
-                    alt={video.optimizedTitle ?? video.title}
-                    aspectRatio="video"
-                    enableZoom={true}
-                    showPlaceholder={true}
-                    className="h-full"
-                    title={video.optimizedTitle ?? video.title}
-                    showHoverActions={false}
-                  />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <Badge
-                      className={cn(
-                        getStatusBadgeColor(video.status as VideoStatus),
-                        "text-xs py-0.5"
-                      )}
-                    >
-                      {getStatusLabel(user?.role || "user", video)}
-                    </Badge>
-                    
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(new Date(video.updatedAt || video.createdAt))}
-                    </span>
-                  </div>
-                  
-                  <h3 
-                    className={cn(
-                      "font-medium text-base line-clamp-2 mb-1",
-                      canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : ""
-                    )}
-                    onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
-                  >
-                    {video.optimizedTitle || video.title}
-                  </h3>
-                  
-                  <div className="flex items-center justify-between">
-                    <UserBadges
-                      creator={video.creatorName}
-                      optimizer={video.optimizerName}
-                      size="xs"
-                    />
-                    
-                    <div className="flex items-center space-x-1">
-                      {canSeeVideoDetails(video) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleVideoClick(video)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Ver detalles</span>
-                        </Button>
-                      )}
-                      
-                      {user?.role === "admin" && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Eliminar video</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar video?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. El video se moverá a la papelera.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteVideo(video.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
 
   function getGridView() {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredVideos?.map((video) => (
-          <div 
-            key={video.id} 
+          <div
+            key={video.id}
             className={cn(
-              "group video-card relative rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden hover:shadow-md transition-all duration-200",
-              selectMode && "ring-1 ring-primary/20 hover:ring-primary/40",
+              "group video-card relative rounded-lg border shadow-sm overflow-hidden transition-all hover:shadow-md bg-card",
               selectedVideos.includes(video.id) && "ring-2 ring-primary"
             )}
             data-video-id={video.id}
+            onClick={() => !selectMode && handleVideoClick(video)}
           >
-            {/* Admin selection overlay */}
-            {user?.role === "admin" && selectMode && (
-              <div className="absolute top-2 left-2">
+            {/* Selection checkbox overlay */}
+            {user?.role === "admin" && (
+              <div 
+                className={cn(
+                  "absolute top-2 left-2 z-10 transition-all duration-200",
+                  selectMode 
+                    ? "opacity-100 scale-100" 
+                    : "opacity-0 scale-75 pointer-events-none group-hover:opacity-100 group-hover:scale-100",
+                  selectedVideos.includes(video.id) && "!opacity-100 !scale-100"
+                )}
+              >
                 <div className={cn(
-                  "p-1.5 rounded-md transition-colors bg-background/70 backdrop-blur-sm", 
-                  selectedVideos.includes(video.id) ? "bg-primary/50" : "hover:bg-primary/20"
+                  "p-1.5 rounded-md transition-colors shadow-sm", 
+                  selectedVideos.includes(video.id) 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-background/90 backdrop-blur-sm hover:bg-background"
                 )}>
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedVideos.includes(video.id)}
-                    onCheckedChange={() => toggleSelectVideo(video.id)}
-                    className="h-4 w-4 border-2 transition-all duration-200"
+                    onCheckedChange={(e) => {
+                      toggleSelectVideo(video.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "h-4 w-4 border-2 transition-all duration-200",
+                      selectedVideos.includes(video.id) && "border-primary-foreground"
+                    )}
                     aria-label={`Seleccionar video ${video.title}`}
                   />
                 </div>
@@ -615,103 +685,46 @@ export default function VideosPage() {
             )}
             
             {/* Thumbnail */}
-            <div className="aspect-video w-full overflow-hidden" onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}>
+            <div className="aspect-video w-full overflow-hidden relative">
               <ThumbnailPreview
                 src={video.thumbnailUrl}
-                alt={video.optimizedTitle ?? video.title}
+                alt={video.title}
                 aspectRatio="video"
                 enableZoom={true}
                 showPlaceholder={true}
-                className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
-                title={video.optimizedTitle ?? video.title}
-                showHoverActions={true}
+                title={video.optimizedTitle || video.title}
+                duration={video.seriesNumber ? `S${video.seriesNumber}` : undefined}
+                className="w-full h-full"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
             </div>
             
             {/* Content */}
-            <div className="p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <Badge
-                  className={cn(
-                    getStatusBadgeColor(video.status as VideoStatus),
-                    "text-xs py-0.5"
-                  )}
-                >
-                  {getStatusLabel(user?.role || "user", video)}
-                </Badge>
-                
-                <span className="text-xs text-muted-foreground">
-                  {formatDate(new Date(video.updatedAt || video.createdAt))}
-                </span>
-              </div>
-              
-              <h3 
-                className={cn(
-                  "font-medium text-base line-clamp-2",
-                  canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : ""
-                )}
-                onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
-              >
+            <div className="p-3">
+              <h3 className="font-medium text-sm line-clamp-2 mb-1">
                 {video.optimizedTitle || video.title}
               </h3>
               
-              <div className="pt-1">
-                <UserBadges
-                  creator={video.creatorName}
-                  optimizer={video.optimizerName}
-                  size="xs"
-                />
-              </div>
-            </div>
-            
-            {/* Actions overlay - visible on hover */}
-            <div className="absolute bottom-0 right-0 p-2 flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-tl from-background/80 via-background/60 to-transparent backdrop-blur-[2px]">
-              {canSeeVideoDetails(video) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 bg-background/80 hover:bg-background/90"
-                  onClick={() => handleVideoClick(video)}
+              <div className="flex justify-between items-center mt-2">
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs capitalize",
+                    getStatusBadgeColor(video.status)
+                  )}
                 >
-                  <Eye className="h-3.5 w-3.5" />
-                  <span className="sr-only">Ver detalles</span>
-                </Button>
-              )}
+                  {getStatusLabel(user!.role, video)}
+                </Badge>
+                <div className="text-xs text-muted-foreground">
+                  {video.updatedAt ? formatDate(video.updatedAt) : ""}
+                </div>
+              </div>
               
-              {user?.role === "admin" && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 bg-background/80 hover:bg-background/90"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only">Eliminar video</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar este video?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción no se puede deshacer. El video se moverá a la papelera.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => deleteVideo(video.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
+              <UserBadges video={video} compact={true} />
             </div>
           </div>
         ))}
+        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
@@ -723,23 +736,39 @@ export default function VideosPage() {
           <div
             key={video.id}
             className={cn(
-              "group video-card flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
-              selectMode && "ring-1 ring-primary/20 hover:ring-primary/40",
+              "group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all",
               selectedVideos.includes(video.id) && "ring-2 ring-primary"
             )}
             data-video-id={video.id}
+            onClick={() => !selectMode && handleVideoClick(video)}
           >
-            {/* Admin selection checkbox */}
-            {user?.role === "admin" && selectMode && (
-              <div className="absolute top-2 right-2 sm:static sm:mr-2">
+            {/* Selection checkbox at left side */}
+            {user?.role === "admin" && (
+              <div 
+                className={cn(
+                  "flex-shrink-0 mr-3 transition-all duration-200",
+                  selectMode 
+                    ? "opacity-100" 
+                    : "opacity-0 group-hover:opacity-100",
+                  selectedVideos.includes(video.id) && "!opacity-100"
+                )}
+              >
                 <div className={cn(
                   "p-1.5 rounded-md transition-colors", 
-                  selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
+                  selectedVideos.includes(video.id) 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted/80 hover:bg-muted"
                 )}>
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedVideos.includes(video.id)}
-                    onCheckedChange={() => toggleSelectVideo(video.id)}
-                    className="h-4 w-4 border-2 transition-all duration-200"
+                    onCheckedChange={(e) => {
+                      toggleSelectVideo(video.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "h-4 w-4 border-2 transition-all duration-200",
+                      selectedVideos.includes(video.id) && "border-primary-foreground"
+                    )}
                     aria-label={`Seleccionar video ${video.title}`}
                   />
                 </div>
@@ -747,90 +776,90 @@ export default function VideosPage() {
             )}
             
             {/* Thumbnail */}
-            <div className="h-16 w-28 rounded overflow-hidden flex-shrink-0">
+            <div className="h-16 w-28 rounded overflow-hidden mr-3 flex-shrink-0">
               <ThumbnailPreview
                 src={video.thumbnailUrl}
-                alt={video.optimizedTitle ?? video.title}
+                alt={video.title}
                 aspectRatio="video"
                 enableZoom={true}
                 showPlaceholder={true}
-                className="h-full w-full object-cover"
-                title={video.optimizedTitle ?? video.title}
+                title={video.optimizedTitle || video.title}
                 showHoverActions={false}
               />
             </div>
             
             {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
+            <div className="flex-grow min-w-0">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm line-clamp-1">
+                  {video.seriesNumber && <span className="mr-1 text-muted-foreground">S{video.seriesNumber}</span>}
+                  {video.optimizedTitle || video.title}
+                </h3>
                 <Badge
+                  variant="secondary"
                   className={cn(
-                    getStatusBadgeColor(video.status as VideoStatus),
-                    "text-xs py-0.5"
+                    "text-xs capitalize ml-2 flex-shrink-0",
+                    getStatusBadgeColor(video.status)
                   )}
                 >
-                  {getStatusLabel(user?.role || "user", video)}
+                  {getStatusLabel(user!.role, video)}
                 </Badge>
-                
-                <span className="text-xs text-muted-foreground ml-auto sm:ml-0">
-                  {formatDate(new Date(video.updatedAt || video.createdAt))}
-                </span>
               </div>
               
-              <h3 
-                className={cn(
-                  "font-medium text-base line-clamp-1 mb-1",
-                  canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : ""
-                )}
-                onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
-              >
-                {video.optimizedTitle || video.title}
-              </h3>
-              
-              <UserBadges
-                creator={video.creatorName}
-                optimizer={video.optimizerName}
-                size="xs"
-              />
+              <div className="flex justify-between items-center mt-1">
+                <UserBadges video={video} compact={true} />
+                <div className="text-xs text-muted-foreground flex-shrink-0">
+                  {video.updatedAt ? formatDate(video.updatedAt) : ""}
+                </div>
+              </div>
             </div>
             
             {/* Actions */}
-            <div className="flex-shrink-0 flex items-center ml-auto space-x-1">
+            <div className="ml-3 flex items-center space-x-1">
               {canSeeVideoDetails(video) && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleVideoClick(video)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVideoClick(video);
+                  }}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 >
                   <Eye className="h-4 w-4" />
                   <span className="sr-only">Ver detalles</span>
                 </Button>
               )}
-              
               {user?.role === "admin" && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Eliminar video</span>
+                      <span className="sr-only">Eliminar</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar este video?</AlertDialogTitle>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Esta acción no se puede deshacer. El video se moverá a la papelera.
+                        Esta acción no se puede deshacer. Se eliminará permanentemente el video y
+                        todos sus archivos asociados.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogFooter className="gap-2">
+                      <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => deleteVideo(video.id)}
+                        onClick={() => {
+                          deleteVideo({
+                            videoId: video.id,
+                            projectId: video.projectId,
+                          });
+                        }}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Eliminar
@@ -842,212 +871,245 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
+        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
 
   function getVideoDialog() {
-    if (!selectedVideo) return null;
-    
     return (
-      <VideoDetailDialog
-        video={selectedVideo}
-        onUpdate={async (data, keepDialog) => {
-          // This method is called after a successful update
-          // We'll just clear the selected video to close the dialog
-          if (!keepDialog) {
-            setSelectedVideo(null);
+      <Dialog
+        open={!!selectedVideo}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSelectedVideo(undefined);
           }
         }}
-      />
-    );
-  }
+      >
+        {selectedVideo && (
+          <VideoDetailDialog
+            video={selectedVideo}
+            onUpdate={async (updateRequest, keepDialog = false) => {
+              if (!selectedVideo) return;
 
-  // Loading and empty states
-  if (isError) {
-    return (
-      <div className="flex h-[calc(100vh-200px)] items-center justify-center">
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-2">Error al cargar videos</h3>
-          <p className="text-muted-foreground">
-            Ha ocurrido un error al cargar la información. Intenta recargar la página.
-          </p>
-        </div>
-      </div>
+              setUpdatingVideoId(selectedVideo.id);
+              try {
+                await updateVideo({
+                  videoId: selectedVideo.id,
+                  projectId: selectedVideo.projectId,
+                  updateRequest,
+                });
+
+                toast.success("Video actualizado correctamente");
+
+                if (!keepDialog) {
+                  setSelectedVideo(undefined);
+                }
+              } catch (error) {
+                console.error("Error updating video:", error);
+                toast.error(
+                  "Error al actualizar el video. Por favor, intenta de nuevo.",
+                );
+              } finally {
+                setUpdatingVideoId(undefined);
+              }
+            }}
+          />
+        )}
+      </Dialog>
     );
   }
 
   return (
-    <div 
-      className="container py-6 max-w-7xl"
-      onMouseDown={handleDragStart}
-      onMouseMove={handleDragMove}
-      onMouseUp={handleDragEnd}
-      onMouseLeave={handleDragEnd}
-    >
-      {/* Header */}
-      <div className="mb-8 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Videos</h1>
-          
-          <div className="flex items-center gap-3">
-            {/* Admin Controls - Toggle selection mode */}
-            {user?.role === "admin" && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={toggleSelectionMode}
-                aria-pressed={selectMode}
-              >
-                {selectMode ? (
-                  <>
-                    <CheckSquare className="h-4 w-4" />
-                    <span className="hidden sm:inline">Modo selección</span>
-                    <span className="inline sm:hidden">Selección</span>
-                  </>
-                ) : (
-                  <>
-                    <Square className="h-4 w-4" />
-                    <span className="hidden sm:inline">Modo selección</span>
-                    <span className="inline sm:hidden">Selección</span>
-                  </>
-                )}
-              </Button>
-            )}
-            
-            {/* Bulk delete button - visible only in select mode */}
-            {selectMode && selectedVideos.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="gap-2"
-                    data-delete-selected
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>{selectedVideos.length}</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      ¿Eliminar {selectedVideos.length} videos?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta acción no se puede deshacer. Los videos se moverán a la papelera.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleBulkDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Eliminar {selectedVideos.length} videos
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            
-            {/* View mode switcher */}
-            <div className="border rounded-md flex">
-              <Button
-                variant={viewMode === "table" ? "default" : "ghost"}
-                size="icon"
-                className="h-9 w-9 rounded-none rounded-l-md"
-                onClick={() => setViewMode("table")}
-                aria-label="Vista de tabla"
-                title="Vista de tabla"
-              >
-                <Layout className="h-4 w-4" />
-              </Button>
-              <Separator orientation="vertical" />
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="icon"
-                className="h-9 w-9 rounded-none"
-                onClick={() => setViewMode("grid")}
-                aria-label="Vista de rejilla"
-                title="Vista de rejilla"
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Separator orientation="vertical" />
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="icon"
-                className="h-9 w-9 rounded-none rounded-r-md"
-                onClick={() => setViewMode("list")}
-                aria-label="Vista de lista"
-                title="Vista de lista"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+    <div className="max-w-7xl mx-auto p-4 space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Gestión de Videos</h1>
+          <p className="text-muted-foreground">
+            {videos.length} videos disponibles
+          </p>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <VideoFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            status={status}
-            onStatusChange={setStatus}
-            date={dateRange}
-            onDateChange={setDateRange}
-            assignedTo={assignedTo}
-            onAssignedToChange={setAssignedTo}
-            projectId={projectId}
-            onProjectChange={setProjectId}
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
-          />
+
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          {user?.role === "admin" && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={selectMode ? "default" : "outline"}
+                    className={cn(
+                      "flex items-center gap-2",
+                      selectMode && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                    )}
+                    onClick={toggleSelectionMode}
+                  >
+                    {selectMode ? (
+                      <>
+                        <CheckSquare className="w-4 h-4" />
+                        Modo selección
+                      </>
+                    ) : (
+                      <>
+                        <Square className="w-4 h-4" />
+                        Seleccionar
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Activa el modo selección para operar con múltiples videos a la vez</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           
-          {/* Botón flotante a la derecha */}
-          <div className="flex gap-3 w-full sm:w-auto justify-end">
+          <div className="flex rounded-md overflow-hidden border">
             <Button
-              variant="outline"
-              className="flex items-center gap-2 ml-auto sm:ml-0"
-              onClick={() => setShowFilters(!showFilters)}
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "rounded-none border-0",
+                viewMode === "table" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => setViewMode("table")}
             >
-              <Filter className="w-4 h-4" />
-              Filtros
+              <Layout className="h-4 w-4" />
+              <span className="sr-only">Vista tabla</span>
             </Button>
-            
-            {user?.role === "admin" && (
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "rounded-none border-0",
+                viewMode === "grid" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => setViewMode("grid")}
+            >
+              <Grid className="h-4 w-4" />
+              <span className="sr-only">Vista cuadrícula</span>
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "rounded-none border-0",
+                viewMode === "list" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+              <span className="sr-only">Vista lista</span>
+            </Button>
+          </div>
+          
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 ml-auto sm:ml-0"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </Button>
+          
+          {user?.role === "admin" && (
+            <>
               <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Nuevo Video
               </Button>
-            )}
-          </div>
+              <Link href="/videos/trash">
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                >
+                  <Recycle className="w-4 h-4" />
+                  Papelera
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
-      
-      {/* Main content - Video list */}
-      <div className="space-y-6">
-        {filteredVideos.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          <>
-            {viewMode === "table" && getTableView()}
-            {viewMode === "grid" && getGridView()}
-            {viewMode === "list" && getListView()}
-          </>
-        )}
-      </div>
-      
-      {/* Drag selection overlay */}
-      {isDragging && selectMode && (
-        <div
-          ref={dragSelectionRef}
-          className="fixed z-50 bg-primary/10 border border-primary/30 pointer-events-none"
-          style={getSelectionRectStyle()}
-        />
+
+      <VideoFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        status={status}
+        onStatusChange={setStatus}
+        date={dateRange}
+        onDateChange={setDateRange}
+        assignedTo={assignedTo}
+        onAssignedToChange={setAssignedTo}
+        projectId={projectId}
+        onProjectChange={setProjectId}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        visibleStates={VISIBLE_STATES[user.role]}
+      />
+
+      {/* Selected videos actions */}
+      {selectMode && selectedVideos.length > 0 && (
+        <div className="flex items-center gap-2 pl-2 rounded-md bg-muted py-2">
+          <span className="text-sm font-medium">
+            {selectedVideos.length} videos seleccionados
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1"
+                  data-delete-selected
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar ({selectedVideos.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleBulkDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Eliminar {selectedVideos.length} videos
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
       )}
-      
+
+      {/* Contenedor principal con eventos para drag selection */}
+      <div 
+        className="relative"
+        onMouseDown={handleDragStart}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+      >
+        {/* Rectángulo de selección */}
+        {isDragging && selectMode && (
+          <div
+            ref={dragSelectionRef}
+            className="fixed bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
+            style={getSelectionRectStyle()}
+          ></div>
+        )}
+        
+        {viewMode === "table" && getTableView()}
+        {viewMode === "grid" && getGridView()}
+        {viewMode === "list" && getListView()}
+      </div>
+
       {/* Modals and dialogs */}
       <NewVideoDialog
         open={newVideoDialogOpen}
