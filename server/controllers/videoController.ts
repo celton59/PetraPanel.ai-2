@@ -37,6 +37,7 @@ const mediaReviewer = aliasedTable(users, "mediaReviewer");
 const optimizer = aliasedTable(users, "optimizer");
 const creator = aliasedTable(users, "creator");
 const uploader = aliasedTable(users, "uploader");
+const deleter = aliasedTable(users, "deleter");
 
 const statusTransitions: Record<
   User["role"],
@@ -469,7 +470,11 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
 
         // Datos del optimizador
         optimizerName: optimizer.fullName,
-        optimizerUsername: optimizer.username
+        optimizerUsername: optimizer.username,
+        
+        // Datos de quien eliminó el video
+        deletedByName: deleter.fullName,
+        deletedByUsername: deleter.username
       })
       .from(videos)
       .leftJoin(
@@ -480,6 +485,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .leftJoin(creator, eq(videos.createdBy, creator.id))
       .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
       .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
+      .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
       .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
       .where(
         and(

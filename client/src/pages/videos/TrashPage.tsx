@@ -248,7 +248,7 @@ export default function TrashPage() {
                       </TableCell>
                       {/* Eliminado por */}
                       <TableCell className="text-sm">
-                        {video.deletedByName || (video.deletedBy ? `Usuario #${video.deletedBy}` : "-")}
+                        {video.deletedByName || (video.deletedByUsername ? video.deletedByUsername : video.deletedBy ? `Usuario #${video.deletedBy}` : "-")}
                       </TableCell>
                       {/* Acciones */}
                       <TableCell className="text-right">
@@ -322,7 +322,7 @@ export default function TrashPage() {
                     <div className="text-xs text-muted-foreground">
                       <span>Eliminado: {video.deletedAt ? formatDate(video.deletedAt, true) : "Desconocido"}</span>
                       {video.deletedBy && (
-                        <span> por {video.deletedByName || `Usuario #${video.deletedBy}`}</span>
+                        <span> por {video.deletedByName || video.deletedByUsername || `Usuario #${video.deletedBy}`}</span>
                       )}
                     </div>
                   </div>
