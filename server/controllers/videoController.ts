@@ -632,6 +632,8 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
  * @param res Response
  * @returns Response con resultado de la operación
  */
+
+
 async function emptyTrash(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   
@@ -1246,6 +1248,8 @@ export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, nex
   // Rutas relacionadas con la papelera
   app.post("/api/projects/:projectId/videos/:videoId/restore", requireAuth, restoreVideo);
   app.delete("/api/projects/:projectId/trash", requireAuth, emptyTrash);
+  // Ruta para obtener videos en la papelera
+  app.get("/api/projects/:projectId/videos", requireAuth, getVideos);
   
   // Video upload endpoint
   const thumbailUpload = multer({ 
