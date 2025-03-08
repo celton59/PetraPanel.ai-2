@@ -916,7 +916,7 @@ export default function VideosPage() {
         onProjectChange={setProjectId}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={VISIBLE_STATES[user.role]}
+        visibleStates={VISIBLE_STATES[user.role as keyof typeof VISIBLE_STATES]}
       />
 
       {/* Selected videos actions */}
