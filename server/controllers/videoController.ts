@@ -469,13 +469,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
 
         // Datos del optimizador
         optimizerName: optimizer.fullName,
-        optimizerUsername: optimizer.username,
-        
-        // Datos del que eliminó el video (si está en papelera)
-        deleterName: req.user!.role === "admin" && showDeleted ? 
-          creator.fullName : undefined,
-        deleterUsername: req.user!.role === "admin" && showDeleted ? 
-          creator.username : undefined,
+        optimizerUsername: optimizer.username
       })
       .from(videos)
       .leftJoin(
@@ -493,8 +487,8 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
           showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
           
           // Para usuarios no administradores que quieren ver su papelera, mostrar solo sus videos eliminados
-          showDeleted && req.user?.role !== "admin" 
-            ? eq(videos.createdBy, req.user.id) 
+          showDeleted && req.user?.role !== "admin" && req.user?.id 
+            ? eq(videos.createdBy, req.user.id as number) 
             : undefined,
             
           // Filtros normales para videos no eliminados
@@ -1235,23 +1229,31 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
 }
 
 export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  // Videos normales (no eliminados)
   app.get("/api/videos", requireAuth, getVideos);
 
+  // Creación de videos
   app.post("/api/projects/:projectId/videos", requireAuth, createVideo);
   app.post("/api/projects/:projectId/videos/bulk", requireAuth, createBulkVideos);
 
-  app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo)
+  // Actualización de videos
+  app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
 
-  app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo)
-  app.delete("/api/projects/:projectId/videos", requireAuth, bulkDeleteVideos)
-
+  // Eliminación de videos (mover a papelera o eliminación permanente)
+  app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);
+  app.delete("/api/projects/:projectId/videos", requireAuth, bulkDeleteVideos);
+  
+  // Rutas relacionadas con la papelera
+  app.post("/api/projects/:projectId/videos/:videoId/restore", requireAuth, restoreVideo);
+  app.delete("/api/projects/:projectId/trash", requireAuth, emptyTrash);
+  
   // Video upload endpoint
   const thumbailUpload = multer({ 
     storage: multer.memoryStorage(),
     limits: {
       fileSize: 1024 * 1024 * 1024 // 1GB limit
     }
-  })
+  });
   
   // Endpoint para cargar miniaturas
   app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", 
