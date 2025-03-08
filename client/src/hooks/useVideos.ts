@@ -18,9 +18,11 @@ export type ApiVideo = {
   creatorName: User["fullName"] | null,
   creatorUsername: User["username"],
   optimizerName: User["fullName"] | null,
-  optimizerUsername: User["username"]
+  optimizerUsername: User["username"],
   uploaderName: User["fullName"] | null,
-  uploaderUsername: User["username"]
+  uploaderUsername: User["username"],
+  deletedByName: User["fullName"] | null,
+  deletedByUsername: User["username"] | null
 }
 
 export function useVideos(): {

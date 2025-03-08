@@ -70,6 +70,7 @@ export default function ProfilePage() {
         body: JSON.stringify(data),
       });
 
+      // Asegurarse de restablecer el estado de carga incluso si hay un error de red
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Error al actualizar el perfil');
@@ -90,6 +91,7 @@ export default function ProfilePage() {
         description: error.message || "No se pudo actualizar el perfil. Por favor, intenta de nuevo.",
       });
     } finally {
+      // Asegurarse de que el estado de carga siempre se restablezca
       setIsUpdating(false);
     }
   };
@@ -257,6 +259,13 @@ export default function ProfilePage() {
               const formData = new FormData(e.currentTarget);
               const currentPassword = formData.get('currentPassword') as string;
               const newPassword = formData.get('newPassword') as string;
+              
+              // Referencia al botón para controlar el estado de carga
+              const submitButton = e.currentTarget.querySelector('button[type="submit"]') as HTMLButtonElement;
+              if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Actualizando...';
+              }
 
               try {
                 const response = await fetch('/api/profile/password', {
@@ -265,15 +274,30 @@ export default function ProfilePage() {
                   body: JSON.stringify({ currentPassword, newPassword }),
                 });
 
-                if (!response.ok) throw new Error('Error al cambiar la contraseña');
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  throw new Error(errorData.message || 'Error al cambiar la contraseña');
+                }
+
+                // Limpiar los campos después de una actualización exitosa
+                const passwordInputs = e.currentTarget.querySelectorAll('input[type="password"]');
+                passwordInputs.forEach(input => {
+                  (input as HTMLInputElement).value = '';
+                });
 
                 toast("Contraseña actualizada", {
                   description: "Tu contraseña ha sido cambiada correctamente",
                 });
-              } catch (error) {
+              } catch (error: any) {
                 toast.error("Error", {
-                  description: "No se pudo actualizar la contraseña",
+                  description: error.message || "No se pudo actualizar la contraseña",
                 });
+              } finally {
+                // Restaurar el botón
+                if (submitButton) {
+                  submitButton.disabled = false;
+                  submitButton.innerHTML = 'Actualizar contraseña';
+                }
               }
             }} className="space-y-4">
               <div className="space-y-4">
