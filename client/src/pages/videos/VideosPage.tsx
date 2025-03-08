@@ -695,13 +695,14 @@ export default function VideosPage() {
                 updateRequest: data,
               });
               if (!keepDialog) {
-                setUpdatingVideoId(undefined);
                 setSelectedVideo(undefined);                
               }              
                             
             } catch (err) {
               console.log(err);
               toast.error("Error al actualizar el video");
+            } finally {
+              setUpdatingVideoId(undefined);
             }
           }}
         />
