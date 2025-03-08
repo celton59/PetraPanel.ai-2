@@ -884,21 +884,11 @@ export default function VideosPage() {
               onClick={toggleSelectionMode}
             >
               {selectMode ? (
-                <div className="flex items-center gap-2">
+                <>
                   <CheckSquare className="w-4 h-4" />
                   <span>Modo selección</span>
-                  <span 
-                    className="ml-1 cursor-help"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toast.info("Consejos de selección: Haz clic y arrastra para seleccionar múltiples videos. Usa Shift para añadir a la selección. Presiona Esc para salir. Usa Ctrl+A para seleccionar todo.", { 
-                        duration: 10000 
-                      });
-                    }}
-                  >
-                    <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                  </span>
-                </div>
+                </>
+                
               ) : (
                 <>
                   <Square className="w-4 h-4" />
@@ -982,43 +972,68 @@ export default function VideosPage() {
       />
 
       {/* Selected videos actions */}
-      {selectMode && selectedVideos.length > 0 && (
-        <div className="flex items-center gap-2 pl-2 rounded-md bg-muted py-2">
-          <span className="text-sm font-medium">
-            {selectedVideos.length} videos seleccionados
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1"
-                  data-delete-selected
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar ({selectedVideos.length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleBulkDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Eliminar {selectedVideos.length} videos
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+      {selectMode && (
+        <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
+          {selectedVideos.length > 0 ? (
+            <>
+              <span className="text-sm font-medium">
+                {selectedVideos.length} videos seleccionados
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1"
+                      data-delete-selected
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar ({selectedVideos.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleBulkDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Eliminar {selectedVideos.length} videos
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="bg-primary/10 p-1 rounded">
+                  <HelpCircle className="w-3 h-3 text-primary" />
+                </span>
+                <span>Arrastra para seleccionar múltiples videos</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-muted-foreground/20 rounded text-[10px]">Shift</kbd>
+                <span>Añadir a selección</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-muted-foreground/20 rounded text-[10px]">Esc</kbd>
+                <span>Salir</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-muted-foreground/20 rounded text-[10px]">Ctrl+A</kbd>
+                <span>Seleccionar todo</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
