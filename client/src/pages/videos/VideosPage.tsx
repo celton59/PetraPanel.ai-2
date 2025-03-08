@@ -160,7 +160,7 @@ export default function VideosPage() {
   if (!user) return null;
 
   function canSeeVideoDetails(video: ApiVideo): boolean {
-    if (user?.role === "admin") return true;
+    if (isAdmin) return true;
 
     return DETAILS_PERMISSION[user!.role].includes(video.status);
   }
@@ -377,6 +377,10 @@ export default function VideosPage() {
       height: `${height}px`,
     };
   };
+  
+  // Esta constante determina si se debe mostrar el botón "Nuevo Video" 
+  // basada en el rol del usuario
+  const isAdmin = user?.role === "admin";
   
   const filteredVideos = videos.filter((video) => {
     // Primero verificamos el término de búsqueda
@@ -1005,7 +1009,7 @@ export default function VideosPage() {
             Filtros
           </Button>
           
-          {user?.role === "admin" && (
+          {isAdmin && (
             <>
               <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
