@@ -110,39 +110,6 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
-  
-  // Estados de UI
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
-  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
-  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
-  const [selectMode, setSelectMode] = useState(false);
-  
-  // Estados para selección por arrastre
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
-  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
-  const dragSelectionRef = useRef<HTMLDivElement>(null);
-  const [lastSelectionUpdate, setLastSelectionUpdate] = useState(0);
-
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-
-  // Efectos
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get("new") === "true") {
-      setNewVideoDialogOpen(true);
-      window.history.replaceState({}, "", "/videos");
-    }
-  }, []);
 
   if (isUserLoading) {
     return (
@@ -154,6 +121,41 @@ export default function VideosPage() {
       </div>
     );
   }
+
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
+    undefined,
+  );
+  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
+    undefined,
+  );
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  
+  // Estados para selección por arrastre
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
+  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
+  const dragSelectionRef = useRef<HTMLDivElement>(null);
+  const [lastSelectionUpdate, setLastSelectionUpdate] = useState(0);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("new") === "true") {
+      setNewVideoDialogOpen(true);
+      window.history.replaceState({}, "", "/videos");
+    }
+  }, []);
+
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   if (!user) return null;
 

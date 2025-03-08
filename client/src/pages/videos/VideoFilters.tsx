@@ -40,7 +40,6 @@ export function VideoFilters({
   onProjectChange,
   showFilters,
   onToggleFilters,
-  visibleStates,
 }: VideoFiltersProps) {
   return (
     <div className="space-y-4">
@@ -60,7 +59,7 @@ export function VideoFilters({
         <div className="grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4 relative overflow-hidden">
           {/* Gradiente sutil para filtros */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500/50 via-primary/50 to-violet-500/50"></div>
-          <StatusFilter status={status} onStatusChange={onStatusChange} visibleStates={visibleStates} />
+          <StatusFilter status={status} onStatusChange={onStatusChange} />
           <AssigneeFilter
             assignedTo={assignedTo}
             onAssignedToChange={onAssignedToChange}
