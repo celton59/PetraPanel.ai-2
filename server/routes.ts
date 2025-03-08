@@ -11,7 +11,7 @@ import path from "path";
 import sharp from "sharp";
 import fs from "fs";
 import express from "express";
-import { scrypt, randomBytes } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
