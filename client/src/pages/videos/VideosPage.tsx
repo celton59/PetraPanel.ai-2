@@ -311,6 +311,48 @@ export default function VideosPage() {
       height: `${height}px`,
     };
   };
+  
+  // Efecto para atajos de teclado
+  useEffect(() => {
+    if (!selectMode) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Evitar que los atajos se activen cuando se está escribiendo en un input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      // Esc - Salir del modo selección
+      if (e.key === 'Escape') {
+        toggleSelectionMode();
+        e.preventDefault();
+      }
+      
+      // Ctrl/Cmd + A - Seleccionar todos
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        toggleSelectAll();
+        e.preventDefault();
+      }
+      
+      // Delete - Eliminar videos seleccionados (solo si hay alguno seleccionado)
+      if (e.key === 'Delete' && selectedVideos.length > 0 && user?.role === 'admin') {
+        // Aquí no hacemos la eliminación directamente, solo mostramos el diálogo de confirmación
+        // Esto asegura que el usuario confirme antes de eliminar
+        // Simulamos un clic en el botón de eliminar
+        const deleteButton = document.querySelector('[data-delete-selected]');
+        if (deleteButton) {
+          (deleteButton as HTMLButtonElement).click();
+        }
+        e.preventDefault();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectMode, selectedVideos, toggleSelectAll, user?.role, toggleSelectionMode]);
 
   const filteredVideos = videos.filter((video) => {
     if (searchTerm) {
@@ -385,7 +427,7 @@ export default function VideosPage() {
               </TableHeader>
             <TableBody>
               {filteredVideos?.map((video) => (
-                <TableRow key={video.id} className="group">
+                <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
                   {/* Selection checkbox */}
                   {user?.role === "admin" && (
                     <TableCell className="w-[40px]">
@@ -520,7 +562,8 @@ export default function VideosPage() {
         {filteredVideos?.map((video) => (
           <div
             key={video.id}
-            className="bg-card rounded-lg border shadow-sm overflow-hidden"
+            className="bg-card rounded-lg border shadow-sm overflow-hidden video-card"
+            data-video-id={video.id}
             onClick={() => !selectMode && handleVideoClick(video)}
           >
             <div className="flex items-start relative">
@@ -673,7 +716,8 @@ export default function VideosPage() {
         {videos?.map((video) => (
           <div
             key={video.id}
-            className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20"
+            className="group relative bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-border hover:border-primary/20 video-card"
+            data-video-id={video.id}
           >
             {/* Gradient accent en tarjetas grid */}
             <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0 z-10"></div>
@@ -804,7 +848,8 @@ export default function VideosPage() {
         {videos?.map((video: any) => (
           <div
             key={video.id}
-            className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer relative overflow-hidden"
+            className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-border hover:border-primary/20 cursor-pointer relative overflow-hidden video-card"
+            data-video-id={video.id}
             onClick={() => !selectMode && handleVideoClick(video)}
           >
             {/* Selection checkbox in select mode */}
@@ -1014,7 +1059,12 @@ export default function VideosPage() {
               {selectMode && selectedVideos.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="gap-1">
+                    <Button 
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1"
+                      data-delete-selected
+                    >
                       <Trash2 className="h-4 w-4" />
                       Eliminar ({selectedVideos.length})
                     </Button>
