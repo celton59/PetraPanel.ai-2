@@ -48,50 +48,7 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
-
-// Estados visibles por rol
-// Estados visibles según el rol del usuario
-// Basado en los estados definidos en el esquema: 'available', 'content_corrections', 'content_review', 'upload_media', 'media_corrections', 'media_review', 'final_review', 'completed'
-const VISIBLE_STATES: Record<User["role"], readonly string[]> = {
-  optimizer: [
-    "available",
-    "content_corrections",
-    "completed",
-  ],
-  youtuber: [
-    "upload_media", 
-    "media_corrections", 
-    "final_review", 
-    "completed"
-  ],
-  reviewer: [
-    "content_review",
-    "media_review",
-    "final_review",
-    "completed",
-  ],
-  content_reviewer: ["content_review"],
-  media_reviewer: ["media_review"],
-  admin: [
-    "available",
-    "content_corrections",
-    "content_review",
-    "upload_media",
-    "media_corrections",
-    "media_review",
-    "final_review",
-    "completed",
-  ],
-} as const;
-
-const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
-  admin: [],
-  optimizer: ["available", "content_corrections"],
-  reviewer: ["content_review", "media_review"],
-  content_reviewer: ['content_review'],
-  media_reviewer: ['media_review'],
-  youtuber: ["upload_media", "media_corrections"],
-};
+import { VISIBLE_STATES, DETAILS_PERMISSION, canUserSeeVideo, canUserSeeVideoDetails } from "@/lib/role-permissions";
 
 function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
@@ -144,9 +101,8 @@ function VideosPage() {
   if (!user) return null;
 
   function canSeeVideoDetails(video: ApiVideo): boolean {
-    if (user?.role === "admin") return true;
-
-    return DETAILS_PERMISSION[user!.role].includes(video.status);
+    if (!user) return false;
+    return canUserSeeVideoDetails(user.role, video.status);
   }
 
   async function handleVideoClick(video: ApiVideo) {
@@ -317,14 +273,9 @@ function VideosPage() {
   };
   
   const filteredVideos = videos.filter((video) => {
-    // Primero filtrar por estados visibles para el rol actual
-    // Admin puede ver todos los estados, los demás roles tienen visibilidad limitada
-    if (user?.role !== 'admin') {
-      // Uso de la estructura de estados visibles definida en VISIBLE_STATES
-      const visibleStatesForRole = VISIBLE_STATES[user!.role as keyof typeof VISIBLE_STATES];
-      if (!visibleStatesForRole.includes(video.status as any)) {
-        return false;
-      }
+    // Primero filtrar por estados visibles para el rol actual según permisos
+    if (!canUserSeeVideo(user!.role, video.status)) {
+      return false;
     }
 
     // Luego aplicar filtros de búsqueda

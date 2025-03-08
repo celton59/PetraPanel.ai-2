@@ -18,6 +18,7 @@ import { UploadContentDetail } from "./detail/UploadContentDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/hooks/use-user";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
+import { canUserSeeVideoDetails } from "@/lib/role-permissions";
 import MediaReviewDetail from "./detail/MediaReviewDetail";
 import { MediaCorrectionsDetail } from "./detail/MediaCorrectionsDetail";
 import { ApiVideo } from "@/hooks/useVideos";
@@ -37,10 +38,8 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useUser();
 
-  // Determinar si el usuario tiene visibilidad usando getRoleStatus
-  // const hasVisibility = getRoleStatus(video.status as VideoStatus)[userRole] === 'disponible';
-  // TODO
-  const hasVisibility = true;
+  // Determinar si el usuario tiene visibilidad según su rol y el estado del video
+  const hasVisibility = user ? canUserSeeVideoDetails(user.role, video.status) : false;
 
   if (!hasVisibility) {
     return (
