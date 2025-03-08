@@ -423,133 +423,275 @@ export default function VideosPage() {
                   <TableHead className=" text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {filteredVideos?.map((video) => (
-                  <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
-                    {/* Selection checkbox */}
-                    {user?.role === "admin" && selectMode && (
-                      <TableCell className="w-[40px]">
-                        <div className={cn(
-                          "p-1.5 rounded-md transition-colors", 
-                          selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
-                        )}>
-                          <Checkbox 
-                            checked={selectedVideos.includes(video.id)}
-                            onCheckedChange={() => toggleSelectVideo(video.id)}
-                            className="h-4 w-4 border-2 transition-all duration-200"
-                            aria-label={`Seleccionar video ${video.title}`}
-                          />
-                        </div>
-                      </TableCell>
-                    )}
-                    {/* Miniatura */}
-                    <TableCell>
-                      <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                        <ThumbnailPreview
-                          src={video.thumbnailUrl}
-                          alt={video.optimizedTitle ?? video.title}
-                          aspectRatio="video"
-                          enableZoom={true}
-                          showPlaceholder={true}
-                          className="h-full"
-                          title={video.optimizedTitle ?? video.title}
-                          showHoverActions={false}
+            <TableBody>
+              {filteredVideos?.map((video) => (
+                <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
+                  {/* Selection checkbox */}
+                  {user?.role === "admin" && selectMode && (
+                    <TableCell className="w-[40px]">
+                      <div className={cn(
+                        "p-1.5 rounded-md transition-colors", 
+                        selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
+                      )}>
+                        <Checkbox 
+                          checked={selectedVideos.includes(video.id)}
+                          onCheckedChange={() => toggleSelectVideo(video.id)}
+                          className="h-4 w-4 border-2 transition-all duration-200"
+                          aria-label={`Seleccionar video ${video.title}`}
                         />
                       </div>
                     </TableCell>
-                    {/* Serie */}
-                    <TableCell className="font-medium text-center">
-                      {video.seriesNumber || "-"}
-                    </TableCell>
-                    {/* Título */}
-                    <TableCell
-                      className={cn("font-medium max-w-md", canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : "")}
-                      onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
+                  )}
+                  {/* Miniatura */}
+                  <TableCell>
+                    <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
+                      <ThumbnailPreview
+                        src={video.thumbnailUrl}
+                        alt={video.optimizedTitle ?? video.title}
+                        aspectRatio="video"
+                        enableZoom={true}
+                        showPlaceholder={true}
+                        className="h-full"
+                        title={video.optimizedTitle ?? video.title}
+                        showHoverActions={false}
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {video.seriesNumber ?? "-"}
+                  </TableCell>
+                  <TableCell className="font-medium max-w-[300px] truncate">
+                    {video.optimizedTitle ?? video.title}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={cn(getStatusBadgeColor(video.status))}
                     >
-                      <div className="space-y-1">
-                        <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
-                      </div>
-                    </TableCell>
-                    {/* Estado */}
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "capitalize text-xs",
-                          getStatusBadgeColor(video.status)
-                        )}
-                      >
-                        {getStatusLabel(user!.role, video)}
-                      </Badge>
-                    </TableCell>
-                    {/* Contributors */}
-                    <TableCell>
-                      <UserBadges video={video} compact={true} />
-                    </TableCell>
-                    {/* Updated */}
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDate(video.updatedAt, false)}
-                    </TableCell>
-                    {/* Actions */}
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {canSeeVideoDetails(video) && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleVideoClick(video)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
+                      {getStatusLabel(user!.role, video)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <UserBadges video={video} compact />
+                  </TableCell>
+                  <TableCell>
+                    {video.updatedAt
+                      ? new Date(video.updatedAt).toLocaleDateString()
+                      : ""}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      {canSeeVideoDetails(video) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={updatingVideoId === video.id}
+                          onClick={() => handleVideoClick(video)}
+                          className="transition-colors"
+                        >
+                          {updatingVideoId === video.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
                             <Eye className="h-4 w-4" />
-                            <span className="sr-only">Ver detalles</span>
-                          </Button>
-                        )}
-                        {user?.role === "admin" && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-muted-foreground hover:text-destructive"
+                          )}
+                        </Button>
+                      )}
+                      {user?.role === "admin" && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                ¿Estás seguro?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Se eliminará
+                                permanentemente el video
+                                <span className="font-medium">
+                                  {" "}
+                                  {video.title}
+                                </span>
+                                .
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  deleteVideo({
+                                    videoId: video.id,
+                                    projectId: video.projectId,
+                                  })
+                                }
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Eliminar</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Se eliminará permanentemente el video y
-                                  todos sus archivos asociados.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter className="gap-2">
-                                <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => {
-                                    deleteVideo({
-                                      videoId: video.id,
-                                      projectId: video.projectId,
-                                    });
-                                  }}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!videos || videos.length === 0) && renderEmptyState()}
-              </TableBody>
-            </Table>
-          </div>
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!videos || videos.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={12}>{renderEmptyState()}</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
+        
+        {/* Vista móvil optimizada: tarjetas con deslizamiento */}
+        <div className="md:hidden space-y-4">
+          {filteredVideos?.map((video) => (
+            <div
+              key={video.id}
+              className="bg-card rounded-lg border shadow-sm overflow-hidden video-card"
+              data-video-id={video.id}
+              onClick={() => !selectMode && handleVideoClick(video)}
+            >
+            <div className="flex items-start relative">
+              {/* Barra lateral de color según estado */}
+              <div className={cn(
+                "absolute left-0 top-0 bottom-0 w-1.5",
+                video.status === "available" ? "bg-indigo-500" :
+                video.status === "content_corrections" ? "bg-orange-500" :
+                video.status === "content_review" ? "bg-sky-500" :
+                video.status === "upload_media" ? "bg-amber-500" :
+                video.status === "media_corrections" ? "bg-pink-500" :
+                video.status === "media_review" ? "bg-violet-500" :
+                video.status === "final_review" ? "bg-teal-500" :
+                video.status === "completed" ? "bg-emerald-500" : "bg-gray-500"
+              )} />
+              
+              {/* Información principal */}
+              <div className="flex-1 p-3 pl-4">
+                {/* Selection checkbox for mobile view */}
+                {user?.role === "admin" && selectMode && (
+                  <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
+                    data-state={selectMode ? "visible" : "hidden"}>
+                    <div className={cn(
+                      "p-1.5 rounded-md transition-colors", 
+                      selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                    )}>
+                      <Checkbox
+                        checked={selectedVideos.includes(video.id)}
+                        onCheckedChange={() => toggleSelectVideo(video.id)}
+                        className="h-4 w-4 border-2 transition-all duration-200"
+                        aria-label={`Seleccionar video ${video.title}`}
+                      />
+                    </div>
+                  </div>
+                )}
+                {/* Encabezado con miniatura y estado */}
+                <div className="flex justify-between items-start gap-3 mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-sm line-clamp-2">
+                      {video.optimizedTitle || video.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {video.seriesNumber || "Sin serie"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {video.updatedAt ? new Date(video.updatedAt).toLocaleDateString() : (video.createdAt ? new Date(video.createdAt).toLocaleDateString() : '')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-14 w-20 flex-shrink-0 rounded overflow-hidden">
+                    <ThumbnailPreview
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      aspectRatio="video"
+                      enableZoom={true}
+                      showPlaceholder={true}
+                      title={video.optimizedTitle || video.title}
+                      duration={video.seriesNumber ? `S${video.seriesNumber}` : undefined}
+                      showHoverActions={false}
+                      className="h-full"
+                    />
+                  </div>
+                </div>
+                
+                {/* Pie con estado y colaboradores */}
+                <div className="flex flex-wrap justify-between items-center mt-2">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "text-xs capitalize mb-1",
+                      getStatusBadgeColor(video.status)
+                    )}
+                  >
+                    {getStatusLabel(user!.role, video)}
+                  </Badge>
+                  <div className="mt-1">
+                    <UserBadges video={video} compact />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Acciones con botones más grandes para móvil */}
+            <div className="flex border-t px-3 py-2 bg-muted/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground flex-1 h-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVideoClick(video);
+                }}
+              >
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+                Ver
+              </Button>
+              {user?.role === "admin" && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive flex-1 h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Eliminar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminará permanentemente el video{" "}
+                        <span className="font-medium">{video.title}</span>.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId })}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
+        ))}
         {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
@@ -619,7 +761,57 @@ export default function VideosPage() {
                 </div>
               </div>
               
-              <UserBadges video={video} compact={true} />
+              <div className="flex items-center justify-between mt-2">
+                <UserBadges video={video} compact />
+                
+                <div className="flex gap-1">
+                  {canSeeVideoDetails(video) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleVideoClick(video);
+                      }}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {user?.role === "admin" && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminará permanentemente el video{" "}
+                            <span className="font-medium">{video.title}</span>.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId })}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -634,11 +826,11 @@ export default function VideosPage() {
         {filteredVideos?.map((video) => (
           <div
             key={video.id}
-            className="group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
+            className="flex gap-4 bg-card p-4 rounded-lg border shadow-sm video-card relative"
             data-video-id={video.id}
             onClick={() => !selectMode && handleVideoClick(video)}
           >
-            {/* Selection checkbox overlay */}
+            {/* Selection checkbox */}
             {selectMode && (
               <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
                 data-state={selectMode ? "visible" : "hidden"}>
@@ -657,7 +849,7 @@ export default function VideosPage() {
             )}
             
             {/* Thumbnail */}
-            <div className="h-16 w-28 rounded overflow-hidden mr-3 flex-shrink-0">
+            <div className="w-32 h-20 flex-shrink-0 rounded overflow-hidden">
               <ThumbnailPreview
                 src={video.thumbnailUrl}
                 alt={video.title}
@@ -665,90 +857,87 @@ export default function VideosPage() {
                 enableZoom={true}
                 showPlaceholder={true}
                 title={video.optimizedTitle || video.title}
-                showHoverActions={false}
+                duration={video.seriesNumber ? `S${video.seriesNumber}` : undefined}
+                className="h-full w-full object-cover"
               />
             </div>
             
             {/* Content */}
-            <div className="flex-grow min-w-0">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-sm line-clamp-1">
-                  {video.seriesNumber && <span className="mr-1 text-muted-foreground">S{video.seriesNumber}</span>}
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between">
+                <h3 className="font-medium mb-1 truncate">
                   {video.optimizedTitle || video.title}
                 </h3>
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "text-xs capitalize ml-2 flex-shrink-0",
-                    getStatusBadgeColor(video.status)
-                  )}
-                >
-                  {getStatusLabel(user!.role, video)}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center mt-1">
-                <UserBadges video={video} compact={true} />
-                <div className="text-xs text-muted-foreground flex-shrink-0">
-                  {video.updatedAt ? formatDate(video.updatedAt) : ""}
+                <div className="flex-shrink-0 ml-2">
+                  <Badge
+                    variant="secondary"
+                    className={cn("text-xs capitalize", getStatusBadgeColor(video.status))}
+                  >
+                    {getStatusLabel(user!.role, video)}
+                  </Badge>
                 </div>
               </div>
-            </div>
-            
-            {/* Actions */}
-            <div className="ml-3 flex items-center space-x-1">
-              {canSeeVideoDetails(video) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleVideoClick(video);
-                  }}
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="sr-only">Ver detalles</span>
-                </Button>
-              )}
-              {user?.role === "admin" && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
+              
+              <div className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                {video.seriesNumber && (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary">
+                    Serie {video.seriesNumber}
+                  </span>
+                )}
+                <span>{video.updatedAt ? formatDate(video.updatedAt) : ''}</span>
+              </div>
+              
+              <div className="flex justify-between items-center mt-2">
+                <UserBadges video={video} compact />
+                
+                <div className="flex gap-1">
+                  {canSeeVideoDetails(video) && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleVideoClick(video);
+                      }}
                     >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Eliminar</span>
+                      <Eye className="h-3.5 w-3.5" />
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción no se puede deshacer. Se eliminará permanentemente el video y
-                        todos sus archivos asociados.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2">
-                      <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => {
-                          deleteVideo({
-                            videoId: video.id,
-                            projectId: video.projectId,
-                          });
-                        }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
+                  )}
+                  {user?.role === "admin" && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminará permanentemente el video{" "}
+                            <span className="font-medium">{video.title}</span>.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteVideo({ videoId: video.id, projectId: video.projectId })}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -759,38 +948,27 @@ export default function VideosPage() {
 
   function getVideoDialog() {
     return (
-      <Dialog
-        open={!!selectedVideo}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setSelectedVideo(undefined);
-          }
-        }}
-      >
+      <Dialog open={!!selectedVideo} onOpenChange={(open) => {
+        if (!open) setSelectedVideo(undefined);
+      }}>
         {selectedVideo && (
           <VideoDetailDialog
             video={selectedVideo}
-            onUpdate={async (updateRequest, keepDialog = false) => {
-              if (!selectedVideo) return;
-
+            onUpdate={async (data, keepDialog) => {
               setUpdatingVideoId(selectedVideo.id);
               try {
                 await updateVideo({
                   videoId: selectedVideo.id,
                   projectId: selectedVideo.projectId,
-                  updateRequest,
+                  updateRequest: data,
                 });
-
-                toast.success("Video actualizado correctamente");
-
                 if (!keepDialog) {
                   setSelectedVideo(undefined);
                 }
+                toast.success("Video actualizado correctamente");
               } catch (error) {
-                console.error("Error updating video:", error);
-                toast.error(
-                  "Error al actualizar el video. Por favor, intenta de nuevo.",
-                );
+                console.error("Error actualizando video:", error);
+                toast.error("Error al actualizar el video");
               } finally {
                 setUpdatingVideoId(undefined);
               }
@@ -802,21 +980,21 @@ export default function VideosPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+    <div className="container mx-auto py-6 space-y-8">
+      {/* Header section with title and actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Gestión de Videos</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Videos</h1>
           <p className="text-muted-foreground">
-            {videos.length} videos disponibles
+            Gestiona y organiza tu contenido audiovisual
           </p>
         </div>
-
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+        <div className="flex gap-2 self-end sm:self-auto">
           {user?.role === "admin" && (
             <Button
-              variant="outline"
-              className="flex items-center gap-2"
+              variant={selectMode ? "secondary" : "outline"}
               onClick={toggleSelectionMode}
+              className="gap-2"
             >
               {selectMode ? (
                 <>
@@ -843,19 +1021,19 @@ export default function VideosPage() {
               onClick={() => setViewMode("table")}
             >
               <Layout className="h-4 w-4" />
-              <span className="sr-only">Vista tabla</span>
+              <span className="sr-only">Vista de tabla</span>
             </Button>
             <Button
               variant={viewMode === "grid" ? "default" : "outline"}
               size="icon"
               className={cn(
-                "rounded-none border-0",
+                "rounded-none border-0 border-x border-border",
                 viewMode === "grid" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => setViewMode("grid")}
             >
               <Grid className="h-4 w-4" />
-              <span className="sr-only">Vista cuadrícula</span>
+              <span className="sr-only">Vista de cuadrícula</span>
             </Button>
             <Button
               variant={viewMode === "list" ? "default" : "outline"}
@@ -867,17 +1045,18 @@ export default function VideosPage() {
               onClick={() => setViewMode("list")}
             >
               <List className="h-4 w-4" />
-              <span className="sr-only">Vista lista</span>
+              <span className="sr-only">Vista de lista</span>
             </Button>
           </div>
           
           <Button
             variant="outline"
-            className="flex items-center gap-2 ml-auto sm:ml-0"
+            size="icon"
             onClick={() => setShowFilters(!showFilters)}
+            className={cn(showFilters && "bg-muted")}
           >
-            <Filter className="w-4 h-4" />
-            Filtros
+            <Filter className="h-4 w-4" />
+            <span className="sr-only">Filtros</span>
           </Button>
           
           {user?.role === "admin" && (
@@ -889,6 +1068,43 @@ export default function VideosPage() {
         </div>
       </div>
 
+      {/* Bulk Delete Alert Dialog */}
+      {user?.role === "admin" && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="destructive"
+              className={cn(
+                "gap-2 transition-opacity mt-4",
+                selectedVideos.length > 0 && selectMode ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+              data-delete-selected
+            >
+              <Trash2 className="w-4 h-4" />
+              Eliminar ({selectedVideos.length})
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar {selectedVideos.length} videos
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Filters */}
       <VideoFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -902,51 +1118,9 @@ export default function VideosPage() {
         onProjectChange={setProjectId}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={VISIBLE_STATES[user.role]}
       />
 
-      {/* Selected videos actions */}
-      {selectMode && selectedVideos.length > 0 && (
-        <div className="flex items-center gap-2 pl-2 rounded-md bg-muted py-2">
-          <span className="text-sm font-medium">
-            {selectedVideos.length} videos seleccionados
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1"
-                  data-delete-selected
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar ({selectedVideos.length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleBulkDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Eliminar {selectedVideos.length} videos
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      )}
-
-      {/* Contenedor principal con eventos para drag selection */}
+      {/* Video content based on view mode */}
       <div 
         className="relative"
         onMouseDown={handleDragStart}
@@ -954,9 +1128,9 @@ export default function VideosPage() {
         onMouseUp={handleDragEnd}
         onMouseLeave={handleDragEnd}
       >
-        {/* Rectángulo de selección */}
-        {isDragging && dragSelectionRef && (
-          <div
+        {/* Selector de arrastre (solo visible cuando se está arrastrando) */}
+        {isDragging && selectMode && (
+          <div 
             ref={dragSelectionRef}
             className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
             style={getSelectionRectStyle()}
