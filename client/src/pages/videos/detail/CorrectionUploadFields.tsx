@@ -132,8 +132,7 @@ export function CorrectionUploadFields({
               fileTypeDescription="Formatos soportados: MP4, MOV, AVI. Tamaño máximo: 1GB."
               actionLabel={isUploading ? "Subiendo..." : "Preparado"}
               actionIcon={isUploading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
-              className="border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10"
-              hoverClassName="border-blue-300 dark:border-blue-700/60 bg-blue-50/80 dark:bg-blue-900/20"
+              className="border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10 hover:border-blue-300 hover:dark:border-blue-700/60 hover:bg-blue-50/80 hover:dark:bg-blue-900/20"
             />
             
             <AnimatePresence>
@@ -191,8 +190,7 @@ export function CorrectionUploadFields({
               fileTypeDescription="Formatos soportados: JPG, PNG, WEBP. Resolución recomendada: 1280x720."
               actionLabel={isUploading ? "Procesando..." : "Lista"}
               actionIcon={isUploading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              className="border-purple-200 dark:border-purple-800/40 bg-purple-50/50 dark:bg-purple-900/10"
-              hoverClassName="border-purple-300 dark:border-purple-700/60 bg-purple-50/80 dark:bg-purple-900/20"
+              className="border-purple-200 dark:border-purple-800/40 bg-purple-50/50 dark:bg-purple-900/10 hover:border-purple-300 hover:dark:border-purple-700/60 hover:bg-purple-50/80 hover:dark:bg-purple-900/20"
             />
             
             <Alert variant="default" className="border-purple-200 dark:border-purple-800/40 bg-purple-50/50 dark:bg-purple-900/10 text-purple-800 dark:text-purple-300">
