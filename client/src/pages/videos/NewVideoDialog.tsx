@@ -30,13 +30,17 @@ import {
   FileVideo, 
   ArrowRight, 
   CheckCircle2, 
-  CircleSlash
+  CircleSlash,
+  FileStack,
+  ListPlus,
+  FileTextIcon
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProjectSelector } from "@/components/project/ProjectSelector";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const videoSchema = z.object({
   title: z
@@ -67,8 +71,10 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
     undefined,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("single");
+  const [bulkTitles, setBulkTitles] = useState<string>("");
 
-  const { createVideo } = useVideos();
+  const { createVideo, createBulkVideos } = useVideos();
 
   const form = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),
@@ -82,6 +88,8 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   function resetForm() {
     setStep(1);
     setSelectedProject(undefined);
+    setActiveTab("single");
+    setBulkTitles("");
     form.reset({
       title: "",
       description: "",

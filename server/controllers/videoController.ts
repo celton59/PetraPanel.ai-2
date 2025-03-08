@@ -828,10 +828,103 @@ async function getVideoUploadUrl(
 }
 
 
+/**
+ * Crea múltiples videos basados en una lista de títulos
+ */
+async function createBulkVideos(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  const { titles } = req.body;
+  
+  if (!Array.isArray(titles) || titles.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Se requiere un array de títulos"
+    });
+  }
+  
+  if (titles.length > 50) {
+    return res.status(400).json({
+      success: false,
+      message: "Máximo 50 títulos permitidos por operación"
+    });
+  }
+
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Solo los administradores pueden crear videos en masa"
+    });
+  }
+
+  try {
+    // Use transaction to ensure atomic operations
+    const results = await db.transaction(async (tx) => {
+      // Get project details
+      const [project] = await tx
+        .select()
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+
+      if (!project) {
+        throw new Error("Proyecto no encontrado");
+      }
+      
+      let currentNumber = project.current_number || 0;
+      const createdVideos = [];
+      
+      // Crear cada video
+      for (const title of titles) {
+        if (typeof title !== 'string' || !title.trim()) continue;
+        
+        // Generate series number
+        currentNumber++;
+        const seriesNumber = project.prefix
+          ? `${project.prefix}-${String(currentNumber).padStart(4, "0")}`
+          : String(currentNumber).padStart(4, "0");
+          
+        // Create video
+        const videoData: InsertVideo = {
+          projectId,
+          title: title.trim(),
+          description: "",
+          status: "available",
+          seriesNumber,
+          createdBy: req.user?.id,
+        };
+        
+        const [newVideo] = await tx.insert(videos).values(videoData).returning();
+        createdVideos.push(newVideo);
+      }
+      
+      // Update project's current number
+      await tx
+        .update(projects)
+        .set({ current_number: currentNumber })
+        .where(eq(projects.id, projectId));
+        
+      return createdVideos;
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `${results.length} videos creados correctamente`,
+      data: results
+    });
+  } catch (error: any) {
+    console.error("Error creating bulk videos:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error al crear los videos en masa"
+    });
+  }
+}
+
 export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
   app.get("/api/videos", requireAuth, getVideos);
 
   app.post("/api/projects/:projectId/videos", requireAuth, createVideo);
+  app.post("/api/projects/:projectId/videos/bulk", requireAuth, createBulkVideos);
 
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo)
 

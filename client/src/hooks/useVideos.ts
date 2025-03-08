@@ -26,6 +26,7 @@ export function useVideos(): {
   videos: ApiVideo[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
+  createBulkVideos: ({ projectId, titles }: { projectId: number, titles: string[] }) => Promise<any>;
   updateVideo: ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number; updateRequest: UpdateVideoData }) => Promise<any>;
   deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
 } {
@@ -76,6 +77,38 @@ export function useVideos(): {
     onError: (error: Error) => {
       toast.error("Error", {
         description: error.message || "No se pudo crear el video",
+      });
+    },
+  });
+  
+  const createBulkVideosMutation = useMutation({
+    mutationFn: async ({ projectId, titles }: { projectId: number, titles: string[] }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titles }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Error al crear los videos en masa");
+      }
+
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      if (data.data && data.data.length > 0) {
+        queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.data[0].projectId}/videos`] });
+      }
+      toast.success("Videos creados", {
+        description: data.message || `Se han creado ${data.data?.length || 0} videos correctamente`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudieron crear los videos en masa",
       });
     },
   });
@@ -144,6 +177,7 @@ export function useVideos(): {
     videos: videos ?? [],
     isLoading,
     createVideo: createVideoMutation.mutateAsync,
+    createBulkVideos: createBulkVideosMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
     deleteVideo: deleteVideoMutation.mutateAsync,
   };
