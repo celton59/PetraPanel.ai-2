@@ -159,11 +159,8 @@ export default function VideosPage() {
 
   if (!user) return null;
 
-  // Esta constante determina si se debe mostrar el botón "Nuevo Video" basada en el rol del usuario
-  const isAdmin = user.role === "admin";
-
   function canSeeVideoDetails(video: ApiVideo): boolean {
-    if (isAdmin) return true;
+    if (user?.role === "admin") return true;
 
     return DETAILS_PERMISSION[user!.role].includes(video.status);
   }
@@ -381,7 +378,6 @@ export default function VideosPage() {
     };
   };
   
-  // Filtramos los videos según los criterios de búsqueda y filtros aplicados
   const filteredVideos = videos.filter((video) => {
     // Primero verificamos el término de búsqueda
     if (searchTerm && !(
@@ -480,7 +476,7 @@ export default function VideosPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  {isAdmin && selectMode && (
+                  {user?.role === "admin" && selectMode && (
                     <TableHead className="w-[40px]">
                       <div className={cn(
                         "p-1.5 rounded-md transition-colors", 
@@ -508,7 +504,7 @@ export default function VideosPage() {
                 {filteredVideos?.map((video) => (
                   <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
                     {/* Selection checkbox */}
-                    {isAdmin && selectMode && (
+                    {user?.role === "admin" && selectMode && (
                       <TableCell className="w-[40px]">
                         <div className={cn(
                           "p-1.5 rounded-md transition-colors", 
@@ -585,7 +581,7 @@ export default function VideosPage() {
                             <span className="sr-only">Ver detalles</span>
                           </Button>
                         )}
-                        {isAdmin && (
+                        {user?.role === "admin" && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -929,7 +925,7 @@ export default function VideosPage() {
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          {isAdmin && (
+          {user?.role === "admin" && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1009,7 +1005,7 @@ export default function VideosPage() {
             Filtros
           </Button>
           
-          {isAdmin && (
+          {user?.role === "admin" && (
             <>
               <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
