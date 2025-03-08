@@ -272,11 +272,17 @@ export default function VideosPage() {
                   {user?.role === "admin" && (
                     <TableHead className="w-[40px]">
                       {selectMode && (
-                        <Checkbox 
-                          checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
-                          onCheckedChange={toggleSelectAll}
-                          aria-label="Seleccionar todos"
-                        />
+                        <div className={cn(
+                          "p-1.5 rounded-md transition-colors", 
+                          selectedVideos.length === filteredVideos.length && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
+                        )}>
+                          <Checkbox 
+                            checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                            className="h-4 w-4 border-2 transition-all duration-200"
+                            aria-label="Seleccionar todos"
+                          />
+                        </div>
                       )}
                     </TableHead>
                   )}
@@ -296,11 +302,17 @@ export default function VideosPage() {
                   {user?.role === "admin" && (
                     <TableCell className="w-[40px]">
                       {selectMode && (
-                        <Checkbox 
-                          checked={selectedVideos.includes(video.id)}
-                          onCheckedChange={() => toggleSelectVideo(video.id)}
-                          aria-label={`Seleccionar video ${video.title}`}
-                        />
+                        <div className={cn(
+                          "p-1.5 rounded-md transition-colors", 
+                          selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
+                        )}>
+                          <Checkbox 
+                            checked={selectedVideos.includes(video.id)}
+                            onCheckedChange={() => toggleSelectVideo(video.id)}
+                            className="h-4 w-4 border-2 transition-all duration-200"
+                            aria-label={`Seleccionar video ${video.title}`}
+                          />
+                        </div>
                       )}
                     </TableCell>
                   )}
@@ -577,17 +589,23 @@ export default function VideosPage() {
               {/* Selection checkbox for grid view */}
               {selectMode && (
                 <div 
-                  className="absolute top-2 left-2 z-20 bg-background/80 rounded-md p-1"
+                  className="absolute top-2 left-2 z-20 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
+                  data-state={selectMode ? "visible" : "hidden"}
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleSelectVideo(video.id);
                   }}
                 >
-                  <Checkbox 
-                    checked={selectedVideos.includes(video.id)}
-                    onCheckedChange={() => toggleSelectVideo(video.id)}
-                    className="h-5 w-5 border-2"
-                  />
+                  <div className={cn(
+                    "p-1.5 rounded-md transition-colors", 
+                    selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/70 backdrop-blur-sm hover:bg-background/90"
+                  )}>
+                    <Checkbox 
+                      checked={selectedVideos.includes(video.id)}
+                      onCheckedChange={() => toggleSelectVideo(video.id)}
+                      className="h-4 w-4 border-2 transition-all duration-200"
+                    />
+                  </div>
                 </div>
               )}
               <ThumbnailPreview
@@ -697,17 +715,23 @@ export default function VideosPage() {
             {/* Selection checkbox in select mode */}
             {selectMode && (
               <div 
-                className="absolute top-2 left-2 z-10"
+                className="absolute top-2 left-2 z-10 transition-transform duration-150 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
+                data-state={selectMode ? "visible" : "hidden"}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleSelectVideo(video.id);
                 }}
               >
-                <Checkbox 
-                  checked={selectedVideos.includes(video.id)}
-                  onCheckedChange={() => toggleSelectVideo(video.id)}
-                  className="h-5 w-5 border-2"
-                />
+                <div className={cn(
+                  "p-1.5 rounded-md transition-colors", 
+                  selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-background/80 hover:bg-background"
+                )}>
+                  <Checkbox 
+                    checked={selectedVideos.includes(video.id)}
+                    onCheckedChange={() => toggleSelectVideo(video.id)}
+                    className="h-4 w-4 border-2 transition-all duration-200"
+                  />
+                </div>
               </div>
             )}
             
