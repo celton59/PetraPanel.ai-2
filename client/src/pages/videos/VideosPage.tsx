@@ -180,8 +180,14 @@ function VideosPage() {
         <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
           {user?.role === "optimizer"
             ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
-            : "Comienza agregando tu primer video usando el botón en la parte superior derecha"}
+            : "Comienza agregando tu primer video usando el botón"}
         </p>
+        {user?.role === "admin" && (
+          <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2 mt-4">
+            <Plus className="w-4 h-4" />
+            Nuevo Video
+          </Button>
+        )}
       </div>
     );
   }
@@ -1007,7 +1013,7 @@ function VideosPage() {
           </Button>
           
           {user?.role === "admin" && (
-            <>
+            <div className="flex gap-2">
               <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Nuevo Video
@@ -1021,7 +1027,7 @@ function VideosPage() {
                   Papelera
                 </Button>
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>
