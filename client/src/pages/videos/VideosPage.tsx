@@ -1,6 +1,7 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ImagePreview } from "@/components/ui/image-preview";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -1101,16 +1102,14 @@ export default function VideosPage() {
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           {/* Buscador en la parte superior junto a los botones principales */}
-          {activeTab === "videos" && (
-            <div className="flex-1 min-w-[250px]">
-              <Input
-                placeholder="Buscar por título, serie, descripción, creador u optimizador"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-4 h-9 text-base"
-              />
-            </div>
-          )}
+          <div className="flex-1 min-w-[250px]">
+            <Input
+              placeholder="Buscar por título, serie, descripción, creador u optimizador"
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="w-full pl-4 h-9 text-base"
+            />
+          </div>
               
           <Button
             variant={showFilters ? "default" : "outline"}
@@ -1340,6 +1339,53 @@ export default function VideosPage() {
       {/* Si no es admin, muestra directamente el contenido de videos sin pestañas */}
       {user?.role !== "admin" && (
         <>
+          {/* Añadimos los controles de vista para usuarios no admin */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <div className="flex rounded-md overflow-hidden border">
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-none border-0",
+                  viewMode === "table" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setViewMode("table")}
+              >
+                <Layout className="h-4 w-4" />
+                <span className="sr-only">Vista tabla</span>
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-none border-0",
+                  viewMode === "grid" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-4 w-4" />
+                <span className="sr-only">Vista cuadrícula</span>
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-none border-0",
+                  viewMode === "list" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+                <span className="sr-only">Vista lista</span>
+              </Button>
+            </div>
+            {videos.length > 0 && (
+              <p className="text-sm text-muted-foreground ml-2">
+                Mostrando {filteredVideos.length} de {videos.length} videos
+              </p>
+            )}
+          </div>
+          
           <VideoFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
