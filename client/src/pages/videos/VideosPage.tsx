@@ -50,6 +50,12 @@ import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 import { Link } from "wouter";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -862,26 +868,35 @@ export default function VideosPage() {
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           {user?.role === "admin" && (
-            <Button
-              variant={selectMode ? "default" : "outline"}
-              className={cn(
-                "flex items-center gap-2",
-                selectMode && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
-              )}
-              onClick={toggleSelectionMode}
-            >
-              {selectMode ? (
-                <>
-                  <CheckSquare className="w-4 h-4" />
-                  Modo selección
-                </>
-              ) : (
-                <>
-                  <Square className="w-4 h-4" />
-                  Seleccionar
-                </>
-              )}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={selectMode ? "default" : "outline"}
+                    className={cn(
+                      "flex items-center gap-2",
+                      selectMode && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                    )}
+                    onClick={toggleSelectionMode}
+                  >
+                    {selectMode ? (
+                      <>
+                        <CheckSquare className="w-4 h-4" />
+                        Modo selección
+                      </>
+                    ) : (
+                      <>
+                        <Square className="w-4 h-4" />
+                        Seleccionar
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Activa el modo selección para operar con múltiples videos a la vez</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           
           <div className="flex rounded-md overflow-hidden border">

@@ -34,6 +34,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Link } from "wouter";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function TrashPage() {
   const { user, isLoading: isUserLoading } = useUser();
@@ -116,32 +122,41 @@ export default function TrashPage() {
           </Button>
           
           {user.role === "admin" && trashVideos.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1 bg-red-600 hover:bg-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Vaciar papelera
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminarán permanentemente todos los videos en la papelera.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleEmptyTrash} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Vaciar papelera
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-1 bg-red-600 hover:bg-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Vaciar papelera
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminarán permanentemente todos los videos en la papelera.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleEmptyTrash} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Vaciar papelera
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Elimina permanentemente todos los videos en la papelera</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
@@ -238,15 +253,24 @@ export default function TrashPage() {
                       {/* Acciones */}
                       <TableCell className="text-right">
                         {(user.role === "admin" || video.createdBy === user.id) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRestoreVideo(video.id)}
-                            className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" />
-                            Restaurar
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRestoreVideo(video.id)}
+                                  className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                  Restaurar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Restaurar el video de la papelera</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </TableCell>
                     </TableRow>
