@@ -28,8 +28,11 @@ export function useVideos(): {
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
   createBulkVideos: ({ projectId, titles }: { projectId: number, titles: string[] }) => Promise<any>;
   updateVideo: ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number; updateRequest: UpdateVideoData }) => Promise<any>;
-  deleteVideo: ({videoId, projectId } : { videoId: number, projectId: number }) => Promise<any>;
-  bulkDeleteVideos: ({projectId, videoIds} : { projectId: number, videoIds: number[] }) => Promise<any>;
+  deleteVideo: ({videoId, projectId, permanent }: { videoId: number, projectId: number, permanent?: boolean }) => Promise<any>;
+  bulkDeleteVideos: ({projectId, videoIds, permanent }: { projectId: number, videoIds: number[], permanent?: boolean }) => Promise<any>;
+  restoreVideo: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
+  emptyTrash: ({projectId}: { projectId: number }) => Promise<any>;
+  getTrashVideos: ({projectId}: { projectId: number }) => Promise<ApiVideo[]>;
 } {
   const queryClient = useQueryClient();
 
@@ -148,8 +151,8 @@ export function useVideos(): {
   });
 
   const deleteVideoMutation = useMutation({
-    mutationFn: async ({videoId, projectId } : { videoId: number, projectId: number }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
+    mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}${permanent ? '?permanent=true' : ''}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -161,10 +164,12 @@ export function useVideos(): {
 
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Video eliminado", {
-        description: "El video se ha eliminado correctamente",
+      toast.success(variables.permanent ? "Video eliminado permanentemente" : "Video movido a la papelera", {
+        description: variables.permanent 
+          ? "El video ha sido eliminado permanentemente" 
+          : "El video se ha movido a la papelera"
       });
     },
     onError: (error: Error) => {
@@ -175,8 +180,8 @@ export function useVideos(): {
   });
 
   const bulkDeleteVideosMutation = useMutation({
-    mutationFn: async ({projectId, videoIds} : { projectId: number, videoIds: number[] }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos`, {
+    mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos${permanent ? '?permanent=true' : ''}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ videoIds }),
@@ -190,10 +195,12 @@ export function useVideos(): {
 
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Videos eliminados", {
-        description: data.message || `Se han eliminado ${data.deleted || 0} videos correctamente`,
+      toast.success(variables.permanent ? "Videos eliminados permanentemente" : "Videos movidos a la papelera", {
+        description: variables.permanent 
+          ? `Se han eliminado permanentemente ${data.deleted || 0} videos` 
+          : `Se han movido ${data.deleted || 0} videos a la papelera`
       });
     },
     onError: (error: Error) => {
@@ -203,6 +210,76 @@ export function useVideos(): {
     },
   });
 
+  // Nueva función para restaurar videos de la papelera
+  const restoreVideoMutation = useMutation({
+    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}/restore`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al restaurar el video");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Video restaurado", {
+        description: "El video ha sido restaurado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo restaurar el video",
+      });
+    },
+  });
+
+  // Nueva función para vaciar la papelera de un proyecto
+  const emptyTrashMutation = useMutation({
+    mutationFn: async ({projectId}: { projectId: number }) => {
+      const res = await fetch(`/api/projects/${projectId}/trash/empty`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al vaciar la papelera");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Papelera vaciada", {
+        description: "Se han eliminado permanentemente todos los videos de la papelera",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo vaciar la papelera",
+      });
+    },
+  });
+
+  // Nueva función para obtener los videos en la papelera
+  const getTrashVideos = async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
+    const res = await fetch(`/api/projects/${projectId}/trash`, {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || "Error al obtener los videos de la papelera");
+    }
+
+    return res.json();
+  };
+
   return {
     videos: videos ?? [],
     isLoading,
@@ -211,5 +288,8 @@ export function useVideos(): {
     updateVideo: updateVideoMutation.mutateAsync,
     deleteVideo: deleteVideoMutation.mutateAsync,
     bulkDeleteVideos: bulkDeleteVideosMutation.mutateAsync,
+    restoreVideo: restoreVideoMutation.mutateAsync,
+    emptyTrash: emptyTrashMutation.mutateAsync,
+    getTrashVideos,
   };
 }

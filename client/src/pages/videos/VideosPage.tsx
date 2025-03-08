@@ -49,6 +49,7 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -104,7 +105,21 @@ export default function VideosPage() {
     );
   }
 
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  const { 
+    videos, 
+    isLoading, 
+    deleteVideo, 
+    updateVideo, 
+    bulkDeleteVideos, 
+    restoreVideo, 
+    emptyTrash, 
+    getTrashVideos 
+  } = useVideos();
+  
+  // Estado para la papelera
+  const [trashVideos, setTrashVideos] = useState<ApiVideo[]>([]);
+  const [isLoadingTrash, setIsLoadingTrash] = useState(false);
+  const [activeTab, setActiveTab] = useState<"videos" | "trash">("videos");
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
     undefined,
   );
@@ -129,6 +144,29 @@ export default function VideosPage() {
       window.history.replaceState({}, "", "/videos");
     }
   }, []);
+  
+  // Carga los videos en la papelera cuando se selecciona la pestaña
+  useEffect(() => {
+    if (activeTab === "trash" && user?.role === "admin") {
+      const loadTrashVideos = async () => {
+        setIsLoadingTrash(true);
+        try {
+          const projectIdToUse = projectId === "all" ? 1 : parseInt(projectId);
+          const trashData = await getTrashVideos({ projectId: projectIdToUse });
+          setTrashVideos(trashData);
+        } catch (error) {
+          console.error("Error cargando videos en la papelera:", error);
+          toast.error("Error", {
+            description: "No se pudieron cargar los videos de la papelera",
+          });
+        } finally {
+          setIsLoadingTrash(false);
+        }
+      };
+      
+      loadTrashVideos();
+    }
+  }, [activeTab, projectId, user?.role, getTrashVideos]);
 
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -226,8 +264,57 @@ export default function VideosPage() {
       });
       setSelectedVideos([]);
       setSelectMode(false);
+      toast.success("Éxito", {
+        description: `${selectedVideos.length} videos movidos a la papelera`,
+      });
     } catch (error) {
       console.error("Error deleting videos in bulk:", error);
+      toast.error("Error", {
+        description: "No se pudieron mover los videos a la papelera",
+      });
+    }
+  };
+  
+  // Restaurar un video de la papelera
+  const handleRestoreVideo = async (videoId: number, projectId: number) => {
+    try {
+      await restoreVideo({ videoId, projectId });
+      
+      // Actualizar la lista de videos en la papelera
+      setTrashVideos(prev => prev.filter(video => video.id !== videoId));
+      
+      toast.success("Éxito", {
+        description: "Video restaurado correctamente",
+      });
+    } catch (error) {
+      console.error("Error restaurando el video:", error);
+      toast.error("Error", {
+        description: "No se pudo restaurar el video",
+      });
+    }
+  };
+  
+  // Vaciar la papelera
+  const handleEmptyTrash = async () => {
+    if (trashVideos.length === 0) return;
+    
+    const projectIdToUse = trashVideos[0]?.projectId;
+    if (!projectIdToUse) return;
+    
+    try {
+      await emptyTrash({ projectId: projectIdToUse });
+      
+      // Actualizar la lista de videos en la papelera
+      setTrashVideos([]);
+      
+      toast.success("Éxito", {
+        description: "Papelera vaciada correctamente",
+      });
+    } catch (error) {
+      console.error("Error vaciando la papelera:", error);
+      toast.error("Error", {
+        description: "No se pudo vaciar la papelera",
+      });
     }
   };
   
