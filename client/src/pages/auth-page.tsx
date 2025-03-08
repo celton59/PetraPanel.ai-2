@@ -48,11 +48,6 @@ export default function AuthPage() {
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
         setLocation("/");
-        toast.success("¡Bienvenido!", { 
-          description: "Has iniciado sesión correctamente (modo prueba)",
-          position: "top-right",
-          duration: 3000
-        });
         setIsLoading(false);
       }, 500);
     } catch (error: any) {
@@ -75,11 +70,6 @@ export default function AuthPage() {
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
         setLocation("/");
-        toast.success("¡Bienvenido!", { 
-          description: "Has iniciado sesión correctamente",
-          position: "top-right",
-          duration: 3000
-        });
         setIsLoading(false);
       }, 500);
     } catch (error: any) {
