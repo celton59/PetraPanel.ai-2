@@ -97,7 +97,7 @@ export function MediaCorrectionsDetail({
     if (uploader) {
       try {
         await uploader.cancel();
-        toast.info("Carga cancelada");
+        console.log("Carga cancelada");
       } catch (error) {
         console.error("Error al cancelar la carga:", error);
       } finally {

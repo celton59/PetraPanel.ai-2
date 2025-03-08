@@ -100,7 +100,7 @@ export function UploadContentDetail({
         setUploader(null);
         setIsUploading(false);
         setUploadProgress(undefined);
-        toast.info("Carga cancelada");
+        console.log("Carga cancelada");
       } catch (error) {
         console.error("Error al cancelar la carga:", error);
         toast.error("Error al cancelar la carga");

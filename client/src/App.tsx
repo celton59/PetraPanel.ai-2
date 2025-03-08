@@ -78,11 +78,20 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <GuideProvider>
         <Toaster 
-          position="top-right"
+          position="bottom-center"
           expand={false}
-          closeButton
+          closeButton={false}
           richColors
-          duration={3000}
+          duration={1500}
+          offset={16}
+          toastOptions={{
+            style: { 
+              fontSize: '0.85rem', 
+              padding: '6px 12px',
+              maxWidth: '320px'
+            },
+            className: 'compact-toast'
+          }}
         />
         <Router>
           {/* <Switch>

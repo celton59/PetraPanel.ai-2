@@ -700,7 +700,7 @@ export default function VideosPage() {
                             
             } catch (err) {
               console.log(err);
-              toast.error("Error al actualizar el video");
+              console.error("Error al actualizar el video:", err);
             } finally {
               setUpdatingVideoId(undefined);
             }

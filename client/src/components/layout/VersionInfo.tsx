@@ -14,10 +14,12 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { Info, ArrowUpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+// Añadimos un estilo personalizado para ocultar el botón de cierre
+import "./version-info.css";
 
 // Tipo para cada entrada de cambio
 interface ChangelogEntry {
@@ -31,6 +33,62 @@ interface ChangelogEntry {
 
 // Historial de versiones
 const versionHistory: ChangelogEntry[] = [
+  {
+    version: '2.6.0',
+    date: '08.03.2025',
+    changes: [
+      { 
+        type: 'new', 
+        description: 'Toasts mejorados: más compactos y menos intrusivos para una mejor experiencia de usuario'
+      },
+      { 
+        type: 'improved', 
+        description: 'Algoritmo de subida multiparte optimizado para transferencias hasta un 30% más rápidas'
+      },
+      { 
+        type: 'improved', 
+        description: 'Procesamiento paralelo de archivos para una subida más eficiente con WebWorkers'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Corrección del bug del ícono de carga persistente al cerrar el diálogo de detalles de video'
+      },
+      { 
+        type: 'improved', 
+        description: 'Manejo optimizado de estados en diálogos y modales para prevenir estados inconsistentes'
+      }
+    ]
+  },
+  {
+    version: '2.5.5',
+    date: '07.03.2025',
+    changes: [
+      { 
+        type: 'new', 
+        description: 'Funcionalidad de creación masiva de videos con interfaz de pestañas'
+      },
+      { 
+        type: 'new', 
+        description: 'Soporte para importar metadatos de video desde archivos CSV'
+      },
+      { 
+        type: 'improved', 
+        description: 'Permisos extendidos para usuarios no administradores en la creación masiva'
+      },
+      { 
+        type: 'improved', 
+        description: 'Lógica de validación de datos mejorada para la creación de videos'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Corrección del error de indicador de carga en diálogo de detalles del video'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Manejo mejorado de errores en la gestión de estados de diálogos'
+      }
+    ]
+  },
   {
     version: '2.5.0',
     date: '06.03.2025',
@@ -167,7 +225,7 @@ export function VersionInfo() {
       </Tooltip>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] version-dialog">
           <DialogHeader>
             <DialogTitle className="flex justify-between items-center">
               <span>Historial de versiones</span>
