@@ -8,7 +8,7 @@ import ProfilePage from "@/pages/profile/ProfilePage";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
-import VideosPage from "@/pages/videos/VideosPage";
+import VideosPage from "@/pages/videos/VideosPage.refactored";
 import TrashPage from "@/pages/videos/TrashPage";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";

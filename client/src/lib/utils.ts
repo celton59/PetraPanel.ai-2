@@ -1,10 +1,10 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -15,14 +15,10 @@ export function cn(...inputs: ClassValue[]) {
 export function getInitials(name?: string | null): string {
   if (!name) return "?";
   
-  const parts = name.split(' ').filter(Boolean);
-  if (parts.length === 0) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
   
-  if (parts.length === 1) {
-    return parts[0].substring(0, 2).toUpperCase();
-  }
-  
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
 /**
@@ -32,80 +28,54 @@ export function getInitials(name?: string | null): string {
  * @returns Texto formateado de la fecha
  */
 export function formatDate(date: Date | string | number | null, includeTime: boolean = false): string {
-  if (!date) return '';
+  if (!date) return "";
   
-  const dateObj = date instanceof Date ? date : new Date(date);
+  const dateObj = new Date(date);
   
-  // Si la fecha es hoy
   if (isToday(dateObj)) {
     return includeTime 
-      ? `Hoy a las ${format(dateObj, 'HH:mm')}`
-      : 'Hoy';
+      ? `Hoy a las ${format(dateObj, "HH:mm")}`
+      : "Hoy";
   }
   
-  // Si la fecha fue ayer
   if (isYesterday(dateObj)) {
     return includeTime 
-      ? `Ayer a las ${format(dateObj, 'HH:mm')}`
-      : 'Ayer';
+      ? `Ayer a las ${format(dateObj, "HH:mm")}`
+      : "Ayer";
   }
   
-  // Si la fecha es menor a 7 días
-  const daysDiff = Math.abs(
-    (new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  
-  if (daysDiff < 7) {
-    return formatDistanceToNow(dateObj, { 
-      addSuffix: true,
-      locale: es 
-    });
+  // Si es menos de 7 días, mostramos "hace X días"
+  if (new Date().getTime() - dateObj.getTime() < 7 * 24 * 60 * 60 * 1000) {
+    return formatDistanceToNow(dateObj, { addSuffix: true, locale: es });
   }
   
-  // Para el resto de fechas
-  if (dateObj.getFullYear() === new Date().getFullYear()) {
-    // Si es del año actual
-    return includeTime
-      ? format(dateObj, "d 'de' MMMM 'a las' HH:mm", { locale: es })
-      : format(dateObj, "d 'de' MMMM", { locale: es });
-  } else {
-    // Si es de otro año
-    return includeTime
-      ? format(dateObj, "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })
-      : format(dateObj, "d 'de' MMMM 'de' yyyy", { locale: es });
-  }
+  // Para fechas más antiguas, formato completo
+  return includeTime
+    ? format(dateObj, "d MMM yyyy, HH:mm", { locale: es })
+    : format(dateObj, "d MMM yyyy", { locale: es });
 }
 
 /**
  * Formatea una fecha específicamente para notificaciones (formato corto)
  */
 export function formatNotificationDate(date: Date | string | number | null): string {
-  if (!date) return '';
+  if (!date) return "";
   
-  const dateObj = date instanceof Date ? date : new Date(date);
+  const dateObj = new Date(date);
   
-  // Si es hoy, muestra la hora
   if (isToday(dateObj)) {
-    return format(dateObj, 'HH:mm');
+    return format(dateObj, "HH:mm");
   }
   
-  // Si es ayer
   if (isYesterday(dateObj)) {
-    return 'ayer';
+    return "Ayer";
   }
   
-  // Si es de la última semana
-  const daysDiff = Math.abs(
-    (new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  
-  if (daysDiff < 7) {
-    return formatDistanceToNow(dateObj, { 
-      addSuffix: true,
-      locale: es 
-    });
+  // Si es menos de 7 días, mostramos el día
+  if (new Date().getTime() - dateObj.getTime() < 7 * 24 * 60 * 60 * 1000) {
+    return format(dateObj, "EEE", { locale: es });
   }
   
-  // Para el resto de fechas, formato corto
-  return format(dateObj, 'dd MMM', { locale: es });
+  // Para fechas más antiguas, formato corto
+  return format(dateObj, "d MMM", { locale: es });
 }
