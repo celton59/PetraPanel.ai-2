@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema'
 import { toast } from "sonner";
+import { useCallback } from "react";
 
 
 export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl' >
@@ -241,7 +242,7 @@ export function useVideos(): {
   // Nueva función para vaciar la papelera de un proyecto
   const emptyTrashMutation = useMutation({
     mutationFn: async ({projectId}: { projectId: number }) => {
-      const res = await fetch(`/api/projects/${projectId}/trash/empty`, {
+      const res = await fetch(`/api/projects/${projectId}/trash`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -266,8 +267,8 @@ export function useVideos(): {
     },
   });
 
-  // Nueva función para obtener los videos en la papelera
-  const getTrashVideos = async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
+  // Nueva función para obtener los videos en la papelera, memoizada para evitar recreación
+  const getTrashVideos = useCallback(async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
     const res = await fetch(`/api/projects/${projectId}/trash`, {
       credentials: "include",
     });
@@ -278,7 +279,7 @@ export function useVideos(): {
     }
 
     return res.json();
-  };
+  }, []);
 
   return {
     videos: videos ?? [],

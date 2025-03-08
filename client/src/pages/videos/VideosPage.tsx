@@ -96,9 +96,9 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 };
 
 // Extender la interfaz ApiVideo para incluir las propiedades de papelera
-interface TrashVideo extends ApiVideo {
+interface TrashVideo extends Omit<ApiVideo, 'deletedAt'> {
   deletedByUsername?: string;
-  deletedAt?: string | Date;
+  deletedAt: Date | null;
 }
 
 export default function VideosPage() {
@@ -184,7 +184,7 @@ export default function VideosPage() {
       
       loadTrashVideos();
     }
-  }, [activeTab, projectId, user?.role, getTrashVideos]);
+  }, [activeTab, projectId, user?.role]);
 
   if (!user) return null;
 
