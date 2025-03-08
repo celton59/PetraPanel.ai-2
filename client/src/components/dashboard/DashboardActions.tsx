@@ -1,4 +1,4 @@
-import { Target, Youtube, Rocket } from "lucide-react";
+import { Video, Target, Youtube, Rocket } from "lucide-react";
 import ActionCard from "@/components/ActionCard";
 import { useLocation } from "wouter";
 
@@ -6,6 +6,14 @@ export const DashboardActions = () => {
   const [, setLocation] = useLocation();
 
   const actions = [
+    {
+      icon: Video,
+      title: "Nuevo Video",
+      description: "Crear y subir un nuevo video",
+      iconColor: "text-blue-500",
+      iconBgColor: "bg-blue-500/10",
+      onClick: () => setLocation('/videos?new=true')
+    },
     {
       icon: Target,
       title: "Optimizar SEO",
