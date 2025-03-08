@@ -265,38 +265,6 @@ export function CompletedVideoDetail({ video }: CompletedVideoDetailProps) {
                       <p className="text-xs text-muted-foreground">{formatDate(video.createdAt, true)}</p>
                     </div>
                     
-                    {video.optimizedAt && (
-                      <div className="relative">
-                        <div className="absolute w-3 h-3 bg-primary rounded-full -left-[25px] top-1"></div>
-                        <p className="text-sm font-medium">Optimización de contenido</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(video.optimizedAt, true)}</p>
-                      </div>
-                    )}
-                    
-                    {video.contentReviewedAt && (
-                      <div className="relative">
-                        <div className="absolute w-3 h-3 bg-primary rounded-full -left-[25px] top-1"></div>
-                        <p className="text-sm font-medium">Revisión de contenido</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(video.contentReviewedAt, true)}</p>
-                      </div>
-                    )}
-                    
-                    {video.mediaUploadedAt && (
-                      <div className="relative">
-                        <div className="absolute w-3 h-3 bg-primary rounded-full -left-[25px] top-1"></div>
-                        <p className="text-sm font-medium">Subida de medios</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(video.mediaUploadedAt, true)}</p>
-                      </div>
-                    )}
-                    
-                    {video.mediaReviewedAt && (
-                      <div className="relative">
-                        <div className="absolute w-3 h-3 bg-primary rounded-full -left-[25px] top-1"></div>
-                        <p className="text-sm font-medium">Revisión de medios</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(video.mediaReviewedAt, true)}</p>
-                      </div>
-                    )}
-                    
                     <div className="relative">
                       <div className="absolute w-3 h-3 bg-green-500 rounded-full -left-[25px] top-1"></div>
                       <p className="text-sm font-medium">Finalización</p>

@@ -43,11 +43,11 @@ export const VISIBLE_STATES: Record<User["role"], readonly string[]> = {
  */
 export const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   admin: [],  // Admin puede ver todos, se gestiona en la lógica
-  optimizer: ["available", "content_corrections"],
-  reviewer: ["content_review", "media_review"],
-  content_reviewer: ['content_review'],
-  media_reviewer: ['media_review'],
-  youtuber: ["upload_media", "media_corrections"],
+  optimizer: ["available", "content_corrections", "completed"],
+  reviewer: ["content_review", "media_review", "final_review", "completed"],
+  content_reviewer: ['content_review', 'completed'],
+  media_reviewer: ['media_review', 'completed'],
+  youtuber: ["upload_media", "media_corrections", "final_review", "completed"],
 };
 
 /**
