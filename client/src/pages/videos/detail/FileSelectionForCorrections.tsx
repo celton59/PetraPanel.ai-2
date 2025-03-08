@@ -1,11 +1,13 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Video as VideoIcon, Maximize2, Info, Download, Share2 } from "lucide-react";
+import { AlertCircle, Video as VideoIcon, Maximize2, Info, Download, Share2, Eye } from "lucide-react";
 import { VideoUploader } from "./upload/VideoUploader";
 import { ThumbnailUploader } from "./upload/ThumbnailUploader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ImagePreview } from "@/components/ui/image-preview";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+import { VideoPreview } from "@/components/ui/video-preview";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ApiVideo } from "@/hooks/useVideos";
 
@@ -54,29 +56,45 @@ export function FileSelectionForCorrections({
                 }}
               />
             ) : video.videoUrl ? (
-              <div 
-                className="group aspect-video bg-muted rounded-lg overflow-hidden relative" 
-                onClick={() => video.videoUrl && window.open(video.videoUrl, '_blank')}
+              <motion.div 
+                className="aspect-video bg-muted rounded-lg overflow-hidden" 
+                initial={{ opacity: 0.8, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <video
+                <VideoPreview
                   src={video.videoUrl || undefined}
-                  className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
-                  controls
+                  alt={video.title || "Video"}
+                  aspectRatio="video"
+                  enableControls={true}
+                  autoPlay={false}
+                  muted={true}
+                  loop={false}
+                  title={video.optimizedTitle || video.title || "Video"}
+                  description={video.description || undefined}
+                  onShare={() => {
+                    if (video.videoUrl) {
+                      navigator.clipboard.writeText(video.videoUrl);
+                      toast.success("Enlace de video copiado al portapapeles");
+                    }
+                  }}
+                  onDownload={() => {
+                    if (video.videoUrl) {
+                      window.open(video.videoUrl, '_blank');
+                    }
+                  }}
+                  className="w-full h-full"
                 />
-                
-                {/* Indicador de clic para abrir */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="bg-black/50 p-2 rounded-full">
-                    <Maximize2 className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                
-                {/* Brillo en los bordes al hacer hover */}
-                <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity rounded-lg ring-2 ring-white/30 dark:ring-white/20"/>
-              </div>
+              </motion.div>
             ) : (
               <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <VideoIcon className="h-8 w-8 text-muted-foreground" />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <VideoIcon className="h-8 w-8 text-muted-foreground" />
+                </motion.div>
               </div>
             )}
             {selectedFiles.video && (
