@@ -318,12 +318,15 @@ export default function VideosPage() {
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
+    // Calcular coordenadas relativas al viewport
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
+    // Calcular coordenadas relativas al contenedor (fixed para el viewport)
     return {
+      position: 'fixed', // Posición fija respecto al viewport
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
@@ -1033,10 +1036,10 @@ export default function VideosPage() {
         onMouseLeave={handleDragEnd}
       >
         {/* Rectángulo de selección */}
-        {isDragging && dragSelectionRef && (
+        {isDragging && selectMode && (
           <div
             ref={dragSelectionRef}
-            className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
+            className="fixed bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
             style={getSelectionRectStyle()}
           ></div>
         )}
