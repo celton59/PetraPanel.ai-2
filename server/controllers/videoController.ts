@@ -178,13 +178,19 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         });
     }
 
+    // Si se asigna un optimizador y el estado sigue siendo "available", actualizar estado a "en progreso"
+    let updatedStatus = updates.status as VideoStatus;
+    if (updates.optimizedBy && !updates.status && currentVideo?.status === "available") {
+      updatedStatus = "content_corrections"; // Usamos content_corrections para indicar que está en progreso de optimización
+    }
+
     // Actualizar el video con la metadata combinada
     const [result] = await db
       .update(videos)
       .set({
         title: updates.title,
         description: updates.description,
-        status: updates.status as VideoStatus,
+        status: updatedStatus,
         updatedAt: new Date(),
         optimizedBy: updates.optimizedBy,
         optimizedDescription: updates.optimizedDescription,

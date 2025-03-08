@@ -24,7 +24,7 @@ import { ApiVideo } from "@/hooks/useVideos";
 
 const statusDescriptions: Record<VideoStatus, string> = {
   available: "Video recién creado, esperando asignación",
-  content_corrections: "Se han solicitado correcciones al título",
+  content_corrections: "Video en proceso de optimización",
   content_review: "En revisión por el equipo de optimización",
   upload_media: "En revisión de archivos (video y miniatura)",
   media_review: "Listo para subir a YouTube",
