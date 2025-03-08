@@ -221,43 +221,96 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
 async function deleteVideo(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
-
-  // Verificar si el usuario es administrador
-  if (req.user!.role !== "admin") {
+  const permanent = req.query.permanent === 'true';
+  
+  // Para eliminación permanente solo administradores
+  if (permanent && req.user!.role !== "admin") {
     return res.status(403).json({
       success: false,
-      message: "Solo los administradores pueden eliminar videos",
+      message: "Solo los administradores pueden eliminar videos permanentemente",
     });
   }
 
   try {
-    const [result] = await db
-      .delete(videos)
-      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
-      .returning();
-
-    if (!result) {
+    // Buscar el video asegurándose que no esté ya en la papelera (a menos que sea eliminación permanente)
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(and(
+        eq(videos.id, videoId), 
+        eq(videos.projectId, projectId),
+        permanent ? undefined : eq(videos.isDeleted, false)
+      ))
+      .limit(1);
+      
+    if (!video) {
       return res.status(404).json({
         success: false,
-        message: "Video no encontrado",
+        message: permanent ? "Video no encontrado" : "Video no encontrado o ya está en la papelera",
+      });
+    }
+    
+    // Si no es admin, verificar que sea el creador del video
+    if (req.user!.role !== "admin" && video.createdBy !== req.user!.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Solo puedes enviar a la papelera los videos que has creado",
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Video eliminado correctamente",
-    });
+    if (permanent) {
+      // Eliminación permanente
+      const [result] = await db
+        .delete(videos)
+        .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+        .returning();
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: "Video no encontrado",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Video eliminado permanentemente",
+      });
+    } else {
+      // Mover a la papelera (eliminación lógica)
+      const [result] = await db
+        .update(videos)
+        .set({
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: req.user!.id
+        })
+        .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+        .returning();
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: "Video no encontrado",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Video movido a la papelera",
+      });
+    }
   } catch (error) {
-    console.error("Error deleting video:", error);
+    console.error("Error procesando el video:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al eliminar el video",
+      message: permanent ? "Error al eliminar el video permanentemente" : "Error al mover el video a la papelera",
     });
   }
 }
 
 /**
- * Elimina múltiples videos en masa
+ * Elimina o mueve a la papelera múltiples videos en masa
  * @param req Request con IDs de videos a eliminar
  * @param res Response
  * @returns Response con resultado de la operación
@@ -265,12 +318,13 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const { videoIds } = req.body;
+  const permanent = req.query.permanent === 'true';
 
-  // Verificar si el usuario es administrador
-  if (req.user!.role !== "admin") {
+  // Para eliminación permanente solo administradores
+  if (permanent && req.user!.role !== "admin") {
     return res.status(403).json({
       success: false,
-      message: "Solo los administradores pueden eliminar videos en masa",
+      message: "Solo los administradores pueden eliminar videos permanentemente en masa",
     });
   }
 
@@ -294,52 +348,105 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 
     // Utilizar transacción para asegurar que la operación sea atómica
     const results = await db.transaction(async (tx) => {
-      // Verificar que todos los videos pertenezcan al proyecto
-      const videosToDelete = await tx
-        .select({ id: videos.id })
+      // Verificar que todos los videos pertenezcan al proyecto y no estén ya en la papelera (para no permanentes)
+      const videosToProcess = await tx
+        .select({ 
+          id: videos.id,
+          createdBy: videos.createdBy 
+        })
         .from(videos)
         .where(and(
           eq(videos.projectId, projectId),
-          inArray(videos.id, validVideoIds)
+          inArray(videos.id, validVideoIds),
+          permanent ? undefined : eq(videos.isDeleted, false)
         ));
       
-      const foundIds = videosToDelete.map(v => v.id);
+      // Si el usuario no es admin, filtrar solo los videos que creó
+      const foundIds = req.user!.role === "admin" 
+        ? videosToProcess.map(v => v.id)
+        : videosToProcess.filter(v => v.createdBy === req.user!.id).map(v => v.id);
       
       if (foundIds.length === 0) {
-        return { deleted: 0, notFound: validVideoIds.length };
+        return { 
+          processed: 0, 
+          notFound: validVideoIds.length,
+          notAuthorized: videosToProcess.length - foundIds.length
+        };
       }
       
-      // Eliminar los videos
-      const deleteResult = await tx
-        .delete(videos)
-        .where(and(
-          eq(videos.projectId, projectId),
-          inArray(videos.id, foundIds)
-        ));
+      if (permanent) {
+        // Eliminar los videos permanentemente
+        await tx
+          .delete(videos)
+          .where(and(
+            eq(videos.projectId, projectId),
+            inArray(videos.id, foundIds)
+          ));
+      } else {
+        // Mover a la papelera (eliminación lógica)
+        await tx
+          .update(videos)
+          .set({
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedBy: req.user!.id
+          })
+          .where(and(
+            eq(videos.projectId, projectId),
+            inArray(videos.id, foundIds)
+          ));
+      }
       
       return { 
-        deleted: foundIds.length,
-        notFound: validVideoIds.length - foundIds.length 
+        processed: foundIds.length,
+        notFound: validVideoIds.length - videosToProcess.length,
+        notAuthorized: videosToProcess.length - foundIds.length
       };
     });
 
+    const action = permanent ? "eliminados permanentemente" : "movidos a la papelera";
+    let message = `${results.processed} videos ${action} correctamente`;
+    
+    if (results.notFound > 0) {
+      message += `, ${results.notFound} no encontrados`;
+    }
+    
+    if (results.notAuthorized > 0) {
+      message += `, ${results.notAuthorized} sin autorización`;
+    }
+
     return res.status(200).json({
       success: true,
-      message: `${results.deleted} videos eliminados correctamente${results.notFound > 0 ? `, ${results.notFound} no encontrados` : ''}`,
-      deleted: results.deleted,
-      notFound: results.notFound
+      message,
+      processed: results.processed,
+      notFound: results.notFound,
+      notAuthorized: results.notAuthorized
     });
   } catch (error) {
-    console.error("Error eliminando videos en masa:", error);
+    console.error("Error procesando videos en masa:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al eliminar los videos",
+      message: permanent ? "Error al eliminar los videos permanentemente" : "Error al mover los videos a la papelera",
     });
   }
 }
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
+    // Verificar si queremos mostrar elementos de la papelera
+    const showDeleted = req.query.trash === 'true';
+    
+    // Solo los administradores y creadores pueden ver sus propios elementos en la papelera
+    if (showDeleted && req.user?.role !== "admin") {
+      // Para usuarios normales, solo mostrar sus propios elementos eliminados
+      if (!req.user?.id) {
+        return res.status(403).json({
+          success: false,
+          message: "No tienes permiso para ver elementos en la papelera"
+        });
+      }
+    }
+
     const query = db
       .selectDistinct({
         ...getTableColumns(videos),
@@ -363,6 +470,12 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         // Datos del optimizador
         optimizerName: optimizer.fullName,
         optimizerUsername: optimizer.username,
+        
+        // Datos del que eliminó el video (si está en papelera)
+        deleterName: req.user!.role === "admin" && showDeleted ? 
+          creator.fullName : undefined,
+        deleterUsername: req.user!.role === "admin" && showDeleted ? 
+          creator.username : undefined,
       })
       .from(videos)
       .leftJoin(
@@ -373,10 +486,19 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .leftJoin(creator, eq(videos.createdBy, creator.id))
       .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
       .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
-      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId)) // Join with projectAccess table
+      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
       .where(
         and(
-          or(
+          // Filtro de papelera - mostrar solo videos en papelera o no en papelera según el parámetro
+          showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
+          
+          // Para usuarios no administradores que quieren ver su papelera, mostrar solo sus videos eliminados
+          showDeleted && req.user?.role !== "admin" 
+            ? eq(videos.createdBy, req.user.id) 
+            : undefined,
+            
+          // Filtros normales para videos no eliminados
+          !showDeleted ? or(
             req.user?.role === "optimizer"
               ? eq(videos.status, "available")
               : undefined,
@@ -419,22 +541,132 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
             req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
               ? isNull(videos.mediaReviewedBy)
               : undefined,
-          ),
-          req.user?.role === "admin"
-            ? undefined
-            : eq(projectAccess.userId, req.user!.id!),
+          ) : undefined,
+          
+          // Acceso a proyectos (para usuarios no administradores)
+          !showDeleted && req.user?.role !== "admin"
+            ? eq(projectAccess.userId, req.user!.id!)
+            : undefined,
         ),
       )
-      .orderBy(desc(videos.updatedAt)); // Moved orderBy after where
+      .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt));
 
     const result = await query.execute();
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching all videos:", error);
+    console.error("Error fetching videos:", error);
     return res.status(500).json({
       success: false,
       message: "Error al obtener los videos",
+    });
+  }
+}
+
+/**
+ * Restaura un video de la papelera
+ * @param req Request con ID del video a restaurar
+ * @param res Response
+ * @returns Response con resultado de la operación
+ */
+async function restoreVideo(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  const videoId = parseInt(req.params.videoId);
+  
+  try {
+    // Verificar que el video exista y esté eliminado
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(and(
+        eq(videos.id, videoId), 
+        eq(videos.projectId, projectId),
+        eq(videos.isDeleted, true)
+      ))
+      .limit(1);
+      
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video no encontrado en la papelera",
+      });
+    }
+    
+    // Solo los administradores o el creador pueden restaurar videos
+    if (req.user!.role !== "admin" && video.createdBy !== req.user!.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes permiso para restaurar este video",
+      });
+    }
+
+    // Restaurar el video
+    const [result] = await db
+      .update(videos)
+      .set({
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null
+      })
+      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+      .returning();
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Error al restaurar el video",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "Video restaurado correctamente",
+    });
+  } catch (error) {
+    console.error("Error restaurando video:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al restaurar el video",
+    });
+  }
+}
+
+/**
+ * Vacía la papelera (elimina permanentemente todos los videos en la papelera)
+ * @param req Request con ID del proyecto
+ * @param res Response
+ * @returns Response con resultado de la operación
+ */
+async function emptyTrash(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  
+  // Solo los administradores pueden vaciar la papelera
+  if (req.user!.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Solo los administradores pueden vaciar la papelera",
+    });
+  }
+  
+  try {
+    // Eliminar permanentemente todos los videos en la papelera del proyecto
+    const result = await db
+      .delete(videos)
+      .where(and(
+        eq(videos.projectId, projectId),
+        eq(videos.isDeleted, true)
+      ));
+    
+    return res.status(200).json({
+      success: true,
+      message: "Papelera vaciada correctamente",
+    });
+  } catch (error) {
+    console.error("Error vaciando la papelera:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al vaciar la papelera",
     });
   }
 }
