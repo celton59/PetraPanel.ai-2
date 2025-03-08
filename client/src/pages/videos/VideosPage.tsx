@@ -992,7 +992,12 @@ function VideosPage() {
           onUpdate={async (data, keepDialog) => {
             setUpdatingVideoId(selectedVideo.id);
             try {
-              await updateVideo(selectedVideo.id, selectedVideo.projectId, data);
+              await updateVideo({
+                videoId: selectedVideo.id,
+                projectId: selectedVideo.projectId,
+                updateRequest: data
+              });
+              
               if (!keepDialog) {
                 setSelectedVideo(undefined);
               }
