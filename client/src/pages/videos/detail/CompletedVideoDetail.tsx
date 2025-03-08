@@ -209,6 +209,53 @@ export function CompletedVideoDetail({ video }: CompletedVideoDetailProps) {
                   <p className="text-sm">{formatDate(video.updatedAt, true)}</p>
                 </div>
               </div>
+              
+              {/* Sección de enlace de YouTube */}
+              {video.youtubeUrl && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-md">
+                  <div className="flex items-start gap-3">
+                    <div className="text-red-600 dark:text-red-400 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-youtube">
+                        <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+                        <path d="m10 15 5-3-5-3z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Publicado en YouTube</h4>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={video.youtubeUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm underline text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                        >
+                          {video.youtubeUrl}
+                        </a>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-5 w-5" 
+                          onClick={() => copyToClipboard(video.youtubeUrl || "", "Enlace de YouTube copiado")}
+                        >
+                          <Copy className="h-3 w-3" />
+                          <span className="sr-only">Copiar enlace de YouTube</span>
+                        </Button>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-xs border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40"
+                          onClick={() => window.open(video.youtubeUrl, "_blank")}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Ver en YouTube
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="preview" className="space-y-4">
