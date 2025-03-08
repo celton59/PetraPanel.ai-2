@@ -247,7 +247,10 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
-    const query = db
+    const user = req.user;
+    
+    // Query base para seleccionar videos con joins a usuarios relacionados
+    let videoQuery = db
       .selectDistinct({
         ...getTableColumns(videos),
 
@@ -272,70 +275,64 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         optimizerUsername: optimizer.username,
       })
       .from(videos)
-      .leftJoin(
-        contentReviewer,
-        eq(videos.contentReviewedBy, contentReviewer.id),
-      )
+      .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
       .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
       .leftJoin(creator, eq(videos.createdBy, creator.id))
       .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
-      .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
-      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId)) // Join with projectAccess table
-      .where(
+      .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id));
+    
+    // Si el usuario es admin, ve todos los videos sin restricciones
+    if (user?.role === "admin") {
+      // Admin sees all videos, no additional filters needed
+      console.log("Usuario admin - mostrando todos los videos");
+    } else {
+      // Unir con projectAccess para verificar acceso a proyectos
+      videoQuery = videoQuery.leftJoin(
+        projectAccess, 
+        eq(projectAccess.projectId, videos.projectId)
+      );
+      
+      // Aplicar filtros según el rol del usuario
+      videoQuery = videoQuery.where(
         and(
           or(
-            req.user?.role === "optimizer"
-              ? eq(videos.status, "available")
-              : undefined,
-            req.user?.role === "optimizer"
-              ? eq(videos.status, "content_corrections")
-              : undefined,
-            req.user?.role === "optimizer"
-              ? eq(videos.optimizedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "optimizer"
-              ? isNull(videos.optimizedBy)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? eq(videos.status, "content_review")
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? eq(videos.contentReviewedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? isNull(videos.contentReviewedBy)
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.status, "upload_media")
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.status, "media_corrections")
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.contentUploadedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "youtuber"
-              ? isNull(videos.contentUploadedBy)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? eq(videos.status, "media_review")
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? eq(videos.mediaReviewedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? isNull(videos.mediaReviewedBy)
-              : undefined,
+            // Optimizer role filters
+            user?.role === "optimizer" ? eq(videos.status, "available") : undefined,
+            user?.role === "optimizer" ? eq(videos.status, "content_corrections") : undefined,
+            user?.role === "optimizer" ? eq(videos.optimizedBy, user.id!) : undefined,
+            user?.role === "optimizer" ? isNull(videos.optimizedBy) : undefined,
+            
+            // Content reviewer role filters
+            (user?.role === "reviewer" || user?.role === "content_reviewer") ? eq(videos.status, "content_review") : undefined,
+            (user?.role === "reviewer" || user?.role === "content_reviewer") ? eq(videos.contentReviewedBy, user.id!) : undefined,
+            (user?.role === "reviewer" || user?.role === "content_reviewer") ? isNull(videos.contentReviewedBy) : undefined,
+            
+            // Youtuber role filters
+            user?.role === "youtuber" ? eq(videos.status, "upload_media") : undefined,
+            user?.role === "youtuber" ? eq(videos.status, "media_corrections") : undefined,
+            user?.role === "youtuber" ? eq(videos.contentUploadedBy, user.id!) : undefined,
+            user?.role === "youtuber" ? isNull(videos.contentUploadedBy) : undefined,
+            
+            // Media reviewer role filters
+            (user?.role === "reviewer" || user?.role === "media_reviewer") ? eq(videos.status, "media_review") : undefined,
+            (user?.role === "reviewer" || user?.role === "media_reviewer") ? eq(videos.mediaReviewedBy, user.id!) : undefined,
+            (user?.role === "reviewer" || user?.role === "media_reviewer") ? isNull(videos.mediaReviewedBy) : undefined,
           ),
-          req.user?.role === "admin"
-            ? undefined
-            : eq(projectAccess.userId, req.user!.id!),
-        ),
-      )
-      .orderBy(desc(videos.updatedAt)); // Moved orderBy after where
-
-    const result = await query.execute();
-
+          // Verificar acceso al proyecto (excepto para admin que ya se maneja arriba)
+          eq(projectAccess.userId, user?.id!)
+        )
+      );
+      
+      console.log(`Usuario con rol ${user?.role} - aplicando filtros específicos`);
+    }
+    
+    // Ordenar resultados por fecha de actualización (más recientes primero)
+    videoQuery = videoQuery.orderBy(desc(videos.updatedAt));
+    
+    // Ejecutar consulta y devolver resultados
+    const result = await videoQuery.execute();
+    
+    console.log(`Total de videos encontrados: ${result.length}`);
     return res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching all videos:", error);
