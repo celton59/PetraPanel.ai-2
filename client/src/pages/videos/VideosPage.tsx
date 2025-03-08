@@ -1,3 +1,4 @@
+import React from "react";
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
@@ -108,7 +109,7 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   youtuber: ["upload_media", "media_corrections"],
 };
 
-export default function VideosPage() {
+function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
 
   if (isUserLoading) {
@@ -1114,3 +1115,6 @@ export default function VideosPage() {
     </div>
   );
 }
+
+// Aplicamos React.memo para evitar renderizaciones innecesarias
+export default React.memo(VideosPage);
