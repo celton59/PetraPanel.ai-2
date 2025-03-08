@@ -378,10 +378,7 @@ export default function VideosPage() {
     };
   };
   
-  // Esta constante determina si se debe mostrar el botón "Nuevo Video" 
-  // basada en el rol del usuario
-  const isAdmin = user?.role === "admin";
-  
+  // Filtramos los videos según los criterios de búsqueda y filtros aplicados
   const filteredVideos = videos.filter((video) => {
     // Primero verificamos el término de búsqueda
     if (searchTerm && !(
@@ -480,7 +477,7 @@ export default function VideosPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  {user?.role === "admin" && selectMode && (
+                  {isAdmin && selectMode && (
                     <TableHead className="w-[40px]">
                       <div className={cn(
                         "p-1.5 rounded-md transition-colors", 
@@ -929,7 +926,7 @@ export default function VideosPage() {
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          {user?.role === "admin" && (
+          {isAdmin && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
