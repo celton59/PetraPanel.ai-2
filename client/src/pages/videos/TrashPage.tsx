@@ -198,7 +198,7 @@ export default function TrashPage() {
                             showPlaceholder={true}
                             className="h-full"
                             title={video.optimizedTitle ?? video.title}
-                            showHoverActions={false}
+                            showHoverActions={true}
                           />
                         </div>
                       </TableCell>
@@ -272,7 +272,7 @@ export default function TrashPage() {
                     enableZoom={true}
                     showPlaceholder={true}
                     title={video.optimizedTitle || video.title}
-                    showHoverActions={false}
+                    showHoverActions={true}
                   />
                 </div>
                 
