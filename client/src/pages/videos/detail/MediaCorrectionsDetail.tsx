@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Loader2, Upload, Cloud, SendHorizonal } from "lucide-react";
+import { AlertCircle, Loader2, Upload, Cloud, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ApiVideo, UpdateVideoData } from "@/hooks/useVideos";
@@ -216,39 +216,80 @@ export function MediaCorrectionsDetail({
           </div>
         )}
 
-        {/* Título y descripción más compactos */}
-        <div className="mb-4 flex items-center justify-between">
+        {/* Título y descripción más compactos con animación */}
+        <motion.div 
+          className="mb-4 flex items-center justify-between"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Enviar Correcciones</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Sube los archivos corregidos según las indicaciones
             </p>
           </div>
-          <Button
-            onClick={handleUpload}
-            className="py-1 h-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white"
-            size="sm"
-            disabled={isUploading || (!videoFile && !thumbnailFile)}
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            {isUploading ? (
-              <span className="flex items-center">
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                Subiendo...
-              </span>
-            ) : "Enviar Correcciones"}
-          </Button>
-        </div>
+            <Button
+              onClick={handleUpload}
+              className="py-1 h-9 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white shadow-md"
+              size="sm"
+              disabled={isUploading || (!videoFile && !thumbnailFile)}
+            >
+              {isUploading ? (
+                <motion.span 
+                  className="flex items-center gap-1.5"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Subiendo...
+                </motion.span>
+              ) : (
+                <motion.span 
+                  className="flex items-center gap-1.5"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Enviar Correcciones
+                </motion.span>
+              )}
+            </Button>
+          </motion.div>
+        </motion.div>
 
-        {/* Contenedor para los campos de corrección */}
-        <div className="bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/30 dark:to-gray-900/10 border border-gray-200 dark:border-gray-800 rounded-md p-4 shadow-sm">
-          {isUploading && videoFile && (
-            <div className="mb-4">
-              <VideoUploadProgress 
-                progressState={uploadProgress}
-                onCancel={handleCancelUpload}
-              />
-            </div>
-          )}
+        {/* Contenedor para los campos de corrección con animación */}
+        <motion.div 
+          className="bg-gradient-to-b from-gray-50/70 to-white dark:from-gray-900/30 dark:to-gray-900/10 border border-gray-200 dark:border-gray-800 rounded-md p-4 shadow-md"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <AnimatePresence>
+            {isUploading && videoFile && (
+              <motion.div 
+                className="mb-4"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <VideoUploadProgress 
+                  progressState={uploadProgress}
+                  onCancel={handleCancelUpload}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           <CorrectionUploadFields
             videoFile={videoFile}
@@ -260,7 +301,7 @@ export function MediaCorrectionsDetail({
             needsVideoCorrection={Boolean(video.mediaVideoNeedsCorrection)}
             needsThumbnailCorrection={Boolean(video.mediaThumbnailNeedsCorrection)}
           />
-        </div>
+        </motion.div>
       </div>
     </ScrollArea>
   );

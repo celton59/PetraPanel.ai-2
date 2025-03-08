@@ -15,6 +15,8 @@ interface AdvancedFileUploadProps {
   initialFile?: File | null;
   previewUrl?: string | null;
   className?: string;
+  hoverClassName?: string;
+  activeClassName?: string;
   label?: string;
   sublabel?: string;
   loading?: boolean;
