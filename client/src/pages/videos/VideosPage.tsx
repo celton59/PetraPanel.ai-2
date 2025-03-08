@@ -60,34 +60,42 @@ import {
 // Estados visibles por rol
 const VISIBLE_STATES = {
   optimizer: [
-    "available",
-    "content_corrections",
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "en_revision",
   ],
-  youtuber: ["upload_media", "media_corrections", "completed"],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
   reviewer: [
-    "content_review",
-    "media_review",
-    "final_review",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "completed",
+    "en_revision",
   ],
   content_reviewer: [
-    "content_review",
+    "optimize_review",
+    "title_corrections",
     "completed",
+    "en_revision",
   ],
   media_reviewer: [
-    "media_review",
     "media_corrections",
+    "upload_review",
     "completed",
   ],
   admin: [
-    "available",
-    "content_corrections",
-    "content_review",
-    "upload_media",
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "media_corrections",
-    "media_review",
-    "final_review",
+    "review",
+    "youtube_ready",
     "completed",
+    "en_revision",
   ],
 } as const;
 
@@ -102,26 +110,12 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
-
-  if (isUserLoading) {
-    return (
-      <div className="flex items-center justify-center bg-background w-full">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
   const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
-    undefined,
-  );
+  
+  // Estados de UI
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
-    undefined,
-  );
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
@@ -133,6 +127,15 @@ export default function VideosPage() {
   const dragSelectionRef = useRef<HTMLDivElement>(null);
   const [lastSelectionUpdate, setLastSelectionUpdate] = useState(0);
 
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Efectos
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("new") === "true") {
@@ -141,13 +144,16 @@ export default function VideosPage() {
     }
   }, []);
 
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center bg-background w-full">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
@@ -1036,7 +1042,7 @@ export default function VideosPage() {
         onProjectChange={setProjectId}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={VISIBLE_STATES[user.role as keyof typeof VISIBLE_STATES]}
+        visibleStates={VISIBLE_STATES[user.role]}
       />
 
       {/* Selected videos actions */}

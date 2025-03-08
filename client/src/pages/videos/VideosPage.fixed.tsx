@@ -52,34 +52,31 @@ import { User, VideoStatus } from "@db/schema";
 // Estados visibles por rol
 const VISIBLE_STATES = {
   optimizer: [
-    "available",
-    "content_corrections",
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "en_revision",
   ],
-  youtuber: ["upload_media", "media_corrections", "completed"],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
   reviewer: [
-    "content_review",
-    "media_review",
-    "final_review",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "completed",
-  ],
-  content_reviewer: [
-    "content_review",
-    "completed",
-  ],
-  media_reviewer: [
-    "media_review",
-    "media_corrections",
-    "completed",
+    "en_revision",
   ],
   admin: [
-    "available",
-    "content_corrections",
-    "content_review",
-    "upload_media",
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "media_corrections",
-    "media_review",
-    "final_review",
+    "review",
+    "youtube_ready",
     "completed",
+    "en_revision",
   ],
 } as const;
 
@@ -94,6 +91,38 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  
+  // Estados de UI
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
+  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  
+  // Estados para selección por arrastre
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
+  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
+  const dragSelectionRef = useRef<HTMLDivElement>(null);
+
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Efectos
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("new") === "true") {
+      setNewVideoDialogOpen(true);
+      window.history.replaceState({}, "", "/videos");
+    }
+  }, []);
 
   if (isUserLoading) {
     return (
@@ -105,40 +134,6 @@ export default function VideosPage() {
       </div>
     );
   }
-
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
-    undefined,
-  );
-  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
-    undefined,
-  );
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
-  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
-  const [selectMode, setSelectMode] = useState(false);
-  
-  // Estados para selección por arrastre
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
-  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
-  const dragSelectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get("new") === "true") {
-      setNewVideoDialogOpen(true);
-      window.history.replaceState({}, "", "/videos");
-    }
-  }, []);
-
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   if (!user) return null;
 
@@ -316,46 +311,35 @@ export default function VideosPage() {
   };
   
   const filteredVideos = videos.filter((video) => {
-    // Primero verificamos el término de búsqueda
-    if (searchTerm && !(
+    if (searchTerm) {
+      return (
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (video.seriesNumber && video.seriesNumber.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.creatorName && video.creatorName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
-      )) {
-      return false;
+      );
     }
 
-    // Verificar filtro de estado
-    if (status !== "all" && video.status !== status) {
-      return false;
-    }
+    // if (status !== "all") {
+    //   return video.status === status;
+    // }
 
-    // Verificar filtro de asignación
-    if (assignedTo !== "all" && video.assignedToId?.toString() !== assignedTo) {
-      return false;
-    }
+    // if (assignedTo !== "all") {
+    //   return video.assigned_to === assignedTo;
+    // }
 
-    // Verificar filtro de proyecto
-    if (projectId !== "all" && video.projectId?.toString() !== projectId) {
-      return false;
-    }
+    // if (projectId !== "all") {
+    //   return video.project_id === projectId;
+    // }
 
-    // Verificar filtro de fecha
-    if (dateRange && dateRange.from && dateRange.to) {
-      const videoDate = new Date(video.createdAt);
-      const fromDate = new Date(dateRange.from);
-      const toDate = new Date(dateRange.to);
-      
-      // Ajustar la fecha final para incluir todo el día
-      toDate.setHours(23, 59, 59, 999);
-      
-      if (videoDate < fromDate || videoDate > toDate) {
-        return false;
-      }
-    }
+    // if (dateRange) {
+    //   return (
+    //     video.created_at >= dateRange.startDate &&
+    //     video.created_at <= dateRange.endDate
+    //   );
+    // }
 
     return true;
   });
@@ -916,7 +900,7 @@ export default function VideosPage() {
         onProjectChange={setProjectId}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={VISIBLE_STATES[user.role as keyof typeof VISIBLE_STATES]}
+        visibleStates={VISIBLE_STATES[user.role]}
       />
 
       {/* Selected videos actions */}
