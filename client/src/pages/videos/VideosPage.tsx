@@ -237,11 +237,24 @@ export default function VideosPage() {
     // Solo permitir arrastre con botón izquierdo
     if (e.button !== 0) return;
     
+    // Verificamos si estamos haciendo clic dentro de un elemento seleccionable para evitar
+    // iniciar arrastre cuando hacemos clic en controles u otros elementos
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    
+    // Guardamos cualquier selección existente que tengamos con la tecla shift presionada
+    const existingSelection = e.shiftKey ? [...selectedVideos] : [];
+    
     setIsDragging(true);
     setDragStartPosition({ x: e.clientX, y: e.clientY });
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
-    // Inicialmente no seleccionamos nada, solo cuando se mueve el ratón
+    // Si no estamos manteniendo shift, limpiamos cualquier selección previa
+    if (!e.shiftKey) {
+      setSelectedVideos([]);
+    }
     
     // Prevenir comportamiento de arrastre del navegador
     e.preventDefault();
@@ -250,10 +263,17 @@ export default function VideosPage() {
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
     
+    // Actualizamos la posición actual
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
-    // Crear un rectángulo virtual para la selección
-    if (dragStartPosition) {
+    // Solo actualizamos la selección si el rectángulo tiene un tamaño mínimo
+    // para evitar selecciones accidentales con clics pequeños
+    if (
+      dragStartPosition && 
+      (Math.abs(e.clientX - dragStartPosition.x) > 10 || 
+       Math.abs(e.clientY - dragStartPosition.y) > 10)
+    ) {
+      // Crear un rectángulo de selección
       const selectionRect = {
         left: Math.min(dragStartPosition.x, e.clientX),
         right: Math.max(dragStartPosition.x, e.clientX),
@@ -264,24 +284,32 @@ export default function VideosPage() {
       };
       
       // Convertir a DOMRect para usar con la función de intersección
-      const selectionDOMRect = DOMRect.fromRect(selectionRect);
+      const selectionDOMRect = new DOMRect(
+        selectionRect.left, 
+        selectionRect.top, 
+        selectionRect.width, 
+        selectionRect.height
+      );
       
       // Obtener todos los elementos de video en la vista actual
       const videoElements = document.querySelectorAll('.video-card');
       
-      // Creamos una nueva lista de videos seleccionados basada en la intersección
-      const newSelectedVideos: number[] = [];
+      // Preparamos la nueva selección, manteniendo la selección existente si se usa shift
+      const newSelectedVideos: number[] = e.shiftKey ? [...selectedVideos] : [];
       
       videoElements.forEach((element) => {
         const videoRect = element.getBoundingClientRect();
         const videoId = Number(element.getAttribute('data-video-id'));
         
         // Verificar si el elemento está dentro del rectángulo de selección
-        if (
-          videoId &&
-          rectanglesIntersect(selectionDOMRect, videoRect)
-        ) {
-          newSelectedVideos.push(videoId);
+        if (videoId && rectanglesIntersect(selectionDOMRect, videoRect)) {
+          // Si estamos usando shift, verificamos si ya está seleccionado
+          if (e.shiftKey && newSelectedVideos.includes(videoId)) {
+            // Ya está seleccionado, no hacemos nada
+          } else if (!newSelectedVideos.includes(videoId)) {
+            // No está seleccionado, lo añadimos
+            newSelectedVideos.push(videoId);
+          }
         }
       });
       
@@ -295,16 +323,19 @@ export default function VideosPage() {
   const handleDragEnd = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
     
-    // Si el usuario solo hizo clic (sin arrastrar realmente), deseleccionamos todo
+    // Si el rectángulo de arrastre es muy pequeño, consideramos que es un clic,
+    // y si no estamos usando shift, deseleccionamos todo
     if (
       dragStartPosition && 
       dragCurrentPosition && 
-      Math.abs(dragStartPosition.x - dragCurrentPosition.x) < 5 && 
-      Math.abs(dragStartPosition.y - dragCurrentPosition.y) < 5
+      Math.abs(dragStartPosition.x - dragCurrentPosition.x) < 10 && 
+      Math.abs(dragStartPosition.y - dragCurrentPosition.y) < 10 &&
+      !e.shiftKey
     ) {
       setSelectedVideos([]);
     }
     
+    // Finalizamos el arrastre
     setIsDragging(false);
     setDragStartPosition(null);
     setDragCurrentPosition(null);
@@ -331,18 +362,18 @@ export default function VideosPage() {
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
-    // Asegurarse de que el rectángulo tenga al menos un tamaño mínimo para ser visible
-    const minSize = 3;
-    
     return {
-      position: 'fixed' as const, // Usamos fixed para que sea relativo a la ventana
+      position: 'fixed',
       left: `${left}px`,
       top: `${top}px`,
-      width: `${Math.max(width, minSize)}px`,
-      height: `${Math.max(height, minSize)}px`,
-      pointerEvents: 'none' as const, // Para que no interfiera con los clics
-      zIndex: 50,
-    };
+      width: `${Math.max(width, 2)}px`,
+      height: `${Math.max(height, 2)}px`,
+      pointerEvents: 'none',
+      zIndex: 9999,
+      backgroundColor: 'rgba(99, 102, 241, 0.2)',
+      border: '2px solid rgba(99, 102, 241, 0.5)',
+      borderRadius: '4px',
+    } as React.CSSProperties;
   };
   
   const filteredVideos = videos.filter((video) => {
@@ -991,7 +1022,6 @@ export default function VideosPage() {
         {isDragging && (
           <div
             ref={dragSelectionRef}
-            className="fixed bg-primary/20 border border-primary/50 rounded-sm"
             style={getSelectionRectStyle()}
           ></div>
         )}

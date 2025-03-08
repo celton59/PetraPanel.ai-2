@@ -31,7 +31,9 @@ export function getInitials(name?: string | null): string {
  * @param includeTime Indica si incluir la hora en el formato
  * @returns Texto formateado de la fecha
  */
-export function formatDate(date: Date | string | number, includeTime: boolean = false): string {
+export function formatDate(date: Date | string | number | null, includeTime: boolean = false): string {
+  if (!date) return '';
+  
   const dateObj = date instanceof Date ? date : new Date(date);
   
   // Si la fecha es hoy
@@ -77,7 +79,9 @@ export function formatDate(date: Date | string | number, includeTime: boolean = 
 /**
  * Formatea una fecha específicamente para notificaciones (formato corto)
  */
-export function formatNotificationDate(date: Date | string | number): string {
+export function formatNotificationDate(date: Date | string | number | null): string {
+  if (!date) return '';
+  
   const dateObj = date instanceof Date ? date : new Date(date);
   
   // Si es hoy, muestra la hora

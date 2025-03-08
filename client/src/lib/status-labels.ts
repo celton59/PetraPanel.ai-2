@@ -14,16 +14,21 @@ const statusLabels: Record<VideoStatus, string> = {
 }
 
 export function getStatusLabel (role: User['role'], video: Video): string {
+  // Roles permitidos
+  const allowedRoles = ['admin', 'reviewer', 'optimizer', 'youtuber', 'content_reviewer', 'media_reviewer'];
+  
+  // Verificamos que el rol sea uno de los permitidos
+  const safeRole = allowedRoles.includes(role) ? role : 'admin';
 
   if (video.status === 'content_review' && video.contentReviewComments?.at(0)) {
-      return 'Corregido'
+      return 'Corregido';
   }
   else if(video.status === 'media_review' && video.mediaReviewComments?.at(0)) {
-    return 'Corregido'
+    return 'Corregido';
   }
-  else 
-    return statusLabels[video.status]
-    
+  else {
+    return statusLabels[video.status];
+  }
 };
 
 const statusColors: Record<VideoStatus, string> = {
