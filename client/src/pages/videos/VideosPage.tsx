@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
@@ -114,6 +114,12 @@ export default function VideosPage() {
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
+  
+  // Estados para selección por arrastre
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
+  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
+  const dragSelectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -222,6 +228,88 @@ export default function VideosPage() {
     } catch (error) {
       console.error("Error deleting videos in bulk:", error);
     }
+  };
+  
+  // Funciones para selección por arrastre
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectMode) return;
+    
+    // Solo permitir arrastre con botón izquierdo
+    if (e.button !== 0) return;
+    
+    setIsDragging(true);
+    setDragStartPosition({ x: e.clientX, y: e.clientY });
+    setDragCurrentPosition({ x: e.clientX, y: e.clientY });
+    
+    // Prevenir comportamiento de arrastre del navegador
+    e.preventDefault();
+  };
+  
+  const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !selectMode) return;
+    
+    setDragCurrentPosition({ x: e.clientX, y: e.clientY });
+    
+    // Detectar elementos en el rectángulo de selección
+    if (dragSelectionRef.current) {
+      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+      
+      // Obtener todos los elementos de video en la vista actual
+      const videoElements = document.querySelectorAll('.video-card');
+      
+      videoElements.forEach((element) => {
+        const videoRect = element.getBoundingClientRect();
+        const videoId = Number(element.getAttribute('data-video-id'));
+        
+        // Verificar si el elemento está dentro del rectángulo de selección
+        if (
+          videoId &&
+          rectanglesIntersect(selectionRect, videoRect)
+        ) {
+          // Verificar si ya está seleccionado
+          if (!selectedVideos.includes(videoId)) {
+            setSelectedVideos(prev => [...prev, videoId]);
+          }
+        }
+      });
+    }
+    
+    e.preventDefault();
+  };
+  
+  const handleDragEnd = () => {
+    if (!isDragging || !selectMode) return;
+    
+    setIsDragging(false);
+    setDragStartPosition(null);
+    setDragCurrentPosition(null);
+  };
+  
+  // Función para verificar si dos rectángulos se intersectan
+  const rectanglesIntersect = (rect1: DOMRect, rect2: DOMRect) => {
+    return !(
+      rect1.right < rect2.left ||
+      rect1.left > rect2.right ||
+      rect1.bottom < rect2.top ||
+      rect1.top > rect2.bottom
+    );
+  };
+  
+  // Calcular las coordenadas del rectángulo de selección
+  const getSelectionRectStyle = () => {
+    if (!dragStartPosition || !dragCurrentPosition) return {};
+    
+    const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
+    const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
+    const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
+    const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
+    
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    };
   };
 
   const filteredVideos = videos.filter((video) => {
@@ -453,12 +541,19 @@ export default function VideosPage() {
               <div className="flex-1 p-3 pl-4">
                 {/* Selection checkbox for mobile view */}
                 {user?.role === "admin" && selectMode && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <Checkbox
-                      checked={selectedVideos.includes(video.id)}
-                      onCheckedChange={() => toggleSelectVideo(video.id)}
-                      aria-label={`Seleccionar video ${video.title}`}
-                    />
+                  <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
+                    data-state={selectMode ? "visible" : "hidden"}>
+                    <div className={cn(
+                      "p-1.5 rounded-md transition-colors", 
+                      selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                    )}>
+                      <Checkbox
+                        checked={selectedVideos.includes(video.id)}
+                        onCheckedChange={() => toggleSelectVideo(video.id)}
+                        className="h-4 w-4 border-2 transition-all duration-200"
+                        aria-label={`Seleccionar video ${video.title}`}
+                      />
+                    </div>
                   </div>
                 )}
                 {/* Encabezado con miniatura y estado */}
@@ -854,7 +949,22 @@ export default function VideosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div 
+      className="min-h-screen bg-background relative"
+      onMouseDown={handleDragStart}
+      onMouseMove={handleDragMove}
+      onMouseUp={handleDragEnd}
+      onMouseLeave={handleDragEnd}
+    >
+      {/* Rectángulo de selección */}
+      {isDragging && dragStartPosition && dragCurrentPosition && (
+        <div 
+          ref={dragSelectionRef}
+          className="fixed z-50 bg-primary/10 border border-primary/40 rounded-sm pointer-events-none"
+          style={getSelectionRectStyle()}
+        />
+      )}
+      
       <div className="flex flex-col gap-2 mb-12">
         <div className="flex items-center justify-between">
           <div className="space-y-3">
