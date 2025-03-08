@@ -491,44 +491,48 @@ export default function VideosPage() {
   
   // Efecto para atajos de teclado
   useEffect(() => {
-    if (!selectMode) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Evitar que los atajos se activen cuando se está escribiendo en un input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-      
-      // Esc - Salir del modo selección
-      if (e.key === 'Escape') {
-        toggleSelectionMode();
-        e.preventDefault();
-      }
-      
-      // Ctrl/Cmd + A - Seleccionar todos
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        toggleSelectAll();
-        e.preventDefault();
-      }
-      
-      // Delete - Eliminar videos seleccionados (solo si hay alguno seleccionado)
-      if (e.key === 'Delete' && selectedVideos.length > 0 && user?.role === 'admin') {
-        // Aquí no hacemos la eliminación directamente, solo mostramos el diálogo de confirmación
-        // Esto asegura que el usuario confirme antes de eliminar
-        // Simulamos un clic en el botón de eliminar
-        const deleteButton = document.querySelector('[data-delete-selected]');
-        if (deleteButton) {
-          (deleteButton as HTMLButtonElement).click();
+    // Solo configuramos los listeners si estamos en modo selección
+    if (selectMode) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Evitar que los atajos se activen cuando se está escribiendo en un input
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+          return;
         }
-        e.preventDefault();
-      }
-    };
+        
+        // Esc - Salir del modo selección
+        if (e.key === 'Escape') {
+          toggleSelectionMode();
+          e.preventDefault();
+        }
+        
+        // Ctrl/Cmd + A - Seleccionar todos
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+          toggleSelectAll();
+          e.preventDefault();
+        }
+        
+        // Delete - Eliminar videos seleccionados (solo si hay alguno seleccionado)
+        if (e.key === 'Delete' && selectedVideos.length > 0 && user?.role === 'admin') {
+          // Aquí no hacemos la eliminación directamente, solo mostramos el diálogo de confirmación
+          // Esto asegura que el usuario confirme antes de eliminar
+          // Simulamos un clic en el botón de eliminar
+          const deleteButton = document.querySelector('[data-delete-selected]');
+          if (deleteButton) {
+            (deleteButton as HTMLButtonElement).click();
+          }
+          e.preventDefault();
+        }
+      };
+      
+      window.addEventListener('keydown', handleKeyDown);
+      
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
     
-    window.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    // Siempre devolvemos una función de limpieza, aunque sea vacía
+    return () => {};
   }, [selectMode, selectedVideos, toggleSelectAll, user?.role, toggleSelectionMode]);
 
   // Función para renderizar el contenido de la papelera
