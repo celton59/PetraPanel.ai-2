@@ -617,7 +617,6 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
@@ -746,7 +745,6 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
@@ -957,9 +955,15 @@ export default function VideosPage() {
           ></div>
         )}
         
-        {viewMode === "table" && getTableView()}
-        {viewMode === "grid" && getGridView()}
-        {viewMode === "list" && getListView()}
+        {(!videos || videos.length === 0) 
+          ? renderEmptyState()
+          : (
+            <>
+              {viewMode === "table" && getTableView()}
+              {viewMode === "grid" && getGridView()}
+              {viewMode === "list" && getListView()}
+            </>
+          )}
       </div>
 
       {/* Modals and dialogs */}
