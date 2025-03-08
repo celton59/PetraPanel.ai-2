@@ -16,6 +16,7 @@ import {
   CheckSquare,
   Square,
   Recycle,
+  Video,
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -1014,8 +1015,16 @@ function VideosPage() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Videos</h1>
-          {user?.role === "admin" && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            <Button 
+              className="bg-primary text-white hover:bg-primary/90 gap-2"
+              onClick={() => setNewVideoDialogOpen(true)}
+            >
+              <Video className="w-4 h-4" />
+              Nuevo Video
+            </Button>
+            
+            {user?.role === "admin" && (
               <Link href="/videos/trash">
                 <Button 
                   variant="outline" 
@@ -1025,8 +1034,8 @@ function VideosPage() {
                   Papelera
                 </Button>
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         {renderEmptyState()}
         
@@ -1109,8 +1118,16 @@ function VideosPage() {
             Filtros
           </Button>
           
-          {user?.role === "admin" && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            <Button 
+              className="bg-primary text-white hover:bg-primary/90 gap-2"
+              onClick={() => setNewVideoDialogOpen(true)}
+            >
+              <Video className="w-4 h-4" />
+              Nuevo Video
+            </Button>
+            
+            {user?.role === "admin" && (
               <Link href="/videos/trash">
                 <Button 
                   variant="outline" 
@@ -1120,8 +1137,8 @@ function VideosPage() {
                   Papelera
                 </Button>
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
