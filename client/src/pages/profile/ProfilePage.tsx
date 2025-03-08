@@ -286,10 +286,7 @@ export default function ProfilePage() {
                   throw new Error(errorData.message || 'Error al cambiar la contraseña');
                 }
 
-                // Mostrar alerta directamente
-                alert("Contraseña actualizada correctamente");
-                
-                // Mostrar toast (como método adicional)
+                // Mostrar toast
                 try {
                   toast.success("Contraseña actualizada", {
                     description: "Tu contraseña ha sido cambiada correctamente",
@@ -297,6 +294,8 @@ export default function ProfilePage() {
                   });
                 } catch (toastError) {
                   console.error("Error mostrando toast:", toastError);
+                  // Solo si el toast falla, mostramos alerta como respaldo
+                  alert("Contraseña actualizada correctamente");
                 }
 
                 // Limpiar los campos después de una actualización exitosa
@@ -311,16 +310,15 @@ export default function ProfilePage() {
                   console.error("Error al limpiar campos:", cleanError);
                 }
               } catch (error: any) {
-                // Mostrar mensaje de error como alerta
-                alert(`Error: ${error.message || "No se pudo actualizar la contraseña"}`);
-                
-                // También intentar mostrar toast de error
+                // Mostrar toast de error
                 try {
                   toast.error("Error", {
                     description: error.message || "No se pudo actualizar la contraseña",
                   });
                 } catch (toastError) {
                   console.error("Error mostrando toast de error:", toastError);
+                  // Solo si el toast falla, mostramos alerta como respaldo
+                  alert(`Error: ${error.message || "No se pudo actualizar la contraseña"}`);
                 }
               } finally {
                 // Restaurar el botón
