@@ -103,7 +103,7 @@ export default function VideosPage() {
     );
   }
 
-  const { videos, isLoading, deleteVideo, updateVideo } = useVideos();
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
     undefined,
   );
@@ -112,6 +112,8 @@ export default function VideosPage() {
     undefined,
   );
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -174,6 +176,54 @@ export default function VideosPage() {
     );
   }
 
+  // Toggle video selection
+  const toggleSelectVideo = (videoId: number) => {
+    setSelectedVideos(prev => {
+      if (prev.includes(videoId)) {
+        return prev.filter(id => id !== videoId);
+      } else {
+        return [...prev, videoId];
+      }
+    });
+  };
+
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    if (selectMode) {
+      // If turning off selection mode, clear selections
+      setSelectedVideos([]);
+    }
+    setSelectMode(!selectMode);
+  };
+
+  // Toggle select all videos
+  const toggleSelectAll = () => {
+    if (selectedVideos.length === filteredVideos.length) {
+      setSelectedVideos([]);
+    } else {
+      setSelectedVideos(filteredVideos.map(video => video.id));
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedVideos.length === 0) return;
+    
+    const projectIdToUse = videos.find(v => selectedVideos.includes(v.id))?.projectId;
+    if (!projectIdToUse) return;
+
+    try {
+      await bulkDeleteVideos({
+        projectId: projectIdToUse,
+        videoIds: selectedVideos
+      });
+      setSelectedVideos([]);
+      setSelectMode(false);
+    } catch (error) {
+      console.error("Error deleting videos in bulk:", error);
+    }
+  };
+
   const filteredVideos = videos.filter((video) => {
     if (searchTerm) {
       return (
@@ -219,6 +269,17 @@ export default function VideosPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  {user?.role === "admin" && (
+                    <TableHead className="w-[40px]">
+                      {selectMode && (
+                        <Checkbox 
+                          checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Seleccionar todos"
+                        />
+                      )}
+                    </TableHead>
+                  )}
                   <TableHead className="">Miniatura</TableHead>
                   <TableHead className="">Serie</TableHead>
                   <TableHead className="">Título</TableHead>
@@ -231,6 +292,18 @@ export default function VideosPage() {
             <TableBody>
               {filteredVideos?.map((video) => (
                 <TableRow key={video.id} className="group">
+                  {/* Selection checkbox */}
+                  {user?.role === "admin" && (
+                    <TableCell className="w-[40px]">
+                      {selectMode && (
+                        <Checkbox 
+                          checked={selectedVideos.includes(video.id)}
+                          onCheckedChange={() => toggleSelectVideo(video.id)}
+                          aria-label={`Seleccionar video ${video.title}`}
+                        />
+                      )}
+                    </TableCell>
+                  )}
                   {/* Miniatura */}
                   <TableCell>
                     <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
@@ -348,7 +421,7 @@ export default function VideosPage() {
           <div
             key={video.id}
             className="bg-card rounded-lg border shadow-sm overflow-hidden"
-            onClick={() => handleVideoClick(video)}
+            onClick={() => !selectMode && handleVideoClick(video)}
           >
             <div className="flex items-start relative">
               {/* Barra lateral de color según estado */}
@@ -366,6 +439,16 @@ export default function VideosPage() {
               
               {/* Información principal */}
               <div className="flex-1 p-3 pl-4">
+                {/* Selection checkbox for mobile view */}
+                {user?.role === "admin" && selectMode && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <Checkbox
+                      checked={selectedVideos.includes(video.id)}
+                      onCheckedChange={() => toggleSelectVideo(video.id)}
+                      aria-label={`Seleccionar video ${video.title}`}
+                    />
+                  </div>
+                )}
                 {/* Encabezado con miniatura y estado */}
                 <div className="flex justify-between items-start gap-3 mb-2">
                   <div className="flex-1">
