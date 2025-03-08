@@ -8,11 +8,11 @@ export const DashboardActions = () => {
   const actions = [
     {
       icon: Video,
-      title: "Gestionar Videos",
-      description: "Ver y administrar videos",
+      title: "Nuevo Video",
+      description: "Crear y subir un nuevo video",
       iconColor: "text-blue-500",
       iconBgColor: "bg-blue-500/10",
-      onClick: () => setLocation('/videos')
+      onClick: () => setLocation('/videos?new=true')
     },
     {
       icon: Target,
@@ -36,7 +36,7 @@ export const DashboardActions = () => {
       description: "Nueva idea de contenido",
       iconColor: "text-purple-500",
       iconBgColor: "bg-purple-500/10",
-      onClick: () => setLocation('/videos')
+      onClick: () => setLocation('/videos?new=true')
     },
   ];
 
