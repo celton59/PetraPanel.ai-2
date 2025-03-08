@@ -15,7 +15,8 @@ import {
   Linkedin,
   Mail,
   Link,
-  Check
+  Check,
+  Youtube
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -25,7 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -33,6 +34,18 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface YouTubeUploadData {
+  title: string;
+  description: string;
+  tags: string[];
+  privacyStatus: 'public' | 'unlisted' | 'private';
+  publishAt?: string; // ISO string para publicación programada
+  categoryId?: string;
+}
 
 export default function MediaReviewDetail({
   video,
@@ -48,6 +61,72 @@ export default function MediaReviewDetail({
   const [imagePreviewOpen, setImagePreviewOpen] = useState<boolean>(false);
   const [videoPreviewOpen, setVideoPreviewOpen] = useState<boolean>(false);
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  
+  // Estados para publicación en YouTube
+  const [youtubeDialogOpen, setYoutubeDialogOpen] = useState<boolean>(false);
+  const [youtubeUploadStatus, setYoutubeUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [youtubeUploadData, setYoutubeUploadData] = useState<YouTubeUploadData>({
+    title: video.optimizedTitle || video.title || '',
+    description: video.optimizedDescription || video.description || '',
+    tags: video.tags ? video.tags.split(',').map(tag => tag.trim()) : [],
+    privacyStatus: 'private',
+  });
+
+  // Función para manejar la publicación en YouTube
+  async function handleYouTubeUpload() {
+    try {
+      setYoutubeUploadStatus('uploading');
+      
+      // Aquí se realizaría la llamada a la API de YouTube
+      // Por ahora, simulamos una respuesta exitosa después de un tiempo
+      
+      // En una implementación real, se enviarían los datos al servidor:
+      // const response = await fetch('/api/youtube/upload', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     videoId: video.id,
+      //     youtubeData: youtubeUploadData,
+      //   }),
+      // });
+      
+      // if (!response.ok) {
+      //   throw new Error('Error al publicar en YouTube');
+      // }
+      
+      // const data = await response.json();
+      
+      // Simulación de respuesta exitosa
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Datos que normalmente recibiríamos de la API
+      const youtubeResponseData = {
+        youtubeId: 'youtube-' + Math.random().toString(36).substring(2, 10),
+        youtubeUrl: 'https://youtube.com/watch?v=example',
+      };
+      
+      // Actualizamos el video con los datos de YouTube
+      await onUpdate({
+        status: 'completed',
+        youtubeId: youtubeResponseData.youtubeId,
+        youtubeUrl: youtubeResponseData.youtubeUrl,
+        publishedAt: new Date(),
+      });
+      
+      setYoutubeUploadStatus('success');
+      toast.success('Video publicado exitosamente en YouTube');
+      
+      // Cerramos el diálogo después de un éxito
+      setTimeout(() => setYoutubeDialogOpen(false), 2000);
+      
+    } catch (error) {
+      console.error('Error al publicar en YouTube:', error);
+      setYoutubeUploadStatus('error');
+      toast.error('Error al publicar en YouTube');
+    }
+  }
 
   function handleApprove() {
     if (video.status === 'media_review') {
@@ -57,6 +136,9 @@ export default function MediaReviewDetail({
         mediaVideoNeedsCorrection: false,
         mediaThumbnailNeedsCorrection: false
       });
+    } else if (video.status === 'final_review') {
+      // Si estamos en revisión final, ofrecemos la opción de publicar en YouTube
+      setYoutubeDialogOpen(true);
     } else {
       onUpdate({
         status: 'completed'
@@ -160,6 +242,106 @@ export default function MediaReviewDetail({
               </video>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de publicación en YouTube */}
+      <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-lg font-semibold">
+              <Youtube className="mr-2 h-5 w-5 text-red-600" /> 
+              Publicar en YouTube
+            </DialogTitle>
+            <DialogDescription>
+              Configura los detalles para publicar este video en YouTube
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 my-6">
+            <div className="space-y-2">
+              <Label htmlFor="youtube-title">Título</Label>
+              <Input 
+                id="youtube-title"
+                value={youtubeUploadData.title} 
+                onChange={(e) => setYoutubeUploadData({
+                  ...youtubeUploadData,
+                  title: e.target.value
+                })}
+                className="w-full"
+                disabled={youtubeUploadStatus === 'uploading'}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="youtube-description">Descripción</Label>
+              <Textarea 
+                id="youtube-description"
+                value={youtubeUploadData.description} 
+                onChange={(e) => setYoutubeUploadData({
+                  ...youtubeUploadData,
+                  description: e.target.value
+                })}
+                className="min-h-[150px]"
+                disabled={youtubeUploadStatus === 'uploading'}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="youtube-privacy">Visibilidad</Label>
+              <Select 
+                value={youtubeUploadData.privacyStatus}
+                onValueChange={(value: 'public' | 'unlisted' | 'private') => setYoutubeUploadData({
+                  ...youtubeUploadData,
+                  privacyStatus: value
+                })}
+                disabled={youtubeUploadStatus === 'uploading'}
+              >
+                <SelectTrigger id="youtube-privacy">
+                  <SelectValue placeholder="Seleccionar visibilidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">Privado</SelectItem>
+                  <SelectItem value="unlisted">No listado</SelectItem>
+                  <SelectItem value="public">Público</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setYoutubeDialogOpen(false)}
+              disabled={youtubeUploadStatus === 'uploading'}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleYouTubeUpload}
+              disabled={youtubeUploadStatus === 'uploading'}
+              className={`
+                ${youtubeUploadStatus === 'uploading' ? 'opacity-80 cursor-not-allowed' : ''}
+                ${youtubeUploadStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}
+                ${youtubeUploadStatus === 'error' ? 'bg-red-600 hover:bg-red-700' : ''}
+              `}
+            >
+              {youtubeUploadStatus === 'idle' && (
+                <>
+                  <Youtube className="mr-2 h-4 w-4" />
+                  Publicar en YouTube
+                </>
+              )}
+              {youtubeUploadStatus === 'uploading' && "Publicando..."}
+              {youtubeUploadStatus === 'success' && (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Publicado con éxito
+                </>
+              )}
+              {youtubeUploadStatus === 'error' && "Error al publicar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -373,11 +555,22 @@ export default function MediaReviewDetail({
                   <Button
                     variant="default"
                     size="sm"
+                    className="py-1 h-7 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 border-0 text-white"
+                    onClick={() => setYoutubeDialogOpen(true)}
+                  >
+                    <Youtube className="w-3.5 h-3.5 mr-1" />
+                    Publicar en YouTube
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
                     className="py-1 h-7 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 text-white"
-                    onClick={handleApprove}
+                    onClick={() => onUpdate({
+                      status: 'completed'
+                    })}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Aprobar
+                    Completar sin publicar
                   </Button>
                   <Button
                     variant="destructive"
