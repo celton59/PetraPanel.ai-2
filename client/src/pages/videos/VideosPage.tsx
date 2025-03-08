@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -47,7 +48,6 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
-import { Checkbox } from "@/components/ui/checkbox";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -684,11 +684,12 @@ export default function VideosPage() {
                 className="absolute top-2 left-2 z-10"
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleVideoSelection(video.id);
+                  toggleSelectVideo(video.id);
                 }}
               >
                 <Checkbox 
                   checked={selectedVideos.includes(video.id)}
+                  onCheckedChange={() => toggleSelectVideo(video.id)}
                   className="h-5 w-5 border-2"
                 />
               </div>
