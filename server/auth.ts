@@ -1,13 +1,18 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { type Express } from "express";
+import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
 import { users, type InsertUser } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
+import { 
+  securityUtils, 
+  checkAccountLockout, 
+  recordFailedLoginAttempt, 
+  resetFailedLoginAttempts,
+  SECURITY_CONSTANTS
+} from "./lib/security";
 
 // Extend Express.User
 declare global {
@@ -16,26 +21,8 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
-
-// Objeto crypto con métodos consistentes para manejo de contraseñas
-export const passwordUtils = {
-  hash: async (password: string) => {
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    return `${buf.toString("hex")}.${salt}`;
-  },
-  compare: async (suppliedPassword: string, storedPassword: string) => {
-    const [hashedPassword, salt] = storedPassword.split(".");
-    const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
-    const suppliedPasswordBuf = (await scryptAsync(
-      suppliedPassword,
-      salt,
-      64,
-    )) as Buffer;
-    return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
-  },
-};
+// Exportamos las utilidades de manejo de contraseñas mejoradas
+export const passwordUtils = securityUtils;
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
@@ -53,55 +40,154 @@ export function setupAuth(app: Express) {
     next();
   });
   
-  // La configuración base debe ser lo más simple posible para evitar problemas
+  // Configuración mejorada de sesiones con más seguridad
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID || "petra-panel-secret",
+    secret: process.env.SESSION_SECRET || process.env.REPL_ID || "petra-panel-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
       // SIEMPRE poner secure: false para Cloudflare Flexible SSL
       secure: false,
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+      maxAge: SECURITY_CONSTANTS.SESSION_EXPIRY,
       path: '/',
       sameSite: 'lax' // 'none' puede causar problemas, usamos 'lax'
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
     }),
-    proxy: true // Mantener proxy para manejar las cabeceras correctamente
+    proxy: true, // Mantener proxy para manejar las cabeceras correctamente
+    // Agregar más flags para prevenir vulnerabilidades de XSS y CSRF
+    name: 'petrapanel_sid', // Nombre de cookie personalizado
   };
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+  
+  // Middleware de seguridad para protección contra CSRF
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Si no hay una sesión de usuario, no necesitamos generar tokens CSRF
+    if (!req.session) {
+      return next();
+    }
+    
+    // Generar un token CSRF en la sesión si no existe
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = securityUtils.generateCSRFToken();
+    }
+    
+    // Establecer un encabezado X-CSRF-Token para que el cliente pueda leerlo
+    res.setHeader('X-CSRF-Token', req.session.csrfToken);
+    
+    // CSRF protection solo se aplica a métodos no seguros
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return next();
+    }
+    
+    // Verificar el token CSRF para peticiones mutantes (POST, PUT, DELETE, etc.)
+    const requestToken = req.headers['x-csrf-token'] || req.body?.csrfToken;
+    
+    if (!requestToken || requestToken !== req.session.csrfToken) {
+      // Solo aplicamos en producción o si está habilitado explícitamente
+      if (process.env.NODE_ENV === 'production' || process.env.ENFORCE_CSRF === 'true') {
+        console.error('CSRF token mismatch', {
+          sessionToken: req.session.csrfToken,
+          requestToken
+        });
+        return res.status(403).json({
+          success: false,
+          message: "Error de validación de seguridad. Por favor, recarga la página."
+        });
+      } else {
+        // En desarrollo, solo registramos el error pero permitimos la petición
+        console.warn('CSRF token mismatch, but allowing in development mode', {
+          sessionToken: req.session.csrfToken,
+          requestToken
+        });
+      }
+    }
+    
+    next();
+  });
+  
+  // Headers de seguridad adicionales
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Prevenir que el navegador haga MIME-sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    
+    // Prevenir clickjacking
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    
+    // Habilitar la protección XSS en navegadores antiguos
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Establecer la política del cargador de servicio (para HTTPS)
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Service-Worker-Allowed', '/');
+    }
+    
+    next();
+  });
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        // Verificar si la cuenta está bloqueada por intentos fallidos
+        const lockoutCheck = checkAccountLockout(username);
+        if (lockoutCheck.locked) {
+          console.log(`Account ${username} is locked due to multiple failed attempts. Remaining time: ${lockoutCheck.remainingTime} seconds`);
+          return done(null, false, { 
+            message: `Cuenta temporalmente bloqueada por múltiples intentos fallidos. Inténtalo de nuevo en ${lockoutCheck.remainingTime} segundos.`
+          });
+        }
+        
         console.log("Authenticating user:", username);
         
-        // Buscar usuarios ignorando mayúsculas/minúsculas
+        // Buscar usuarios ignorando mayúsculas/minúsculas de manera más segura
         const usersResult = await db
           .select()
           .from(users);
           
-        // Filtrar manualmente para encontrar la coincidencia insensible a mayúsculas/minúsculas
+        // Normalizar el nombre de usuario para comparación
+        const normalizedUsername = username.toLowerCase();
+        
+        // Filtrar manualmente con comparación normalizada
         const user = usersResult.find(u => 
-          u.username.toLowerCase() === username.toLowerCase() ||
-          u.username.charAt(0).toUpperCase() + u.username.slice(1) === username ||
-          u.username.charAt(0).toLowerCase() + u.username.slice(1) === username
+          u.username.toLowerCase() === normalizedUsername
         );
 
+        // Si no encontramos usuario, registramos un intento fallido
         if (!user) {
-          return done(null, false, { message: "Incorrect username." });
+          // Registramos el intento fallido usando el username proporcionado
+          const failedAttempt = recordFailedLoginAttempt(username);
+          
+          // Mensaje genérico por seguridad (no revelar si el usuario existe o no)
+          const message = failedAttempt.locked 
+            ? `Cuenta temporalmente bloqueada por múltiples intentos fallidos. Inténtalo de nuevo más tarde.` 
+            : "Nombre de usuario o contraseña incorrectos.";
+            
+          return done(null, false, { message });
         }
 
-        const isMatch = await passwordUtils.compare(password, user.password);
+        // Verificar contraseña con timing-safe compare
+        const isMatch = await passwordUtils.comparePassword(password, user.password);
+        
         if (!isMatch) {
-          return done(null, false, { message: "Incorrect password." });
+          // Registramos el intento fallido
+          const failedAttempt = recordFailedLoginAttempt(user.username);
+          
+          // Mensaje específico basado en los intentos
+          const message = failedAttempt.locked 
+            ? `Cuenta temporalmente bloqueada por múltiples intentos fallidos. Inténtalo de nuevo más tarde.` 
+            : "Nombre de usuario o contraseña incorrectos.";
+            
+          return done(null, false, { message });
         }
 
+        // Login exitoso, reseteamos los intentos fallidos
+        resetFailedLoginAttempts(user.username);
+        
         return done(null, user);
       } catch (err) {
         console.error("Authentication error:", err);
