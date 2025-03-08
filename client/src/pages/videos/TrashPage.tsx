@@ -332,15 +332,24 @@ export default function TrashPage() {
                 <div className="ml-3">
                   {/* Solo el creador o un administrador puede restaurar */}
                   {(user.role === "admin" || video.createdBy === user.id) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRestoreVideo(video.id)}
-                      className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Restaurar
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRestoreVideo(video.id)}
+                            className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Restaurar
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Restaurar el video de la papelera</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               </div>
