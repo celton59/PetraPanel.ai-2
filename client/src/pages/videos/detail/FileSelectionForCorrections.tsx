@@ -63,7 +63,7 @@ export function FileSelectionForCorrections({
                 transition={{ duration: 0.3 }}
               >
                 <VideoPreview
-                  src={video.videoUrl || undefined}
+                  src={video.videoUrl}
                   alt={video.title || "Video"}
                   aspectRatio="video"
                   enableControls={true}
@@ -71,7 +71,7 @@ export function FileSelectionForCorrections({
                   muted={true}
                   loop={false}
                   title={video.optimizedTitle || video.title || "Video"}
-                  description={video.description || undefined}
+                  description={video.description}
                   onShare={() => {
                     if (video.videoUrl) {
                       navigator.clipboard.writeText(video.videoUrl);

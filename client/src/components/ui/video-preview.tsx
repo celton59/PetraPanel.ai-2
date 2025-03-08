@@ -26,7 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 interface VideoPreviewProps {
-  src: string | null;
+  src: string | null | undefined;
   alt?: string;
   aspectRatio?: "auto" | "video" | "square";
   className?: string;

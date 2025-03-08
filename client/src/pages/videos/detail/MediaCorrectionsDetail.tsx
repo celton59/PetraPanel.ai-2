@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Upload, Cloud, SendHorizonal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ApiVideo, UpdateVideoData } from "@/hooks/useVideos";
@@ -15,6 +15,7 @@ import { useUser } from "@/hooks/use-user";
 import { CorrectionUploadFields } from "./CorrectionUploadFields";
 import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
 import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Estado inicial de progreso vacío
 const emptyProgressState: UploadProgressState = {
