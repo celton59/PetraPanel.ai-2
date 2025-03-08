@@ -139,6 +139,7 @@ export default function VideosPage() {
   const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
   const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
   const dragSelectionRef = useRef<HTMLDivElement>(null);
+  const [lastSelectionUpdate, setLastSelectionUpdate] = useState(0);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -256,6 +257,23 @@ export default function VideosPage() {
     // Solo permitir arrastre con botón izquierdo
     if (e.button !== 0) return;
     
+    // Si estamos en un control que no debe iniciar el drag, ignoramos
+    if (
+      e.target instanceof HTMLButtonElement || 
+      e.target instanceof HTMLInputElement || 
+      e.target instanceof HTMLAnchorElement || 
+      (e.target as Element).closest('button') ||
+      (e.target as Element).closest('a') ||
+      (e.target as Element).closest('input')
+    ) {
+      return;
+    }
+    
+    // Vaciar selección previa si no se está presionando la tecla Shift
+    if (!e.shiftKey) {
+      setSelectedVideos([]);
+    }
+    
     setIsDragging(true);
     setDragStartPosition({ x: e.clientX, y: e.clientY });
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
@@ -269,39 +287,71 @@ export default function VideosPage() {
     
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
+    // Solo actualizamos la selección cada cierto tiempo para mejorar el rendimiento
+    const now = Date.now();
+    if (now - lastSelectionUpdate < 50) return; // Limitar a 20 actualizaciones por segundo
+    
     // Detectar elementos en el rectángulo de selección
-    if (dragSelectionRef.current) {
-      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+    const selectionRect = {
+      left: Math.min(dragStartPosition!.x, e.clientX),
+      top: Math.min(dragStartPosition!.y, e.clientY),
+      right: Math.max(dragStartPosition!.x, e.clientX),
+      bottom: Math.max(dragStartPosition!.y, e.clientY),
+      width: Math.abs(e.clientX - dragStartPosition!.x),
+      height: Math.abs(e.clientY - dragStartPosition!.y)
+    } as DOMRect;
+    
+    // Obtener todos los elementos de video en la vista actual
+    const videoElements = document.querySelectorAll('.video-card');
+    const newSelectedVideos = [...selectedVideos]; // Copia para modificar
+    
+    videoElements.forEach((element) => {
+      const videoRect = element.getBoundingClientRect();
+      const videoId = Number(element.getAttribute('data-video-id'));
       
-      // Obtener todos los elementos de video en la vista actual
-      const videoElements = document.querySelectorAll('.video-card');
+      if (!videoId) return;
       
-      videoElements.forEach((element) => {
-        const videoRect = element.getBoundingClientRect();
-        const videoId = Number(element.getAttribute('data-video-id'));
-        
-        // Verificar si el elemento está dentro del rectángulo de selección
-        if (
-          videoId &&
-          rectanglesIntersect(selectionRect, videoRect)
-        ) {
-          // Verificar si ya está seleccionado
-          if (!selectedVideos.includes(videoId)) {
-            setSelectedVideos(prev => [...prev, videoId]);
-          }
+      // Verificar si el elemento está dentro del rectángulo de selección
+      if (rectanglesIntersect(selectionRect, videoRect)) {
+        // Añadir a la selección si no está ya
+        if (!newSelectedVideos.includes(videoId)) {
+          newSelectedVideos.push(videoId);
         }
-      });
-    }
+      }
+    });
+    
+    setSelectedVideos(newSelectedVideos);
+    setLastSelectionUpdate(now);
     
     e.preventDefault();
   };
   
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
+    
+    // Una última actualización de la selección
+    if (dragStartPosition && dragCurrentPosition) {
+      const selectionRect = {
+        left: Math.min(dragStartPosition.x, dragCurrentPosition.x),
+        top: Math.min(dragStartPosition.y, dragCurrentPosition.y),
+        right: Math.max(dragStartPosition.x, dragCurrentPosition.x),
+        bottom: Math.max(dragStartPosition.y, dragCurrentPosition.y),
+        width: Math.abs(dragCurrentPosition.x - dragStartPosition.x),
+        height: Math.abs(dragCurrentPosition.y - dragStartPosition.y)
+      } as DOMRect;
+      
+      // Si el rectángulo es muy pequeño, probablemente sea un clic accidental
+      // así que ignoramos la selección en ese caso
+      if (selectionRect.width < 5 && selectionRect.height < 5) {
+        // No hacemos nada, probablemente fue un clic accidental
+      }
+    }
     
     setIsDragging(false);
     setDragStartPosition(null);
     setDragCurrentPosition(null);
+    
+    e.preventDefault();
   };
   
   // Función para verificar si dos rectángulos se intersectan
