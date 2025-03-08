@@ -121,7 +121,7 @@ export default function TrashPage() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="gap-1"
+                  className="gap-1 bg-red-600 hover:bg-red-700"
                 >
                   <Trash2 className="w-4 h-4" />
                   Vaciar papelera
@@ -170,7 +170,7 @@ export default function TrashPage() {
           {/* Vista de tabla para escritorio */}
           <div className="rounded-lg border bg-card shadow-sm overflow-hidden relative">
             {/* Accent gradient para la tabla de videos */}
-            <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-primary to-violet-500 absolute top-0 left-0"></div>
+            <div className="h-1 w-full bg-gradient-to-r from-red-600 via-red-500 to-pink-500 absolute top-0 left-0"></div>
             <div className="overflow-x-auto pt-1">
               <Table>
                 <TableHeader>
@@ -242,7 +242,7 @@ export default function TrashPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleRestoreVideo(video.id)}
-                            className="h-8 gap-1"
+                            className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
                           >
                             <RefreshCw className="h-3.5 w-3.5" />
                             Restaurar
@@ -261,7 +261,7 @@ export default function TrashPage() {
             {trashVideos.map((video) => (
               <div
                 key={video.id}
-                className="group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
+                className="group video-card relative flex items-center border-l-4 border-red-500 border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
               >
                 {/* Thumbnail */}
                 <div className="h-16 w-28 rounded overflow-hidden mr-3 flex-shrink-0">
@@ -312,7 +312,7 @@ export default function TrashPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleRestoreVideo(video.id)}
-                      className="h-8 gap-1"
+                      className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                       Restaurar
