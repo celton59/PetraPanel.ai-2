@@ -256,6 +256,88 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
   }
 }
 
+/**
+ * Elimina múltiples videos en masa
+ * @param req Request con IDs de videos a eliminar
+ * @param res Response
+ * @returns Response con resultado de la operación
+ */
+async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  const { videoIds } = req.body;
+
+  // Verificar si el usuario es administrador
+  if (req.user!.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Solo los administradores pueden eliminar videos en masa",
+    });
+  }
+
+  if (!Array.isArray(videoIds) || videoIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Se requiere un array de IDs de videos a eliminar",
+    });
+  }
+
+  try {
+    // Validar que todos los IDs sean números
+    const validVideoIds = videoIds.filter(id => !isNaN(parseInt(id))).map(id => parseInt(id));
+    
+    if (validVideoIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No se proporcionaron IDs de video válidos",
+      });
+    }
+
+    // Utilizar transacción para asegurar que la operación sea atómica
+    const results = await db.transaction(async (tx) => {
+      // Verificar que todos los videos pertenezcan al proyecto
+      const videosToDelete = await tx
+        .select({ id: videos.id })
+        .from(videos)
+        .where(and(
+          eq(videos.projectId, projectId),
+          videos.id.in(validVideoIds)
+        ));
+      
+      const foundIds = videosToDelete.map(v => v.id);
+      
+      if (foundIds.length === 0) {
+        return { deleted: 0, notFound: validVideoIds.length };
+      }
+      
+      // Eliminar los videos
+      const deleteResult = await tx
+        .delete(videos)
+        .where(and(
+          eq(videos.projectId, projectId),
+          videos.id.in(foundIds)
+        ));
+      
+      return { 
+        deleted: foundIds.length,
+        notFound: validVideoIds.length - foundIds.length 
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `${results.deleted} videos eliminados correctamente${results.notFound > 0 ? `, ${results.notFound} no encontrados` : ''}`,
+      deleted: results.deleted,
+      notFound: results.notFound
+    });
+  } catch (error) {
+    console.error("Error eliminando videos en masa:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al eliminar los videos",
+    });
+  }
+}
+
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
     const query = db
