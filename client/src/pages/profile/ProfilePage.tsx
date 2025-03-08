@@ -279,19 +279,36 @@ export default function ProfilePage() {
                   throw new Error(errorData.message || 'Error al cambiar la contraseña');
                 }
 
+                // Mostrar alerta directamente
+                alert("Contraseña actualizada correctamente");
+                
+                // Mostrar toast (como método adicional)
+                try {
+                  toast.success("Contraseña actualizada", {
+                    description: "Tu contraseña ha sido cambiada correctamente",
+                    duration: 5000, // Duración más larga
+                  });
+                } catch (toastError) {
+                  console.error("Error mostrando toast:", toastError);
+                }
+
                 // Limpiar los campos después de una actualización exitosa
                 const passwordInputs = e.currentTarget.querySelectorAll('input[type="password"]');
                 passwordInputs.forEach(input => {
                   (input as HTMLInputElement).value = '';
                 });
-
-                toast("Contraseña actualizada", {
-                  description: "Tu contraseña ha sido cambiada correctamente",
-                });
               } catch (error: any) {
-                toast.error("Error", {
-                  description: error.message || "No se pudo actualizar la contraseña",
-                });
+                // Mostrar mensaje de error como alerta
+                alert(`Error: ${error.message || "No se pudo actualizar la contraseña"}`);
+                
+                // También intentar mostrar toast de error
+                try {
+                  toast.error("Error", {
+                    description: error.message || "No se pudo actualizar la contraseña",
+                  });
+                } catch (toastError) {
+                  console.error("Error mostrando toast de error:", toastError);
+                }
               } finally {
                 // Restaurar el botón
                 if (submitButton) {
