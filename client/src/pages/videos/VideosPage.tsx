@@ -814,8 +814,11 @@ export default function VideosPage() {
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           {user?.role === "admin" && (
             <Button
-              variant="outline"
-              className="flex items-center gap-2"
+              variant={selectMode ? "default" : "outline"}
+              className={cn(
+                "flex items-center gap-2",
+                selectMode && "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+              )}
               onClick={toggleSelectionMode}
             >
               {selectMode ? (
