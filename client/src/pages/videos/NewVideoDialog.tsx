@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,6 +21,8 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { useVideos } from "@/hooks/useVideos";
+import { useUser } from "@/hooks/use-user";
+import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { 
   Loader2, 
@@ -79,6 +81,23 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   const [bulkTitles, setBulkTitles] = useState<string>("");
   const [showPreview, setShowPreview] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const { user } = useUser();
+  const [, navigate] = useLocation();
+  
+  // Verificar si el usuario tiene permiso para crear videos
+  useEffect(() => {
+    if (user && user.role !== "admin" && open) {
+      toast.error("Acceso denegado", {
+        description: "No tienes permisos para crear nuevos videos"
+      });
+      
+      // Cerrar el diálogo y redirigir si no tiene permisos
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
+      navigate("/videos");
+    }
+  }, [user, open, onOpenChange, navigate]);
 
   const { createVideo, createBulkVideos } = useVideos();
 
@@ -623,6 +642,17 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   }
 
   async function onSubmit(data: VideoFormValues) {
+    // Verificar el rol del usuario
+    if (user?.role !== "admin") {
+      toast.error("Acceso denegado", {
+        description: "No tienes permisos para crear nuevos videos"
+      });
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
+      return;
+    }
+    
     if (!selectedProject) {
       toast.error("Error", {
         description: "Debes seleccionar un proyecto",
@@ -655,6 +685,17 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   }
   
   async function handleBulkSubmit() {
+    // Verificar el rol del usuario
+    if (user?.role !== "admin") {
+      toast.error("Acceso denegado", {
+        description: "No tienes permisos para crear nuevos videos"
+      });
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
+      return;
+    }
+    
     if (!selectedProject) {
       toast.error("Error", {
         description: "Debes seleccionar un proyecto",
