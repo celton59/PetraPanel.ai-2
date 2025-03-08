@@ -238,13 +238,13 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2">
+        <div className="grid grid-cols-1 gap-2 max-h-[180px] overflow-y-auto pr-2">
           {titles.map((title, index) => (
             <div 
               key={index}
-              className="flex items-center gap-3 p-3 bg-background rounded-md border"
+              className="flex items-center gap-2 p-2 bg-background rounded-md border"
             >
-              <div className="bg-primary/10 text-primary rounded-full h-7 w-7 flex items-center justify-center font-medium text-xs">
+              <div className="bg-primary/10 text-primary rounded-full h-6 w-6 flex items-center justify-center font-medium text-xs shrink-0">
                 {index + 1}
               </div>
               <div className="flex-1 min-w-0">
@@ -253,7 +253,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                   Proyecto: {selectedProject?.name}
                 </p>
               </div>
-              <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+              <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full shrink-0">
                 Pendiente
               </div>
             </div>
@@ -507,7 +507,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                       value={bulkTitles}
                       onChange={(e) => setBulkTitles(e.target.value)}
                       placeholder="Título 1&#10;Título 2&#10;Título 3&#10;..."
-                      className="min-h-[150px] bg-background"
+                      className="h-[120px] max-h-[120px] bg-background"
                     />
                     
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
@@ -534,7 +534,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                     
                     {/* Área para drop de archivos */}
                     <div 
-                      className={`border-2 border-dashed rounded-md p-4 mt-4 transition-colors ${
+                      className={`border-2 border-dashed rounded-md p-3 mt-2 transition-colors ${
                         isDraggingFile 
                           ? 'bg-primary/10 border-primary' 
                           : 'bg-muted/30 border-muted-foreground/20 hover:bg-muted/50'
@@ -543,12 +543,12 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                     >
-                      <div className="flex flex-col items-center justify-center text-center gap-2">
-                        <div className={`rounded-full p-2 ${isDraggingFile ? 'bg-primary/20 text-primary' : 'bg-muted-foreground/10 text-muted-foreground'}`}>
-                          <FileUp className="h-5 w-5" />
+                      <div className="flex items-center justify-center gap-3">
+                        <div className={`rounded-full p-2 shrink-0 ${isDraggingFile ? 'bg-primary/20 text-primary' : 'bg-muted-foreground/10 text-muted-foreground'}`}>
+                          <FileUp className="h-4 w-4" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium mb-1">Importar desde archivo</p>
+                          <p className="text-sm font-medium">Importar desde archivo</p>
                           <p className="text-xs text-muted-foreground">
                             Arrastra un archivo TXT o CSV aquí, o{" "}
                             <label className="text-primary cursor-pointer hover:underline">
@@ -713,7 +713,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
           Nuevo Video
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden max-h-[90vh]">
         <div className="bg-muted/80 px-6 py-4 border-b">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
@@ -732,7 +732,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
           </DialogHeader>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           {/* Stepper */}
           <div className="flex items-center justify-center">
             <div className="flex items-center">
