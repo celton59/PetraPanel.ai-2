@@ -164,12 +164,7 @@ function VideosPage() {
             ? "Los videos aparecerán aquí cuando haya contenido para optimizar"
             : "Comienza agregando tu primer video usando el botón"}
         </p>
-        {user?.role === "admin" && (
-          <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nuevo Video
-          </Button>
-        )}
+        {/* Botón "Nuevo Video" eliminado */}
       </div>
     );
   }
@@ -1116,10 +1111,6 @@ function VideosPage() {
           
           {user?.role === "admin" && (
             <div className="flex gap-2">
-              <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Nuevo Video
-              </Button>
               <Link href="/videos/trash">
                 <Button 
                   variant="outline" 
