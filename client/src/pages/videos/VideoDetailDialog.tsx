@@ -21,6 +21,7 @@ import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { canUserSeeVideoDetails } from "@/lib/role-permissions";
 import MediaReviewDetail from "./detail/MediaReviewDetail";
 import { MediaCorrectionsDetail } from "./detail/MediaCorrectionsDetail";
+import { CompletedVideoDetail } from "./detail/CompletedVideoDetail";
 import { ApiVideo } from "@/hooks/useVideos";
 
 const statusDescriptions: Record<VideoStatus, string> = {
@@ -96,7 +97,9 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
         );
       case "media_review":
       case "final_review":
-        return <MediaReviewDetail video={video} onUpdate={onUpdate} />;      
+        return <MediaReviewDetail video={video} onUpdate={onUpdate} />;
+      case "completed":
+        return <CompletedVideoDetail video={video} />;      
     }
   }
 
