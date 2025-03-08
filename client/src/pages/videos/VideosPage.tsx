@@ -159,6 +159,9 @@ export default function VideosPage() {
 
   if (!user) return null;
 
+  // Esta constante determina si se debe mostrar el botón "Nuevo Video" basada en el rol del usuario
+  const isAdmin = user.role === "admin";
+
   function canSeeVideoDetails(video: ApiVideo): boolean {
     if (isAdmin) return true;
 
@@ -505,7 +508,7 @@ export default function VideosPage() {
                 {filteredVideos?.map((video) => (
                   <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
                     {/* Selection checkbox */}
-                    {user?.role === "admin" && selectMode && (
+                    {isAdmin && selectMode && (
                       <TableCell className="w-[40px]">
                         <div className={cn(
                           "p-1.5 rounded-md transition-colors", 
@@ -582,7 +585,7 @@ export default function VideosPage() {
                             <span className="sr-only">Ver detalles</span>
                           </Button>
                         )}
-                        {user?.role === "admin" && (
+                        {isAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
