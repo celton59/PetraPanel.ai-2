@@ -32,10 +32,7 @@ export const loginSchema = z.object({
  */
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
-  newPassword: strongPasswordSchema
-}).refine(data => data.currentPassword !== data.newPassword, {
-  message: "La nueva contraseña debe ser diferente a la actual",
-  path: ["newPassword"]
+  newPassword: z.string().min(1, "La nueva contraseña es obligatoria")
 });
 
 /**

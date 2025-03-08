@@ -22,28 +22,7 @@ import { Progress } from "@/components/ui/progress";
 // Esquema de validación para el cambio de contraseña
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
-  newPassword: z.string()
-    .min(8, "La contraseña debe tener al menos 8 caracteres")
-    .max(64, "La contraseña debe tener como máximo 64 caracteres")
-    .refine(
-      (password) => /[A-Z]/.test(password),
-      "La contraseña debe incluir al menos una letra mayúscula"
-    )
-    .refine(
-      (password) => /[a-z]/.test(password),
-      "La contraseña debe incluir al menos una letra minúscula"
-    )
-    .refine(
-      (password) => /[0-9]/.test(password),
-      "La contraseña debe incluir al menos un número"
-    )
-    .refine(
-      (password) => /[^A-Za-z0-9]/.test(password),
-      "La contraseña debe incluir al menos un carácter especial"
-    ),
-}).refine(data => data.currentPassword !== data.newPassword, {
-  message: "La nueva contraseña debe ser diferente a la actual",
-  path: ["newPassword"]
+  newPassword: z.string().min(1, "La nueva contraseña es obligatoria")
 });
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
