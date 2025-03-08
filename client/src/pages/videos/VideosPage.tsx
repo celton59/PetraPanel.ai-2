@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   CheckSquare,
   Square,
+  Recycle,
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -48,6 +49,7 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
+import { Link } from "wouter";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
@@ -931,10 +933,21 @@ export default function VideosPage() {
           </Button>
           
           {user?.role === "admin" && (
-            <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nuevo Video
-            </Button>
+            <>
+              <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nuevo Video
+              </Button>
+              <Link href="/videos/trash">
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                >
+                  <Recycle className="w-4 h-4" />
+                  Papelera
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
