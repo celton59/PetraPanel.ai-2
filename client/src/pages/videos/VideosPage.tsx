@@ -622,12 +622,17 @@ export default function VideosPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(!videos || videos.length === 0) && renderEmptyState()}
+                {(!videos || videos.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-64">
+                      {renderEmptyState()}
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
         </div>
-        {(!videos || videos.length === 0) && renderEmptyState()}
       </div>
     );
   }
@@ -718,7 +723,12 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
+        {/* Mostrar estado vacío solo si no hay videos */}
+        {(!videos || videos.length === 0) && (
+          <div className="col-span-full">
+            {renderEmptyState()}
+          </div>
+        )}
       </div>
     );
   }
@@ -865,7 +875,12 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
+        {/* Estado vacío para la vista de lista */}
+        {(!videos || videos.length === 0) && (
+          <div>
+            {renderEmptyState()}
+          </div>
+        )}
       </div>
     );
   }
