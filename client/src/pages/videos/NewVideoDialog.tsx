@@ -33,7 +33,11 @@ import {
   CircleSlash,
   FileStack,
   ListPlus,
-  FileTextIcon
+  FileTextIcon,
+  Upload,
+  Eye,
+  FileUp,
+  AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,6 +77,8 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("single");
   const [bulkTitles, setBulkTitles] = useState<string>("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const { createVideo, createBulkVideos } = useVideos();
 
@@ -90,10 +96,171 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
     setSelectedProject(undefined);
     setActiveTab("single");
     setBulkTitles("");
+    setShowPreview(false);
     form.reset({
       title: "",
       description: "",
     });
+  }
+  
+  // Función para importar títulos desde un archivo
+  function handleFileImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Aceptamos solo archivos .txt y .csv
+    if (file.type !== "text/plain" && !file.name.endsWith('.csv')) {
+      toast.error("Formato de archivo no soportado", {
+        description: "Solo se permiten archivos TXT o CSV",
+      });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      // Para CSV, separamos por líneas y comas si es necesario
+      if (file.name.endsWith('.csv')) {
+        // Dividimos por líneas primero
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        // Si solo hay una línea con comas, probablemente es un CSV con una línea
+        if (lines.length === 1 && lines[0].includes(',')) {
+          const titles = lines[0].split(',').map(title => title.trim()).filter(Boolean);
+          setBulkTitles(titles.join('\n'));
+        } else {
+          // Múltiples líneas, asumimos una por título
+          setBulkTitles(lines.join('\n'));
+        }
+      } else {
+        // Para archivos .txt, simplemente usamos el contenido tal cual
+        setBulkTitles(content);
+      }
+      
+      // Resetear el input para permitir cargar el mismo archivo otra vez
+      event.target.value = '';
+      
+      toast.success("Archivo importado", {
+        description: "Los títulos se han cargado correctamente",
+      });
+    };
+    
+    reader.onerror = () => {
+      toast.error("Error al leer el archivo", {
+        description: "No se pudo procesar el archivo seleccionado",
+      });
+    };
+    
+    reader.readAsText(file);
+  }
+  
+  // Función para manejar el drag and drop de archivos
+  function handleDragOver(event: React.DragEvent) {
+    event.preventDefault();
+    setIsDraggingFile(true);
+  }
+  
+  function handleDragLeave(event: React.DragEvent) {
+    event.preventDefault();
+    setIsDraggingFile(false);
+  }
+  
+  function handleDrop(event: React.DragEvent) {
+    event.preventDefault();
+    setIsDraggingFile(false);
+    
+    const file = event.dataTransfer.files[0];
+    if (!file) return;
+    
+    // Mismo procesamiento que en handleFileImport
+    if (file.type !== "text/plain" && !file.name.endsWith('.csv')) {
+      toast.error("Formato de archivo no soportado", {
+        description: "Solo se permiten archivos TXT o CSV",
+      });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (file.name.endsWith('.csv')) {
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length === 1 && lines[0].includes(',')) {
+          const titles = lines[0].split(',').map(title => title.trim()).filter(Boolean);
+          setBulkTitles(titles.join('\n'));
+        } else {
+          setBulkTitles(lines.join('\n'));
+        }
+      } else {
+        setBulkTitles(content);
+      }
+      
+      toast.success("Archivo importado", {
+        description: "Los títulos se han cargado correctamente",
+      });
+    };
+    
+    reader.onerror = () => {
+      toast.error("Error al leer el archivo", {
+        description: "No se pudo procesar el archivo seleccionado",
+      });
+    };
+    
+    reader.readAsText(file);
+  }
+  
+  // Función para generar la vista previa de los videos
+  function renderVideoPreview() {
+    const titles = bulkTitles
+      .split('\n')
+      .map(line => line.trim())
+      .filter(title => title.length > 0);
+      
+    if (titles.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center p-10 bg-muted/20 rounded-lg border border-dashed">
+          <AlertCircle className="h-10 w-10 text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">No hay títulos para previsualizar</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium">Vista Previa ({titles.length} videos)</h3>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowPreview(false)}
+            className="h-7 text-xs"
+          >
+            Volver a edición
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2">
+          {titles.map((title, index) => (
+            <div 
+              key={index}
+              className="flex items-center gap-3 p-3 bg-background rounded-md border"
+            >
+              <div className="bg-primary/10 text-primary rounded-full h-7 w-7 flex items-center justify-center font-medium text-xs">
+                {index + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{title}</p>
+                <p className="text-xs text-muted-foreground">
+                  Proyecto: {selectedProject?.name}
+                </p>
+              </div>
+              <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                Pendiente
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   function getStep1Content() {
@@ -350,46 +517,102 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                           {bulkTitles.split('\n').filter(line => line.trim().length > 0).length} títulos
                         </span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs"
-                        onClick={() => setBulkTitles('')}
-                      >
-                        Limpiar
-                      </Button>
+                      <div className="flex gap-2">
+                        {bulkTitles.trim() && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() => setBulkTitles('')}
+                          >
+                            Limpiar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Área para drop de archivos */}
+                    <div 
+                      className={`border-2 border-dashed rounded-md p-4 mt-4 transition-colors ${
+                        isDraggingFile 
+                          ? 'bg-primary/10 border-primary' 
+                          : 'bg-muted/30 border-muted-foreground/20 hover:bg-muted/50'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <div className="flex flex-col items-center justify-center text-center gap-2">
+                        <div className={`rounded-full p-2 ${isDraggingFile ? 'bg-primary/20 text-primary' : 'bg-muted-foreground/10 text-muted-foreground'}`}>
+                          <FileUp className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium mb-1">Importar desde archivo</p>
+                          <p className="text-xs text-muted-foreground">
+                            Arrastra un archivo TXT o CSV aquí, o{" "}
+                            <label className="text-primary cursor-pointer hover:underline">
+                              busca en tu dispositivo
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept=".txt,.csv" 
+                                onChange={handleFileImport}
+                              />
+                            </label>
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setStep(1)}
-                      size="sm"
-                    >
-                      Atrás
-                    </Button>
-                    <Button
-                      onClick={handleBulkSubmit}
-                      size="sm"
-                      disabled={isSubmitting || !bulkTitles.trim()}
-                      className="gap-1.5"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Creando videos...
-                        </>
-                      ) : (
-                        <>
-                          <FileStack className="h-4 w-4" />
-                          Crear {bulkTitles.split('\n').filter(line => line.trim().length > 0).length} Videos
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Botones para vista previa y creación */}
+                  {showPreview ? (
+                    renderVideoPreview()
+                  ) : (
+                    <div className="flex justify-between pt-4">
+                      <div className="flex gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setStep(1)}
+                          size="sm"
+                        >
+                          Atrás
+                        </Button>
+                        {bulkTitles.trim() && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setShowPreview(true)}
+                            className="gap-1.5"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Vista previa
+                          </Button>
+                        )}
+                      </div>
+                      <Button
+                        onClick={handleBulkSubmit}
+                        size="sm"
+                        disabled={isSubmitting || !bulkTitles.trim()}
+                        className="gap-1.5"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Creando videos...
+                          </>
+                        ) : (
+                          <>
+                            <FileStack className="h-4 w-4" />
+                            Crear {bulkTitles.split('\n').filter(line => line.trim().length > 0).length} Videos
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
