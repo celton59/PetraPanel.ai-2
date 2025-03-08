@@ -1,4 +1,3 @@
-import React from "react";
 import { Sidebar } from "./Sidebar"
 import { UserMenu } from "./UserMenu"
 import { useLocation } from "wouter"
@@ -10,7 +9,7 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
-export const Layout = React.memo(({ children }: LayoutProps) => {
+export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-background via-background to-background shadow-sm">
@@ -51,5 +50,5 @@ export const Layout = React.memo(({ children }: LayoutProps) => {
         </div>
       </footer>
     </div>
-  );
-});
+  )
+}

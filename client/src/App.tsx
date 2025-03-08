@@ -1,4 +1,3 @@
-import React from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -25,13 +24,10 @@ import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
 import NotificationsAdminPage from "@/pages/admin/notifications/NotificationsAdminPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  // Usamos React.memo para evitar renderizaciones innecesarias
-  const MemoizedComponent = React.useMemo(() => React.memo(Component), [Component]);
-  
   return (
     <Layout>
       <PageGuide />
-      <MemoizedComponent />
+      <Component />
     </Layout>
   );
 }
