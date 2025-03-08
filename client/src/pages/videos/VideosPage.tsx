@@ -1100,86 +1100,104 @@ export default function VideosPage() {
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          {user?.role === "admin" && activeTab === "videos" && (
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 relative"
-              onClick={toggleSelectionMode}
-            >
-              {selectMode ? (
-                <>
-                  <CheckSquare className="w-4 h-4" />
-                  <span>Modo selección</span>
-                </>
-                
-              ) : (
-                <>
-                  <Square className="w-4 h-4" />
-                  Seleccionar
-                </>
-              )}
-            </Button>
-          )}
-          
+          {/* Buscador en la parte superior junto a los botones principales */}
           {activeTab === "videos" && (
-            <>
-              <div className="flex rounded-md overflow-hidden border">
-                <Button
-                  variant={viewMode === "table" ? "default" : "outline"}
-                  size="icon"
-                  className={cn(
-                    "rounded-none border-0",
-                    viewMode === "table" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => setViewMode("table")}
-                >
-                  <Layout className="h-4 w-4" />
-                  <span className="sr-only">Vista tabla</span>
-                </Button>
-                <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="icon"
-                  className={cn(
-                    "rounded-none border-0",
-                    viewMode === "grid" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid className="h-4 w-4" />
-                  <span className="sr-only">Vista cuadrícula</span>
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="icon"
-                  className={cn(
-                    "rounded-none border-0",
-                    viewMode === "list" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
-                  <span className="sr-only">Vista lista</span>
-                </Button>
-              </div>
-              
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 ml-auto sm:ml-0"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter className="w-4 h-4" />
-                Filtros
-              </Button>
-            </>
+            <div className="flex-1 min-w-[250px]">
+              <Input
+                placeholder="Buscar por título, serie, descripción, creador u optimizador"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-4 h-9 text-base"
+              />
+            </div>
           )}
+              
+          <Button
+            variant={showFilters ? "default" : "outline"}
+            className="flex items-center gap-2"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="w-4 h-4" />
+            {showFilters ? "Ocultar filtros" : "Mostrar filtros"}
+          </Button>
           
           {user?.role === "admin" && activeTab === "videos" && (
-            <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
+            <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2 whitespace-nowrap">
               <Plus className="w-4 h-4" />
               Nuevo Video
             </Button>
           )}
         </div>
+        
+        {/* Controles de selección y vista, ahora debajo del buscador */}
+        {activeTab === "videos" && (
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            {user?.role === "admin" && (
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 relative"
+                onClick={toggleSelectionMode}
+              >
+                {selectMode ? (
+                  <>
+                    <CheckSquare className="w-4 h-4" />
+                    <span>Salir de selección</span>
+                  </>
+                  
+                ) : (
+                  <>
+                    <Square className="w-4 h-4" />
+                    Seleccionar videos
+                  </>
+                )}
+              </Button>
+            )}
+            
+            <div className="flex rounded-md overflow-hidden border">
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-none border-0",
+                  viewMode === "table" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setViewMode("table")}
+              >
+                <Layout className="h-4 w-4" />
+                <span className="sr-only">Vista tabla</span>
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-none border-0",
+                  viewMode === "grid" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-4 w-4" />
+                <span className="sr-only">Vista cuadrícula</span>
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "rounded-none border-0",
+                  viewMode === "list" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+                <span className="sr-only">Vista lista</span>
+              </Button>
+            </div>
+            {videos.length > 0 && (
+              <p className="text-sm text-muted-foreground ml-2">
+                Mostrando {filteredVideos.length} de {videos.length} videos
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs para videos normales o papelera */}
