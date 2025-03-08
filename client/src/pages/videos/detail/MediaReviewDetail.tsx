@@ -16,7 +16,9 @@ import {
   Mail,
   Link,
   Check,
-  Youtube
+  Youtube,
+  AlertCircle,
+  ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";

@@ -224,12 +224,12 @@ export function CompletedVideoDetail({ video }: CompletedVideoDetailProps) {
                       <h4 className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Publicado en YouTube</h4>
                       <div className="flex items-center gap-2">
                         <a 
-                          href={video.youtubeUrl} 
+                          href={video.youtubeUrl || ""} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="text-sm underline text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                         >
-                          {video.youtubeUrl}
+                          {video.youtubeUrl || "Enlace de YouTube"}
                         </a>
                         <Button 
                           size="icon" 
@@ -246,7 +246,7 @@ export function CompletedVideoDetail({ video }: CompletedVideoDetailProps) {
                           variant="outline" 
                           size="sm" 
                           className="h-7 text-xs border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40"
-                          onClick={() => window.open(video.youtubeUrl, "_blank")}
+                          onClick={() => video.youtubeUrl && window.open(video.youtubeUrl, "_blank")}
                         >
                           <ExternalLink className="h-3 w-3 mr-1" />
                           Ver en YouTube
