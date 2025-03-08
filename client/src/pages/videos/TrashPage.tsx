@@ -9,9 +9,7 @@ import {
   Loader2,
   Trash2,
   RefreshCw,
-  VideoIcon,
 } from "lucide-react";
-import { NewVideoDialog } from "./NewVideoDialog";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { Badge } from "@/components/ui/badge";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -48,7 +46,6 @@ export default function TrashPage() {
   const [trashVideos, setTrashVideos] = useState<ApiVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentProject, setCurrentProject] = useState<number>(1); // Valor por defecto, ajustar según sea necesario
-  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const { restoreVideo, emptyTrash, getTrashVideos } = useVideos();
 
   useEffect(() => {
@@ -122,15 +119,6 @@ export default function TrashPage() {
           >
             <RefreshCw className="w-4 h-4" />
             Actualizar
-          </Button>
-          
-          <Button
-            className="bg-primary text-white hover:bg-primary/90"
-            size="sm"
-            onClick={() => setNewVideoDialogOpen(true)}
-          >
-            <VideoIcon className="mr-2 h-4 w-4" />
-            Nuevo Video
           </Button>
           
           {user.role === "admin" && trashVideos.length > 0 && (
