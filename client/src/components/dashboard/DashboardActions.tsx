@@ -1,17 +1,12 @@
 import { Video, Target, Youtube, Rocket } from "lucide-react";
 import ActionCard from "@/components/ActionCard";
+import type { ActionCardProps } from "@/components/ActionCard";
 import { useLocation } from "wouter";
 import { useUser } from "@/hooks/use-user";
 import { User } from "@db/schema";
 
 // Define el tipo para una acción
-interface ActionItem {
-  icon: React.FC<React.SVGProps<SVGSVGElement>>;
-  title: string;
-  description: string;
-  iconColor: string;
-  iconBgColor: string;
-  onClick: () => void;
+interface ActionItem extends Omit<ActionCardProps, 'className'> {
   requiredRole?: User["role"];
 }
 
@@ -52,7 +47,8 @@ export const DashboardActions = () => {
       description: "Nueva idea de contenido",
       iconColor: "text-purple-500",
       iconBgColor: "bg-purple-500/10",
-      onClick: () => setLocation('/videos?new=true')
+      onClick: () => setLocation('/videos?new=true'),
+      requiredRole: "admin" // También limitado a admin
     },
   ];
 
