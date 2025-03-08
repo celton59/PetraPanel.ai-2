@@ -315,6 +315,17 @@ function VideosPage() {
   };
   
   const filteredVideos = videos.filter((video) => {
+    // Primero filtrar por estados visibles para el rol actual
+    // Admin puede ver todos los estados, los demás roles tienen visibilidad limitada
+    if (user?.role !== 'admin') {
+      // Uso de la estructura de estados visibles definida en VISIBLE_STATES
+      const visibleStatesForRole = VISIBLE_STATES[user!.role as keyof typeof VISIBLE_STATES];
+      if (!visibleStatesForRole.includes(video.status as any)) {
+        return false;
+      }
+    }
+
+    // Luego aplicar filtros de búsqueda
     if (searchTerm) {
       return (
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -326,24 +337,38 @@ function VideosPage() {
       );
     }
 
-    // if (status !== "all") {
-    //   return video.status === status;
-    // }
+    // Aplicar filtro por estado si está seleccionado
+    if (status !== "all") {
+      return video.status === status;
+    }
 
-    // if (assignedTo !== "all") {
-    //   return video.assigned_to === assignedTo;
-    // }
+    // Aplicar filtro por asignación
+    if (assignedTo !== "all") {
+      const assignedToUserId = parseInt(assignedTo);
+      return (
+        video.optimizedBy === assignedToUserId ||
+        video.contentReviewedBy === assignedToUserId ||
+        video.mediaReviewedBy === assignedToUserId ||
+        video.contentUploadedBy === assignedToUserId
+      );
+    }
 
-    // if (projectId !== "all") {
-    //   return video.project_id === projectId;
-    // }
+    // Aplicar filtro por proyecto
+    if (projectId !== "all") {
+      return video.projectId === parseInt(projectId);
+    }
 
-    // if (dateRange) {
-    //   return (
-    //     video.created_at >= dateRange.startDate &&
-    //     video.created_at <= dateRange.endDate
-    //   );
-    // }
+    // Aplicar filtro por fecha
+    if (dateRange && dateRange.from && dateRange.to) {
+      const videoDate = new Date(video.createdAt);
+      const fromDate = new Date(dateRange.from);
+      const toDate = new Date(dateRange.to);
+      
+      // Ajustar la fecha final para incluir todo el día
+      toDate.setHours(23, 59, 59, 999);
+      
+      return videoDate >= fromDate && videoDate <= toDate;
+    }
 
     return true;
   });
