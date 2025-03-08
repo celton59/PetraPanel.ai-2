@@ -14,6 +14,8 @@ import {
   Grid,
   List,
   Image as ImageIcon,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -45,6 +47,7 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Estados visibles por rol
 const VISIBLE_STATES = {
