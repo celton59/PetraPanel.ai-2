@@ -54,6 +54,7 @@ function Router() {
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
       <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
+      <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/videos/trash" component={() => <ProtectedRoute component={TrashPage} />} />
       <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
