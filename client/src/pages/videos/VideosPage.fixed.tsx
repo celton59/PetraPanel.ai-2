@@ -52,31 +52,34 @@ import { User, VideoStatus } from "@db/schema";
 // Estados visibles por rol
 const VISIBLE_STATES = {
   optimizer: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "en_revision",
+    "available",
+    "content_corrections",
   ],
-  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
+  youtuber: ["upload_media", "media_corrections", "completed"],
   reviewer: [
-    "optimize_review",
-    "title_corrections",
-    "upload_review",
+    "content_review",
+    "media_review",
+    "final_review",
     "completed",
-    "en_revision",
+  ],
+  content_reviewer: [
+    "content_review",
+    "completed",
+  ],
+  media_reviewer: [
+    "media_review",
+    "media_corrections",
+    "completed",
   ],
   admin: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "upload_review",
+    "available",
+    "content_corrections",
+    "content_review",
+    "upload_media",
     "media_corrections",
-    "review",
-    "youtube_ready",
+    "media_review",
+    "final_review",
     "completed",
-    "en_revision",
   ],
 } as const;
 
@@ -313,35 +316,46 @@ export default function VideosPage() {
   };
   
   const filteredVideos = videos.filter((video) => {
-    if (searchTerm) {
-      return (
+    // Primero verificamos el término de búsqueda
+    if (searchTerm && !(
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (video.seriesNumber && video.seriesNumber.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.creatorName && video.creatorName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      )) {
+      return false;
     }
 
-    // if (status !== "all") {
-    //   return video.status === status;
-    // }
+    // Verificar filtro de estado
+    if (status !== "all" && video.status !== status) {
+      return false;
+    }
 
-    // if (assignedTo !== "all") {
-    //   return video.assigned_to === assignedTo;
-    // }
+    // Verificar filtro de asignación
+    if (assignedTo !== "all" && video.assignedToId?.toString() !== assignedTo) {
+      return false;
+    }
 
-    // if (projectId !== "all") {
-    //   return video.project_id === projectId;
-    // }
+    // Verificar filtro de proyecto
+    if (projectId !== "all" && video.projectId?.toString() !== projectId) {
+      return false;
+    }
 
-    // if (dateRange) {
-    //   return (
-    //     video.created_at >= dateRange.startDate &&
-    //     video.created_at <= dateRange.endDate
-    //   );
-    // }
+    // Verificar filtro de fecha
+    if (dateRange && dateRange.from && dateRange.to) {
+      const videoDate = new Date(video.createdAt);
+      const fromDate = new Date(dateRange.from);
+      const toDate = new Date(dateRange.to);
+      
+      // Ajustar la fecha final para incluir todo el día
+      toDate.setHours(23, 59, 59, 999);
+      
+      if (videoDate < fromDate || videoDate > toDate) {
+        return false;
+      }
+    }
 
     return true;
   });
