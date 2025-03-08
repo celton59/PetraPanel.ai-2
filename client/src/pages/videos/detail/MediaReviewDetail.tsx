@@ -103,16 +103,14 @@ export default function MediaReviewDetail({
       
       // Datos que normalmente recibiríamos de la API
       const youtubeResponseData = {
-        youtubeId: 'youtube-' + Math.random().toString(36).substring(2, 10),
-        youtubeUrl: 'https://youtube.com/watch?v=example',
+        youtubeUrl: 'https://youtube.com/watch?v=example-' + Math.random().toString(36).substring(2, 10),
       };
       
       // Actualizamos el video con los datos de YouTube
+      // No incluimos publishedAt porque está excluido en la definición de UpdateVideoData
       await onUpdate({
         status: 'completed',
-        youtubeId: youtubeResponseData.youtubeId,
         youtubeUrl: youtubeResponseData.youtubeUrl,
-        publishedAt: new Date(),
       });
       
       setYoutubeUploadStatus('success');
