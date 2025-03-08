@@ -425,9 +425,10 @@ export default function VideosPage() {
   
   // Efecto para atajos de teclado
   useEffect(() => {
-    if (!selectMode) return;
-    
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Si no estamos en modo selección, no hacemos nada
+      if (!selectMode) return;
+      
       // Evitar que los atajos se activen cuando se está escribiendo en un input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
