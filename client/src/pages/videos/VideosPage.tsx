@@ -241,6 +241,8 @@ export default function VideosPage() {
     setDragStartPosition({ x: e.clientX, y: e.clientY });
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
+    // Inicialmente no seleccionamos nada, solo cuando se mueve el ratón
+    
     // Prevenir comportamiento de arrastre del navegador
     e.preventDefault();
   };
@@ -250,12 +252,25 @@ export default function VideosPage() {
     
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
-    // Detectar elementos en el rectángulo de selección
-    if (dragSelectionRef.current) {
-      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+    // Crear un rectángulo virtual para la selección
+    if (dragStartPosition) {
+      const selectionRect = {
+        left: Math.min(dragStartPosition.x, e.clientX),
+        right: Math.max(dragStartPosition.x, e.clientX),
+        top: Math.min(dragStartPosition.y, e.clientY),
+        bottom: Math.max(dragStartPosition.y, e.clientY),
+        width: Math.abs(e.clientX - dragStartPosition.x),
+        height: Math.abs(e.clientY - dragStartPosition.y)
+      };
+      
+      // Convertir a DOMRect para usar con la función de intersección
+      const selectionDOMRect = DOMRect.fromRect(selectionRect);
       
       // Obtener todos los elementos de video en la vista actual
       const videoElements = document.querySelectorAll('.video-card');
+      
+      // Creamos una nueva lista de videos seleccionados basada en la intersección
+      const newSelectedVideos: number[] = [];
       
       videoElements.forEach((element) => {
         const videoRect = element.getBoundingClientRect();
@@ -264,25 +279,37 @@ export default function VideosPage() {
         // Verificar si el elemento está dentro del rectángulo de selección
         if (
           videoId &&
-          rectanglesIntersect(selectionRect, videoRect)
+          rectanglesIntersect(selectionDOMRect, videoRect)
         ) {
-          // Verificar si ya está seleccionado
-          if (!selectedVideos.includes(videoId)) {
-            setSelectedVideos(prev => [...prev, videoId]);
-          }
+          newSelectedVideos.push(videoId);
         }
       });
+      
+      // Actualizar los videos seleccionados
+      setSelectedVideos(newSelectedVideos);
     }
     
     e.preventDefault();
   };
   
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
+    
+    // Si el usuario solo hizo clic (sin arrastrar realmente), deseleccionamos todo
+    if (
+      dragStartPosition && 
+      dragCurrentPosition && 
+      Math.abs(dragStartPosition.x - dragCurrentPosition.x) < 5 && 
+      Math.abs(dragStartPosition.y - dragCurrentPosition.y) < 5
+    ) {
+      setSelectedVideos([]);
+    }
     
     setIsDragging(false);
     setDragStartPosition(null);
     setDragCurrentPosition(null);
+    
+    e.preventDefault();
   };
   
   // Función para verificar si dos rectángulos se intersectan
@@ -296,7 +323,7 @@ export default function VideosPage() {
   };
   
   // Calcular las coordenadas del rectángulo de selección
-  const getSelectionRectStyle = () => {
+  const getSelectionRectStyle = (): React.CSSProperties => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
@@ -304,11 +331,17 @@ export default function VideosPage() {
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
+    // Asegurarse de que el rectángulo tenga al menos un tamaño mínimo para ser visible
+    const minSize = 3;
+    
     return {
+      position: 'fixed' as const, // Usamos fixed para que sea relativo a la ventana
       left: `${left}px`,
       top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
+      width: `${Math.max(width, minSize)}px`,
+      height: `${Math.max(height, minSize)}px`,
+      pointerEvents: 'none' as const, // Para que no interfiera con los clics
+      zIndex: 50,
     };
   };
   
@@ -955,10 +988,10 @@ export default function VideosPage() {
         onMouseLeave={handleDragEnd}
       >
         {/* Rectángulo de selección */}
-        {isDragging && dragSelectionRef && (
+        {isDragging && (
           <div
             ref={dragSelectionRef}
-            className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
+            className="fixed bg-primary/20 border border-primary/50 rounded-sm"
             style={getSelectionRectStyle()}
           ></div>
         )}
