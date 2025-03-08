@@ -1,118 +1,111 @@
-import { type ClassValue, clsx } from "clsx"
+import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import { es } from "date-fns/locale";
 
-/**
- * Utility function to merge Tailwind classes with clsx
- */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 /**
- * Formats a date string into a localized date-time format.
- * Example: "2023-01-15T10:30:00Z" -> "15 Jan 2023 10:30"
- * 
- * @param dateString The ISO date string to format
- * @param includeTime Whether to include time in the formatted string
- * @returns Formatted date string
+ * Genera iniciales a partir de un nombre completo
+ * @param name Nombre completo para generar iniciales
+ * @returns Iniciales (máximo 2 caracteres)
  */
-export function formatDate(dateString: string, includeTime: boolean = false): string {
-  if (!dateString) return '-';
+export function getInitials(name?: string | null): string {
+  if (!name) return "?";
   
-  try {
-    const date = new Date(dateString);
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return '-';
-    }
-    
-    const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      ...(includeTime && { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    return date.toLocaleDateString('es-ES', options);
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return '-';
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return "?";
+  
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/**
+ * Formatea una fecha con formato inteligente basado en su cercanía al presente
+ * @param date Fecha a formatear
+ * @param includeTime Indica si incluir la hora en el formato
+ * @returns Texto formateado de la fecha
+ */
+export function formatDate(date: Date | string | number | null, includeTime: boolean = false): string {
+  if (!date) return '';
+  
+  const dateObj = date instanceof Date ? date : new Date(date);
+  
+  // Si la fecha es hoy
+  if (isToday(dateObj)) {
+    return includeTime 
+      ? `Hoy a las ${format(dateObj, 'HH:mm')}`
+      : 'Hoy';
+  }
+  
+  // Si la fecha fue ayer
+  if (isYesterday(dateObj)) {
+    return includeTime 
+      ? `Ayer a las ${format(dateObj, 'HH:mm')}`
+      : 'Ayer';
+  }
+  
+  // Si la fecha es menor a 7 días
+  const daysDiff = Math.abs(
+    (new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  
+  if (daysDiff < 7) {
+    return formatDistanceToNow(dateObj, { 
+      addSuffix: true,
+      locale: es 
+    });
+  }
+  
+  // Para el resto de fechas
+  if (dateObj.getFullYear() === new Date().getFullYear()) {
+    // Si es del año actual
+    return includeTime
+      ? format(dateObj, "d 'de' MMMM 'a las' HH:mm", { locale: es })
+      : format(dateObj, "d 'de' MMMM", { locale: es });
+  } else {
+    // Si es de otro año
+    return includeTime
+      ? format(dateObj, "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })
+      : format(dateObj, "d 'de' MMMM 'de' yyyy", { locale: es });
   }
 }
 
 /**
- * Truncates a string to a specified length and adds ellipsis if truncated
- * 
- * @param str The string to truncate
- * @param maxLength Maximum length of the resulting string
- * @returns Truncated string
+ * Formatea una fecha específicamente para notificaciones (formato corto)
  */
-export function truncateString(str: string, maxLength: number): string {
-  if (!str) return '';
-  if (str.length <= maxLength) return str;
+export function formatNotificationDate(date: Date | string | number | null): string {
+  if (!date) return '';
   
-  return str.substring(0, maxLength) + '...';
-}
-
-/**
- * Debounces a function call by a specified delay
- * 
- * @param fn The function to debounce
- * @param delay Delay in milliseconds
- * @returns Debounced function
- */
-export function debounce<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const dateObj = date instanceof Date ? date : new Date(date);
   
-  return function (...args: Parameters<T>): void {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    
-    timeoutId = setTimeout(() => {
-      fn(...args);
-      timeoutId = null;
-    }, delay);
-  };
-}
-
-/**
- * Generates a random ID string
- * 
- * @param length Length of the ID to generate (default: 8)
- * @returns Random ID string
- */
-export function generateId(length: number = 8): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  // Si es hoy, muestra la hora
+  if (isToday(dateObj)) {
+    return format(dateObj, 'HH:mm');
   }
   
-  return result;
-}
-
-/**
- * Formats a number of bytes into a readable file size string
- * Example: 1024 -> "1 KB"
- * 
- * @param bytes Number of bytes
- * @param decimals Number of decimal places in the result
- * @returns Formatted file size string
- */
-export function formatFileSize(bytes: number, decimals: number = 2): string {
-  if (bytes === 0) return '0 Bytes';
+  // Si es ayer
+  if (isYesterday(dateObj)) {
+    return 'ayer';
+  }
   
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  // Si es de la última semana
+  const daysDiff = Math.abs(
+    (new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)
+  );
   
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  if (daysDiff < 7) {
+    return formatDistanceToNow(dateObj, { 
+      addSuffix: true,
+      locale: es 
+    });
+  }
   
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  // Para el resto de fechas, formato corto
+  return format(dateObj, 'dd MMM', { locale: es });
 }
