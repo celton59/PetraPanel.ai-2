@@ -1,9 +1,8 @@
-import { Youtube, Search } from "lucide-react";
+import { Youtube } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTitulin } from "./hooks/useTitulin";
 import { VideoStats } from "./components/VideoStats";
 import { SearchBar } from "./components/SearchBar";
-import { VowelFilter } from "./components/VowelFilter";
 import { TableActions } from "./components/TableActions";
 import { VideoTable } from "./components/VideoTable";
 import { PaginationControls } from "./components/PaginationControls";
@@ -22,18 +21,12 @@ export default function TitulinPage() {
     setSelectedVideo,
     currentPage,
     setCurrentPage,
-    selectedVowel,
-    setSelectedVowel,
-    handleClearVowelFilter,
-    vowels,
-    vowelStats,
     videos,
     channels,
     pagination,
     totalVideos,
     viewsCount,
     likesCount,
-    isSearching,
     isFetching,
     isDownloading,
     getLastUpdateInfo,
@@ -54,24 +47,12 @@ export default function TitulinPage() {
             <h1 className="text-3xl font-bold">Videos de YouTube</h1>
           </div>
 
-          <div className="flex flex-col gap-4 md:gap-6">
-            <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
-              <h2 className="text-lg font-medium mb-1 flex items-center gap-2">
-                <Search className="h-4 w-4 text-primary" />
-                Búsqueda inteligente
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Utiliza el nuevo sistema de búsqueda con sugerencias para encontrar videos más rápidamente.
-              </p>
-            </div>
-
-            <VideoStats 
-              totalVideos={totalVideos}
-              viewsCount={viewsCount}
-              likesCount={likesCount}
-              lastUpdateInfo={getLastUpdateInfo()}
-            />
-          </div>
+          <VideoStats 
+            totalVideos={totalVideos}
+            viewsCount={viewsCount}
+            likesCount={likesCount}
+            lastUpdateInfo={getLastUpdateInfo()}
+          />
         </motion.div>
 
         <motion.div
@@ -81,38 +62,16 @@ export default function TitulinPage() {
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
             <div className="relative flex-1">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  {/* Barra de búsqueda con autocompletado */}
+              <div className="flex flex-col md:flex-row gap-4 items-start">
+                <div className="relative flex-1 w-full">
+                  {/* Barra de búsqueda simplificada */}
                   <SearchBar 
                     searchValue={searchValue}
                     setSearchValue={setSearchValue}
                     setTitleFilter={setTitleFilter}
                     setCurrentPage={setCurrentPage}
-                    setSelectedVowel={setSelectedVowel}
-                    titleFilter={titleFilter}
-                    selectedVowel={selectedVowel}
-                    isSearching={isSearching}
                     isFetching={isFetching}
-                    handleClearVowelFilter={handleClearVowelFilter}
                   />
-
-                  {/* Filtro por vocales (mantenemos para compatibilidad y casos de uso específicos) */}
-                  {!titleFilter && (
-                    <VowelFilter
-                      vowels={vowels}
-                      selectedVowel={selectedVowel}
-                      setSelectedVowel={setSelectedVowel}
-                      setTitleFilter={setTitleFilter}
-                      setSearchValue={setSearchValue}
-                      setCurrentPage={setCurrentPage}
-                      handleClearVowelFilter={handleClearVowelFilter}
-                      isSearching={isSearching}
-                      isFetching={isFetching}
-                      vowelStats={vowelStats}
-                      totalVideos={totalVideos}
-                    />
-                  )}
                 </div>
 
                 {/* Selector de canal y botón de exportar */}

@@ -17,46 +17,7 @@ export function useTitulin() {
   const [pageSize, setPageSize] = useState(20);
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedVowel, setSelectedVowel] = useState<string | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Lista de vocales para búsqueda
-  const vowels = ["a", "e", "i", "o", "u"];
-  
-  // Hook para obtener estadísticas de distribución de videos por vocal
-  const { data: vowelStats } = useQuery({
-    queryKey: ["youtube-videos-vowel-stats"],
-    queryFn: async () => {
-      const response = await axios.get("/api/titulin/videos/stats", {
-        params: { type: "vowel-distribution" }
-      });
-      const data = response.data?.stats || {};
-      
-      // Asegurar que todas las vocales estén en el resultado aunque no tengan datos
-      return vowels.reduce((acc, vowel) => {
-        acc[vowel] = data[vowel] || 0;
-        return acc;
-      }, {} as Record<string, number>);
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
-  
-  // Función para obtener la primera vocal de una palabra
-  const getFirstVowel = (text: string): string | null => {
-    if (!text) return null;
-    
-    // Convertir a minúsculas y eliminar caracteres especiales
-    const normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
-    // Buscar la primera vocal en el texto
-    for (let i = 0; i < normalized.length; i++) {
-      if (vowels.includes(normalized[i])) {
-        return normalized[i];
-      }
-    }
-    
-    return null;
-  };
   
   // Efecto para manejar el debounce y la búsqueda
   useEffect(() => {
@@ -66,37 +27,17 @@ export function useTitulin() {
     }
     
     const trimmedValue = searchValue.trim();
-    const minSearchLength = 2; // Reducimos a 2 caracteres para la búsqueda con autocompletado
     
-    // Si hay una vocal seleccionada, la usamos como filtro principal (compatibilidad)
-    if (selectedVowel && selectedVowel !== titleFilter) {
-      setIsSearching(true);
-      searchTimeoutRef.current = setTimeout(() => {
-        setTitleFilter(selectedVowel);
-        setCurrentPage(1);
-        setIsSearching(false);
-      }, 100);
-      return;
-    }
-    
-    // Si hay un texto de búsqueda explícito (viene de autocompletado)
-    if (trimmedValue !== titleFilter && trimmedValue !== '') {
+    // Si hay un cambio en el texto de búsqueda
+    if (trimmedValue !== titleFilter) {
       setIsSearching(true);
       
-      // Permitimos búsqueda inmediata si viene del autocompletado
+      // Debounce para la búsqueda
       searchTimeoutRef.current = setTimeout(() => {
         setTitleFilter(trimmedValue);
         setCurrentPage(1);
         setIsSearching(false);
-      }, 200);
-    } else if (trimmedValue === '' && titleFilter !== '') {
-      // Si se limpia la búsqueda
-      setIsSearching(true);
-      searchTimeoutRef.current = setTimeout(() => {
-        setTitleFilter('');
-        setCurrentPage(1);
-        setIsSearching(false);
-      }, 200);
+      }, 300);
     }
     
     // Limpiar timeout al desmontar
@@ -105,19 +46,16 @@ export function useTitulin() {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchValue, titleFilter, selectedVowel, setTitleFilter]);
+  }, [searchValue, titleFilter, setTitleFilter]);
 
   // Obtener videos
   const { data: videosData, isLoading, isFetching } = useQuery<VideoResponse>({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, selectedVowel],
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
     queryFn: async () => {
-      // Determinar si estamos filtrando por vocal o por texto de búsqueda
+      // Parámetros de búsqueda simplificados
       const searchParams = {
         ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
-        ...(selectedVowel 
-          ? { firstVowel: selectedVowel }  // Si hay una vocal seleccionada, usamos ese filtro
-          : (titleFilter ? { title: titleFilter } : {})  // Si no, usamos el filtro de texto normal
-        ),
+        ...(titleFilter ? { title: titleFilter } : {}),
         page: currentPage,
         limit: pageSize
       };
@@ -212,7 +150,7 @@ export function useTitulin() {
       const response = await axios.get("/api/titulin/videos", {
         params: {
           ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
-          ...(selectedVowel ? { firstVowel: selectedVowel } : (titleFilter ? { title: titleFilter } : {})),
+          ...(titleFilter ? { title: titleFilter } : {}),
           limit: 1000, // Aumentamos el límite para exportar más videos
           page: 1
         }
@@ -277,8 +215,8 @@ export function useTitulin() {
     downloadCSVMutation.mutate();
   };
 
-  const handleClearVowelFilter = () => {
-    setSelectedVowel(null);
+  // Limpia el filtro de búsqueda
+  const handleClearSearch = () => {
     setTitleFilter("");
     setSearchValue("");
     setCurrentPage(1);
@@ -293,9 +231,6 @@ export function useTitulin() {
     pageSize,
     searchValue,
     isSearching,
-    selectedVowel,
-    vowels,
-    vowelStats,
     videos,
     channels,
     pagination,
@@ -313,11 +248,9 @@ export function useTitulin() {
     setCurrentPage,
     setPageSize,
     setSearchValue,
-    setSelectedVowel,
     handleDownloadCSV,
-    handleClearVowelFilter,
+    handleClearSearch,
     getLastUpdateInfo,
-    getChannelName,
-    getFirstVowel
+    getChannelName
   };
 }

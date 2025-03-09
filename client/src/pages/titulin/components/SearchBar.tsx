@@ -1,18 +1,14 @@
-import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
-import { AutocompleteSearch } from "./AutocompleteSearch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, X } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface SearchBarProps {
   searchValue: string;
   setSearchValue: (value: string) => void;
   setTitleFilter: (title: string) => void;
   setCurrentPage: (page: number) => void;
-  setSelectedVowel: (vowel: string | null) => void;
-  titleFilter: string;
-  selectedVowel: string | null;
-  isSearching: boolean;
   isFetching: boolean;
-  handleClearVowelFilter: () => void;
 }
 
 export function SearchBar({
@@ -20,49 +16,70 @@ export function SearchBar({
   setSearchValue,
   setTitleFilter,
   setCurrentPage,
-  setSelectedVowel,
-  titleFilter,
-  selectedVowel,
-  isSearching,
-  isFetching,
-  handleClearVowelFilter
+  isFetching
 }: SearchBarProps) {
-  // Manejar la selección de sugerencia o búsqueda manual
-  const handleSearch = (query: string) => {
-    setSearchValue(query);
-    setTitleFilter(query);
+  const [inputValue, setInputValue] = useState(searchValue);
+
+  // Actualizar el valor de entrada cuando cambia el valor externo
+  useEffect(() => {
+    setInputValue(searchValue);
+  }, [searchValue]);
+
+  // Manejar la búsqueda
+  const handleSearch = () => {
+    const trimmedValue = inputValue.trim();
+    setSearchValue(trimmedValue);
+    setTitleFilter(trimmedValue);
     setCurrentPage(1);
-    // Al usar la búsqueda, desactivamos la selección por vocal
-    if (selectedVowel) {
-      setSelectedVowel(null);
+  };
+
+  // Manejar el evento Enter en el input
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch();
     }
   };
 
+  // Limpiar la búsqueda
+  const handleClear = () => {
+    setInputValue("");
+    setSearchValue("");
+    setTitleFilter("");
+    setCurrentPage(1);
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="relative w-full">
-        <AutocompleteSearch
-          onSearch={handleSearch}
-          placeholder="Buscar entre los videos..."
-          minSearchLength={2}
-          disabled={isSearching || isFetching}
+    <div className="flex w-full gap-2">
+      <div className="relative flex-grow">
+        <Input
+          placeholder="Buscar videos..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="pl-10"
+          disabled={isFetching}
         />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         
-        {/* Indicador de filtro activo por vocal */}
-        {selectedVowel && !isSearching && !isFetching && (
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              <span className="mr-1">Vocal: {selectedVowel.toUpperCase()}</span>
-              <button 
-                onClick={handleClearVowelFilter}
-                className="h-4 w-4 rounded-full flex items-center justify-center hover:bg-primary/20"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          </div>
+        {inputValue && (
+          <button 
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
         )}
       </div>
+      
+      <Button 
+        onClick={handleSearch} 
+        disabled={isFetching}
+        variant="default"
+        className="whitespace-nowrap"
+      >
+        <Search className="mr-2 h-4 w-4" />
+        Buscar
+      </Button>
     </div>
   );
 }
