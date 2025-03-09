@@ -72,9 +72,30 @@ export default function TitulinPage() {
   const [pageSize, setPageSize] = useState(20);
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedVowel, setSelectedVowel] = useState<string | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Lista de vocales para búsqueda
+  const vowels = ["a", "e", "i", "o", "u"];
   
-  // Efecto para manejar el debounce en la búsqueda
+  // Función para obtener la primera vocal de una palabra
+  const getFirstVowel = (text: string): string | null => {
+    if (!text) return null;
+    
+    // Convertir a minúsculas y eliminar caracteres especiales
+    const normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // Buscar la primera vocal en el texto
+    for (let i = 0; i < normalized.length; i++) {
+      if (vowels.includes(normalized[i])) {
+        return normalized[i];
+      }
+    }
+    
+    return null;
+  };
+  
+  // Efecto para manejar el debounce y la búsqueda por vocal
   useEffect(() => {
     // Limpiar cualquier timeout previo
     if (searchTimeoutRef.current) {
@@ -84,14 +105,25 @@ export default function TitulinPage() {
     const trimmedValue = searchValue.trim();
     const minSearchLength = 3;
     
-    // Comprobamos si el valor actual es diferente del filtro aplicado
-    // y si cumple con los requisitos mínimos de longitud o es vacío
-    if (trimmedValue !== titleFilter &&
+    // Si hay una vocal seleccionada, la usamos como filtro principal
+    if (selectedVowel && selectedVowel !== titleFilter) {
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        setTitleFilter(selectedVowel);
+        setCurrentPage(1);
+        setIsSearching(false);
+      }, 100);
+      return;
+    }
+    
+    // Si no hay vocal seleccionada pero hay texto de búsqueda
+    if (!selectedVowel && 
+        trimmedValue !== titleFilter &&
         (trimmedValue.length >= minSearchLength || trimmedValue === '')) {
       
       setIsSearching(true);
       
-      // Debounce de 350ms para evitar búsquedas mientras el usuario escribe
+      // Debounce para búsqueda normal
       searchTimeoutRef.current = setTimeout(() => {
         setTitleFilter(trimmedValue);
         setCurrentPage(1);
@@ -105,7 +137,7 @@ export default function TitulinPage() {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchValue, titleFilter, setTitleFilter]);
+  }, [searchValue, titleFilter, selectedVowel, setTitleFilter]);
 
   const analyzeEvergeenMutation = useMutation({
     mutationFn: async (videoId: number) => {
@@ -138,15 +170,23 @@ export default function TitulinPage() {
   }
   
   const { data: videosData, isLoading, isFetching } = useQuery<VideoResponse>({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, selectedVowel],
     queryFn: async () => {
+      // Determinar si estamos filtrando por vocal o por texto de búsqueda
+      const searchParams = {
+        ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+        ...(selectedVowel 
+          ? { firstVowel: selectedVowel }  // Si hay una vocal seleccionada, usamos ese filtro
+          : (titleFilter ? { title: titleFilter } : {})  // Si no, usamos el filtro de texto normal
+        ),
+        page: currentPage,
+        limit: pageSize
+      };
+      
+      console.log("Parámetros de búsqueda:", searchParams);
+      
       const response = await axios.get<VideoResponse>("/api/titulin/videos", {
-        params: {
-          ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
-          ...(titleFilter ? { title: titleFilter } : {}),
-          page: currentPage,
-          limit: pageSize
-        }
+        params: searchParams
       });
       return response.data;
     },
@@ -541,11 +581,18 @@ export default function TitulinPage() {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <div className="space-y-3">
                   <div className="relative">
                     <Input
                       placeholder="Buscar por título en los 6492 videos..."
                       value={searchValue}
-                      onChange={(e) => setSearchValue(e.target.value)}
+                      onChange={(e) => {
+                        setSearchValue(e.target.value);
+                        // Al empezar a escribir, desactivamos la selección de vocal
+                        if (selectedVowel && e.target.value) {
+                          setSelectedVowel(null);
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           const currentValue = searchValue.trim();
@@ -554,6 +601,7 @@ export default function TitulinPage() {
                             setIsSearching(true);
                             setTitleFilter(currentValue);
                             setCurrentPage(1);
+                            setSelectedVowel(null); // Desactivar filtro por vocal
                             // Reset del estado de búsqueda después de aplicar
                             setTimeout(() => setIsSearching(false), 100);
                           }
@@ -569,6 +617,53 @@ export default function TitulinPage() {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Filtro por primera vocal */}
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <div className="text-xs text-muted-foreground mr-1">Filtrar por primera vocal:</div>
+                    {vowels.map(vowel => (
+                      <Button
+                        key={vowel}
+                        variant={selectedVowel === vowel ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 px-3 rounded-full uppercase font-semibold"
+                        onClick={() => {
+                          // Si ya está seleccionada, la deseleccionamos
+                          if (selectedVowel === vowel) {
+                            setSelectedVowel(null);
+                            setTitleFilter("");
+                            setCurrentPage(1);
+                          } else {
+                            // Seleccionamos la vocal y aplicamos filtro
+                            setSelectedVowel(vowel);
+                            setTitleFilter(vowel);
+                            setCurrentPage(1);
+                            setSearchValue(""); // Limpiar campo de búsqueda
+                          }
+                        }}
+                        disabled={isSearching || isFetching}
+                      >
+                        {vowel}
+                      </Button>
+                    ))}
+                    {selectedVowel && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => {
+                          setSelectedVowel(null);
+                          setTitleFilter("");
+                          setCurrentPage(1);
+                        }}
+                        disabled={isSearching || isFetching}
+                      >
+                        <X className="h-3.5 w-3.5 mr-1" />
+                        Limpiar filtro
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 </div>
                 <Button 
                   onClick={() => {

@@ -61,16 +61,12 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
   }
 
   // Obtener parámetros para paginación y filtrado
-  const { channelId, title } = req.query;
+  const { channelId, title, firstVowel } = req.query;
   const page = Number(req.query.page || '1');
   const limit = Number(req.query.limit || '20');
   const offset = (page - 1) * limit;
   
   try {
-    // Primero obtenemos el total de videos (para la paginación)
-    const countQuery = db.select({ count: count() })
-      .from(youtube_videos);
-    
     // Construimos las condiciones de filtrado
     const conditions = [];
     
@@ -78,9 +74,19 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
       conditions.push(eq(youtube_videos.channelId, channelId as string));
     }
     
-    if (title) {
+    // Nuevo sistema de búsqueda basado en primera vocal o búsqueda completa
+    if (firstVowel) {
+      // Si se proporciona la primera vocal, buscamos palabras que empiecen con esa vocal
+      const vowelPattern = `%${firstVowel as string}%`;
+      conditions.push(ilike(youtube_videos.title, vowelPattern));
+    } else if (title) {
+      // Búsqueda tradicional por título (búsqueda exacta)
       conditions.push(ilike(youtube_videos.title, `%${title}%`));
     }
+    
+    // Primero obtenemos el total de videos (para la paginación)
+    const countQuery = db.select({ count: count() })
+      .from(youtube_videos);
     
     // Aplicamos los filtros al contador si hay condiciones
     if (conditions.length > 0) {
@@ -90,8 +96,7 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     const [totalResult] = await countQuery.execute();
     const total = Number(totalResult?.count || 0);
     
-    // Luego obtenemos los videos paginados
-    // Seleccionamos explícitamente todas las columnas para garantizar compatibilidad
+    // Consulta principal para obtener los videos paginados
     const query = db.select()
       .from(youtube_videos)
       .orderBy(desc(youtube_videos.publishedAt))
