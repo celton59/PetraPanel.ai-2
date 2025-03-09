@@ -52,12 +52,26 @@ import { VISIBLE_STATES, DETAILS_PERMISSION, canUserSeeVideo, canUserSeeVideoDet
 
 function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
+
+  if (isUserLoading) {
+    return (
+      <div className="flex items-center justify-center bg-background w-full">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
-  
-  // Todos los estados declarados juntos
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
+    undefined,
+  );
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
+    undefined,
+  );
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
@@ -66,20 +80,9 @@ function VideosPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
   const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
-  
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  
-  // Referencias
   const dragSelectionRef = useRef<HTMLDivElement>(null);
   const autoScrollIntervalRef = useRef<number | null>(null);
   
-  // Efectos
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("new") === "true") {
@@ -96,16 +99,13 @@ function VideosPage() {
     };
   }, []);
 
-  if (isUserLoading) {
-    return (
-      <div className="flex items-center justify-center bg-background w-full">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   if (!user) return null;
 
@@ -259,35 +259,16 @@ function VideosPage() {
     }
     
     // Auto-scroll cuando el cursor está cerca de los bordes de la ventana
-    const scrollThreshold = 60; // píxeles desde el borde para iniciar el scroll
-    const baseScrollSpeed = 10; // velocidad base de desplazamiento en píxeles
+    const scrollThreshold = 40; // píxeles desde el borde para iniciar el scroll
+    const scrollSpeed = 15; // velocidad de desplazamiento en píxeles
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     
-    // Comprobar si debemos hacer auto-scroll y calcular la velocidad en función de la cercanía al borde
-    const distanceFromBottom = viewportHeight - e.clientY;
-    const distanceFromTop = e.clientY;
-    const distanceFromRight = viewportWidth - e.clientX;
-    const distanceFromLeft = e.clientX;
-    
-    // La velocidad será mayor cuanto más cerca estemos del borde (hasta un máximo)
-    const shouldScrollDown = distanceFromBottom < scrollThreshold;
-    const shouldScrollUp = distanceFromTop < scrollThreshold;
-    const shouldScrollRight = distanceFromRight < scrollThreshold;
-    const shouldScrollLeft = distanceFromLeft < scrollThreshold;
-    
-    // Calcular velocidades dinámicas basadas en la proximidad al borde
-    const verticalScrollSpeed = shouldScrollDown ? 
-                             baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromBottom) / 3) : 
-                             shouldScrollUp ? 
-                             baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromTop) / 3) : 
-                             0;
-                             
-    const horizontalScrollSpeed = shouldScrollRight ? 
-                               baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromRight) / 3) : 
-                               shouldScrollLeft ? 
-                               baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromLeft) / 3) : 
-                               0;
+    // Comprobar si debemos hacer auto-scroll
+    const shouldScrollDown = e.clientY > viewportHeight - scrollThreshold;
+    const shouldScrollUp = e.clientY < scrollThreshold;
+    const shouldScrollRight = e.clientX > viewportWidth - scrollThreshold;
+    const shouldScrollLeft = e.clientX < scrollThreshold;
     
     // Limpiar intervalo existente si hay uno
     if (autoScrollIntervalRef.current !== null) {
@@ -297,39 +278,33 @@ function VideosPage() {
     
     // Establecer nuevo intervalo si estamos cerca de los límites
     if (shouldScrollDown || shouldScrollUp || shouldScrollRight || shouldScrollLeft) {
-      // Usamos un ID numérico para window.setInterval
-      const intervalId = window.setInterval(() => {
-        // Desplazamiento vertical
+      autoScrollIntervalRef.current = window.setInterval(() => {
         if (shouldScrollDown) {
-          window.scrollBy(0, verticalScrollSpeed);
+          window.scrollBy(0, scrollSpeed);
         } else if (shouldScrollUp) {
-          window.scrollBy(0, -verticalScrollSpeed);
+          window.scrollBy(0, -scrollSpeed);
         }
         
-        // Desplazamiento horizontal
         if (shouldScrollRight) {
-          window.scrollBy(horizontalScrollSpeed, 0);
+          window.scrollBy(scrollSpeed, 0);
         } else if (shouldScrollLeft) {
-          window.scrollBy(-horizontalScrollSpeed, 0);
+          window.scrollBy(-scrollSpeed, 0);
         }
         
-        // Actualizar la posición actual del cursor para seguir el scroll
-        // y asegurar que el rectángulo de selección se expanda correctamente
+        // Actualizar la posición actual en función de las nuevas coordenadas del scroll
+        // Esto es necesario para que el rectángulo siga creciendo en la dirección correcta
         if (dragCurrentPosition) {
-          const newY = shouldScrollDown ? dragCurrentPosition.y + verticalScrollSpeed : 
-                       shouldScrollUp ? dragCurrentPosition.y - verticalScrollSpeed : 
+          const newY = shouldScrollDown ? dragCurrentPosition.y + scrollSpeed : 
+                       shouldScrollUp ? dragCurrentPosition.y - scrollSpeed : 
                        dragCurrentPosition.y;
                        
-          const newX = shouldScrollRight ? dragCurrentPosition.x + horizontalScrollSpeed : 
-                       shouldScrollLeft ? dragCurrentPosition.x - horizontalScrollSpeed : 
+          const newX = shouldScrollRight ? dragCurrentPosition.x + scrollSpeed : 
+                       shouldScrollLeft ? dragCurrentPosition.x - scrollSpeed : 
                        dragCurrentPosition.x;
                        
           setDragCurrentPosition({ x: newX, y: newY });
         }
       }, 50); // Intervalos de 50ms para un scrolling suave
-      
-      // Guardamos el ID del intervalo para poder limpiarlo después
-      autoScrollIntervalRef.current = intervalId;
     }
     
     // Obtener todos los elementos de video en la vista actual
