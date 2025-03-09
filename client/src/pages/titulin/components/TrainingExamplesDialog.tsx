@@ -155,12 +155,36 @@ export function TrainingExamplesDialog({
     }
   };
 
-  // Cargar ejemplos al abrir el diálogo
+  // Cargar ejemplos al abrir el diálogo o cambiar filtros
   useEffect(() => {
     if (open) {
-      loadExamples();
+      loadExamples(1, pagination.limit);
     }
   }, [open]);
+  
+  // Efecto para aplicar filtros con un debounce para la búsqueda
+  useEffect(() => {
+    if (!open) return;
+    
+    const timer = setTimeout(() => {
+      // Reiniciar a la primera página al cambiar los filtros
+      loadExamples(1, pagination.limit);
+    }, 300); // Esperar 300ms después de terminar de escribir
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm, activeTab, sortBy, sortDir]);
+  
+  // Manejar ordenamiento y selección múltiple
+  const toggleSort = (column: string) => {
+    if (sortBy === column) {
+      // Si ya se está ordenando por esta columna, cambiar la dirección
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Cambiar la columna de ordenamiento y resetear a ascendente
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
 
   // Añadir nuevo ejemplo
   const addExample = async () => {
@@ -672,14 +696,105 @@ export function TrainingExamplesDialog({
           </Tabs>
         </div>
 
-        <DialogFooter className="mt-4 pt-3 border-t flex justify-end">
+        <DialogFooter className="mt-4 pt-3 border-t flex justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={isExporting || examples.length === 0}
+              className="gap-1"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
+              Exportar CSV
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={handleImportClick}
+              disabled={isUploading}
+              className="gap-1"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileUp className="h-4 w-4" />
+              )}
+              Importar CSV
+            </Button>
+            
+            <input 
+              type="file" 
+              accept=".csv" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              className="hidden" 
+            />
+          </div>
+          
+          {pagination.totalPages > 1 && (
+            <Pagination className="mb-2">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    className={pagination.page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                  const page = i + 1;
+                  
+                  // Mostrar las primeras 2, las últimas 2 y la actual con las adyacentes
+                  if (
+                    page <= 2 || 
+                    page >= pagination.totalPages - 1 || 
+                    (page >= pagination.page - 1 && page <= pagination.page + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          isActive={page === pagination.page}
+                          onClick={() => handlePageChange(page)}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+                  
+                  // Mostrar puntos suspensivos antes y después del rango actual
+                  if (page === 3 && pagination.page > 4) {
+                    return <PaginationEllipsis key="ellipsis-start" />;
+                  }
+                  
+                  if (page === pagination.totalPages - 2 && pagination.page < pagination.totalPages - 3) {
+                    return <PaginationEllipsis key="ellipsis-end" />;
+                  }
+                  
+                  return null;
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    className={pagination.page >= pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+          
           <Button 
             variant="default" 
             size="default" 
             onClick={() => onOpenChange(false)}
             className="px-5"
           >
-            Cerrar diálogo
+            Cerrar
           </Button>
         </DialogFooter>
       </DialogContent>
