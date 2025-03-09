@@ -904,6 +904,7 @@ Los mejores plugins de WordPress
                             <SelectItem value="200">200</SelectItem>
                             <SelectItem value="500">500</SelectItem>
                             <SelectItem value="1000">1000</SelectItem>
+                            <SelectItem value="10000">Ver todos</SelectItem>
                           </SelectContent>
                         </Select>
                         <span className="text-xs text-muted-foreground">por página</span>
