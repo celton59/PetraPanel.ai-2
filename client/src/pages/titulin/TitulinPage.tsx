@@ -354,17 +354,8 @@ export default function TitulinPage() {
     }
   ];
 
-  // Consulta para obtener todos los videos (para CSV)
-  const { data: allVideosData, isLoading: isLoadingAll } = useQuery({
-    queryKey: ["youtube-videos-export", channelFilter, titleFilter],
-    queryFn: async () => {
-      // Solo se carga cuando el usuario hace clic en "Descargar CSV"
-      return null; 
-    },
-    enabled: false, // No ejecutar por defecto
-  });
-  
-  const allVideosQuery = useQueryClient().getQueryCache().find(["youtube-videos-export", channelFilter, titleFilter]);
+  // Ya no necesitamos una consulta separada para todos los videos
+  // Usamos una mutación directamente para obtener todos los videos al hacer clic en descargar
   
   const downloadCSVMutation = useMutation({
     mutationFn: async () => {
