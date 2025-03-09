@@ -794,7 +794,7 @@ Los mejores plugins de WordPress
                         accept=".csv"
                       />
                       <Button 
-                        variant="secondary"
+                        variant="outline"
                         onClick={() => setBulkImportOpen(true)}
                         className="ml-2"
                       >

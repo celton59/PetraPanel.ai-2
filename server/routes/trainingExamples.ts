@@ -349,9 +349,12 @@ export function setupTrainingExamplesRoutes(
       }
       
       // Manejar diferentes formatos de resultados
-      let rows = Array.isArray(result) ? result : 
-                (result.rows && Array.isArray(result.rows) ? result.rows : 
-                (typeof result === 'object' ? Object.values(result) : []));
+      let rows: any[] = [];
+      if (result) {
+        rows = Array.isArray(result) ? result : 
+                  (result.rows && Array.isArray(result.rows) ? result.rows : 
+                  (typeof result === 'object' ? Object.values(result) : []));
+      }
       
       return res.status(200).json({
         success: true,
