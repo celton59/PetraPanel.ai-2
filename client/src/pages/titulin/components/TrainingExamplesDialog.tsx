@@ -336,8 +336,15 @@ export function TrainingExamplesDialog({
       return;
     }
     
+    if (!selectedChannel.channelId) {
+      toast.error('El canal seleccionado no tiene un ID de YouTube válido');
+      return;
+    }
+    
     setIsImportingFromYoutube(true);
     try {
+      console.log('Importando desde canal:', selectedChannel);
+      
       // Enviamos el channelId que corresponde al campo channelId de la tabla youtube_channels
       const response = await axios.post('/api/titulin/training-examples/import-from-channel', {
         channelId: selectedChannel.channelId, // Ahora usamos el channelId de YouTube, no el ID interno
@@ -350,8 +357,16 @@ export function TrainingExamplesDialog({
         setYoutubeChannelOpen(false); // Cerrar el diálogo
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al importar títulos desde YouTube');
+      const errorMessage = error.response?.data?.message || 'Error al importar títulos desde YouTube';
+      toast.error(errorMessage);
       console.error('Error importando desde YouTube:', error);
+      
+      // Mensajes más descriptivos para errores comunes
+      if (error.response?.status === 404) {
+        toast.error('No se encontró el canal o no tiene videos disponibles');
+      } else if (error.response?.status === 500) {
+        toast.error('Error del servidor al procesar la importación. Intente nuevamente.');
+      }
     } finally {
       setIsImportingFromYoutube(false);
     }
