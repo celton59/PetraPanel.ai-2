@@ -2,7 +2,23 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Loader2, Search } from "lucide-react";
-import { useDebounce } from "../hooks/useDebounce";
+
+// Implementación directa del hook useDebounce para evitar problemas de importación
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 interface AutocompleteSearchProps {
   onSearch: (query: string) => void;

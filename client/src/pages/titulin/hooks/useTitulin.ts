@@ -58,7 +58,7 @@ export function useTitulin() {
     return null;
   };
   
-  // Efecto para manejar el debounce y la búsqueda por vocal
+  // Efecto para manejar el debounce y la búsqueda
   useEffect(() => {
     // Limpiar cualquier timeout previo
     if (searchTimeoutRef.current) {
@@ -66,9 +66,9 @@ export function useTitulin() {
     }
     
     const trimmedValue = searchValue.trim();
-    const minSearchLength = 3;
+    const minSearchLength = 2; // Reducimos a 2 caracteres para la búsqueda con autocompletado
     
-    // Si hay una vocal seleccionada, la usamos como filtro principal
+    // Si hay una vocal seleccionada, la usamos como filtro principal (compatibilidad)
     if (selectedVowel && selectedVowel !== titleFilter) {
       setIsSearching(true);
       searchTimeoutRef.current = setTimeout(() => {
@@ -79,19 +79,24 @@ export function useTitulin() {
       return;
     }
     
-    // Si no hay vocal seleccionada pero hay texto de búsqueda
-    if (!selectedVowel && 
-        trimmedValue !== titleFilter &&
-        (trimmedValue.length >= minSearchLength || trimmedValue === '')) {
-      
+    // Si hay un texto de búsqueda explícito (viene de autocompletado)
+    if (trimmedValue !== titleFilter && trimmedValue !== '') {
       setIsSearching(true);
       
-      // Debounce para búsqueda normal
+      // Permitimos búsqueda inmediata si viene del autocompletado
       searchTimeoutRef.current = setTimeout(() => {
         setTitleFilter(trimmedValue);
         setCurrentPage(1);
         setIsSearching(false);
-      }, 350);
+      }, 200);
+    } else if (trimmedValue === '' && titleFilter !== '') {
+      // Si se limpia la búsqueda
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        setTitleFilter('');
+        setCurrentPage(1);
+        setIsSearching(false);
+      }, 200);
     }
     
     // Limpiar timeout al desmontar
