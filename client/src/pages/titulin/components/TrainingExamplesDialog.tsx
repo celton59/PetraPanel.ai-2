@@ -64,7 +64,8 @@ import {
   XCircle,
   Filter,
   ChevronDown,
-  AlertCircle
+  AlertCircle,
+  Youtube
 } from "lucide-react";
 
 interface TrainingExample {
@@ -599,6 +600,19 @@ export function TrainingExamplesDialog({
                         className="hidden"
                         accept=".csv"
                       />
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => setYoutubeChannelOpen(true)}
+                        disabled={isImportingFromYoutube}
+                        className="ml-2"
+                      >
+                        {isImportingFromYoutube ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Youtube className="mr-2 h-4 w-4" />
+                        )}
+                        Importar desde YouTube
+                      </Button>
                       <Button variant="outline" onClick={handleExport} disabled={isExporting}>
                         {isExporting ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
