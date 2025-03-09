@@ -78,15 +78,26 @@ export default function TitulinPage() {
     }
   });
 
-  const { data: videos, isLoading } = useQuery({
-    queryKey: ["youtube-videos", channelFilter],
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data: videosData, isLoading } = useQuery({
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/videos", {
-        params: channelFilter !== "all" ? { channelId: channelFilter } : undefined
+        params: {
+          ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+          page: currentPage,
+          limit: pageSize
+        }
       });
       return response.data;
     },
   });
+  
+  // Extraer videos y datos de paginación
+  const videos = videosData?.videos || [];
+  const pagination = videosData?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
 
   const { data: channels } = useQuery<Channel[]>({
     queryKey: ["youtube-channels"],

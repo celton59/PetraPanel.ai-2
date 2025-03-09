@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, getTableColumns } from "drizzle-orm";
+import { eq, and, getTableColumns, count, desc } from "drizzle-orm";
 import {
   youtube_videos,
   youtube_channels
@@ -60,20 +60,48 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     });
   }
 
-  // Obtener channelId de los params
-  const { channelId } = req.params;
+  // Obtener parámetros para paginación y filtrado
+  const { channelId } = req.query;
+  const page = Number(req.query.page || '1');
+  const limit = Number(req.query.limit || '20');
+  const offset = (page - 1) * limit;
   
   try {
+    // Primero obtenemos el total de videos (para la paginación)
+    const countQuery = db.select({ count: count() })
+      .from(youtube_videos);
+    
+    if (channelId) {
+      countQuery.where(eq(youtube_videos.channelId, channelId as string));
+    }
+    
+    const [totalResult] = await countQuery.execute();
+    const total = Number(totalResult?.count || 0);
+    
+    // Luego obtenemos los videos paginados
     const result = await db.select({
         ...getTableColumns(youtube_videos)
       })
       .from(youtube_videos)
-      .where(and(
-        channelId ? eq(youtube_videos.channelId, channelId) : undefined,
-      ))
-      .execute()
+      .orderBy(desc(youtube_videos.publishedAt))
+      .limit(limit)
+      .offset(offset)
+      .where(
+        channelId ? eq(youtube_videos.channelId, channelId as string) : undefined
+      )
+      .execute();
 
-    return res.status(200).json(result);
+    console.log(`Encontrados ${total} videos en la base de datos (mostrando ${result.length} en página ${page})`);
+    
+    return res.status(200).json({
+      videos: result,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error al obtener youtube videos', error);
     return res.status(500).json({ 
