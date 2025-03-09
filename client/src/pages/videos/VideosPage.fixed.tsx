@@ -1,5 +1,5 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
-import { ApiVideo, useVideos } from "@/hooks/useVideos";
+import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -799,8 +799,8 @@ export default function VideosPage() {
     );
   }
 
-  // Función memoizada para actualizar un video
-  const handleVideoUpdate = useCallback(async (data: UpdateVideoData, keepDialogOpen = false) => {
+  // Función para actualizar un video
+  const handleVideoUpdate = async (data: UpdateVideoData, keepDialogOpen = false) => {
     if (!selectedVideo) return;
     
     setUpdatingVideoId(selectedVideo.id);
@@ -823,13 +823,13 @@ export default function VideosPage() {
     } finally {
       setUpdatingVideoId(undefined);
     }
-  }, [selectedVideo, updateVideo, setSelectedVideo]);
+  };
 
   // No se usa función intermedia para evitar problemas con los hooks
   const videoDialogOpen = !!selectedVideo;
-  const handleOpenChange = useCallback((open: boolean) => {
+  const handleOpenChange = (open: boolean) => {
     if (!open) setSelectedVideo(undefined);
-  }, [setSelectedVideo]);
+  };
 
   return (
     <div 
