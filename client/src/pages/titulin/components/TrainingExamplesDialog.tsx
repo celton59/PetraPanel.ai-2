@@ -967,7 +967,7 @@ Los mejores plugins de WordPress
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {evergreenExamples.length === 0 ? (
+                        {(examples.filter(ex => ex.is_evergreen).length === 0) ? (
                           <TableRow>
                             <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
                               <div className="flex flex-col items-center space-y-2">
@@ -980,7 +980,7 @@ Los mejores plugins de WordPress
                             </TableCell>
                           </TableRow>
                         ) : (
-                          evergreenExamples.map((example) => (
+                          examples.filter(ex => ex.is_evergreen).map((example) => (
                             <TableRow key={example.id} className="hover:bg-muted/20">
                               <TableCell className="font-medium">{example.title}</TableCell>
                               <TableCell>
@@ -1017,7 +1017,7 @@ Los mejores plugins de WordPress
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {notEvergreenExamples.length === 0 ? (
+                        {(examples.filter(ex => !ex.is_evergreen).length === 0) ? (
                           <TableRow>
                             <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
                               <div className="flex flex-col items-center space-y-2">
@@ -1030,7 +1030,7 @@ Los mejores plugins de WordPress
                             </TableCell>
                           </TableRow>
                         ) : (
-                          notEvergreenExamples.map((example) => (
+                          examples.filter(ex => !ex.is_evergreen).map((example) => (
                             <TableRow key={example.id} className="hover:bg-muted/20">
                               <TableCell className="font-medium">{example.title}</TableCell>
                               <TableCell>
