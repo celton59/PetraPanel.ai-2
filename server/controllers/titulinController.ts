@@ -61,7 +61,7 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
   }
 
   // Obtener parámetros para paginación y filtrado
-  const { channelId } = req.query;
+  const { channelId, title } = req.query;
   const page = Number(req.query.page || '1');
   const limit = Number(req.query.limit || '20');
   const offset = (page - 1) * limit;

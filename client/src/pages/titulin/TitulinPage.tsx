@@ -79,14 +79,17 @@ export default function TitulinPage() {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
+  // Este timeout es para hacer debounce del filtro de título
+  const [titleFilterTimeout, setTitleFilterTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const { data: videosData, isLoading } = useQuery({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize],
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/videos", {
         params: {
           ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+          ...(titleFilter ? { title: titleFilter } : {}),
           page: currentPage,
           limit: pageSize
         }
@@ -107,10 +110,8 @@ export default function TitulinPage() {
     },
   });
 
-  const filteredVideos = videos?.filter((video: TitulinVideo) => {
-    const matchesTitle = video.title.toLowerCase().includes(titleFilter.toLowerCase());
-    return matchesTitle;
-  }) || [];
+  // Ya no es necesario filtrar en el cliente porque el filtrado se hace en el servidor
+  const filteredVideos = videos || [];
 
   // Calculate statistics
   const totalVideos = videos?.length || 0;
@@ -440,7 +441,15 @@ export default function TitulinPage() {
             <Input
               placeholder="Buscar por título..."
               value={titleFilter}
-              onChange={(e) => setTitleFilter(e.target.value)}
+              onChange={(e) => {
+                // Aplicamos debounce para evitar muchas peticiones
+                if (titleFilterTimeout) clearTimeout(titleFilterTimeout);
+                const timeout = setTimeout(() => {
+                  setTitleFilter(e.target.value);
+                  setCurrentPage(1); // Volver a la primera página al cambiar el filtro
+                }, 500);
+                setTitleFilterTimeout(timeout);
+              }}
               className="pl-8"
             />
           </div>
@@ -476,6 +485,83 @@ export default function TitulinPage() {
         </div>
 
         <DataTable columns={columns} data={filteredVideos} />
+        
+        {/* Paginación */}
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-sm text-muted-foreground">
+            Mostrando {videos.length} de {pagination.total} videos
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const pageNum = currentPage > 3 && pagination.totalPages > 5
+                  ? currentPage - 3 + i
+                  : i + 1;
+                
+                if (pageNum > pagination.totalPages) return null;
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    size="sm"
+                    className="w-9"
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+              {pagination.totalPages > 5 && currentPage < pagination.totalPages - 2 && (
+                <>
+                  <span className="mx-1">...</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-9"
+                    onClick={() => setCurrentPage(pagination.totalPages)}
+                  >
+                    {pagination.totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+              disabled={currentPage >= pagination.totalPages}
+            >
+              Siguiente
+            </Button>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[110px]">
+                <SelectValue placeholder="Mostrar" />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50, 100].map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size} por página
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <SendToOptimizeDialog
           video={selectedVideo!}
