@@ -64,6 +64,7 @@ interface Channel {
 export default function TitulinPage() {
   const queryClient = useQueryClient();
   const [titleFilter, setTitleFilter] = useState("");
+  const [searchInputText, setSearchInputText] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
 
@@ -489,24 +490,35 @@ export default function TitulinPage() {
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por título en los 6492 videos..."
-                defaultValue={titleFilter}
-                onInput={(e) => {
-                  // Aplicamos debounce para evitar muchas peticiones
-                  if (titleFilterTimeout) clearTimeout(titleFilterTimeout);
-                  const timeout = setTimeout(() => {
-                    setTitleFilter((e.target as HTMLInputElement).value);
-                    setCurrentPage(1); // Volver a la primera página al cambiar el filtro
-                  }, 500);
-                  setTitleFilterTimeout(timeout);
-                }}
-                className="pl-8"
-              />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por título en los 6492 videos..."
+                    value={searchInputText}
+                    onChange={(e) => setSearchInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setTitleFilter(searchInputText);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    className="pl-8"
+                  />
+                </div>
+                <Button 
+                  onClick={() => {
+                    setTitleFilter(searchInputText);
+                    setCurrentPage(1);
+                  }}
+                  type="button"
+                >
+                  Buscar
+                </Button>
+              </div>
               {titleFilter && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  Buscando "{titleFilter}" en todos los videos{channelFilter !== "all" ? " del canal seleccionado" : ""}
+                  Mostrando resultados para "{titleFilter}" en todos los videos{channelFilter !== "all" ? " del canal seleccionado" : ""}
                 </div>
               )}
             </div>
