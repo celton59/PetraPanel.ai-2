@@ -247,9 +247,20 @@ export default function VideosPage() {
     // Solo permitir arrastre con botón izquierdo
     if (e.button !== 0) return;
     
+    // Calcular la posición exacta en relación al contenedor
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    const relativeX = e.clientX;
+    const relativeY = e.clientY;
+    
     setIsDragging(true);
-    setDragStartPosition({ x: e.clientX, y: e.clientY });
-    setDragCurrentPosition({ x: e.clientX, y: e.clientY });
+    setDragStartPosition({ x: relativeX, y: relativeY });
+    setDragCurrentPosition({ x: relativeX, y: relativeY });
+    
+    // Crear el rectángulo de selección en la posición exacta del cursor
+    if (dragSelectionRef.current) {
+      dragSelectionRef.current.style.left = `${relativeX - containerRect.left}px`;
+      dragSelectionRef.current.style.top = `${relativeY - containerRect.top}px`;
+    }
     
     // Prevenir comportamiento de arrastre del navegador
     e.preventDefault();
@@ -309,17 +320,26 @@ export default function VideosPage() {
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
+    // Calcular coordenadas relativas a la posición actual del cursor
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
+    // Compensación para la posición exacta del cursor
+    const containerRect = document.querySelector('.relative')?.getBoundingClientRect();
+    const offsetX = containerRect ? left - containerRect.left : 0;
+    const offsetY = containerRect ? top - containerRect.top : 0;
+    
+    // Retornamos un objeto de estilo compatible
+    const style = {
+      left: `${offsetX}px`,
+      top: `${offsetY}px`,
       width: `${width}px`,
       height: `${height}px`,
     };
+    
+    return style;
   };
   
   const filteredVideos = videos.filter((video) => {
