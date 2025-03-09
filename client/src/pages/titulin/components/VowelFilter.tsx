@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
 interface VowelFilterProps {
@@ -65,7 +64,10 @@ export function VowelFilter({
               
               {/* Indicador visual de distribución */}
               {vowelStats && (
-                <div className="text-xs text-muted-foreground w-8 text-center" title={`${count} videos comienzan con la vocal ${vowel.toUpperCase()}`}>
+                <div 
+                  className="text-xs text-muted-foreground w-8 text-center" 
+                  title={`${count} videos comienzan con la vocal ${vowel.toUpperCase()}`}
+                >
                   <div 
                     className="h-1 bg-muted rounded-full overflow-hidden w-full"
                     role="progressbar"
