@@ -48,45 +48,50 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
-import { VISIBLE_STATES, DETAILS_PERMISSION, canUserSeeVideo, canUserSeeVideoDetails } from "@/lib/role-permissions";
 
-function VideosPage() {
-  // Todos los hooks declarados primero, antes de cualquier lógica condicional
+// Estados visibles por rol
+const VISIBLE_STATES = {
+  optimizer: [
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "en_revision",
+  ],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
+  reviewer: [
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
+    "completed",
+    "en_revision",
+  ],
+  admin: [
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
+    "media_corrections",
+    "review",
+    "youtube_ready",
+    "completed",
+    "en_revision",
+  ],
+} as const;
+
+const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
+  admin: [],
+  optimizer: ["available", "content_corrections"],
+  reviewer: ["content_review", "media_review"],
+  content_reviewer: ['content_review'],
+  media_reviewer: ['media_review'],
+  youtuber: ["upload_media", "media_corrections"],
+};
+
+export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
-  
-  // Estados para la interfaz
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
-  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
-  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
-  const [selectMode, setSelectMode] = useState(false);
-  
-  // Estados para selección por arrastre
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
-  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
-  const dragSelectionRef = useRef<HTMLDivElement>(null);
-  
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  
-  // Efectos
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get("new") === "true") {
-      setNewVideoDialogOpen(true);
-      window.history.replaceState({}, "", "/videos");
-    }
-  }, []);
-  
-  // Componente de carga mientras se obtiene el usuario
+
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center bg-background w-full">
@@ -98,11 +103,46 @@ function VideosPage() {
     );
   }
 
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
+    undefined,
+  );
+  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
+    undefined,
+  );
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  
+  // Estados para selección por arrastre
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
+  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
+  const dragSelectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("new") === "true") {
+      setNewVideoDialogOpen(true);
+      window.history.replaceState({}, "", "/videos");
+    }
+  }, []);
+
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
   if (!user) return null;
 
   function canSeeVideoDetails(video: ApiVideo): boolean {
-    if (!user) return false;
-    return canUserSeeVideoDetails(user.role, video.status);
+    if (user?.role === "admin") return true;
+
+    return DETAILS_PERMISSION[user!.role].includes(video.status);
   }
 
   async function handleVideoClick(video: ApiVideo) {
@@ -205,96 +245,34 @@ function VideosPage() {
     e.preventDefault();
   };
   
-  // Función auxiliar para comprobar si un rectángulo de selección contiene un elemento
-  const rectangleContainsElement = (
-    selectionRect: { left: number; right: number; top: number; bottom: number },
-    elementRect: DOMRect
-  ) => {
-    // Un elemento está dentro del rectángulo si hay intersección
-    return !(
-      selectionRect.left > elementRect.right ||
-      selectionRect.right < elementRect.left ||
-      selectionRect.top > elementRect.bottom ||
-      selectionRect.bottom < elementRect.top
-    );
-  };
-
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
     
-    // Actualizar la posición actual del cursor
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
-    // Verificamos si existen las posiciones para crear el rectángulo de selección
-    if (!dragStartPosition) return;
-    
-    // Obtener coordenadas del viewport para el rectángulo de selección
-    const selectionRect = {
-      left: Math.min(dragStartPosition.x, e.clientX),
-      right: Math.max(dragStartPosition.x, e.clientX),
-      top: Math.min(dragStartPosition.y, e.clientY),
-      bottom: Math.max(dragStartPosition.y, e.clientY),
-      width: Math.abs(e.clientX - dragStartPosition.x),
-      height: Math.abs(e.clientY - dragStartPosition.y),
-    };
-    
-    // Si el rectángulo es muy pequeño (menos de 4x4 píxeles), considerarlo como un clic y no como arrastre
-    if (selectionRect.width < 4 && selectionRect.height < 4) {
-      return;
-    }
-    
-    // Obtener todos los elementos de video en la vista actual
-    const videoElements = document.querySelectorAll('.video-card');
-    
-    // Guardar los IDs de los videos que están siendo seleccionados en este momento
-    const currentlySelectedIds: number[] = [];
-    const currentlyDeselectedIds: number[] = [];
-    
-    // Si se presiona la tecla Alt, deseleccionaremos en lugar de seleccionar
-    const isAltKeyPressed = e.altKey;
-    
-    videoElements.forEach((element) => {
-      const videoRect = element.getBoundingClientRect();
-      const videoIdAttr = element.getAttribute('data-video-id');
+    // Detectar elementos en el rectángulo de selección
+    if (dragSelectionRef.current) {
+      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
       
-      if (!videoIdAttr) return;
+      // Obtener todos los elementos de video en la vista actual
+      const videoElements = document.querySelectorAll('.video-card');
       
-      const videoId = Number(videoIdAttr);
-      
-      if (!videoId) return;
-      
-      // Verificar si el elemento está dentro del rectángulo de selección
-      const isContained = rectangleContainsElement(selectionRect, videoRect);
-      
-      if (isContained) {
-        if (isAltKeyPressed) {
-          // Con Alt presionado, deseleccionamos
-          currentlyDeselectedIds.push(videoId);
-        } else {
-          // Sin Alt, seleccionamos normalmente
-          currentlySelectedIds.push(videoId);
-        }
-      }
-    });
-    
-    // Actualizar la selección
-    setSelectedVideos(prev => {
-      if (isAltKeyPressed) {
-        // Filtrar los IDs a deseleccionar
-        return prev.filter(id => !currentlyDeselectedIds.includes(id));
-      } else {
-        // Añadir sólo los IDs que no estén ya en el array (selección normal)
-        const combinedArray = [...prev];
+      videoElements.forEach((element) => {
+        const videoRect = element.getBoundingClientRect();
+        const videoId = Number(element.getAttribute('data-video-id'));
         
-        currentlySelectedIds.forEach(id => {
-          if (!combinedArray.includes(id)) {
-            combinedArray.push(id);
+        // Verificar si el elemento está dentro del rectángulo de selección
+        if (
+          videoId &&
+          rectanglesIntersect(selectionRect, videoRect)
+        ) {
+          // Verificar si ya está seleccionado
+          if (!selectedVideos.includes(videoId)) {
+            setSelectedVideos(prev => [...prev, videoId]);
           }
-        });
-        
-        return combinedArray;
-      }
-    });
+        }
+      });
+    }
     
     e.preventDefault();
   };
@@ -321,19 +299,12 @@ function VideosPage() {
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
-    // Calcular la posición relativa al viewport
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
-    // Ajustar la posición considerando el scroll y los márgenes
-    const containerRect = document.documentElement.getBoundingClientRect();
-    const scrollLeft = window.scrollX;
-    const scrollTop = window.scrollY;
-    
     return {
-      position: 'fixed' as const, // Usar fixed para posicionamiento relativo a la ventana
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
@@ -342,12 +313,6 @@ function VideosPage() {
   };
   
   const filteredVideos = videos.filter((video) => {
-    // Primero filtrar por estados visibles para el rol actual según permisos
-    if (!canUserSeeVideo(user!.role, video.status)) {
-      return false;
-    }
-
-    // Luego aplicar filtros de búsqueda
     if (searchTerm) {
       return (
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -359,42 +324,24 @@ function VideosPage() {
       );
     }
 
-    // Aplicar filtro por estado si está seleccionado
-    if (status !== "all") {
-      return video.status === status;
-    }
+    // if (status !== "all") {
+    //   return video.status === status;
+    // }
 
-    // Aplicar filtro por asignación
-    if (assignedTo !== "all") {
-      const assignedToUserId = parseInt(assignedTo);
-      return (
-        video.optimizedBy === assignedToUserId ||
-        video.contentReviewedBy === assignedToUserId ||
-        video.mediaReviewedBy === assignedToUserId ||
-        video.contentUploadedBy === assignedToUserId
-      );
-    }
+    // if (assignedTo !== "all") {
+    //   return video.assigned_to === assignedTo;
+    // }
 
-    // Aplicar filtro por proyecto
-    if (projectId !== "all") {
-      return video.projectId === parseInt(projectId);
-    }
+    // if (projectId !== "all") {
+    //   return video.project_id === projectId;
+    // }
 
-    // Aplicar filtro por fecha
-    if (dateRange && dateRange.from && dateRange.to) {
-      // Asegurarnos de que video.createdAt no sea null antes de crear la fecha
-      if (video.createdAt) {
-        const videoDate = new Date(video.createdAt);
-        const fromDate = new Date(dateRange.from);
-        const toDate = new Date(dateRange.to);
-        
-        // Ajustar la fecha final para incluir todo el día
-        toDate.setHours(23, 59, 59, 999);
-        
-        return videoDate >= fromDate && videoDate <= toDate;
-      }
-      return false;
-    }
+    // if (dateRange) {
+    //   return (
+    //     video.created_at >= dateRange.startDate &&
+    //     video.created_at <= dateRange.endDate
+    //   );
+    // }
 
     return true;
   });
@@ -955,7 +902,7 @@ function VideosPage() {
         onProjectChange={setProjectId}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={VISIBLE_STATES[user.role] || VISIBLE_STATES["admin"]}
+        visibleStates={VISIBLE_STATES[user.role]}
       />
 
       {/* Selected videos actions */}
@@ -1001,8 +948,7 @@ function VideosPage() {
 
       {/* Contenedor principal con eventos para drag selection */}
       <div 
-        className="relative min-h-[75vh]"
-        style={{ touchAction: 'none' }} // Prevenir comportamiento táctil predeterminado
+        className="relative"
         onMouseDown={handleDragStart}
         onMouseMove={handleDragMove}
         onMouseUp={handleDragEnd}
@@ -1012,13 +958,9 @@ function VideosPage() {
         {isDragging && dragSelectionRef && (
           <div
             ref={dragSelectionRef}
-            className="absolute bg-primary/20 border-2 border-primary/50 rounded-sm z-50 pointer-events-none shadow-md backdrop-blur-[1px]"
+            className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
             style={getSelectionRectStyle()}
-          >
-            <div className="absolute top-1 left-1 text-xs font-medium text-primary/80 mix-blend-difference">
-              {selectedVideos.length} seleccionados
-            </div>
-          </div>
+          ></div>
         )}
         
         {viewMode === "table" && getTableView()}
@@ -1036,5 +978,3 @@ function VideosPage() {
     </div>
   );
 }
-
-export default VideosPage;
