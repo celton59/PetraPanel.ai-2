@@ -491,7 +491,7 @@ export default function TitulinPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por título..."
+                placeholder="Buscar por título en los 6492 videos..."
                 value={titleFilter}
                 onChange={(e) => {
                   // Aplicamos debounce para evitar muchas peticiones
@@ -504,6 +504,11 @@ export default function TitulinPage() {
                 }}
                 className="pl-8"
               />
+              {titleFilter && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Buscando "{titleFilter}" en todos los videos{channelFilter !== "all" ? " del canal seleccionado" : ""}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -541,7 +546,14 @@ export default function TitulinPage() {
           {/* Paginación */}
           <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-muted-foreground">
-              Mostrando {videos.length} de {pagination.total} videos
+              {titleFilter ? (
+                <span>
+                  Se encontraron <strong>{pagination.total}</strong> coincidencias con "<strong>{titleFilter}</strong>" de los 6492 videos totales.
+                  {pagination.total > 0 && <span> Mostrando {videos.length} en la página {currentPage} de {pagination.totalPages}.</span>}
+                </span>
+              ) : (
+                <span>Mostrando {videos.length} de {pagination.total} videos totales</span>
+              )}
             </div>
             
             <div className="flex items-center gap-6">
