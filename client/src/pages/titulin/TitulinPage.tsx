@@ -73,14 +73,17 @@ export default function TitulinPage() {
   
   // Efecto para aplicar debounce al cambiar el texto de búsqueda
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchValue !== titleFilter) {
-        setTitleFilter(searchValue);
-        setCurrentPage(1);
-      }
-    }, 500); // Esperar 500ms después de dejar de escribir
-    
-    return () => clearTimeout(timer);
+    // Solo realizamos la búsqueda cuando el valor tiene al menos 3 caracteres o está vacío
+    if (searchValue.trim().length >= 3 || searchValue.trim() === '') {
+      const timer = setTimeout(() => {
+        if (searchValue.trim() !== titleFilter) {
+          setTitleFilter(searchValue.trim());
+          setCurrentPage(1);
+        }
+      }, 800); // Incrementamos el tiempo a 800ms para reducir las llamadas al servidor
+      
+      return () => clearTimeout(timer);
+    }
   }, [searchValue]);
 
   const analyzeEvergeenMutation = useMutation({
@@ -105,10 +108,21 @@ export default function TitulinPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const { data: videosData, isLoading } = useQuery({
+  // Definir el tipo explícitamente para evitar errores de TS
+  interface VideoResponse {
+    videos: TitulinVideo[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }
+  
+  const { data: videosData, isLoading, isFetching } = useQuery<VideoResponse>({
     queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
     queryFn: async () => {
-      const response = await axios.get("/api/titulin/videos", {
+      const response = await axios.get<VideoResponse>("/api/titulin/videos", {
         params: {
           ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
           ...(titleFilter ? { title: titleFilter } : {}),
@@ -118,6 +132,9 @@ export default function TitulinPage() {
       });
       return response.data;
     },
+    // Agregar opciones para mejorar la experiencia
+    staleTime: 30000, // Datos frescos por 30 segundos
+    refetchOnWindowFocus: false, // No recargar al cambiar de ventana
   });
   
   // Extraer videos y datos de paginación
@@ -568,7 +585,14 @@ export default function TitulinPage() {
             </div>
           </div>
 
-          <DataTable columns={columns} data={filteredVideos} />
+          <div className="relative">
+            {isFetching && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/70 z-10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            )}
+            <DataTable columns={columns} data={filteredVideos} />
+          </div>
           
           {/* Paginación */}
           <div className="flex items-center justify-between mt-6">
