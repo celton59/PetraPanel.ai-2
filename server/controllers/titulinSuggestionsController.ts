@@ -42,7 +42,19 @@ export async function getSuggestions(req: Request, res: Response) {
     `);
 
     // Convertir el resultado a un array de sugerencias
-    const suggestions = Array.isArray(wordResults) ? wordResults : [];
+    const suggestions: Array<{title: string, count: number}> = [];
+    
+    // Agregar los resultados de palabras al array
+    if (Array.isArray(wordResults)) {
+      wordResults.forEach(result => {
+        if (result && typeof result === 'object' && 'title' in result && 'count' in result) {
+          suggestions.push({
+            title: String(result.title),
+            count: Number(result.count)
+          });
+        }
+      });
+    }
 
     // Si no hay suficientes resultados por palabras individuales, buscar en títulos completos
     if (suggestions.length < 5) {
@@ -57,9 +69,17 @@ export async function getSuggestions(req: Request, res: Response) {
         LIMIT ${10 - suggestions.length}
       `);
       
-      // Combinar resultados
-      const titleSuggestions = Array.isArray(titleResults) ? titleResults : [];
-      suggestions.push(...titleSuggestions);
+      // Agregar los resultados de títulos al array
+      if (Array.isArray(titleResults)) {
+        titleResults.forEach(result => {
+          if (result && typeof result === 'object' && 'title' in result && 'count' in result) {
+            suggestions.push({
+              title: String(result.title),
+              count: Number(result.count)
+            });
+          }
+        });
+      }
     }
 
     return res.json({

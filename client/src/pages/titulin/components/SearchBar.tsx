@@ -1,6 +1,6 @@
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
+import { AutocompleteSearch } from "./AutocompleteSearch";
 
 interface SearchBarProps {
   searchValue: string;
@@ -27,42 +27,26 @@ export function SearchBar({
   isFetching,
   handleClearVowelFilter
 }: SearchBarProps) {
+  // Manejar la selección de sugerencia o búsqueda manual
+  const handleSearch = (query: string) => {
+    setSearchValue(query);
+    setTitleFilter(query);
+    setCurrentPage(1);
+    // Al usar la búsqueda, desactivamos la selección por vocal
+    if (selectedVowel) {
+      setSelectedVowel(null);
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por título en los 6492 videos..."
-          value={searchValue}
-          onChange={(e) => {
-            setSearchValue(e.target.value);
-            // Al empezar a escribir, desactivamos la selección de vocal
-            if (selectedVowel && e.target.value) {
-              setSelectedVowel(null);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              const currentValue = searchValue.trim();
-              if (currentValue !== titleFilter && (currentValue.length >= 3 || currentValue === '')) {
-                // Búsqueda inmediata con Enter
-                setTimeout(() => {
-                  setTitleFilter(currentValue);
-                  setCurrentPage(1);
-                  setSelectedVowel(null); // Desactivar filtro por vocal
-                }, 0);
-              }
-            }
-          }}
-          aria-label="Buscar videos"
-          className={`pl-8 transition-all ${isSearching ? 'pr-10 bg-muted/30' : ''}`}
+      <div className="relative w-full">
+        <AutocompleteSearch
+          onSearch={handleSearch}
+          placeholder="Buscar entre los videos..."
+          minSearchLength={2}
           disabled={isSearching || isFetching}
         />
-        {(isSearching || isFetching) && (
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        )}
         
         {/* Indicador de filtro activo por vocal */}
         {selectedVowel && !isSearching && !isFetching && (

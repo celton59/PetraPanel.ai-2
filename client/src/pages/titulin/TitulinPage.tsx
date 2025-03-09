@@ -71,7 +71,7 @@ export default function TitulinPage() {
             <div className="relative flex-1">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  {/* Barra de búsqueda */}
+                  {/* Barra de búsqueda con autocompletado */}
                   <SearchBar 
                     searchValue={searchValue}
                     setSearchValue={setSearchValue}
@@ -85,20 +85,22 @@ export default function TitulinPage() {
                     handleClearVowelFilter={handleClearVowelFilter}
                   />
 
-                  {/* Filtro por vocales */}
-                  <VowelFilter
-                    vowels={vowels}
-                    selectedVowel={selectedVowel}
-                    setSelectedVowel={setSelectedVowel}
-                    setTitleFilter={setTitleFilter}
-                    setSearchValue={setSearchValue}
-                    setCurrentPage={setCurrentPage}
-                    handleClearVowelFilter={handleClearVowelFilter}
-                    isSearching={isSearching}
-                    isFetching={isFetching}
-                    vowelStats={vowelStats}
-                    totalVideos={totalVideos}
-                  />
+                  {/* Filtro por vocales (mantenemos para compatibilidad y casos de uso específicos) */}
+                  {!titleFilter && (
+                    <VowelFilter
+                      vowels={vowels}
+                      selectedVowel={selectedVowel}
+                      setSelectedVowel={setSelectedVowel}
+                      setTitleFilter={setTitleFilter}
+                      setSearchValue={setSearchValue}
+                      setCurrentPage={setCurrentPage}
+                      handleClearVowelFilter={handleClearVowelFilter}
+                      isSearching={isSearching}
+                      isFetching={isFetching}
+                      vowelStats={vowelStats}
+                      totalVideos={totalVideos}
+                    />
+                  )}
                 </div>
 
                 {/* Selector de canal y botón de exportar */}
