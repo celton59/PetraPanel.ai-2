@@ -120,6 +120,12 @@ export function TrainingExamplesDialog({
   const [importAsEvergreen, setImportAsEvergreen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Estado para importación masiva
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [bulkTitles, setBulkTitles] = useState("");
+  const [bulkIsEvergreen, setBulkIsEvergreen] = useState(true);
+  const [isImportingBulk, setIsImportingBulk] = useState(false);
+  
   // Estado para ordenamiento
   const [sortBy, setSortBy] = useState<string>("id");
   const [sortDir, setSortDir] = useState<string>("asc");
@@ -386,6 +392,47 @@ export function TrainingExamplesDialog({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  // Función para manejar la importación masiva de ejemplos
+  const handleBulkImport = async () => {
+    if (!bulkTitles.trim()) {
+      toast.error('Ingrese al menos un título');
+      return;
+    }
+    
+    setIsImportingBulk(true);
+    try {
+      // Dividir los títulos por saltos de línea y filtrar líneas vacías
+      const titles = bulkTitles
+        .split('\n')
+        .map(title => title.trim())
+        .filter(title => title.length > 0);
+      
+      if (titles.length === 0) {
+        toast.error('No se encontraron títulos válidos');
+        return;
+      }
+      
+      // Enviar la petición
+      const response = await axios.post('/api/titulin/training-examples/bulk', {
+        operation: 'create',
+        titles,
+        isEvergreen: bulkIsEvergreen
+      });
+      
+      if (response.data.success) {
+        toast.success(`${response.data.insertedCount || titles.length} ejemplos importados correctamente`);
+        loadExamples(); // Recargar ejemplos
+        setBulkTitles(''); // Limpiar el textarea
+        setBulkImportOpen(false); // Cerrar diálogo
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Error al importar ejemplos en masa');
+      console.error('Error importando ejemplos en masa:', error);
+    } finally {
+      setIsImportingBulk(false);
     }
   };
   
@@ -679,6 +726,14 @@ export function TrainingExamplesDialog({
                         className="hidden"
                         accept=".csv"
                       />
+                      <Button 
+                        variant="secondary"
+                        onClick={() => setBulkImportOpen(true)}
+                        className="ml-2"
+                      >
+                        <ListPlus className="mr-2 h-4 w-4" />
+                        Importar en masa
+                      </Button>
                       <Button 
                         variant="secondary" 
                         onClick={() => setYoutubeChannelOpen(true)}
