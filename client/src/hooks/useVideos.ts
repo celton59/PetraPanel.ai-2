@@ -151,7 +151,7 @@ const videoService = {
 function createMutation<TData, TVariables, TError = Error, TContext = unknown>(
   mutationFn: MutationFunction<TData, TVariables>,
   options: {
-    onSuccessMessage?: string;
+    onSuccessMessage?: string | ((data: TData, variables: TVariables) => string);
     onSuccessDescription?: string | ((data: TData, variables: TVariables) => string);
     onErrorMessage?: string;
     onErrorDescription?: string | ((error: TError) => string);
@@ -176,19 +176,27 @@ function createMutation<TData, TVariables, TError = Error, TContext = unknown>(
       
       // Mostrar notificación de éxito
       if (options.onSuccessMessage) {
-        toast.success(options.onSuccessMessage, {
-          description: typeof options.onSuccessDescription === 'function'
-            ? options.onSuccessDescription(data, variables)
-            : options.onSuccessDescription
+        const successMessage = typeof options.onSuccessMessage === 'function'
+          ? options.onSuccessMessage(data, variables)
+          : options.onSuccessMessage;
+        
+        const description = typeof options.onSuccessDescription === 'function'
+          ? options.onSuccessDescription(data, variables)
+          : options.onSuccessDescription;
+        
+        toast.success(successMessage as string, {
+          description: description as string
         });
       }
     },
     onError: (error: TError) => {
       // Mostrar notificación de error
+      const errorDescription = typeof options.onErrorDescription === 'function'
+        ? options.onErrorDescription(error)
+        : (options.onErrorDescription || (error as Error).message || "Ha ocurrido un error");
+        
       toast.error(options.onErrorMessage || "Error", {
-        description: typeof options.onErrorDescription === 'function'
-          ? options.onErrorDescription(error)
-          : (options.onErrorDescription || (error as Error).message || "Ha ocurrido un error")
+        description: errorDescription as string
       });
     }
   });
@@ -269,9 +277,9 @@ export function useVideos() {
     ({videoId, projectId, permanent = false}: { videoId: number, projectId: number, permanent?: boolean }) => 
       videoService.deleteVideo(videoId, projectId, permanent),
     {
-      onSuccessMessage: (_, variables) => 
+      onSuccessMessage: (data: any, variables: {permanent?: boolean}) => 
         variables.permanent ? "Video eliminado permanentemente" : "Video movido a la papelera",
-      onSuccessDescription: (_, variables) => 
+      onSuccessDescription: (data: any, variables: {permanent?: boolean}) => 
         variables.permanent 
           ? "El video ha sido eliminado permanentemente" 
           : "El video se ha movido a la papelera",
@@ -286,9 +294,9 @@ export function useVideos() {
     ({projectId, videoIds, permanent = false}: { projectId: number, videoIds: number[], permanent?: boolean }) => 
       videoService.bulkDeleteVideos(projectId, videoIds, permanent),
     {
-      onSuccessMessage: (_, variables) => 
+      onSuccessMessage: (data: any, variables: {permanent?: boolean}) => 
         variables.permanent ? "Videos eliminados permanentemente" : "Videos movidos a la papelera",
-      onSuccessDescription: (data: any, variables) => 
+      onSuccessDescription: (data: any, variables: {permanent?: boolean}) => 
         variables.permanent 
           ? `Se han eliminado permanentemente ${data.deleted || 0} videos` 
           : `Se han movido ${data.deleted || 0} videos a la papelera`,

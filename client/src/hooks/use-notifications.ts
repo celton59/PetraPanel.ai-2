@@ -484,15 +484,18 @@ export function useNotificationAPI() {
   const { addNotification, markAsRead: markAsReadLocal, markAllAsRead: markAllAsReadLocal } = useNotifications();
   
   // Consulta para obtener notificaciones
-  const { data: notifications, isLoading, error, refetch } = useQuery({
+  const { data: notifications, isLoading, error, refetch } = useQuery<any[]>({
     queryKey: NOTIFICATIONS_QUERY_KEY,
     queryFn: () => notificationApiClient.fetchNotifications(false),
     staleTime: NOTIFICATION_CONFIG.CACHE_TIME.SHORT,
     retry: 2,
-    refetchOnWindowFocus: true,
-    onSuccess: (data) => {
-      // Sincronizar con el estado local
-      data.forEach((notification: any) => {
+    refetchOnWindowFocus: true
+  });
+    
+  // Efecto para sincronizar notificaciones con el estado local cuando llegan nuevos datos
+  useEffect(() => {
+    if (notifications) {
+      notifications.forEach((notification) => {
         addNotification({
           title: notification.title,
           message: notification.message,
@@ -502,11 +505,8 @@ export function useNotificationAPI() {
           sender: notification.sender
         });
       });
-    },
-    onError: (err) => {
-      console.error('Error al cargar notificaciones:', err);
     }
-  });
+  }, [notifications, addNotification]);
   
   // Mutación para marcar como leída
   const markAsReadMutation = useMutation({
