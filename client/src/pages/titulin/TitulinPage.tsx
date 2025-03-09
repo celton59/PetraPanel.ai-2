@@ -623,6 +623,21 @@ export default function TitulinPage() {
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     )}
+                    
+                    {/* Indicador de filtro activo por vocal */}
+                    {selectedVowel && !isSearching && !isFetching && (
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary">
+                          <span className="mr-1">Vocal: {selectedVowel.toUpperCase()}</span>
+                          <button 
+                            onClick={handleClearVowelFilter}
+                            className="h-4 w-4 rounded-full flex items-center justify-center hover:bg-primary/20"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                   {/* Filtro por primera vocal */}
