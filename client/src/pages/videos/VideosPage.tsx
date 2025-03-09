@@ -42,13 +42,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 import { VISIBLE_STATES, DETAILS_PERMISSION, canUserSeeVideo, canUserSeeVideoDetails } from "@/lib/role-permissions";
+import { SelectionRectangle, useDragSelection } from './DragSelection';
 
 function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
@@ -62,11 +63,6 @@ function VideosPage() {
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   
-  // Estados para selección por arrastre
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
-  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
-  
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -76,8 +72,7 @@ function VideosPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   
   // Referencias
-  const dragSelectionRef = useRef<HTMLDivElement>(null);
-  const autoScrollIntervalRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Efectos
   useEffect(() => {
