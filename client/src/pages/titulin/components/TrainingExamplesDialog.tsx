@@ -146,7 +146,7 @@ export function TrainingExamplesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Ejemplos de entrenamiento para IA</DialogTitle>
           <DialogDescription>
@@ -154,198 +154,202 @@ export function TrainingExamplesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex justify-between items-center mb-4">
-            <TabsList>
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="evergreen">Evergreen</TabsTrigger>
-              <TabsTrigger value="not-evergreen">No Evergreen</TabsTrigger>
-            </TabsList>
-            <div className="flex items-center gap-2">
-              <Badge>{examples.length} Total</Badge>
-              <Badge variant="outline" className="bg-green-50">
-                {examples.filter(e => e.is_evergreen).length} Evergreen
-              </Badge>
-              <Badge variant="outline" className="bg-amber-50">
-                {examples.filter(e => !e.is_evergreen).length} No Evergreen
-              </Badge>
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <TabsList>
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="evergreen">Evergreen</TabsTrigger>
+                <TabsTrigger value="not-evergreen">No Evergreen</TabsTrigger>
+              </TabsList>
+              <div className="flex items-center gap-2">
+                <Badge>{examples.length} Total</Badge>
+                <Badge variant="outline" className="bg-green-50">
+                  {examples.filter(e => e.is_evergreen).length} Evergreen
+                </Badge>
+                <Badge variant="outline" className="bg-amber-50">
+                  {examples.filter(e => !e.is_evergreen).length} No Evergreen
+                </Badge>
+              </div>
             </div>
-          </div>
 
-          <TabsContent value="all" className="space-y-4">
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-base">Añadir nuevo ejemplo</CardTitle>
-                <CardDescription>
-                  Los ejemplos se utilizarán para entrenar al modelo de IA
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="title">Título del video</Label>
-                    <Input
-                      id="title"
-                      placeholder="Ingrese un título de ejemplo"
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="is-evergreen"
-                        checked={isEvergreen}
-                        onCheckedChange={setIsEvergreen}
-                      />
-                      <Label htmlFor="is-evergreen">
-                        {isEvergreen ? "Evergreen" : "No Evergreen"}
-                      </Label>
-                    </div>
-                    <Button
-                      onClick={addExample}
-                      disabled={isLoading || !newTitle.trim()}
-                      className="ml-auto"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="mr-2 h-4 w-4" />
-                      )}
-                      Añadir ejemplo
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="w-[150px]">Tipo</TableHead>
-                    <TableHead className="w-[100px]">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredExamples.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                        No hay ejemplos disponibles
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredExamples.map((example) => (
-                      <TableRow key={example.id}>
-                        <TableCell className="font-medium">{example.title}</TableCell>
-                        <TableCell>
-                          {example.is_evergreen ? (
-                            <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                              Evergreen
-                            </Badge>
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <TabsContent value="all" className="space-y-4 flex-1 overflow-auto">
+                <Card>
+                  <CardHeader className="py-4">
+                    <CardTitle className="text-base">Añadir nuevo ejemplo</CardTitle>
+                    <CardDescription>
+                      Los ejemplos se utilizarán para entrenar al modelo de IA
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="title">Título del video</Label>
+                        <Input
+                          id="title"
+                          placeholder="Ingrese un título de ejemplo"
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="is-evergreen"
+                            checked={isEvergreen}
+                            onCheckedChange={setIsEvergreen}
+                          />
+                          <Label htmlFor="is-evergreen">
+                            {isEvergreen ? "Evergreen" : "No Evergreen"}
+                          </Label>
+                        </div>
+                        <Button
+                          onClick={addExample}
+                          disabled={isLoading || !newTitle.trim()}
+                          className="ml-auto"
+                        >
+                          {isLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
-                            <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
-                              No Evergreen
-                            </Badge>
+                            <Plus className="mr-2 h-4 w-4" />
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteExample(example.id)}
-                            disabled={isLoading}
-                          >
-                            <Trash className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
+                          Añadir ejemplo
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-          <TabsContent value="evergreen" className="space-y-4">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="w-[100px]">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredExamples.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
-                        No hay ejemplos disponibles
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredExamples.map((example) => (
-                      <TableRow key={example.id}>
-                        <TableCell className="font-medium">{example.title}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteExample(example.id)}
-                            disabled={isLoading}
-                          >
-                            <Trash className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
+                <div className="rounded-md border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Título</TableHead>
+                        <TableHead className="w-[150px]">Tipo</TableHead>
+                        <TableHead className="w-[100px]">Acciones</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredExamples.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                            No hay ejemplos disponibles
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredExamples.map((example) => (
+                          <TableRow key={example.id}>
+                            <TableCell className="font-medium">{example.title}</TableCell>
+                            <TableCell>
+                              {example.is_evergreen ? (
+                                <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                                  Evergreen
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
+                                  No Evergreen
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteExample(example.id)}
+                                disabled={isLoading}
+                              >
+                                <Trash className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
 
-          <TabsContent value="not-evergreen" className="space-y-4">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="w-[100px]">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredExamples.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
-                        No hay ejemplos disponibles
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredExamples.map((example) => (
-                      <TableRow key={example.id}>
-                        <TableCell className="font-medium">{example.title}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteExample(example.id)}
-                            disabled={isLoading}
-                          >
-                            <Trash className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
+              <TabsContent value="evergreen" className="space-y-4 flex-1 overflow-auto">
+                <div className="rounded-md border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Título</TableHead>
+                        <TableHead className="w-[100px]">Acciones</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-        </Tabs>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredExamples.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
+                            No hay ejemplos disponibles
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredExamples.map((example) => (
+                          <TableRow key={example.id}>
+                            <TableCell className="font-medium">{example.title}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteExample(example.id)}
+                                disabled={isLoading}
+                              >
+                                <Trash className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
 
-        <DialogFooter>
+              <TabsContent value="not-evergreen" className="space-y-4 flex-1 overflow-auto">
+                <div className="rounded-md border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Título</TableHead>
+                        <TableHead className="w-[100px]">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredExamples.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
+                            No hay ejemplos disponibles
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredExamples.map((example) => (
+                          <TableRow key={example.id}>
+                            <TableCell className="font-medium">{example.title}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteExample(example.id)}
+                                disabled={isLoading}
+                              >
+                                <Trash className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
