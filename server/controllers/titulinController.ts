@@ -598,6 +598,8 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   }
 }
 
+import { getSuggestions } from './titulinSuggestionsController';
+
 export function setUpTitulinRoutes (app: Express) {
   app.post('/api/titulin/channels', addChannel)
   app.get('/api/titulin/channels', getChannels)
@@ -609,4 +611,7 @@ export function setUpTitulinRoutes (app: Express) {
   app.post('/api/titulin/channels/:channelId/sync', syncChannelVideos)
   app.post('/api/titulin/videos/:videoId/sent-to-optimize', markVideoAsSent)
   app.post('/api/titulin/videos/:videoId/analyze', analyzeVideo)
+  
+  // API de sugerencias para autocompletado
+  app.get('/api/titulin/suggestions', getSuggestions)
 }
