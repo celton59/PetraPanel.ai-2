@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { Channel } from "../types";
 
 interface TableActionsProps {
@@ -49,7 +49,11 @@ export function TableActions({
         className="h-10"
         aria-label="Descargar CSV"
       >
-        <Download className="h-4 w-4" />
+        {isDownloading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        ) : (
+          <Download className="h-4 w-4" />
+        )}
         <span className="hidden sm:inline ml-2">Exportar</span>
       </Button>
     </div>

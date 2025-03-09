@@ -238,7 +238,7 @@ export function useTitulin() {
       
       // Convertir a formato CSV
       const headers = Object.keys(titlesForCSV[0]).join(',');
-      const rows = titlesForCSV.map(obj => 
+      const rows = titlesForCSV.map((obj: Record<string, any>) => 
         Object.values(obj).map(value => 
           typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
         ).join(',')
