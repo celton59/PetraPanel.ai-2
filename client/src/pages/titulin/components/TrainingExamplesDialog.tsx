@@ -293,11 +293,17 @@ export function TrainingExamplesDialog({
   
   // Función para cambiar el tamaño de página
   const handlePageSizeChange = (size: string) => {
+    console.log("Cambiando tamaño de página a:", size);
     const newSize = parseInt(size);
     if (newSize !== pagination.limit && newSize > 0) {
       // Actualizar el estado y cargar con el nuevo tamaño
       setPagination(prev => ({ ...prev, limit: newSize }));
-      loadExamples(1, newSize); // Volver a la primera página con el nuevo tamaño
+      
+      // Si es "Ver todos", usamos un valor muy alto para cargar todos los registros
+      const finalSize = size === "10000" ? 10000 : newSize;
+      console.log("Nuevo tamaño final:", finalSize);
+      
+      loadExamples(1, finalSize); // Volver a la primera página con el nuevo tamaño
     }
   };
   
@@ -895,7 +901,7 @@ Los mejores plugins de WordPress
                           value={pagination.limit.toString()}
                           onValueChange={handlePageSizeChange}
                         >
-                          <SelectTrigger id="page-size" className="w-[80px] h-8">
+                          <SelectTrigger id="page-size" className="w-[100px] h-8">
                             <SelectValue placeholder="100" />
                           </SelectTrigger>
                           <SelectContent>
