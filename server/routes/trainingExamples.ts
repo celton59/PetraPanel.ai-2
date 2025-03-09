@@ -458,29 +458,91 @@ export function setupTrainingExamplesRoutes(
       
       const youtubeChannelId = channelRows[0].channel_id;
       
-      // Obtener videos del canal desde la base de datos usando el channel_id de YouTube
-      const videos = await db.execute(sql`
-        SELECT yt.id, yt.title, yt.video_id, yt.channel_id
+      // Obtener el total de videos disponibles para este canal
+      const countResult = await db.execute(sql`
+        SELECT COUNT(*) as total
         FROM youtube_videos yt
         JOIN youtube_channels ch ON yt.channel_id = ch.channel_id
         WHERE ch.channel_id = ${youtubeChannelId}
-        LIMIT 100
       `);
       
-      // Manejar diferentes formatos de resultados
-      let rows = Array.isArray(videos) ? videos : 
-                (videos.rows && Array.isArray(videos.rows) ? videos.rows : 
-                (typeof videos === 'object' ? Object.values(videos) : []));
+      // Extraer el total de videos
+      let totalVideos = 0;
+      try {
+        if (Array.isArray(countResult) && countResult.length > 0 && countResult[0].total) {
+          totalVideos = parseInt(String(countResult[0].total));
+        } else if (countResult.rows && countResult.rows.length > 0 && countResult.rows[0].total) {
+          totalVideos = parseInt(String(countResult.rows[0].total));
+        } else if (typeof countResult === 'object') {
+          // Extraer el primer valor como string para evitar errores de tipo
+          const firstObject = Object.values(countResult)[0];
+          if (firstObject && typeof firstObject === 'object') {
+            const totalValue = Object.values(firstObject)[0];
+            if (totalValue !== undefined && totalValue !== null) {
+              totalVideos = parseInt(String(totalValue));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error al extraer el total de videos:', err);
+        // Si hay error al analizar, intentar calcular por otro método
+        totalVideos = 1000; // Valor predeterminado conservador
+      }
       
-      if (rows.length === 0) {
+      console.log(`Total de videos encontrados para el canal ${youtubeChannelId}: ${totalVideos}`);
+      
+      if (totalVideos === 0) {
         return res.status(404).json({
           success: false,
           message: 'No se encontraron videos para este canal'
         });
       }
       
+      // Configuración para paginación
+      const pageSize = 500;
+      const totalPages = Math.ceil(totalVideos / pageSize);
+      
+      // Colección para todos los títulos
+      let allTitles: string[] = [];
+      
+      // Obtener todos los videos del canal usando paginación
+      for (let page = 0; page < totalPages; page++) {
+        const offset = page * pageSize;
+        
+        console.log(`Obteniendo página ${page + 1} de ${totalPages} (offset: ${offset}, limit: ${pageSize})`);
+        
+        const videos = await db.execute(sql`
+          SELECT yt.id, yt.title, yt.video_id, yt.channel_id
+          FROM youtube_videos yt
+          JOIN youtube_channels ch ON yt.channel_id = ch.channel_id
+          WHERE ch.channel_id = ${youtubeChannelId}
+          ORDER BY yt.id
+          LIMIT ${pageSize} OFFSET ${offset}
+        `);
+        
+        // Manejar diferentes formatos de resultados
+        let pageRows = Array.isArray(videos) ? videos : 
+                  (videos.rows && Array.isArray(videos.rows) ? videos.rows : 
+                  (typeof videos === 'object' ? Object.values(videos) : []));
+        
+        // Añadir los títulos de esta página a la colección completa
+        const pageTitles = pageRows.map(video => video.title);
+        allTitles = [...allTitles, ...pageTitles];
+        
+        console.log(`Obtenidos ${pageTitles.length} títulos de la página ${page + 1}`);
+      }
+      
+      if (allTitles.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se pudieron obtener títulos para este canal'
+        });
+      }
+      
+      console.log(`Total de títulos recopilados: ${allTitles.length}`);
+      
       // Preparar los títulos para inserción
-      const titles = rows.map(video => video.title);
+      const titles = allTitles;
       
       // Insertar en lotes
       let insertedCount = 0;
@@ -513,7 +575,7 @@ export function setupTrainingExamplesRoutes(
       return res.status(200).json({
         success: true,
         message: `${insertedCount} títulos importados como ${isEvergreen ? 'evergreen' : 'no evergreen'} desde el canal de YouTube`,
-        totalProcessed: rows.length,
+        totalProcessed: allTitles.length,
         totalImported: insertedCount
       });
     } catch (error: any) {
