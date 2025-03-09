@@ -81,13 +81,22 @@ function VideosPage() {
   const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
   const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
   const dragSelectionRef = useRef<HTMLDivElement>(null);
-
+  const autoScrollIntervalRef = useRef<number | null>(null);
+  
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("new") === "true") {
       setNewVideoDialogOpen(true);
       window.history.replaceState({}, "", "/videos");
     }
+    
+    // Limpieza cuando se desmonta el componente
+    return () => {
+      if (autoScrollIntervalRef.current !== null) {
+        window.clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+    };
   }, []);
 
   // Estados para filtros
@@ -158,6 +167,12 @@ function VideosPage() {
     if (selectMode) {
       // If turning off selection mode, clear selections
       setSelectedVideos([]);
+      
+      // También limpiamos cualquier intervalo de auto-scroll pendiente
+      if (autoScrollIntervalRef.current !== null) {
+        window.clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
     }
     setSelectMode(!selectMode);
   };
@@ -243,6 +258,55 @@ function VideosPage() {
       return;
     }
     
+    // Auto-scroll cuando el cursor está cerca de los bordes de la ventana
+    const scrollThreshold = 40; // píxeles desde el borde para iniciar el scroll
+    const scrollSpeed = 15; // velocidad de desplazamiento en píxeles
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    // Comprobar si debemos hacer auto-scroll
+    const shouldScrollDown = e.clientY > viewportHeight - scrollThreshold;
+    const shouldScrollUp = e.clientY < scrollThreshold;
+    const shouldScrollRight = e.clientX > viewportWidth - scrollThreshold;
+    const shouldScrollLeft = e.clientX < scrollThreshold;
+    
+    // Limpiar intervalo existente si hay uno
+    if (autoScrollIntervalRef.current !== null) {
+      window.clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+    
+    // Establecer nuevo intervalo si estamos cerca de los límites
+    if (shouldScrollDown || shouldScrollUp || shouldScrollRight || shouldScrollLeft) {
+      autoScrollIntervalRef.current = window.setInterval(() => {
+        if (shouldScrollDown) {
+          window.scrollBy(0, scrollSpeed);
+        } else if (shouldScrollUp) {
+          window.scrollBy(0, -scrollSpeed);
+        }
+        
+        if (shouldScrollRight) {
+          window.scrollBy(scrollSpeed, 0);
+        } else if (shouldScrollLeft) {
+          window.scrollBy(-scrollSpeed, 0);
+        }
+        
+        // Actualizar la posición actual en función de las nuevas coordenadas del scroll
+        // Esto es necesario para que el rectángulo siga creciendo en la dirección correcta
+        if (dragCurrentPosition) {
+          const newY = shouldScrollDown ? dragCurrentPosition.y + scrollSpeed : 
+                       shouldScrollUp ? dragCurrentPosition.y - scrollSpeed : 
+                       dragCurrentPosition.y;
+                       
+          const newX = shouldScrollRight ? dragCurrentPosition.x + scrollSpeed : 
+                       shouldScrollLeft ? dragCurrentPosition.x - scrollSpeed : 
+                       dragCurrentPosition.x;
+                       
+          setDragCurrentPosition({ x: newX, y: newY });
+        }
+      }, 50); // Intervalos de 50ms para un scrolling suave
+    }
+    
     // Obtener todos los elementos de video en la vista actual
     const videoElements = document.querySelectorAll('.video-card');
     
@@ -301,6 +365,12 @@ function VideosPage() {
   
   const handleDragEnd = () => {
     if (!isDragging || !selectMode) return;
+    
+    // Limpiar cualquier intervalo de auto-scroll
+    if (autoScrollIntervalRef.current !== null) {
+      window.clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
     
     setIsDragging(false);
     setDragStartPosition(null);
