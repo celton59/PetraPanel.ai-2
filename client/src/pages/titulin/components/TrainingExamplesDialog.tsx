@@ -291,6 +291,16 @@ export function TrainingExamplesDialog({
     }
   };
   
+  // Función para cambiar el tamaño de página
+  const handlePageSizeChange = (size: string) => {
+    const newSize = parseInt(size);
+    if (newSize !== pagination.limit && newSize > 0) {
+      // Actualizar el estado y cargar con el nuevo tamaño
+      setPagination(prev => ({ ...prev, limit: newSize }));
+      loadExamples(1, newSize); // Volver a la primera página con el nuevo tamaño
+    }
+  };
+  
   // Función para exportar ejemplos
   const handleExport = async () => {
     setIsExporting(true);
@@ -878,81 +888,103 @@ Los mejores plugins de WordPress
                     </div>
 
                     {/* Paginación */}
-                    <Pagination>
-                      <PaginationContent>
-                        {pagination.page > 1 && (
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() => handlePageChange(pagination.page - 1)}
-                            />
-                          </PaginationItem>
-                        )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="page-size" className="text-xs text-muted-foreground">Mostrar</Label>
+                        <Select
+                          value={pagination.limit.toString()}
+                          onValueChange={handlePageSizeChange}
+                        >
+                          <SelectTrigger id="page-size" className="w-[80px] h-8">
+                            <SelectValue placeholder="100" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="200">200</SelectItem>
+                            <SelectItem value="500">500</SelectItem>
+                            <SelectItem value="1000">1000</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-xs text-muted-foreground">por página</span>
+                      </div>
+                      
+                      <Pagination>
+                        <PaginationContent>
+                          {pagination.page > 1 && (
+                            <PaginationItem>
+                              <PaginationPrevious
+                                onClick={() => handlePageChange(pagination.page - 1)}
+                              />
+                            </PaginationItem>
+                          )}
 
-                        {pagination.page > 2 && (
+                          {pagination.page > 2 && (
+                            <PaginationItem>
+                              <PaginationLink onClick={() => handlePageChange(1)}>
+                                1
+                              </PaginationLink>
+                            </PaginationItem>
+                          )}
+
+                          {pagination.page > 3 && (
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )}
+
+                          {pagination.page > 1 && (
+                            <PaginationItem>
+                              <PaginationLink
+                                onClick={() => handlePageChange(pagination.page - 1)}
+                              >
+                                {pagination.page - 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )}
+
                           <PaginationItem>
-                            <PaginationLink onClick={() => handlePageChange(1)}>
-                              1
+                            <PaginationLink isActive>
+                              {pagination.page}
                             </PaginationLink>
                           </PaginationItem>
-                        )}
 
-                        {pagination.page > 3 && (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        )}
+                          {pagination.page < pagination.totalPages && (
+                            <PaginationItem>
+                              <PaginationLink
+                                onClick={() => handlePageChange(pagination.page + 1)}
+                              >
+                                {pagination.page + 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )}
 
-                        {pagination.page > 1 && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pagination.page - 1)}
-                            >
-                              {pagination.page - 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
+                          {pagination.page < pagination.totalPages - 2 && (
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )}
 
-                        <PaginationItem>
-                          <PaginationLink isActive>
-                            {pagination.page}
-                          </PaginationLink>
-                        </PaginationItem>
+                          {pagination.page < pagination.totalPages - 1 && (
+                            <PaginationItem>
+                              <PaginationLink
+                                onClick={() => handlePageChange(pagination.totalPages)}
+                              >
+                                {pagination.totalPages}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )}
 
-                        {pagination.page < pagination.totalPages && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pagination.page + 1)}
-                            >
-                              {pagination.page + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page < pagination.totalPages - 2 && (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page < pagination.totalPages - 1 && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pagination.totalPages)}
-                            >
-                              {pagination.totalPages}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page < pagination.totalPages && (
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() => handlePageChange(pagination.page + 1)}
-                            />
-                          </PaginationItem>
-                        )}
-                      </PaginationContent>
-                    </Pagination>
+                          {pagination.page < pagination.totalPages && (
+                            <PaginationItem>
+                              <PaginationNext
+                                onClick={() => handlePageChange(pagination.page + 1)}
+                              />
+                            </PaginationItem>
+                          )}
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
                   </div>
                 </TabsContent>
                 
