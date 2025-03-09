@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Loader2, Trash2, Video, RefreshCw } from "lucide-react";
+import { Plus, Loader2, Trash2, Video, RefreshCw, BookText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
+import { TrainingExamplesDialog } from "../../../../titulin/components/TrainingExamplesDialog";
 
 interface Channel {
   id: number;
@@ -26,6 +27,7 @@ export default function TitulinTab () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [newChannelUrl, setNewChannelUrl] = useState("");
   const [syncingChannelId, setSyncingChannelId] = useState<number | null>(null);
+  const [showTrainingExamples, setShowTrainingExamples] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: channels = [], isLoading } = useQuery<Channel[]>({
@@ -130,13 +132,44 @@ export default function TitulinTab () {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold">Canales para Titulin</h2>
-        <p className="text-sm text-muted-foreground">
-          Gestiona los canales de YouTube que se utilizarán como referencia para generar títulos
-        </p>
+      <div className="flex justify-between items-start">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold">Titulin - Análisis de Contenido</h2>
+          <p className="text-sm text-muted-foreground">
+            Gestiona los canales y ejemplos de entrenamiento para análisis de títulos
+          </p>
+        </div>
       </div>
 
+      {/* Sección de ejemplos de entrenamiento */}
+      <Card className="p-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Ejemplos de Entrenamiento para IA</h3>
+              <p className="text-sm text-muted-foreground">
+                Gestiona los ejemplos que se utilizan para entrenar el análisis de títulos evergreen
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowTrainingExamples(true)} 
+              className="flex items-center"
+            >
+              <BookText className="mr-2 h-4 w-4" />
+              Gestionar Ejemplos
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Sección de canales */}
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold">Canales de YouTube</h3>
+        <p className="text-sm text-muted-foreground">
+          Gestiona los canales de YouTube que se utilizarán como referencia
+        </p>
+      </div>
+      
       <Card className="p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <Input
@@ -158,6 +191,12 @@ export default function TitulinTab () {
           </Button>
         </div>
       </Card>
+      
+      {/* Diálogo de ejemplos de entrenamiento */}
+      <TrainingExamplesDialog
+        open={showTrainingExamples}
+        onOpenChange={setShowTrainingExamples}
+      />
 
       <div className="rounded-lg border bg-card">
         <Table>
