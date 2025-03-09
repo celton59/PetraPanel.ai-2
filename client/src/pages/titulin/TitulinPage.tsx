@@ -1,7 +1,7 @@
 import { Youtube } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { VideoStats } from "./components/VideoStats";
 import { SearchBar } from "./components/SearchBar";
@@ -9,6 +9,7 @@ import { TableActions } from "./components/TableActions";
 import { VideoTable } from "./components/VideoTable";
 import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
+import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
 import { TitulinVideo, Channel, VideoResponse } from "./types";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -20,6 +21,7 @@ export default function TitulinPage() {
   const [titleFilter, setTitleFilter] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
+  const [analysisVideo, setAnalysisVideo] = useState<TitulinVideo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isSearching, setIsSearching] = useState(false);
@@ -34,6 +36,9 @@ export default function TitulinPage() {
 
     return () => clearTimeout(timerId);
   }, [searchValue]);
+
+  // Obtener el queryClient para poder usarlo más tarde
+  const queryClient = useQueryClient();
 
   // Consulta para obtener videos
   const { 
@@ -271,6 +276,7 @@ export default function TitulinPage() {
               <VideoTable
                 videos={videos}
                 setSelectedVideo={setSelectedVideo}
+                setAnalysisVideo={setAnalysisVideo}
                 getChannelName={getChannelName}
               />
 
@@ -291,6 +297,23 @@ export default function TitulinPage() {
             open={!!selectedVideo}
             onOpenChange={(open) => {
               if (!open) setSelectedVideo(null);
+            }}
+          />
+        )}
+
+        {/* Modal para análisis de video */}
+        {analysisVideo && (
+          <VideoAnalysisDialog
+            video={analysisVideo}
+            open={!!analysisVideo}
+            onOpenChange={(open) => {
+              if (!open) setAnalysisVideo(null);
+            }}
+            onAnalysisComplete={() => {
+              // Invalidar la consulta para actualizar los datos
+              window.setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+              }, 500);
             }}
           />
         )}

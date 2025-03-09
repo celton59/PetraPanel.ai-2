@@ -14,10 +14,11 @@ import { TitulinVideo } from "../types";
 interface VideoTableProps {
   videos: TitulinVideo[];
   setSelectedVideo: (video: TitulinVideo) => void;
+  setAnalysisVideo?: (video: TitulinVideo) => void;
   getChannelName: (channelId: string) => string;
 }
 
-export function VideoTable({ videos, setSelectedVideo, getChannelName }: VideoTableProps) {
+export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChannelName }: VideoTableProps) {
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
 
@@ -215,20 +216,32 @@ export function VideoTable({ videos, setSelectedVideo, getChannelName }: VideoTa
         cell: ({ row }) => {
           const video = row.original;
           return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedVideo(video)}
-              className="w-full"
-              disabled={video.sentToOptimize}
-            >
-              {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
-            </Button>
+            <div className="flex flex-col gap-2">
+              {setAnalysisVideo && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAnalysisVideo(video)}
+                  className="w-full"
+                >
+                  Análisis Detallado
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedVideo(video)}
+                className="w-full"
+                disabled={video.sentToOptimize}
+              >
+                {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
+              </Button>
+            </div>
           );
         }
       }
     ]);
-  }, [analyzeEvergeenMutation.isPending, getChannelName, setSelectedVideo]);
+  }, [analyzeEvergeenMutation.isPending, getChannelName, setSelectedVideo, setAnalysisVideo]);
 
   return (
     <div className="rounded-md border">
