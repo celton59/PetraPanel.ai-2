@@ -116,8 +116,8 @@ export function TrainingExamplesDialog({
   const [isExporting, setIsExporting] = useState(false);
   const [isImportingFromYoutube, setIsImportingFromYoutube] = useState(false);
   const [youtubeChannelOpen, setYoutubeChannelOpen] = useState(false);
-  const [selectedChannel, setSelectedChannel] = useState<{id: string, name: string} | null>(null);
-  const [channels, setChannels] = useState<{id: string, name: string}[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<{id: string, name: string, channelId: string} | null>(null);
+  const [channels, setChannels] = useState<{id: string, name: string, channelId: string}[]>([]);
   const [importAsEvergreen, setImportAsEvergreen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -177,7 +177,8 @@ export function TrainingExamplesDialog({
       const response = await axios.get('/api/titulin/channels/for-training');
       if (response.data && Array.isArray(response.data)) {
         setChannels(response.data.map(channel => ({
-          id: channel.channelId,
+          id: channel.id, // ID interno del canal
+          channelId: channel.channelId, // ID de YouTube
           name: channel.name
         })));
       }
@@ -551,7 +552,11 @@ Los mejores plugins de WordPress
                 onValueChange={(value) => {
                   const channel = channels.find(c => c.id === value);
                   if (channel) {
-                    setSelectedChannel({ id: channel.id, name: channel.name });
+                    setSelectedChannel({ 
+                      id: channel.id, 
+                      name: channel.name,
+                      channelId: channel.channelId
+                    });
                   }
                 }}
               >
