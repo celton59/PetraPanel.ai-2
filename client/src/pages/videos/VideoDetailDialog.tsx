@@ -39,6 +39,20 @@ const statusDescriptions: Record<VideoStatus, string> = {
 export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useUser();
+  
+  // Si no hay video, mostrar mensaje de cargando
+  if (!video) {
+    return (
+      <DialogContent>
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center space-y-2">
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-sm text-muted-foreground">Cargando datos del video...</p>
+          </div>
+        </div>
+      </DialogContent>
+    );
+  }
 
   // Determinar si el usuario tiene visibilidad según su rol y el estado del video
   const hasVisibility = user ? canUserSeeVideoDetails(user.role, video.status) : false;

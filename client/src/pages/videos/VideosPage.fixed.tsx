@@ -801,34 +801,41 @@ export default function VideosPage() {
 
   function getVideoDialog() {
     return (
-      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(undefined)}>
-        <VideoDetailDialog
-          video={selectedVideo!}
-          onUpdate={async (data, keepDialogOpen = false) => {
-            if (!selectedVideo) return;
-            
-            setUpdatingVideoId(selectedVideo.id);
-            
-            try {
-              await updateVideo({
-                videoId: selectedVideo.id,
-                projectId: selectedVideo.projectId,
-                updateRequest: data,
-              });
-              toast.success("Video actualizado");
+      <Dialog 
+        open={!!selectedVideo} 
+        onOpenChange={(open) => {
+          if (!open) setSelectedVideo(undefined);
+        }}
+      >
+        {selectedVideo && (
+          <VideoDetailDialog
+            video={selectedVideo}
+            onUpdate={async (data, keepDialogOpen = false) => {
+              if (!selectedVideo) return;
               
-              // Cerrar diálogo solo si no se indica lo contrario
-              if (!keepDialogOpen) {
-                setSelectedVideo(undefined);
+              setUpdatingVideoId(selectedVideo.id);
+              
+              try {
+                await updateVideo({
+                  videoId: selectedVideo.id,
+                  projectId: selectedVideo.projectId,
+                  updateRequest: data,
+                });
+                toast.success("Video actualizado");
+                
+                // Cerrar diálogo solo si no se indica lo contrario
+                if (!keepDialogOpen) {
+                  setSelectedVideo(undefined);
+                }
+              } catch (error) {
+                console.error(error);
+                toast.error("Error al actualizar el video");
+              } finally {
+                setUpdatingVideoId(undefined);
               }
-            } catch (error) {
-              console.error(error);
-              toast.error("Error al actualizar el video");
-            } finally {
-              setUpdatingVideoId(undefined);
-            }
-          }}
-        />
+            }}
+          />
+        )}
       </Dialog>
     );
   }
