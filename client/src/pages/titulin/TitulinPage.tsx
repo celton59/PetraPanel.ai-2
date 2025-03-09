@@ -18,6 +18,14 @@ import { toast } from "sonner";
 import { ProjectSelector } from "@/components/project/ProjectSelector";
 import { Project } from "@db/schema";
 import { DataTable } from "./DataTable";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 
 
 interface TitulinVideo {
@@ -400,175 +408,192 @@ export default function TitulinPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center gap-3 mb-8">
-          <Youtube className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Videos de YouTube</h1>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-primary">{totalVideos}</div>
-            <div className="text-sm text-muted-foreground">Videos Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-green-600">{viewsCount.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Vistas Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-yellow-500">{likesCount.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Likes Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-blue-500">{getLastUpdateInfo()}</div>
-            <div className="text-sm text-muted-foreground">Última Actualización</div>
-          </Card>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por título..."
-              value={titleFilter}
-              onChange={(e) => {
-                // Aplicamos debounce para evitar muchas peticiones
-                if (titleFilterTimeout) clearTimeout(titleFilterTimeout);
-                const timeout = setTimeout(() => {
-                  setTitleFilter(e.target.value);
-                  setCurrentPage(1); // Volver a la primera página al cambiar el filtro
-                }, 500);
-                setTitleFilterTimeout(timeout);
-              }}
-              className="pl-8"
-            />
+      <div className="space-y-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center gap-3 mb-8">
+            <Youtube className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Videos de YouTube</h1>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-2"
-              disabled={!videos?.length}
-            >
-              <Download className="h-4 w-4" />
-              Descargar CSV
-            </Button>
-
-            <Select
-              value={channelFilter}
-              onValueChange={setChannelFilter}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Filtrar por canal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los canales</SelectItem>
-                {channels?.map((channel) => (
-                  <SelectItem key={channel.id} value={channel.channelId}>
-                    {channel.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="p-4 shadow-sm">
+              <div className="text-2xl font-bold text-primary">{totalVideos}</div>
+              <div className="text-sm text-muted-foreground">Videos Totales</div>
+            </Card>
+            <Card className="p-4 shadow-sm">
+              <div className="text-2xl font-bold text-green-600">{viewsCount.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Vistas Totales</div>
+            </Card>
+            <Card className="p-4 shadow-sm">
+              <div className="text-2xl font-bold text-yellow-500">{likesCount.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Likes Totales</div>
+            </Card>
+            <Card className="p-4 shadow-sm">
+              <div className="text-2xl font-bold text-blue-500">{getLastUpdateInfo()}</div>
+              <div className="text-sm text-muted-foreground">Última Actualización</div>
+            </Card>
           </div>
-        </div>
+        </motion.div>
 
-        <DataTable columns={columns} data={filteredVideos} />
-        
-        {/* Paginación */}
-        <div className="flex items-center justify-between mt-6">
-          <div className="text-sm text-muted-foreground">
-            Mostrando {videos.length} de {pagination.total} videos
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </Button>
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                const pageNum = currentPage > 3 && pagination.totalPages > 5
-                  ? currentPage - 3 + i
-                  : i + 1;
-                
-                if (pageNum > pagination.totalPages) return null;
-                
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={pageNum === currentPage ? "default" : "outline"}
-                    size="sm"
-                    className="w-9"
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-              {pagination.totalPages > 5 && currentPage < pagination.totalPages - 2 && (
-                <>
-                  <span className="mx-1">...</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-9"
-                    onClick={() => setCurrentPage(pagination.totalPages)}
-                  >
-                    {pagination.totalPages}
-                  </Button>
-                </>
-              )}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título..."
+                value={titleFilter}
+                onChange={(e) => {
+                  // Aplicamos debounce para evitar muchas peticiones
+                  if (titleFilterTimeout) clearTimeout(titleFilterTimeout);
+                  const timeout = setTimeout(() => {
+                    setTitleFilter(e.target.value);
+                    setCurrentPage(1); // Volver a la primera página al cambiar el filtro
+                  }, 500);
+                  setTitleFilterTimeout(timeout);
+                }}
+                className="pl-8"
+              />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-              disabled={currentPage >= pagination.totalPages}
-            >
-              Siguiente
-            </Button>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[110px]">
-                <SelectValue placeholder="Mostrar" />
-              </SelectTrigger>
-              <SelectContent>
-                {[10, 20, 50, 100].map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size} por página
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        <SendToOptimizeDialog
-          video={selectedVideo!}
-          open={!!selectedVideo}
-          onOpenChange={(open) => !open && setSelectedVideo(null)}
-        />
-      </motion.div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDownloadCSV}
+                className="flex items-center gap-2"
+                disabled={!videos?.length}
+              >
+                <Download className="h-4 w-4" />
+                Descargar CSV
+              </Button>
+
+              <Select
+                value={channelFilter}
+                onValueChange={setChannelFilter}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Filtrar por canal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los canales</SelectItem>
+                  {channels?.map((channel) => (
+                    <SelectItem key={channel.id} value={channel.channelId}>
+                      {channel.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DataTable columns={columns} data={filteredVideos} />
+          
+          {/* Paginación */}
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {videos.length} de {pagination.total} videos
+            </div>
+            
+            <div className="flex items-center gap-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Anterior
+                    </Button>
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    const pageNum = currentPage > 3 && pagination.totalPages > 5
+                      ? currentPage - 3 + i
+                      : i + 1;
+                    
+                    if (pageNum > pagination.totalPages) return null;
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <Button
+                          variant={pageNum === currentPage ? "default" : "outline"}
+                          size="sm"
+                          className="w-9"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  {pagination.totalPages > 5 && currentPage < pagination.totalPages - 2 && (
+                    <>
+                      <PaginationItem>
+                        <span className="mx-1">...</span>
+                      </PaginationItem>
+                      <PaginationItem>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-9"
+                          onClick={() => setCurrentPage(pagination.totalPages)}
+                        >
+                          {pagination.totalPages}
+                        </Button>
+                      </PaginationItem>
+                    </>
+                  )}
+                  
+                  <PaginationItem>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+                      disabled={currentPage >= pagination.totalPages}
+                    >
+                      Siguiente
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+              
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Filas por página" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 por página</SelectItem>
+                  <SelectItem value="20">20 por página</SelectItem>
+                  <SelectItem value="50">50 por página</SelectItem>
+                  <SelectItem value="100">100 por página</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <SendToOptimizeDialog
+            video={selectedVideo!}
+            open={!!selectedVideo}
+            onOpenChange={(open) => !open && setSelectedVideo(null)}
+          />
+        </motion.div>
+      </div>
     </div>
   );
 }
