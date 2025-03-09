@@ -49,7 +49,6 @@ import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 import { VISIBLE_STATES, DETAILS_PERMISSION, canUserSeeVideo, canUserSeeVideoDetails } from "@/lib/role-permissions";
-import { SelectionRectangle, useDragSelection } from './DragSelection';
 
 function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();

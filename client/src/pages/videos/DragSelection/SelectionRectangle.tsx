@@ -5,10 +5,21 @@ interface SelectionRectangleProps {
 }
 
 export function SelectionRectangle({ style }: SelectionRectangleProps) {
+  if (!style.width || !style.height) {
+    return null;
+  }
+  
   return (
-    <div
-      className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
-      style={style}
+    <div 
+      className="selection-rectangle" 
+      style={{
+        ...style,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
+        borderRadius: '4px',
+        zIndex: 50,
+        pointerEvents: 'none',
+      }}
     />
   );
 }
