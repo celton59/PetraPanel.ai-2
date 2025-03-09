@@ -492,12 +492,12 @@ export default function TitulinPage() {
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por título en los 6492 videos..."
-                value={titleFilter}
-                onChange={(e) => {
+                defaultValue={titleFilter}
+                onInput={(e) => {
                   // Aplicamos debounce para evitar muchas peticiones
                   if (titleFilterTimeout) clearTimeout(titleFilterTimeout);
                   const timeout = setTimeout(() => {
-                    setTitleFilter(e.target.value);
+                    setTitleFilter((e.target as HTMLInputElement).value);
                     setCurrentPage(1); // Volver a la primera página al cambiar el filtro
                   }, 500);
                   setTitleFilterTimeout(timeout);
