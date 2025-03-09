@@ -40,7 +40,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { VideoFilters } from "./VideoFilters";
@@ -801,33 +801,35 @@ export default function VideosPage() {
 
   function getVideoDialog() {
     return (
-      <VideoDetailDialog
-        video={selectedVideo!}
-        onUpdate={async (data, keepDialogOpen = false) => {
-          if (!selectedVideo) return;
-          
-          setUpdatingVideoId(selectedVideo.id);
-          
-          try {
-            await updateVideo({
-              videoId: selectedVideo.id,
-              projectId: selectedVideo.projectId,
-              updateRequest: data,
-            });
-            toast.success("Video actualizado");
+      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(undefined)}>
+        <VideoDetailDialog
+          video={selectedVideo!}
+          onUpdate={async (data, keepDialogOpen = false) => {
+            if (!selectedVideo) return;
             
-            // Cerrar diálogo solo si no se indica lo contrario
-            if (!keepDialogOpen) {
-              setSelectedVideo(undefined);
+            setUpdatingVideoId(selectedVideo.id);
+            
+            try {
+              await updateVideo({
+                videoId: selectedVideo.id,
+                projectId: selectedVideo.projectId,
+                updateRequest: data,
+              });
+              toast.success("Video actualizado");
+              
+              // Cerrar diálogo solo si no se indica lo contrario
+              if (!keepDialogOpen) {
+                setSelectedVideo(undefined);
+              }
+            } catch (error) {
+              console.error(error);
+              toast.error("Error al actualizar el video");
+            } finally {
+              setUpdatingVideoId(undefined);
             }
-          } catch (error) {
-            console.error(error);
-            toast.error("Error al actualizar el video");
-          } finally {
-            setUpdatingVideoId(undefined);
-          }
-        }}
-      />
+          }}
+        />
+      </Dialog>
     );
   }
 
@@ -1004,7 +1006,7 @@ export default function VideosPage() {
       {viewMode === "grid" && getGridView()}
       {viewMode === "list" && getListView()}
       
-      {selectedVideo && getVideoDialog()}
+      {getVideoDialog()}
       
       <NewVideoDialog
         open={newVideoDialogOpen}

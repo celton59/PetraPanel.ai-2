@@ -4,6 +4,7 @@ import {
   AlertCircle,  
 } from "lucide-react";
 import {  
+  Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -44,12 +45,14 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
 
   if (!hasVisibility) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          No tienes acceso a ver el contenido de este video en este momento.
-        </AlertDescription>
-      </Alert>
+      <DialogContent>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No tienes acceso a ver el contenido de este video en este momento.
+          </AlertDescription>
+        </Alert>
+      </DialogContent>
     );
   }
 
