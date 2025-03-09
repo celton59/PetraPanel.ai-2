@@ -261,8 +261,8 @@ export function TrainingExamplesDialog({
       // Filtrar por tipo (pestaña activa)
       const matchesTab = 
         activeTab === "all" || 
-        (activeTab === "evergreen" && example.is_evergreen) || 
-        (activeTab === "not-evergreen" && !example.is_evergreen);
+        (activeTab === "evergreen" && example.is_evergreen === true) || 
+        (activeTab === "not-evergreen" && example.is_evergreen === false);
       
       // Filtrar por término de búsqueda
       const matchesSearch = 
@@ -272,6 +272,10 @@ export function TrainingExamplesDialog({
       return matchesTab && matchesSearch;
     });
   }, [examples, activeTab, searchTerm]);
+  
+  // Contador de resultados filtrados por tipo para mostrar en las pestañas
+  const evergreenCount = useMemo(() => examples.filter(e => e.is_evergreen === true).length, [examples]);
+  const notEvergreenCount = useMemo(() => examples.filter(e => e.is_evergreen === false).length, [examples]);
   
   // Función para cambiar de pestaña y limpiar la búsqueda
   const handleTabChange = (value: string) => {
@@ -645,67 +649,52 @@ Los mejores plugins de WordPress
                 </DialogDescription>
               </div>
               <div>
-                <Tabs defaultValue="table" className="w-[350px]">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="table">Vista de Tabla</TabsTrigger>
-                    <TabsTrigger value="import">Importar Datos</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="import" className="p-2 bg-gray-50 dark:bg-gray-800 rounded-md mt-2">
-                    <div className="flex flex-col space-y-2 p-2">
-                      <h4 className="text-sm font-medium mb-1 text-muted-foreground">Selecciona un método de importación:</h4>
-                      <Button 
-                        onClick={handleImportClick} 
-                        disabled={isUploading} 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start text-left font-normal hover:bg-primary/10 hover:text-primary"
-                      >
-                        {isUploading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileUp className="mr-2 h-4 w-4" />
-                        )}
-                        Importar desde archivo CSV
-                      </Button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept=".csv"
-                      />
-                      <Button 
-                        variant="outline"
-                        onClick={() => setBulkImportOpen(true)}
-                        size="sm"
-                        className="w-full justify-start text-left font-normal hover:bg-primary/10 hover:text-primary"
-                      >
-                        <ListPlus className="mr-2 h-4 w-4" />
-                        Importar títulos en masa (texto)
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setYoutubeChannelOpen(true)}
-                        disabled={isImportingFromYoutube}
-                        size="sm"
-                        className="w-full justify-start text-left font-normal hover:bg-primary/10 hover:text-primary"
-                      >
-                        {isImportingFromYoutube ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Video className="mr-2 h-4 w-4" />
-                        )}
-                        Importar desde canal de YouTube
-                      </Button>
-                      <div className="text-xs text-muted-foreground mt-2">
-                        <p><strong>Nota:</strong> Los datos importados se usarán para entrenar el modelo de detección de contenido evergreen.</p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="table">
-                    {/* Contenido vacío para mantener la estructura pero permitir que se muestre la tabla por defecto */}
-                  </TabsContent>
-                </Tabs>
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={handleImportClick} 
+                    disabled={isUploading} 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileUp className="mr-2 h-4 w-4" />
+                    )}
+                    CSV
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".csv"
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={() => setBulkImportOpen(true)}
+                    size="sm"
+                    className="flex items-center"
+                  >
+                    <ListPlus className="mr-2 h-4 w-4" />
+                    Texto
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setYoutubeChannelOpen(true)}
+                    disabled={isImportingFromYoutube}
+                    size="sm"
+                    className="flex items-center"
+                  >
+                    {isImportingFromYoutube ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Video className="mr-2 h-4 w-4" />
+                    )}
+                    YouTube
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogHeader>
@@ -723,13 +712,13 @@ Los mejores plugins de WordPress
                   <TabsTrigger value="evergreen">
                     Evergreen
                     <Badge variant="secondary" className="ml-2 bg-green-50 text-green-700">
-                      {examples.filter(e => e.is_evergreen).length}
+                      {evergreenCount}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger value="not-evergreen">
                     No Evergreen
                     <Badge variant="secondary" className="ml-2 bg-amber-50 text-amber-700">
-                      {examples.filter(e => !e.is_evergreen).length}
+                      {notEvergreenCount}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
@@ -737,9 +726,8 @@ Los mejores plugins de WordPress
 
               {/* Contenido principal */}
               <div className="flex-1 overflow-auto">
-                {/* Contenido de la pestaña "Todos" */}
                 <TabsContent value="all" className="space-y-4">
-                  <Card>
+                  <Card className="mb-4">
                     <CardHeader className="py-4">
                       <CardTitle className="text-base">Añadir nuevo ejemplo de entrenamiento</CardTitle>
                       <CardDescription>
@@ -817,25 +805,37 @@ Los mejores plugins de WordPress
                     </Badge>
                   </div>
 
-                  <div className="rounded-md border overflow-auto max-h-[400px]">
+                  <div className="rounded-md border overflow-auto max-h-[400px] bg-card">
                     <Table>
                       <TableHeader className="sticky top-0 bg-background border-b z-10">
                         <TableRow>
-                          <TableHead>Título</TableHead>
-                          <TableHead className="w-[150px]">Tipo</TableHead>
-                          <TableHead className="w-[100px]">Acciones</TableHead>
+                          <TableHead className="w-[60%]">Título</TableHead>
+                          <TableHead className="w-[20%]">Tipo</TableHead>
+                          <TableHead className="w-[20%] text-center">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredExamples.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                              No hay ejemplos disponibles
+                            <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                              <div className="flex flex-col items-center space-y-2">
+                                <AlertCircle className="h-10 w-10 text-muted" />
+                                <div className="text-base font-medium">No hay ejemplos disponibles</div>
+                                <div className="text-sm text-muted-foreground max-w-sm text-center">
+                                  {activeTab === "evergreen" ? (
+                                    "No hay ejemplos marcados como 'evergreen'. Agrega algunos para mejorar el análisis."
+                                  ) : activeTab === "not-evergreen" ? (
+                                    "No hay ejemplos marcados como 'no evergreen'. Agrega algunos para mejorar el análisis."
+                                  ) : (
+                                    "No hay ejemplos de entrenamiento. Agrega algunos o importa desde diferentes fuentes."
+                                  )}
+                                </div>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ) : (
                           filteredExamples.map((example) => (
-                            <TableRow key={example.id}>
+                            <TableRow key={example.id} className="hover:bg-muted/20">
                               <TableCell className="font-medium">{example.title}</TableCell>
                               <TableCell>
                                 {example.is_evergreen ? (
@@ -848,11 +848,12 @@ Los mejores plugins de WordPress
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => deleteExample(example.id)}
+                                  className="hover:bg-red-50 hover:text-red-600"
                                 >
                                   <Trash className="h-4 w-4 text-red-600" />
                                 </Button>
@@ -952,6 +953,106 @@ Los mejores plugins de WordPress
                         )}
                       </PaginationContent>
                     </Pagination>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="evergreen" className="space-y-4">
+                  <div className="rounded-md border overflow-auto max-h-[600px] bg-card">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-background border-b z-10">
+                        <TableRow>
+                          <TableHead className="w-[60%]">Título</TableHead>
+                          <TableHead className="w-[20%]">Tipo</TableHead>
+                          <TableHead className="w-[20%] text-center">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {evergreenExamples.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                              <div className="flex flex-col items-center space-y-2">
+                                <AlertCircle className="h-10 w-10 text-muted" />
+                                <div className="text-base font-medium">No hay ejemplos evergreen</div>
+                                <div className="text-sm text-muted-foreground max-w-sm text-center">
+                                  Agrega algunos títulos evergreen para mejorar el análisis y la precisión del modelo.
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          evergreenExamples.map((example) => (
+                            <TableRow key={example.id} className="hover:bg-muted/20">
+                              <TableCell className="font-medium">{example.title}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                                  Evergreen
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteExample(example.id)}
+                                  className="hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Trash className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="not-evergreen" className="space-y-4">
+                  <div className="rounded-md border overflow-auto max-h-[600px] bg-card">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-background border-b z-10">
+                        <TableRow>
+                          <TableHead className="w-[60%]">Título</TableHead>
+                          <TableHead className="w-[20%]">Tipo</TableHead>
+                          <TableHead className="w-[20%] text-center">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {notEvergreenExamples.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                              <div className="flex flex-col items-center space-y-2">
+                                <AlertCircle className="h-10 w-10 text-muted" />
+                                <div className="text-base font-medium">No hay ejemplos no evergreen</div>
+                                <div className="text-sm text-muted-foreground max-w-sm text-center">
+                                  Agrega algunos títulos que no son evergreen para mejorar el análisis y la precisión del modelo.
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          notEvergreenExamples.map((example) => (
+                            <TableRow key={example.id} className="hover:bg-muted/20">
+                              <TableCell className="font-medium">{example.title}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
+                                  No Evergreen
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteExample(example.id)}
+                                  className="hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Trash className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 </TabsContent>
               </div>
