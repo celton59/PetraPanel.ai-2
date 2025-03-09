@@ -233,56 +233,113 @@ export function setupTrainingExamplesRoutes(
     }
   });
 
-  // Operaciones en lote para ejemplos de entrenamiento (eliminar múltiples, actualizar múltiples)
+  // Operaciones en lote para ejemplos de entrenamiento (crear múltiples, eliminar múltiples, actualizar múltiples)
   app.post('/api/titulin/training-examples/bulk', requireAuth, async (req: Request, res: Response) => {
     try {
-      const { operation, ids, data } = req.body as BulkOperation;
+      const { operation, ids, titles, isEvergreen, data } = req.body as BulkOperation;
       
-      if (!operation || !ids || !Array.isArray(ids) || ids.length === 0) {
+      if (!operation) {
         return res.status(400).json({
           success: false,
-          message: 'Operación inválida o lista de IDs vacía'
+          message: 'Operación inválida'
         });
       }
-      
-      // Validar que todos los IDs sean numéricos
-      const numericIds = ids.map(id => parseInt(String(id), 10))
-                            .filter(id => !isNaN(id));
-      
-      if (numericIds.length !== ids.length) {
-        return res.status(400).json({
-          success: false,
-          message: 'Algunos IDs no son válidos'
-        });
-      }
-      
-      // Formatear los IDs para la consulta SQL
-      const idsString = numericIds.join(',');
       
       let result;
       
-      if (operation === 'delete') {
-        // Eliminar múltiples ejemplos
-        result = await db.execute(sql`
-          DELETE FROM training_title_examples 
-          WHERE id IN (${sql.raw(idsString)})
-          RETURNING id
-        `);
-      } else if (operation === 'update' && data) {
-        // Actualizar múltiples ejemplos
-        // Solo actualizamos is_evergreen por ahora
-        if (data.is_evergreen !== undefined) {
-          result = await db.execute(sql`
-            UPDATE training_title_examples 
-            SET is_evergreen = ${!!data.is_evergreen} 
-            WHERE id IN (${sql.raw(idsString)})
-            RETURNING id, title, is_evergreen
-          `);
-        } else {
+      // Operación de creación masiva
+      if (operation === 'create') {
+        if (!titles || !Array.isArray(titles) || titles.length === 0) {
           return res.status(400).json({
             success: false,
-            message: 'No se proporcionaron datos para actualizar'
+            message: 'Lista de títulos vacía o inválida'
           });
+        }
+        
+        // Obtener usuario actual
+        const userId = req.user?.id;
+        
+        // Insertar en lotes
+        let insertedCount = 0;
+        const batchSize = 50;
+        
+        for (let i = 0; i < titles.length; i += batchSize) {
+          const batch = titles.slice(i, i + batchSize);
+          
+          // Generar SQL para inserción en lote
+          const valuesSql = batch.map(title => 
+            `('${title.replace(/'/g, "''")}', ${!!isEvergreen}, ${userId})`
+          ).join(',');
+          
+          const batchResult = await db.execute(sql`
+            INSERT INTO training_title_examples 
+            (title, is_evergreen, created_by)
+            VALUES ${sql.raw(valuesSql)}
+            ON CONFLICT (title) DO NOTHING
+            RETURNING id
+          `);
+          
+          // Manejar diferentes formatos de resultados
+          let insertedRows = Array.isArray(batchResult) ? batchResult : 
+                  (batchResult.rows && Array.isArray(batchResult.rows) ? batchResult.rows : 
+                  (typeof batchResult === 'object' ? Object.values(batchResult) : []));
+          
+          insertedCount += insertedRows.length;
+        }
+        
+        return res.status(200).json({
+          success: true,
+          message: `${insertedCount} títulos importados como ${isEvergreen ? 'evergreen' : 'no evergreen'}`,
+          totalProcessed: titles.length,
+          insertedCount
+        });
+      } 
+      // Operaciones sobre IDs existentes (eliminar o actualizar)
+      else if (operation === 'delete' || operation === 'update') {
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Lista de IDs vacía o inválida'
+          });
+        }
+        
+        // Validar que todos los IDs sean numéricos
+        const numericIds = ids.map(id => parseInt(String(id), 10))
+                              .filter(id => !isNaN(id));
+        
+        if (numericIds.length !== ids.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'Algunos IDs no son válidos'
+          });
+        }
+        
+        // Formatear los IDs para la consulta SQL
+        const idsString = numericIds.join(',');
+        
+        if (operation === 'delete') {
+          // Eliminar múltiples ejemplos
+          result = await db.execute(sql`
+            DELETE FROM training_title_examples 
+            WHERE id IN (${sql.raw(idsString)})
+            RETURNING id
+          `);
+        } else if (operation === 'update' && data) {
+          // Actualizar múltiples ejemplos
+          // Solo actualizamos is_evergreen por ahora
+          if (data.is_evergreen !== undefined) {
+            result = await db.execute(sql`
+              UPDATE training_title_examples 
+              SET is_evergreen = ${!!data.is_evergreen} 
+              WHERE id IN (${sql.raw(idsString)})
+              RETURNING id, title, is_evergreen
+            `);
+          } else {
+            return res.status(400).json({
+              success: false,
+              message: 'No se proporcionaron datos para actualizar'
+            });
+          }
         }
       } else {
         return res.status(400).json({
