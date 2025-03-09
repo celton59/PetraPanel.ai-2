@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
@@ -799,46 +799,37 @@ export default function VideosPage() {
     );
   }
 
-  function getVideoDialog() {
-    return (
-      <Dialog 
-        open={!!selectedVideo} 
-        onOpenChange={(open) => {
-          if (!open) setSelectedVideo(undefined);
-        }}
-      >
-        {selectedVideo && (
-          <VideoDetailDialog
-            video={selectedVideo}
-            onUpdate={async (data, keepDialogOpen = false) => {
-              if (!selectedVideo) return;
-              
-              setUpdatingVideoId(selectedVideo.id);
-              
-              try {
-                await updateVideo({
-                  videoId: selectedVideo.id,
-                  projectId: selectedVideo.projectId,
-                  updateRequest: data,
-                });
-                toast.success("Video actualizado");
-                
-                // Cerrar diálogo solo si no se indica lo contrario
-                if (!keepDialogOpen) {
-                  setSelectedVideo(undefined);
-                }
-              } catch (error) {
-                console.error(error);
-                toast.error("Error al actualizar el video");
-              } finally {
-                setUpdatingVideoId(undefined);
-              }
-            }}
-          />
-        )}
-      </Dialog>
-    );
-  }
+  // Función memoizada para actualizar un video
+  const handleVideoUpdate = useCallback(async (data: UpdateVideoData, keepDialogOpen = false) => {
+    if (!selectedVideo) return;
+    
+    setUpdatingVideoId(selectedVideo.id);
+    
+    try {
+      await updateVideo({
+        videoId: selectedVideo.id,
+        projectId: selectedVideo.projectId,
+        updateRequest: data,
+      });
+      toast.success("Video actualizado");
+      
+      // Cerrar diálogo solo si no se indica lo contrario
+      if (!keepDialogOpen) {
+        setSelectedVideo(undefined);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al actualizar el video");
+    } finally {
+      setUpdatingVideoId(undefined);
+    }
+  }, [selectedVideo, updateVideo, setSelectedVideo]);
+
+  // No se usa función intermedia para evitar problemas con los hooks
+  const videoDialogOpen = !!selectedVideo;
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) setSelectedVideo(undefined);
+  }, [setSelectedVideo]);
 
   return (
     <div 
@@ -1013,7 +1004,17 @@ export default function VideosPage() {
       {viewMode === "grid" && getGridView()}
       {viewMode === "list" && getListView()}
       
-      {getVideoDialog()}
+      <Dialog 
+        open={videoDialogOpen} 
+        onOpenChange={handleOpenChange}
+      >
+        {selectedVideo && (
+          <VideoDetailDialog
+            video={selectedVideo}
+            onUpdate={handleVideoUpdate}
+          />
+        )}
+      </Dialog>
       
       <NewVideoDialog
         open={newVideoDialogOpen}

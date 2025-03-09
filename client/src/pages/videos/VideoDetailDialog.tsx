@@ -38,16 +38,18 @@ const statusDescriptions: Record<VideoStatus, string> = {
 
 export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const { user } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
   
-  // Si no hay video, mostrar mensaje de cargando
-  if (!video) {
+  // Si no hay video o usuario, mostrar estado de carga
+  if (!video || !user || isUserLoading) {
     return (
       <DialogContent>
         <div className="flex items-center justify-center p-8">
           <div className="text-center space-y-2">
             <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-sm text-muted-foreground">Cargando datos del video...</p>
+            <p className="text-sm text-muted-foreground">
+              {!video ? "Cargando datos del video..." : "Verificando permisos..."}
+            </p>
           </div>
         </div>
       </DialogContent>
