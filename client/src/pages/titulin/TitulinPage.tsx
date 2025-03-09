@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLocation as useWouterLocation } from "wouter";
@@ -67,24 +67,34 @@ export default function TitulinPage() {
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
   
-  // Para manejar el texto de búsqueda y aplicar debounce
-  const [searchValue, setSearchValue] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
+  // Declaramos primero la paginación para evitar errores de referencia
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   
-  // Efecto para aplicar debounce al cambiar el texto de búsqueda
-  useEffect(() => {
-    // Solo realizamos la búsqueda cuando el valor tiene al menos 3 caracteres o está vacío
-    if (searchValue.trim().length >= 3 || searchValue.trim() === '') {
-      const timer = setTimeout(() => {
-        if (searchValue.trim() !== titleFilter) {
-          setTitleFilter(searchValue.trim());
-          setCurrentPage(1);
-        }
-      }, 800); // Incrementamos el tiempo a 800ms para reducir las llamadas al servidor
-      
-      return () => clearTimeout(timer);
+  // Estado simple para el campo de búsqueda
+  const [searchValue, setSearchValue] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Función para manejar el cambio en el input de búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setSearchValue(newValue);
+    
+    // Limpiar cualquier timeout existente
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [searchValue]);
+    
+    // Aplicar debounce para la búsqueda
+    searchTimeoutRef.current = setTimeout(() => {
+      const trimmedValue = newValue.trim();
+      // Solo realizar búsqueda si el valor tiene 3+ caracteres o está vacío
+      if (trimmedValue !== titleFilter && (trimmedValue.length >= 3 || trimmedValue === '')) {
+        setTitleFilter(trimmedValue);
+        setCurrentPage(1);
+      }
+    }, 300); // Reducir el tiempo para una experiencia más rápida
+  };
 
   const analyzeEvergeenMutation = useMutation({
     mutationFn: async (videoId: number) => {
@@ -104,9 +114,6 @@ export default function TitulinPage() {
       });
     }
   });
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
 
   // Definir el tipo explícitamente para evitar errores de TS
   interface VideoResponse {
@@ -526,16 +533,19 @@ export default function TitulinPage() {
                   <Input
                     placeholder="Buscar por título en los 6492 videos..."
                     value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
+                    onChange={handleSearchChange}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         const currentValue = searchValue.trim();
-                        setTitleFilter(currentValue);
-                        setCurrentPage(1);
+                        // Aplicar búsqueda inmediatamente con Enter
+                        if (currentValue !== titleFilter && (currentValue.length >= 3 || currentValue === '')) {
+                          setTitleFilter(currentValue);
+                          setCurrentPage(1);
+                        }
                       }
                     }}
+                    aria-label="Buscar videos"
                     className="pl-8"
-                    ref={searchRef}
                   />
                 </div>
                 <Button 
