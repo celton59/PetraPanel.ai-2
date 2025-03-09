@@ -65,7 +65,8 @@ import {
   Filter,
   ChevronDown,
   AlertCircle,
-  ListPlus
+  ListPlus,
+  Video
 } from "lucide-react";
 
 interface TrainingExample {
@@ -646,18 +647,25 @@ Los mejores plugins de WordPress
               <div>
                 <Tabs defaultValue="table" className="w-[350px]">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="table">Tabla</TabsTrigger>
-                    <TabsTrigger value="import">Importaciones</TabsTrigger>
+                    <TabsTrigger value="table">Vista de Tabla</TabsTrigger>
+                    <TabsTrigger value="import">Importar Datos</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="import" className="p-2">
-                    <div className="flex flex-col space-y-2">
-                      <Button onClick={handleImportClick} disabled={isUploading} variant="outline" size="sm" className="w-full">
+                  <TabsContent value="import" className="p-2 bg-gray-50 dark:bg-gray-800 rounded-md mt-2">
+                    <div className="flex flex-col space-y-2 p-2">
+                      <h4 className="text-sm font-medium mb-1 text-muted-foreground">Selecciona un método de importación:</h4>
+                      <Button 
+                        onClick={handleImportClick} 
+                        disabled={isUploading} 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start text-left font-normal hover:bg-primary/10 hover:text-primary"
+                      >
                         {isUploading ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                           <FileUp className="mr-2 h-4 w-4" />
                         )}
-                        Importar CSV
+                        Importar desde archivo CSV
                       </Button>
                       <input
                         type="file"
@@ -670,26 +678,32 @@ Los mejores plugins de WordPress
                         variant="outline"
                         onClick={() => setBulkImportOpen(true)}
                         size="sm"
-                        className="w-full"
+                        className="w-full justify-start text-left font-normal hover:bg-primary/10 hover:text-primary"
                       >
                         <ListPlus className="mr-2 h-4 w-4" />
-                        Importar en masa
+                        Importar títulos en masa (texto)
                       </Button>
                       <Button 
                         variant="outline" 
                         onClick={() => setYoutubeChannelOpen(true)}
                         disabled={isImportingFromYoutube}
                         size="sm"
-                        className="w-full"
+                        className="w-full justify-start text-left font-normal hover:bg-primary/10 hover:text-primary"
                       >
                         {isImportingFromYoutube ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
-                          <AlertCircle className="mr-2 h-4 w-4" />
+                          <Video className="mr-2 h-4 w-4" />
                         )}
-                        Importar desde YouTube
+                        Importar desde canal de YouTube
                       </Button>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        <p><strong>Nota:</strong> Los datos importados se usarán para entrenar el modelo de detección de contenido evergreen.</p>
+                      </div>
                     </div>
+                  </TabsContent>
+                  <TabsContent value="table">
+                    {/* Contenido vacío para mantener la estructura pero permitir que se muestre la tabla por defecto */}
                   </TabsContent>
                 </Tabs>
               </div>
