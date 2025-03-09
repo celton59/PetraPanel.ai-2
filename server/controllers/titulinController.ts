@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, or, ilike, getTableColumns, count, desc } from "drizzle-orm";
+import { eq, and, or, ilike, getTableColumns, count, desc, sql } from "drizzle-orm";
 import {
   youtube_videos,
   youtube_channels
@@ -543,11 +543,49 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
   }
 }
 
+// Función para obtener estadísticas generales de todos los videos
+async function getVideoStats(req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para obtener estadísticas',
+    });
+  }
+  
+  try {
+    // Consulta para obtener el total de vistas
+    const [viewsResult] = await db.select({
+      totalViews: sql`SUM(view_count)`.mapWith(Number),
+    })
+    .from(youtube_videos)
+    .execute();
+    
+    // Consulta para obtener el total de likes
+    const [likesResult] = await db.select({
+      totalLikes: sql`SUM(like_count)`.mapWith(Number),
+    })
+    .from(youtube_videos)
+    .execute();
+    
+    return res.status(200).json({
+      totalViews: viewsResult?.totalViews || 0,
+      totalLikes: likesResult?.totalLikes || 0
+    });
+  } catch (error) {
+    console.error('Error al obtener estadísticas de videos', error);
+    return res.status(500).json({ 
+      error: 'Error al obtener estadísticas de videos',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+}
+
 export function setUpTitulinRoutes (app: Express) {
   app.post('/api/titulin/channels', addChannel)
   app.get('/api/titulin/channels', getChannels)
   app.delete('/api/titulin/channels/:channelId', deleteChannel)
   app.get('/api/titulin/videos', getVideos)
+  app.get('/api/titulin/videos/stats', getVideoStats)
   
   // Nuevas rutas
   app.post('/api/titulin/channels/:channelId/sync', syncChannelVideos)

@@ -122,9 +122,19 @@ export default function TitulinPage() {
   const filteredVideos = videos || [];
 
   // Calculate statistics
-  const totalVideos = videos?.length || 0;
-  const viewsCount = videos?.reduce((acc: number, video: TitulinVideo) => acc + (video.viewCount || 0), 0) || 0;
-  const likesCount = videos?.reduce((acc: number, video: TitulinVideo) => acc + (video.likeCount || 0), 0) || 0;
+  const totalVideos = pagination.total || 0;
+  
+  // Para estas estadísticas, necesitamos hacer una consulta adicional para obtener los totales de toda la colección
+  const { data: statsData } = useQuery({
+    queryKey: ["youtube-videos-stats"],
+    queryFn: async () => {
+      const response = await axios.get("/api/titulin/videos/stats");
+      return response.data;
+    },
+  });
+  
+  const viewsCount = statsData?.totalViews || 0;
+  const likesCount = statsData?.totalLikes || 0;
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
@@ -344,57 +354,99 @@ export default function TitulinPage() {
     }
   ];
 
-  const handleDownloadCSV = () => {
-    if (!videos?.length) {
-      toast.error("No hay videos", {
-        description: "No hay videos para descargar.",
+  // Consulta para obtener todos los videos (para CSV)
+  const { data: allVideosData, isLoading: isLoadingAll } = useQuery({
+    queryKey: ["youtube-videos-export", channelFilter, titleFilter],
+    queryFn: async () => {
+      // Solo se carga cuando el usuario hace clic en "Descargar CSV"
+      return null; 
+    },
+    enabled: false, // No ejecutar por defecto
+  });
+  
+  const allVideosQuery = useQueryClient().getQueryCache().find(["youtube-videos-export", channelFilter, titleFilter]);
+  
+  const downloadCSVMutation = useMutation({
+    mutationFn: async () => {
+      // Hacer solicitud al servidor para obtener todos los videos con los filtros actuales
+      const response = await axios.get("/api/titulin/videos", {
+        params: {
+          ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+          ...(titleFilter ? { title: titleFilter } : {}),
+          limit: 1000, // Aumentamos el límite para exportar más videos
+          page: 1
+        }
       });
-      return;
+      return response.data;
+    },
+    onSuccess: (data) => {
+      const exportVideos = data.videos || [];
+      
+      if (!exportVideos.length) {
+        toast.error("No hay videos", {
+          description: "No hay videos para descargar.",
+        });
+        return;
+      }
+      
+      // Crear el contenido del CSV con los vídeos
+      const titlesForCSV = exportVideos.map((video: TitulinVideo) => ({
+        title: video.title,
+        views: video.viewCount,
+        likes: video.likeCount,
+        published: formatDate(video.publishedAt),
+        channel: getChannelName(video.channelId),
+        isEvergreen: video.analyzed 
+          ? (video.analysisData?.isEvergreen ? "Sí" : video.analysisData === null ? "Desconocido" : "No") 
+          : "Sin analizar",
+        confidence: video.analysisData 
+          ? `${Math.round(video.analysisData.confidence * 100)}%` 
+          : (video.analyzed ? "Datos no disponibles" : "N/A")
+      }));
+      
+      const headers = ["Título", "Vistas", "Likes", "Fecha de Publicación", "Canal", "Evergreen", "Confianza"];
+      
+      // Agregar BOM para UTF-8
+      const BOM = '\uFEFF';
+      const csvContent = BOM + [
+        headers.join(";"),  // Usar punto y coma como separador
+        ...titlesForCSV.map((row: any) => [
+          `"${row.title.replace(/"/g, '""')}"`, // Escapar comillas dobles
+          row.views,
+          row.likes,
+          `"${row.published}"`,
+          `"${row.channel.replace(/"/g, '""')}"`,
+          `"${row.isEvergreen}"`,
+          `"${row.confidence}"`
+        ].join(";"))
+      ].join("\n");
+      
+      // Crear el blob especificando UTF-8
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", "titulos_titulin.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Liberar memoria
+      
+      toast.success("CSV descargado", {
+        description: `Se exportaron ${exportVideos.length} videos.`
+      });
+    },
+    onError: (error) => {
+      console.error("Error downloading CSV:", error);
+      toast.error("Error", {
+        description: "No se pudo descargar el CSV",
+      });
     }
-
-    // Crear el contenido del CSV con los títulos filtrados
-    const titlesForCSV = filteredVideos.map((video: TitulinVideo) => ({
-      title: video.title,
-      views: video.viewCount,
-      likes: video.likeCount,
-      published: formatDate(video.publishedAt),
-      channel: getChannelName(video.channelId),
-      isEvergreen: video.analyzed 
-        ? (video.analysisData?.isEvergreen ? "Sí" : video.analysisData === null ? "Desconocido" : "No") 
-        : "Sin analizar",
-      confidence: video.analysisData 
-        ? `${Math.round(video.analysisData.confidence * 100)}%` 
-        : (video.analyzed ? "Datos no disponibles" : "N/A")
-    }));
-
-    const headers = ["Título", "Vistas", "Likes", "Fecha de Publicación", "Canal", "Evergreen", "Confianza"];
-
-    // Agregar BOM para UTF-8
-    const BOM = '\uFEFF';
-    const csvContent = BOM + [
-      headers.join(";"),  // Usar punto y coma como separador
-      ...titlesForCSV.map((row: any) => [
-        `"${row.title.replace(/"/g, '""')}"`, // Escapar comillas dobles
-        row.views,
-        row.likes,
-        `"${row.published}"`,
-        `"${row.channel.replace(/"/g, '""')}"`,
-        `"${row.isEvergreen}"`,
-        `"${row.confidence}"`
-      ].join(";"))
-    ].join("\n");
-
-    // Crear el blob especificando UTF-8
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", "titulos_titulin.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Liberar memoria
+  });
+  
+  const handleDownloadCSV = () => {
+    downloadCSVMutation.mutate();
   };
 
 
