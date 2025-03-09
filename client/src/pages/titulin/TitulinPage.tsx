@@ -64,9 +64,24 @@ interface Channel {
 export default function TitulinPage() {
   const queryClient = useQueryClient();
   const [titleFilter, setTitleFilter] = useState("");
-  const [searchInputText, setSearchInputText] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
+  
+  // Para manejar el texto de búsqueda y aplicar debounce
+  const [searchValue, setSearchValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  
+  // Efecto para aplicar debounce al cambiar el texto de búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchValue !== titleFilter) {
+        setTitleFilter(searchValue);
+        setCurrentPage(1);
+      }
+    }, 500); // Esperar 500ms después de dejar de escribir
+    
+    return () => clearTimeout(timer);
+  }, [searchValue]);
 
   const analyzeEvergeenMutation = useMutation({
     mutationFn: async (videoId: number) => {
@@ -89,8 +104,6 @@ export default function TitulinPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  // Este timeout es para hacer debounce del filtro de título
-  const [titleFilterTimeout, setTitleFilterTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const { data: videosData, isLoading } = useQuery({
     queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
@@ -495,15 +508,17 @@ export default function TitulinPage() {
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por título en los 6492 videos..."
-                    value={searchInputText}
-                    onChange={(e) => setSearchInputText(e.target.value)}
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        setTitleFilter(searchInputText);
+                        const currentValue = searchValue.trim();
+                        setTitleFilter(currentValue);
                         setCurrentPage(1);
                       }
                     }}
                     className="pl-8"
+                    ref={searchRef}
                   />
                 </div>
                 <Button 
