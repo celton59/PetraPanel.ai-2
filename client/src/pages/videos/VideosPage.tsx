@@ -43,6 +43,7 @@ import {
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
@@ -890,16 +891,17 @@ export default function VideosPage() {
           </Button>
           
           {user?.role === "admin" && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => window.location.href = "/trash"}
-              className="text-muted-foreground hover:text-foreground"
-              title="Papelera de Reciclaje"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="sr-only">Papelera</span>
-            </Button>
+            <Link href="/trash">
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+                title="Papelera de Reciclaje"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="sr-only">Papelera</span>
+              </Button>
+            </Link>
           )}
           
           {user?.role === "admin" && (
