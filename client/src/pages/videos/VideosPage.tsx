@@ -66,6 +66,15 @@ const VISIBLE_STATES = {
     "completed",
     "en_revision",
   ],
+  content_reviewer: [
+    "content_review",
+    "optimize_review",
+    "title_corrections"
+  ],
+  media_reviewer: [
+    "media_review",
+    "upload_review"
+  ],
   admin: [
     "pending",
     "in_progress",
@@ -879,6 +888,19 @@ export default function VideosPage() {
             <Filter className="w-4 h-4" />
             Filtros
           </Button>
+          
+          {user?.role === "admin" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => window.location.href = "/trash"}
+              className="text-muted-foreground hover:text-foreground"
+              title="Papelera de Reciclaje"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="sr-only">Papelera</span>
+            </Button>
+          )}
           
           {user?.role === "admin" && (
             <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
