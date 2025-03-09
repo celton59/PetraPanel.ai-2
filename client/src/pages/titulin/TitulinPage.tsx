@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLocation as useWouterLocation } from "wouter";
@@ -523,7 +523,7 @@ export default function TitulinPage() {
                 </div>
                 <Button 
                   onClick={() => {
-                    setTitleFilter(searchInputText);
+                    setTitleFilter(searchValue.trim());
                     setCurrentPage(1);
                   }}
                   type="button"
