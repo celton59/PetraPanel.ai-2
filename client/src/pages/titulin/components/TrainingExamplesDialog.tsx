@@ -64,8 +64,7 @@ import {
   XCircle,
   Filter,
   ChevronDown,
-  AlertCircle,
-  Youtube
+  AlertCircle
 } from "lucide-react";
 
 interface TrainingExample {
@@ -420,6 +419,86 @@ export function TrainingExamplesDialog({
 
   return (
     <>
+      {/* Diálogo para importar desde canal de YouTube */}
+      <Dialog open={youtubeChannelOpen} onOpenChange={setYoutubeChannelOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Importar desde canal de YouTube</DialogTitle>
+            <DialogDescription>
+              Seleccione un canal e indique si los títulos deben considerarse como contenido evergreen (atemporal) o no evergreen (temporal).
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="channel-selector">Canal de YouTube</Label>
+              <Select
+                value={selectedChannel?.id || ""}
+                onValueChange={(value) => {
+                  const channel = channels.find(c => c.id === value);
+                  if (channel) {
+                    setSelectedChannel({ id: channel.id, name: channel.name });
+                  }
+                }}
+              >
+                <SelectTrigger id="channel-selector">
+                  <SelectValue placeholder="Seleccionar un canal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {channels.length === 0 ? (
+                    <SelectItem value="" disabled>No hay canales disponibles</SelectItem>
+                  ) : (
+                    channels.map((channel) => (
+                      <SelectItem key={channel.id} value={channel.id}>
+                        {channel.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="import-as-evergreen"
+                checked={importAsEvergreen}
+                onCheckedChange={setImportAsEvergreen}
+              />
+              <Label htmlFor="import-as-evergreen">
+                Importar como contenido evergreen (atemporal)
+              </Label>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              <strong>Nota:</strong> Se importarán todos los títulos de videos del canal seleccionado.
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setYoutubeChannelOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleImportFromYoutube}
+              disabled={isImportingFromYoutube || !selectedChannel}
+            >
+              {isImportingFromYoutube ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  Importar títulos
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo principal de ejemplos de entrenamiento */}
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-6">
           <DialogHeader className="pb-4">
@@ -609,7 +688,7 @@ export function TrainingExamplesDialog({
                         {isImportingFromYoutube ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
-                          <Youtube className="mr-2 h-4 w-4" />
+                          <AlertCircle className="mr-2 h-4 w-4" />
                         )}
                         Importar desde YouTube
                       </Button>
