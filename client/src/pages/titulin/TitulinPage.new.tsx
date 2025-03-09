@@ -27,6 +27,7 @@ export default function TitulinPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isSearching, setIsSearching] = useState(false);
+  const [trainingExamplesOpen, setTrainingExamplesOpen] = useState(false);
 
   // Efecto para gestionar la búsqueda
   useEffect(() => {
@@ -211,9 +212,6 @@ export default function TitulinPage() {
   const likesCount = statsData?.totalLikes || 0;
   const isDownloading = downloadCSVMutation.isPending;
 
-  // Estado para el diálogo de ejemplos de entrenamiento
-  const [trainingExamplesOpen, setTrainingExamplesOpen] = useState(false);
-
   return (
     <div className="container mx-auto py-10">
       <div className="space-y-8">
@@ -332,13 +330,13 @@ export default function TitulinPage() {
             }}
           />
         )}
+        
+        {/* Diálogo de ejemplos de entrenamiento */}
+        <TrainingExamplesDialog 
+          open={trainingExamplesOpen}
+          onOpenChange={setTrainingExamplesOpen}
+        />
       </div>
-
-      {/* Diálogo de ejemplos de entrenamiento */}
-      <TrainingExamplesDialog 
-        open={trainingExamplesOpen}
-        onOpenChange={setTrainingExamplesOpen}
-      />
     </div>
   );
 }
