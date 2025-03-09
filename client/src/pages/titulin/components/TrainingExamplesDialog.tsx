@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import {
@@ -24,7 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash } from "lucide-react";
+import { Loader2, Plus, Trash, Search } from "lucide-react";
 
 interface TrainingExample {
   id: number;
@@ -49,6 +49,7 @@ export function TrainingExamplesDialog({
   const [newTitle, setNewTitle] = useState("");
   const [isEvergreen, setIsEvergreen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Cargar ejemplos
   const loadExamples = async () => {
@@ -136,13 +137,23 @@ export function TrainingExamplesDialog({
     }
   };
 
-  // Filtrar ejemplos según la pestaña activa
-  const filteredExamples = examples.filter((example) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "evergreen") return example.is_evergreen;
-    if (activeTab === "not-evergreen") return !example.is_evergreen;
-    return true;
-  });
+  // Filtrar ejemplos según la pestaña activa y término de búsqueda
+  const filteredExamples = useMemo(() => {
+    return examples.filter((example) => {
+      // Filtrar por tipo (pestaña activa)
+      const matchesTab = 
+        activeTab === "all" || 
+        (activeTab === "evergreen" && example.is_evergreen) || 
+        (activeTab === "not-evergreen" && !example.is_evergreen);
+      
+      // Filtrar por término de búsqueda
+      const matchesSearch = 
+        !searchTerm.trim() || 
+        example.title.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesTab && matchesSearch;
+    });
+  }, [examples, activeTab, searchTerm]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -221,9 +232,24 @@ export function TrainingExamplesDialog({
                   </CardContent>
                 </Card>
 
-                <div className="rounded-md border overflow-auto">
+                <div className="mb-4 flex gap-2 items-center">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar ejemplos..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 h-10" 
+                    />
+                  </div>
+                  <Badge className="ml-2">
+                    {filteredExamples.length} resultado{filteredExamples.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+
+                <div className="rounded-md border overflow-auto max-h-[400px]">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-background border-b z-10">
                       <TableRow>
                         <TableHead>Título</TableHead>
                         <TableHead className="w-[150px]">Tipo</TableHead>
@@ -271,9 +297,24 @@ export function TrainingExamplesDialog({
               </TabsContent>
 
               <TabsContent value="evergreen" className="space-y-4 flex-1 overflow-auto">
-                <div className="rounded-md border overflow-auto">
+                <div className="mb-4 flex gap-2 items-center">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar ejemplos evergreen..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 h-10" 
+                    />
+                  </div>
+                  <Badge className="ml-2">
+                    {filteredExamples.length} resultado{filteredExamples.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+
+                <div className="rounded-md border overflow-auto max-h-[400px]">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-background border-b z-10">
                       <TableRow>
                         <TableHead>Título</TableHead>
                         <TableHead className="w-[100px]">Acciones</TableHead>
@@ -309,9 +350,24 @@ export function TrainingExamplesDialog({
               </TabsContent>
 
               <TabsContent value="not-evergreen" className="space-y-4 flex-1 overflow-auto">
-                <div className="rounded-md border overflow-auto">
+                <div className="mb-4 flex gap-2 items-center">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar ejemplos no evergreen..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 h-10" 
+                    />
+                  </div>
+                  <Badge className="ml-2">
+                    {filteredExamples.length} resultado{filteredExamples.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+
+                <div className="rounded-md border overflow-auto max-h-[400px]">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-background border-b z-10">
                       <TableRow>
                         <TableHead>Título</TableHead>
                         <TableHead className="w-[100px]">Acciones</TableHead>
