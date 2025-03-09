@@ -222,12 +222,13 @@ function VideosPage() {
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
     
+    // Actualizar la posición actual del cursor
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
     // Verificamos si existen las posiciones para crear el rectángulo de selección
     if (!dragStartPosition) return;
     
-    // Calcular el rectángulo de selección manualmente (sin depender del ref)
+    // Obtener coordenadas del viewport para el rectángulo de selección
     const selectionRect = {
       left: Math.min(dragStartPosition.x, e.clientX),
       right: Math.max(dragStartPosition.x, e.clientX),
@@ -237,11 +238,20 @@ function VideosPage() {
       height: Math.abs(e.clientY - dragStartPosition.y),
     };
     
+    // Si el rectángulo es muy pequeño (menos de 4x4 píxeles), considerarlo como un clic y no como arrastre
+    if (selectionRect.width < 4 && selectionRect.height < 4) {
+      return;
+    }
+    
     // Obtener todos los elementos de video en la vista actual
     const videoElements = document.querySelectorAll('.video-card');
     
     // Guardar los IDs de los videos que están siendo seleccionados en este momento
     const currentlySelectedIds: number[] = [];
+    const currentlyDeselectedIds: number[] = [];
+    
+    // Si se presiona la tecla Alt, deseleccionaremos en lugar de seleccionar
+    const isAltKeyPressed = e.altKey;
     
     videoElements.forEach((element) => {
       const videoRect = element.getBoundingClientRect();
@@ -251,20 +261,31 @@ function VideosPage() {
       
       const videoId = Number(videoIdAttr);
       
+      if (!videoId) return;
+      
       // Verificar si el elemento está dentro del rectángulo de selección
-      if (videoId && rectangleContainsElement(selectionRect, videoRect)) {
-        currentlySelectedIds.push(videoId);
+      const isContained = rectangleContainsElement(selectionRect, videoRect);
+      
+      if (isContained) {
+        if (isAltKeyPressed) {
+          // Con Alt presionado, deseleccionamos
+          currentlyDeselectedIds.push(videoId);
+        } else {
+          // Sin Alt, seleccionamos normalmente
+          currentlySelectedIds.push(videoId);
+        }
       }
     });
     
-    // Actualizar la selección combinando los videos anteriormente seleccionados
-    // con los que estamos seleccionando en este arrastre
-    if (currentlySelectedIds.length > 0) {
-      setSelectedVideos(prev => {
-        // Crear un array combinado sin duplicados
+    // Actualizar la selección
+    setSelectedVideos(prev => {
+      if (isAltKeyPressed) {
+        // Filtrar los IDs a deseleccionar
+        return prev.filter(id => !currentlyDeselectedIds.includes(id));
+      } else {
+        // Añadir sólo los IDs que no estén ya en el array (selección normal)
         const combinedArray = [...prev];
         
-        // Añadir sólo los IDs que no estén ya en el array
         currentlySelectedIds.forEach(id => {
           if (!combinedArray.includes(id)) {
             combinedArray.push(id);
@@ -272,8 +293,8 @@ function VideosPage() {
         });
         
         return combinedArray;
-      });
-    }
+      }
+    });
     
     e.preventDefault();
   };
@@ -300,12 +321,19 @@ function VideosPage() {
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
+    // Calcular la posición relativa al viewport
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
+    // Ajustar la posición considerando el scroll y los márgenes
+    const containerRect = document.documentElement.getBoundingClientRect();
+    const scrollLeft = window.scrollX;
+    const scrollTop = window.scrollY;
+    
     return {
+      position: 'fixed' as const, // Usar fixed para posicionamiento relativo a la ventana
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
@@ -973,7 +1001,8 @@ function VideosPage() {
 
       {/* Contenedor principal con eventos para drag selection */}
       <div 
-        className="relative"
+        className="relative min-h-[75vh]"
+        style={{ touchAction: 'none' }} // Prevenir comportamiento táctil predeterminado
         onMouseDown={handleDragStart}
         onMouseMove={handleDragMove}
         onMouseUp={handleDragEnd}
