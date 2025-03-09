@@ -64,7 +64,8 @@ import {
   XCircle,
   Filter,
   ChevronDown,
-  AlertCircle
+  AlertCircle,
+  ListPlus
 } from "lucide-react";
 
 interface TrainingExample {
@@ -466,6 +467,72 @@ export function TrainingExamplesDialog({
 
   return (
     <>
+      {/* Diálogo para importación masiva de ejemplos */}
+      <Dialog open={bulkImportOpen} onOpenChange={setBulkImportOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Importar ejemplos en masa</DialogTitle>
+            <DialogDescription>
+              Ingrese un título por línea. Todos los títulos serán importados como el tipo seleccionado.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-titles">Títulos (uno por línea)</Label>
+              <textarea
+                id="bulk-titles"
+                className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Ingrese un título por línea, por ejemplo:
+Como ganar dinero con YouTube en 2023
+10 trucos para mejorar tu SEO
+Los mejores plugins de WordPress
+..."
+                value={bulkTitles}
+                onChange={(e) => setBulkTitles(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="bulk-is-evergreen"
+                checked={bulkIsEvergreen}
+                onCheckedChange={setBulkIsEvergreen}
+              />
+              <Label htmlFor="bulk-is-evergreen">
+                Importar como contenido evergreen (atemporal)
+              </Label>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              <strong>Nota:</strong> Si un título ya existe en la base de datos, se omitirá.
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkImportOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleBulkImport}
+              disabled={isImportingBulk || !bulkTitles.trim()}
+            >
+              {isImportingBulk ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <ListPlus className="mr-2 h-4 w-4" />
+                  Importar títulos
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Diálogo para importar desde canal de YouTube */}
       <Dialog open={youtubeChannelOpen} onOpenChange={setYoutubeChannelOpen}>
         <DialogContent className="sm:max-w-[500px]">

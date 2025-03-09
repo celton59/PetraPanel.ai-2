@@ -12,11 +12,13 @@ import { parse } from 'csv-parse/sync';
  * @param requireAuth Middleware de autenticación
  */
 interface BulkOperation {
-  ids: number[];
-  operation: 'delete' | 'update';
+  ids?: number[];
+  titles?: string[];
+  operation: 'delete' | 'update' | 'create';
   data?: {
     is_evergreen?: boolean;
   };
+  isEvergreen?: boolean;
 }
 
 // Configuración para la carga de archivos CSV
