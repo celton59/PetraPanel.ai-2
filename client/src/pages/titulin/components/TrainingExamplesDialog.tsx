@@ -159,9 +159,9 @@ export function TrainingExamplesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Ejemplos de entrenamiento para IA</DialogTitle>
+          <DialogTitle>Ejemplos de entrenamiento para análisis de contenido</DialogTitle>
           <DialogDescription>
-            Configura los ejemplos de títulos evergreen y no evergreen que se utilizarán para entrenar a la IA
+            Estos ejemplos ayudan a mejorar la precisión del análisis de títulos, enseñando a la IA a distinguir entre contenido evergreen (atemporal) y no evergreen (temporal). Cuantos más ejemplos de calidad agregue, mejores serán los resultados del análisis.
           </DialogDescription>
         </DialogHeader>
 
@@ -169,64 +169,87 @@ export function TrainingExamplesDialog({
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <TabsList>
-                <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="evergreen">Evergreen</TabsTrigger>
-                <TabsTrigger value="not-evergreen">No Evergreen</TabsTrigger>
+                <TabsTrigger value="all">
+                  Todos
+                  <Badge variant="secondary" className="ml-2 bg-muted">
+                    {examples.length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="evergreen">
+                  Evergreen
+                  <Badge variant="secondary" className="ml-2 bg-green-50 text-green-700">
+                    {examples.filter(e => e.is_evergreen).length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="not-evergreen">
+                  No Evergreen
+                  <Badge variant="secondary" className="ml-2 bg-amber-50 text-amber-700">
+                    {examples.filter(e => !e.is_evergreen).length}
+                  </Badge>
+                </TabsTrigger>
               </TabsList>
-              <div className="flex items-center gap-2">
-                <Badge>{examples.length} Total</Badge>
-                <Badge variant="outline" className="bg-green-50">
-                  {examples.filter(e => e.is_evergreen).length} Evergreen
-                </Badge>
-                <Badge variant="outline" className="bg-amber-50">
-                  {examples.filter(e => !e.is_evergreen).length} No Evergreen
-                </Badge>
-              </div>
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col">
               <TabsContent value="all" className="space-y-4 flex-1 overflow-auto">
                 <Card>
                   <CardHeader className="py-4">
-                    <CardTitle className="text-base">Añadir nuevo ejemplo</CardTitle>
+                    <CardTitle className="text-base">Añadir nuevo ejemplo de entrenamiento</CardTitle>
                     <CardDescription>
-                      Los ejemplos se utilizarán para entrenar al modelo de IA
+                      Estos ejemplos ayudan a la IA a determinar si un título es evergreen o no
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid gap-4">
                       <div className="flex flex-col gap-2">
                         <Label htmlFor="title">Título del video</Label>
-                        <Input
-                          id="title"
-                          placeholder="Ingrese un título de ejemplo"
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                        />
+                        <div className="flex gap-2">
+                          <Input
+                            id="title"
+                            placeholder="Ingrese un título de ejemplo para el análisis"
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={addExample}
+                            disabled={isLoading || !newTitle.trim()}
+                            className="whitespace-nowrap"
+                          >
+                            {isLoading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Plus className="mr-2 h-4 w-4" />
+                            )}
+                            Añadir
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 mt-1">
                         <div className="flex items-center space-x-2">
                           <Switch
                             id="is-evergreen"
                             checked={isEvergreen}
                             onCheckedChange={setIsEvergreen}
                           />
-                          <Label htmlFor="is-evergreen">
-                            {isEvergreen ? "Evergreen" : "No Evergreen"}
+                          <Label htmlFor="is-evergreen" className="font-medium">
+                            {isEvergreen ? (
+                              <span className="text-green-600 flex items-center">
+                                Es contenido evergreen
+                                <Badge variant="outline" className="ml-2 bg-green-50 text-green-600 border-green-200">
+                                  Evergreen
+                                </Badge>
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 flex items-center">
+                                No es contenido evergreen
+                                <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-600 border-amber-200">
+                                  No Evergreen
+                                </Badge>
+                              </span>
+                            )}
                           </Label>
                         </div>
-                        <Button
-                          onClick={addExample}
-                          disabled={isLoading || !newTitle.trim()}
-                          className="ml-auto"
-                        >
-                          {isLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Plus className="mr-2 h-4 w-4" />
-                          )}
-                          Añadir ejemplo
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -297,6 +320,24 @@ export function TrainingExamplesDialog({
               </TabsContent>
 
               <TabsContent value="evergreen" className="space-y-4 flex-1 overflow-auto">
+                <Card className="mb-4">
+                  <CardContent className="py-4">
+                    <div className="flex gap-3 items-center text-green-700">
+                      <div className="p-2 rounded-full bg-green-50">
+                        <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                          Evergreen
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="text-base font-medium">Ejemplos de contenido evergreen</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Los títulos evergreen tratan temas atemporales que mantienen su relevancia a lo largo del tiempo, como tutoriales básicos, guías de referencia o conocimientos fundamentales.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
                 <div className="mb-4 flex gap-2 items-center">
                   <div className="relative flex-1">
                     <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
