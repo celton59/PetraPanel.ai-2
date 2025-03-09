@@ -138,6 +138,7 @@ export function TrainingExamplesDialog({
   };
 
   // Filtrar ejemplos según la pestaña activa y término de búsqueda
+  // Aplicar filtros a los ejemplos (por pestaña y término de búsqueda)
   const filteredExamples = useMemo(() => {
     return examples.filter((example) => {
       // Filtrar por tipo (pestaña activa)
@@ -154,6 +155,12 @@ export function TrainingExamplesDialog({
       return matchesTab && matchesSearch;
     });
   }, [examples, activeTab, searchTerm]);
+  
+  // Función para cambiar de pestaña y limpiar la búsqueda
+  const handleTabChange = (value: string) => {
+    setSearchTerm('');
+    setActiveTab(value);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,7 +173,7 @@ export function TrainingExamplesDialog({
         </DialogHeader>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <Tabs defaultValue="all" value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <TabsList>
                 <TabsTrigger value="all">
@@ -255,43 +262,7 @@ export function TrainingExamplesDialog({
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <Card className="bg-green-50/50 border-green-100">
-                    <CardContent className="p-4">
-                      <div className="flex gap-3 items-start">
-                        <div className="p-2 rounded-full bg-green-50 mt-1">
-                          <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                            Evergreen
-                          </Badge>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-green-700">Ejemplos de contenido evergreen</h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Contenido atemporal que mantiene su relevancia a largo plazo, útil en cualquier momento.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
 
-                  <Card className="bg-amber-50/50 border-amber-100">
-                    <CardContent className="p-4">
-                      <div className="flex gap-3 items-start">
-                        <div className="p-2 rounded-full bg-amber-50 mt-1">
-                          <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
-                            No Evergreen
-                          </Badge>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-amber-700">Ejemplos de contenido no evergreen</h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Contenido temporal que pierde relevancia con el tiempo, atado a eventos o tendencias específicas.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
                 
                 <div className="mb-4 flex gap-2 items-center">
                   <div className="relative flex-1">
@@ -358,23 +329,6 @@ export function TrainingExamplesDialog({
               </TabsContent>
 
               <TabsContent value="evergreen" className="space-y-4">
-                <Card className="mb-4">
-                  <CardContent className="py-4">
-                    <div className="flex gap-3 items-center text-green-700">
-                      <div className="p-2 rounded-full bg-green-50">
-                        <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                          Evergreen
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="text-base font-medium">Ejemplos de contenido evergreen</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Los títulos evergreen tratan temas atemporales que mantienen su relevancia a lo largo del tiempo, como tutoriales básicos, guías de referencia o conocimientos fundamentales.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
                 
                 <div className="mb-4 flex gap-2 items-center">
                   <div className="relative flex-1">
@@ -429,23 +383,6 @@ export function TrainingExamplesDialog({
               </TabsContent>
 
               <TabsContent value="not-evergreen" className="space-y-4">
-                <Card className="mb-4">
-                  <CardContent className="py-4">
-                    <div className="flex gap-3 items-center text-amber-700">
-                      <div className="p-2 rounded-full bg-amber-50">
-                        <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
-                          No Evergreen
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="text-base font-medium">Ejemplos de contenido no evergreen</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Los títulos no evergreen abordan temas temporales o de actualidad que pierden relevancia con el tiempo, como noticias, tendencias temporales o eventos específicos.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
                 
                 <div className="mb-4 flex gap-2 items-center">
                   <div className="relative flex-1">
