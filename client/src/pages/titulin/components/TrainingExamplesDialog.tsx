@@ -132,17 +132,16 @@ export function TrainingExamplesDialog({
   const [sortBy, setSortBy] = useState<string>("id");
   const [sortDir, setSortDir] = useState<string>("asc");
 
-  // Cargar ejemplos con paginación
-  const loadExamples = async (page = 1, limit = 100) => {
+  // Cargar ejemplos - siempre muestra todos
+  const loadExamples = async () => {
     setIsLoading(true);
     setSelectedExamples([]);
     setSelectAll(false);
 
     try {
-      // Construir parámetros de consulta
+      // Construir parámetros de consulta - ya no usamos paginación
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
+        limit: "10000", // Valor muy alto para traer todos los registros
         sortBy,
         sortDir
       });
@@ -151,6 +150,7 @@ export function TrainingExamplesDialog({
       if (searchTerm) params.append('search', searchTerm);
       if (activeTab !== 'all') params.append('type', activeTab);
 
+      console.log("Cargando todos los ejemplos de entrenamiento");
       const response = await axios.get(`/api/titulin/training-examples?${params}`);
       
       if (response.data.success) {
@@ -167,7 +167,7 @@ export function TrainingExamplesDialog({
   // Cargar ejemplos y canales al abrir el diálogo
   useEffect(() => {
     if (open) {
-      loadExamples(1, pagination.limit);
+      loadExamples();
       loadChannels();
     }
   }, [open]);
@@ -194,8 +194,8 @@ export function TrainingExamplesDialog({
     if (!open) return;
     
     const timer = setTimeout(() => {
-      // Reiniciar a la primera página al cambiar los filtros
-      loadExamples(1, pagination.limit);
+      // Cargar con los nuevos filtros
+      loadExamples();
     }, 300); // Esperar 300ms después de terminar de escribir
     
     return () => clearTimeout(timer);
@@ -281,30 +281,7 @@ export function TrainingExamplesDialog({
   const handleTabChange = (value: string) => {
     setSearchTerm('');
     setActiveTab(value);
-    loadExamples(1, pagination.limit);
-  };
-  
-  // Función para cambiar de página
-  const handlePageChange = (page: number) => {
-    if (page !== pagination.page && page > 0 && page <= pagination.totalPages) {
-      loadExamples(page, pagination.limit);
-    }
-  };
-  
-  // Función para cambiar el tamaño de página
-  const handlePageSizeChange = (size: string) => {
-    console.log("Cambiando tamaño de página a:", size);
-    const newSize = parseInt(size);
-    if (newSize !== pagination.limit && newSize > 0) {
-      // Actualizar el estado y cargar con el nuevo tamaño
-      setPagination(prev => ({ ...prev, limit: newSize }));
-      
-      // Si es "Ver todos", usamos un valor muy alto para cargar todos los registros
-      const finalSize = size === "10000" ? 10000 : newSize;
-      console.log("Nuevo tamaño final:", finalSize);
-      
-      loadExamples(1, finalSize); // Volver a la primera página con el nuevo tamaño
-    }
+    loadExamples();
   };
   
   // Función para exportar ejemplos
@@ -491,7 +468,7 @@ export function TrainingExamplesDialog({
       
       if (response.data.success) {
         toast.success(`${response.data.affectedCount} ejemplos ${operation === 'delete' ? 'eliminados' : 'actualizados'} correctamente`);
-        loadExamples(pagination.page, pagination.limit);
+        loadExamples();
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || `Error en operación masiva: ${operation}`);
