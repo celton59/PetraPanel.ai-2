@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
+import { Loader2, Search, Youtube, PlayCircle, X, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -13,7 +13,6 @@ import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectSelector } from "@/components/project/ProjectSelector";
 import { Project } from "@db/schema";
@@ -452,7 +451,7 @@ export default function TitulinPage() {
       const response = await axios.get("/api/titulin/videos", {
         params: {
           ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
-          ...(titleFilter ? { title: titleFilter } : {}),
+          ...(selectedVowel ? { firstVowel: selectedVowel } : (titleFilter ? { title: titleFilter } : {})),
           limit: 1000, // Aumentamos el límite para exportar más videos
           page: 1
         }
@@ -538,6 +537,14 @@ export default function TitulinPage() {
     );
   }
 
+  // Función para limpiar la búsqueda por vocal
+  const handleClearVowelFilter = () => {
+    setSelectedVowel(null);
+    setTitleFilter("");
+    setSearchValue("");
+    setCurrentPage(1);
+  };
+
   return (
     <div className="container mx-auto py-10">
       <div className="space-y-8">
@@ -617,251 +624,178 @@ export default function TitulinPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Filtro por primera vocal */}
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <div className="text-xs text-muted-foreground mr-1">Filtrar por primera vocal:</div>
-                    {vowels.map(vowel => (
-                      <Button
-                        key={vowel}
-                        variant={selectedVowel === vowel ? "default" : "outline"}
-                        size="sm"
-                        className="h-7 px-3 rounded-full uppercase font-semibold"
-                        onClick={() => {
-                          // Si ya está seleccionada, la deseleccionamos
-                          if (selectedVowel === vowel) {
-                            setSelectedVowel(null);
-                            setTitleFilter("");
-                            setCurrentPage(1);
-                          } else {
-                            // Seleccionamos la vocal y aplicamos filtro
-                            setSelectedVowel(vowel);
-                            setTitleFilter(vowel);
-                            setCurrentPage(1);
-                            setSearchValue(""); // Limpiar campo de búsqueda
-                          }
-                        }}
-                        disabled={isSearching || isFetching}
-                      >
-                        {vowel}
-                      </Button>
-                    ))}
-                    {selectedVowel && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => {
-                          setSelectedVowel(null);
-                          setTitleFilter("");
-                          setCurrentPage(1);
-                        }}
-                        disabled={isSearching || isFetching}
-                      >
-                        <X className="h-3.5 w-3.5 mr-1" />
-                        Limpiar filtro
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-sm text-muted-foreground">Filtrar por primera vocal:</span>
+                    
+                    <div className="flex gap-1">
+                      {vowels.map((vowel) => (
+                        <Button
+                          key={vowel}
+                          variant={selectedVowel === vowel ? "default" : "outline"}
+                          size="sm"
+                          className={`h-8 w-8 p-0 ${selectedVowel === vowel ? 'bg-primary text-primary-foreground' : ''}`}
+                          onClick={() => {
+                            if (selectedVowel === vowel) {
+                              // Si ya está seleccionada, deseleccionamos
+                              setSelectedVowel(null);
+                              setTitleFilter(""); // Limpiar filtro de título también
+                            } else {
+                              // Seleccionar esta vocal
+                              setSelectedVowel(vowel);
+                              setSearchValue(""); // Limpiar campo de búsqueda
+                            }
+                            setCurrentPage(1); // Resetear página
+                          }}
+                          disabled={isSearching || isFetching}
+                        >
+                          {vowel.toUpperCase()}
+                        </Button>
+                      ))}
+                      
+                      {selectedVowel && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-muted-foreground"
+                          onClick={handleClearVowelFilter}
+                          disabled={isSearching || isFetching}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Limpiar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                   </div>
                 </div>
-                </div>
-                <Button 
-                  onClick={() => {
-                    const trimmedValue = searchValue.trim();
-                    if (trimmedValue !== titleFilter) {
-                      setIsSearching(true);
-                      setTitleFilter(trimmedValue);
+
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={channelFilter}
+                    onValueChange={(value) => {
+                      setChannelFilter(value);
                       setCurrentPage(1);
-                      // Desactivar el estado de búsqueda después de un breve retraso
-                      setTimeout(() => setIsSearching(false), 100);
-                    }
-                  }}
-                  type="button"
-                  disabled={isSearching || isFetching}
-                  className="min-w-20 relative"
-                >
-                  {isSearching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span>Buscando...</span>
-                    </>
-                  ) : (
-                    <span>Buscar</span>
-                  )}
-                </Button>
-              </div>
-              {titleFilter && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  Mostrando resultados para "{titleFilter}" en todos los videos{channelFilter !== "all" ? " del canal seleccionado" : ""}
+                    }}
+                  >
+                    <SelectTrigger className="h-10 min-w-[220px]">
+                      <SelectValue placeholder="Filtrar por canal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los canales</SelectItem>
+                      {channels?.map((channel) => (
+                        <SelectItem key={channel.channelId} value={channel.channelId}>
+                          {channel.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadCSV}
+                    disabled={downloadCSVMutation.isPending}
+                    className="h-10"
+                    aria-label="Descargar CSV"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Exportar</span>
+                  </Button>
                 </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleDownloadCSV}
-                className="flex items-center gap-2"
-                disabled={!videos?.length}
-              >
-                <Download className="h-4 w-4" />
-                Descargar CSV
-              </Button>
-
-              <Select
-                value={channelFilter}
-                onValueChange={setChannelFilter}
-              >
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Filtrar por canal" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los canales</SelectItem>
-                  {channels?.map((channel) => (
-                    <SelectItem key={channel.id} value={channel.channelId}>
-                      {channel.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              </div>
             </div>
           </div>
 
-          <div className="relative rounded-md border">
-            {/* Overlay semi-transparente durante la carga */}
-            {(isFetching || isSearching) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-[1px] z-10 transition-all">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {isSearching ? 'Buscando videos...' : 'Cargando resultados...'}
-                </p>
-              </div>
-            )}
-            
-            {/* Estado vacío para cuando no hay resultados */}
-            {videos.length === 0 && !isFetching && !isSearching && (
-              <div className="min-h-[300px] flex flex-col items-center justify-center p-8 text-center">
-                <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium">No se encontraron videos</h3>
-                <p className="text-sm text-muted-foreground mt-2 max-w-md">
-                  {titleFilter 
-                    ? `No hay resultados para "${titleFilter}". Intenta con otra búsqueda o elimina los filtros.` 
-                    : "No hay videos disponibles. Intenta cambiar los filtros de búsqueda."}
-                </p>
-              </div>
-            )}
-            
-            {/* Tabla con los datos */}
-            {videos.length > 0 && (
-              <DataTable columns={columns} data={filteredVideos} />
-            )}
+          <div className="rounded-md border">
+            <DataTable
+              columns={columns}
+              data={filteredVideos}
+            />
           </div>
-          
+
           {/* Paginación */}
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-muted-foreground">
-              {titleFilter ? (
-                <span>
-                  Se encontraron <strong>{pagination.total}</strong> coincidencias con "<strong>{titleFilter}</strong>" de los 6492 videos totales.
-                  {pagination.total > 0 && <span> Mostrando {videos.length} en la página {currentPage} de {pagination.totalPages}.</span>}
-                </span>
-              ) : (
-                <span>Mostrando {videos.length} de {pagination.total} videos totales</span>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-6">
+          {pagination.totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-center">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Anterior
-                    </Button>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) {
+                          setCurrentPage(currentPage - 1);
+                        }
+                      }}
+                      aria-disabled={currentPage <= 1}
+                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                    />
                   </PaginationItem>
                   
+                  {/* Generar los elementos de paginación */}
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                    const pageNum = currentPage > 3 && pagination.totalPages > 5
-                      ? currentPage - 3 + i
-                      : i + 1;
+                    // Mostrar siempre la primera página, la última y las que rodean a la actual
+                    let pageToShow = i + 1;
                     
-                    if (pageNum > pagination.totalPages) return null;
+                    if (pagination.totalPages > 5) {
+                      if (currentPage <= 3) {
+                        // Estamos cerca del inicio, mostrar las primeras páginas
+                        pageToShow = i + 1;
+                      } else if (currentPage >= pagination.totalPages - 2) {
+                        // Estamos cerca del final, mostrar las últimas páginas
+                        pageToShow = pagination.totalPages - 4 + i;
+                      } else {
+                        // Estamos en el medio, mostrar páginas alrededor de la actual
+                        pageToShow = currentPage - 2 + i;
+                      }
+                    }
                     
                     return (
-                      <PaginationItem key={pageNum}>
-                        <Button
-                          variant={pageNum === currentPage ? "default" : "outline"}
-                          size="sm"
-                          className="w-9"
-                          onClick={() => setCurrentPage(pageNum)}
+                      <PaginationItem key={pageToShow}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(pageToShow);
+                          }}
+                          isActive={currentPage === pageToShow}
                         >
-                          {pageNum}
-                        </Button>
+                          {pageToShow}
+                        </PaginationLink>
                       </PaginationItem>
                     );
                   })}
                   
-                  {pagination.totalPages > 5 && currentPage < pagination.totalPages - 2 && (
-                    <>
-                      <PaginationItem>
-                        <span className="mx-1">...</span>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-9"
-                          onClick={() => setCurrentPage(pagination.totalPages)}
-                        >
-                          {pagination.totalPages}
-                        </Button>
-                      </PaginationItem>
-                    </>
-                  )}
-                  
                   <PaginationItem>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                      disabled={currentPage >= pagination.totalPages}
-                    >
-                      Siguiente
-                    </Button>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < pagination.totalPages) {
+                          setCurrentPage(currentPage + 1);
+                        }
+                      }}
+                      aria-disabled={currentPage >= pagination.totalPages}
+                      className={currentPage >= pagination.totalPages ? "pointer-events-none opacity-50" : ""}
+                    />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
-              
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(value) => {
-                  setPageSize(Number(value));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Filas por página" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 por página</SelectItem>
-                  <SelectItem value="20">20 por página</SelectItem>
-                  <SelectItem value="50">50 por página</SelectItem>
-                  <SelectItem value="100">100 por página</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-          </div>
-
-          <SendToOptimizeDialog
-            video={selectedVideo!}
-            open={!!selectedVideo}
-            onOpenChange={(open) => !open && setSelectedVideo(null)}
-          />
+          )}
         </motion.div>
+
+        {/* Modal para enviar video a optimización */}
+        {selectedVideo && (
+          <SendToOptimizeDialog
+            video={selectedVideo}
+            open={!!selectedVideo}
+            onOpenChange={(open) => {
+              if (!open) setSelectedVideo(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -875,67 +809,66 @@ interface SendToOptimizeDialogProps {
 }
 
 function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialogProps) {
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setLocation] = useWouterLocation();
+  const queryClient = useQueryClient();
+  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [_location, navigate] = useWouterLocation();
 
-  const handleSubmit = async () => {
-    if (!selectedProject) {
-      toast.error("Error", {        
-        description: "Debes seleccionar un proyecto",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Enviar a optimización
-      const response = await axios.post("/api/videos", {
-        projectId: selectedProject,
-        title: video.title,
-        description: video.description,
-        youtubeId: video.videoId,
-        sourceId: video.id
-      });
-
-      // Marcar como enviado a optimización
-      await axios.post(`/api/titulin/videos/${video.id}/sent-to-optimize`, {
+  const sendToOptimizeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post(`/api/titulin/videos/${video.id}/send-to-optimize`, {
         projectId: selectedProject
       });
-
-      toast.success("Éxito", {
-        description: "Video enviado a optimización"
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+      onOpenChange(false); // Cerrar el diálogo
+      
+      toast.success("Video enviado a optimización", {
+        description: "El video ha sido enviado al proyecto seleccionado"
       });
-
-      onOpenChange(false);
-      setLocation("/videos");
-    } catch (error) {
-      console.error("Error sending video to optimization:", error);
+      
+      // Redirigir a la página de videos
+      if (data.videoId) {
+        // Breve retraso para dar tiempo a que se cierre el modal
+        setTimeout(() => {
+          navigate(`/videos?videoId=${data.videoId}`);
+        }, 500);
+      }
+    },
+    onError: (error) => {
+      console.error("Error sending video to optimize:", error);
       toast.error("Error", {
         description: "No se pudo enviar el video a optimización",
       });
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Enviar a Optimización</DialogTitle>
+          <DialogTitle>Enviar video a optimización</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <h3 className="font-medium">Selecciona un proyecto</h3>
-            <p className="text-sm text-muted-foreground">
-              El video será optimizado dentro del proyecto seleccionado
-            </p>
+            <h3 className="font-semibold">Título del video</h3>
+            <p className="text-sm">{video.title}</p>
           </div>
-          <ProjectSelector
-            value={selectedProject?.id ?? null}
-            onChange={setSelectedProject}
-          />
+          
+          <div className="space-y-2">
+            <h3 className="font-semibold">Canal</h3>
+            <p className="text-sm">{video.channelId}</p>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-semibold">Proyecto destino</h3>
+            <ProjectSelector
+              value={selectedProject}
+              onChange={setSelectedProject}
+            />
+          </div>
+          
           <div className="flex justify-end gap-2 pt-4">
             <Button
               variant="outline"
@@ -944,13 +877,15 @@ function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialo
               Cancelar
             </Button>
             <Button
-              onClick={handleSubmit}
-              disabled={!selectedProject || isSubmitting}
+              onClick={() => sendToOptimizeMutation.mutate()}
+              disabled={!selectedProject || sendToOptimizeMutation.isPending}
             >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Enviar
+              {sendToOptimizeMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Enviando...
+                </>
+              ) : "Enviar a optimización"}
             </Button>
           </div>
         </div>
