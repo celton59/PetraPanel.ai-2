@@ -668,15 +668,17 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
         description: data.description || "",
       });
 
-      // El invalidateQueries ya se maneja dentro de la mutación en useVideos
-      
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+
       if (onOpenChange) {
         onOpenChange(false);
       }
       resetForm();
     } catch (error: any) {
-      // Los errores ya son manejados por la mutación en useVideos
       console.error("Error creating video:", error);
+      toast.error("Error", {
+        description: error.message || "No se pudo crear el video",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -728,15 +730,17 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
         titles,
       });
 
-      // El invalidateQueries ya se maneja dentro de la mutación en useVideos
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
 
       if (onOpenChange) {
         onOpenChange(false);
       }
       resetForm();
     } catch (error: any) {
-      // Los errores ya son manejados por la mutación en useVideos
       console.error("Error creating videos in bulk:", error);
+      toast.error("Error", {
+        description: error.message || "No se pudieron crear los videos en masa",
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -1,17 +1,12 @@
-import { 
-  useMutation, 
-  useQuery, 
-  useQueryClient, 
-  useInfiniteQuery, 
-  QueryKey, 
-  MutationFunction
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema'
 import { toast } from "sonner";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
-// Tipos y constantes
+
 export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl' >
+
+export const getRoleStatus = 1
 
 export type ApiVideo = {
   [K in keyof Video]: Video[K];
@@ -30,349 +25,267 @@ export type ApiVideo = {
   deletedByUsername: User["username"] | null
 }
 
-// Configuración de la API
-const API_CONFIG = {
-  BASE_URL: '',
-  ENDPOINTS: {
-    VIDEOS: '/api/videos',
-    PROJECT_VIDEOS: (projectId: number) => `/api/projects/${projectId}/videos`,
-    VIDEO_DETAIL: (projectId: number, videoId: number) => `/api/projects/${projectId}/videos/${videoId}`,
-    VIDEO_RESTORE: (projectId: number, videoId: number) => `/api/projects/${projectId}/videos/${videoId}/restore`,
-    PROJECT_TRASH: (projectId: number) => `/api/projects/${projectId}/trash`
-  },
-  DEFAULT_OPTIONS: {
-    credentials: 'include' as RequestCredentials,
-    headers: { 'Content-Type': 'application/json' }
-  },
-  CACHE_TIME: {
-    SHORT: 1 * 60 * 1000, // 1 minuto
-    MEDIUM: 5 * 60 * 1000, // 5 minutos
-    LONG: 30 * 60 * 1000   // 30 minutos
-  }
-}
-
-// Utilidades para llamadas API
-const apiClient = {
-  async fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(url, {
-      ...API_CONFIG.DEFAULT_OPTIONS,
-      ...options
-    });
-
-    if (!response.ok) {
-      // Intentar obtener mensaje de error si está disponible
-      try {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error en la petición: ${response.status}`);
-      } catch (e) {
-        // Si no se puede parsear como JSON, usar mensaje genérico
-        const errorText = await response.text();
-        throw new Error(errorText || `Error en la petición: ${response.status}`);
-      }
-    }
-
-    return response.json();
-  },
-
-  // Crea un método fetch específico para cada tipo de operación
-  get<T>(url: string): Promise<T> {
-    return this.fetchJson<T>(url);
-  },
-
-  post<T, D>(url: string, data: D): Promise<T> {
-    return this.fetchJson<T>(url, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-
-  patch<T, D>(url: string, data: D): Promise<T> {
-    return this.fetchJson<T>(url, {
-      method: 'PATCH',
-      body: JSON.stringify(data)
-    });
-  },
-
-  delete<T, D = undefined>(url: string, data?: D): Promise<T> {
-    const options: RequestInit = {
-      method: 'DELETE'
-    };
-
-    if (data) {
-      options.body = JSON.stringify(data);
-    }
-
-    return this.fetchJson<T>(url, options);
-  }
-};
-
-// Funciones de servicio
-const videoService = {
-  getAllVideos(): Promise<ApiVideo[]> {
-    return apiClient.get<ApiVideo[]>(API_CONFIG.ENDPOINTS.VIDEOS);
-  },
-
-  getTrashVideos(projectId: number): Promise<ApiVideo[]> {
-    return apiClient.get<ApiVideo[]>(`${API_CONFIG.ENDPOINTS.PROJECT_VIDEOS(projectId)}?trash=true`);
-  },
-
-  createVideo(video: Pick<Video, "title" | "description" | "projectId">): Promise<any> {
-    return apiClient.post(API_CONFIG.ENDPOINTS.PROJECT_VIDEOS(video.projectId), video);
-  },
-
-  createBulkVideos(projectId: number, titles: string[]): Promise<any> {
-    return apiClient.post(API_CONFIG.ENDPOINTS.PROJECT_VIDEOS(projectId) + '/bulk', { titles });
-  },
-
-  updateVideo(videoId: number, projectId: number, updateRequest: UpdateVideoData): Promise<any> {
-    return apiClient.patch(API_CONFIG.ENDPOINTS.VIDEO_DETAIL(projectId, videoId), updateRequest);
-  },
-
-  deleteVideo(videoId: number, projectId: number, permanent: boolean = false): Promise<any> {
-    const url = `${API_CONFIG.ENDPOINTS.VIDEO_DETAIL(projectId, videoId)}${permanent ? '?permanent=true' : ''}`;
-    return apiClient.delete(url);
-  },
-
-  bulkDeleteVideos(projectId: number, videoIds: number[], permanent: boolean = false): Promise<any> {
-    const url = `${API_CONFIG.ENDPOINTS.PROJECT_VIDEOS(projectId)}${permanent ? '?permanent=true' : ''}`;
-    return apiClient.delete(url, { videoIds });
-  },
-
-  restoreVideo(videoId: number, projectId: number): Promise<any> {
-    return apiClient.post(API_CONFIG.ENDPOINTS.VIDEO_RESTORE(projectId, videoId), {});
-  },
-
-  emptyTrash(projectId: number): Promise<any> {
-    return apiClient.delete(API_CONFIG.ENDPOINTS.PROJECT_TRASH(projectId));
-  }
-};
-
-// Funciones de utilidad para React Query
-function createMutation<TData, TVariables, TError = Error, TContext = unknown>(
-  mutationFn: MutationFunction<TData, TVariables>,
-  options: {
-    onSuccessMessage?: string | ((data: TData, variables: TVariables) => string);
-    onSuccessDescription?: string | ((data: TData, variables: TVariables) => string);
-    onErrorMessage?: string;
-    onErrorDescription?: string | ((error: TError) => string);
-    invalidateQueries?: QueryKey | Array<QueryKey>;
-  } = {}
-) {
-  return useMutation<TData, TError, TVariables, TContext>({
-    mutationFn,
-    onSuccess: (data, variables, context) => {
-      const queryClient = useQueryClient();
-      
-      // Invalidar las consultas necesarias
-      if (options.invalidateQueries) {
-        const queriesToInvalidate = Array.isArray(options.invalidateQueries[0]) 
-          ? options.invalidateQueries as Array<QueryKey>
-          : [options.invalidateQueries as QueryKey];
-          
-        queriesToInvalidate.forEach(queryKey => {
-          queryClient.invalidateQueries({ queryKey });
-        });
-      }
-      
-      // Mostrar notificación de éxito
-      if (options.onSuccessMessage) {
-        const successMessage = typeof options.onSuccessMessage === 'function'
-          ? options.onSuccessMessage(data, variables)
-          : options.onSuccessMessage;
-        
-        const description = typeof options.onSuccessDescription === 'function'
-          ? options.onSuccessDescription(data, variables)
-          : options.onSuccessDescription;
-        
-        toast.success(successMessage as string, {
-          description: description as string
-        });
-      }
-    },
-    onError: (error: TError) => {
-      // Mostrar notificación de error
-      const errorDescription = typeof options.onErrorDescription === 'function'
-        ? options.onErrorDescription(error)
-        : (options.onErrorDescription || (error as Error).message || "Ha ocurrido un error");
-        
-      toast.error(options.onErrorMessage || "Error", {
-        description: errorDescription as string
-      });
-    }
-  });
-}
-
-// Hook principal
-export function useVideos() {
+export function useVideos(): {
+  videos: ApiVideo[];
+  isLoading: boolean;
+  createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
+  createBulkVideos: ({ projectId, titles }: { projectId: number, titles: string[] }) => Promise<any>;
+  updateVideo: ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number; updateRequest: UpdateVideoData }) => Promise<any>;
+  deleteVideo: ({videoId, projectId, permanent }: { videoId: number, projectId: number, permanent?: boolean }) => Promise<any>;
+  bulkDeleteVideos: ({projectId, videoIds, permanent }: { projectId: number, videoIds: number[], permanent?: boolean }) => Promise<any>;
+  restoreVideo: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
+  emptyTrash: ({projectId}: { projectId: number }) => Promise<any>;
+  getTrashVideos: ({projectId}: { projectId: number }) => Promise<ApiVideo[]>;
+} {
   const queryClient = useQueryClient();
-  const ALL_VIDEOS_KEY = [API_CONFIG.ENDPOINTS.VIDEOS];
 
-  // Consulta principal para obtener todos los videos
-  const { 
-    data: videos, 
-    isLoading, 
-    isError, 
-    error, 
-    refetch 
-  } = useQuery<ApiVideo[]>({
-    queryKey: ALL_VIDEOS_KEY,
-    queryFn: videoService.getAllVideos,
+  const queryKey = ['/api/videos']
+
+  const { data: videos, isLoading } = useQuery<ApiVideo[]>({
+    queryKey,
+    queryFn: async () => {
+      const res = await fetch(queryKey[0], {
+        credentials: "include"
+      });
+      if (!res.ok) {
+        throw new Error("Error al cargar los videos");
+      }
+      return res.json();
+    },
     retry: 1,
     refetchOnWindowFocus: false,
-    staleTime: API_CONFIG.CACHE_TIME.MEDIUM,
-    gcTime: API_CONFIG.CACHE_TIME.LONG
+    staleTime: 5 * 60 * 1000, // Datos considerados frescos por 5 minutos
+    gcTime: 30 * 60 * 1000 // Tiempo de recolección de basura (antes cacheTime)
   });
 
-  // Mutación para crear un video
-  const createVideoMutation = createMutation(
-    (video: Pick<Video, "title" | "description" | "projectId">) => 
-      videoService.createVideo(video),
-    {
-      onSuccessMessage: "Video creado",
-      onSuccessDescription: "El video se ha creado correctamente",
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => error.message || "No se pudo crear el video",
-      invalidateQueries: [
-        ALL_VIDEOS_KEY,
-        (data: any) => data?.projectId ? [`/api/projects/${data.projectId}/videos`] : []
-      ]
-    }
-  );
+  const createVideoMutation = useMutation({
+    mutationFn: async (video: Pick<Video, "title" | "description" | "projectId">) => {
+      const res = await fetch(`/api/projects/${video.projectId}/videos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(video),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al crear el video");
+      }
+
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video creado", {
+        description: "El video se ha creado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo crear el video",
+      });
+    },
+  });
   
-  // Mutación para crear múltiples videos
-  const createBulkVideosMutation = createMutation(
-    ({ projectId, titles }: { projectId: number, titles: string[] }) => 
-      videoService.createBulkVideos(projectId, titles),
-    {
-      onSuccessMessage: "Videos creados",
-      onSuccessDescription: (data: any) => 
-        data.message || `Se han creado ${data.data?.length || 0} videos correctamente`,
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => 
-        error.message || "No se pudieron crear los videos en masa",
-      invalidateQueries: [
-        ALL_VIDEOS_KEY,
-        (data: any) => data?.data && data.data.length > 0 
-          ? [`/api/projects/${data.data[0].projectId}/videos`] 
-          : []
-      ]
-    }
-  );
+  const createBulkVideosMutation = useMutation({
+    mutationFn: async ({ projectId, titles }: { projectId: number, titles: string[] }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titles }),
+        credentials: "include",
+      });
 
-  // Mutación para actualizar un video
-  const updateVideoMutation = createMutation(
-    ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => 
-      videoService.updateVideo(videoId, projectId, updateRequest),
-    {
-      onSuccessMessage: "Video actualizado",
-      onSuccessDescription: "El video se ha actualizado correctamente",
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => error.message || "No se pudo actualizar el video",
-      invalidateQueries: [ALL_VIDEOS_KEY]
-    }
-  );
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Error al crear los videos en masa");
+      }
 
-  // Mutación para eliminar un video
-  const deleteVideoMutation = createMutation(
-    ({videoId, projectId, permanent = false}: { videoId: number, projectId: number, permanent?: boolean }) => 
-      videoService.deleteVideo(videoId, projectId, permanent),
-    {
-      onSuccessMessage: (data: any, variables: {permanent?: boolean}) => 
-        variables.permanent ? "Video eliminado permanentemente" : "Video movido a la papelera",
-      onSuccessDescription: (data: any, variables: {permanent?: boolean}) => 
-        variables.permanent 
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      if (data.data && data.data.length > 0) {
+        queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.data[0].projectId}/videos`] });
+      }
+      toast.success("Videos creados", {
+        description: data.message || `Se han creado ${data.data?.length || 0} videos correctamente`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudieron crear los videos en masa",
+      });
+    },
+  });
+
+  const updateVideoMutation = useMutation({
+    mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
+      
+
+      console.log('Datos de actualización:', updateRequest);
+
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateRequest),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al actualizar el video");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo actualizar el video",
+      });
+    },
+  });
+
+  const deleteVideoMutation = useMutation({
+    mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}${permanent ? '?permanent=true' : ''}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al eliminar el video");
+      }
+
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success(variables.permanent ? "Video eliminado permanentemente" : "Video movido a la papelera", {
+        description: variables.permanent 
           ? "El video ha sido eliminado permanentemente" 
-          : "El video se ha movido a la papelera",
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => error.message || "No se pudo eliminar el video",
-      invalidateQueries: [ALL_VIDEOS_KEY]
-    }
-  );
+          : "El video se ha movido a la papelera"
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo eliminar el video",
+      });
+    },
+  });
 
-  // Mutación para eliminar múltiples videos
-  const bulkDeleteVideosMutation = createMutation(
-    ({projectId, videoIds, permanent = false}: { projectId: number, videoIds: number[], permanent?: boolean }) => 
-      videoService.bulkDeleteVideos(projectId, videoIds, permanent),
-    {
-      onSuccessMessage: (data: any, variables: {permanent?: boolean}) => 
-        variables.permanent ? "Videos eliminados permanentemente" : "Videos movidos a la papelera",
-      onSuccessDescription: (data: any, variables: {permanent?: boolean}) => 
-        variables.permanent 
+  const bulkDeleteVideosMutation = useMutation({
+    mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos${permanent ? '?permanent=true' : ''}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoIds }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Error al eliminar los videos en masa");
+      }
+
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success(variables.permanent ? "Videos eliminados permanentemente" : "Videos movidos a la papelera", {
+        description: variables.permanent 
           ? `Se han eliminado permanentemente ${data.deleted || 0} videos` 
-          : `Se han movido ${data.deleted || 0} videos a la papelera`,
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => error.message || "No se pudieron eliminar los videos en masa",
-      invalidateQueries: [ALL_VIDEOS_KEY]
-    }
-  );
+          : `Se han movido ${data.deleted || 0} videos a la papelera`
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudieron eliminar los videos en masa",
+      });
+    },
+  });
 
-  // Mutación para restaurar un video
-  const restoreVideoMutation = createMutation(
-    ({videoId, projectId}: { videoId: number, projectId: number }) => 
-      videoService.restoreVideo(videoId, projectId),
-    {
-      onSuccessMessage: "Video restaurado",
-      onSuccessDescription: "El video ha sido restaurado correctamente",
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => error.message || "No se pudo restaurar el video",
-      invalidateQueries: [ALL_VIDEOS_KEY]
-    }
-  );
+  // Nueva función para restaurar videos de la papelera
+  const restoreVideoMutation = useMutation({
+    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
+      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}/restore`, {
+        method: "POST",
+        credentials: "include",
+      });
 
-  // Mutación para vaciar la papelera
-  const emptyTrashMutation = createMutation(
-    ({projectId}: { projectId: number }) => 
-      videoService.emptyTrash(projectId),
-    {
-      onSuccessMessage: "Papelera vaciada",
-      onSuccessDescription: "Se han eliminado permanentemente todos los videos de la papelera",
-      onErrorMessage: "Error",
-      onErrorDescription: (error: Error) => error.message || "No se pudo vaciar la papelera",
-      invalidateQueries: [ALL_VIDEOS_KEY]
-    }
-  );
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al restaurar el video");
+      }
 
-  // Función para obtener videos de la papelera, adaptada para prefetch si es necesario
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Video restaurado", {
+        description: "El video ha sido restaurado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo restaurar el video",
+      });
+    },
+  });
+
+  // Nueva función para vaciar la papelera de un proyecto
+  const emptyTrashMutation = useMutation({
+    mutationFn: async ({projectId}: { projectId: number }) => {
+      const res = await fetch(`/api/projects/${projectId}/trash`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Error al vaciar la papelera");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Papelera vaciada", {
+        description: "Se han eliminado permanentemente todos los videos de la papelera",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "No se pudo vaciar la papelera",
+      });
+    },
+  });
+
+  // Nueva función para obtener los videos en la papelera, memoizada para evitar recreación
   const getTrashVideos = useCallback(async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
-    const trashQueryKey = [`/api/projects/${projectId}/videos`, { trash: true }];
-    
-    // Intentar obtener de caché primero
-    const cachedData = queryClient.getQueryData<ApiVideo[]>(trashQueryKey);
-    if (cachedData) return cachedData;
-    
-    // Si no está en caché, hacer la llamada y guardar en caché
-    try {
-      const data = await videoService.getTrashVideos(projectId);
-      queryClient.setQueryData(trashQueryKey, data);
-      return data;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Error al obtener videos de la papelera";
-      throw new Error(errorMessage);
-    }
-  }, [queryClient]);
-
-  // Función de prefetch de videos por proyecto para mejorar UX
-  const prefetchProjectVideos = useCallback((projectId: number) => {
-    const projectVideosKey = [`/api/projects/${projectId}/videos`];
-    return queryClient.prefetchQuery({
-      queryKey: projectVideosKey,
-      queryFn: () => apiClient.get(`/api/projects/${projectId}/videos`),
-      staleTime: API_CONFIG.CACHE_TIME.MEDIUM
+    const res = await fetch(`/api/projects/${projectId}/videos?trash=true`, {
+      credentials: "include",
     });
-  }, [queryClient]);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || "Error al obtener los videos de la papelera");
+    }
+
+    return res.json();
+  }, []);
 
   return {
-    // Datos
     videos: videos ?? [],
     isLoading,
-    isError,
-    error,
-    
-    // Acciones
-    refetch,
-    prefetchProjectVideos,
-    
-    // Operaciones CRUD
     createVideo: createVideoMutation.mutateAsync,
     createBulkVideos: createBulkVideosMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
