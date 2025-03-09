@@ -2,7 +2,6 @@ import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
-import { ImagePreview } from "@/components/ui/image-preview";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import {
   Eye,
@@ -43,6 +42,7 @@ import {
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { VideoFilters } from "./VideoFilters";
 import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
@@ -65,6 +65,15 @@ const VISIBLE_STATES = {
     "upload_review",
     "completed",
     "en_revision",
+  ],
+  content_reviewer: [
+    "content_review",
+    "optimize_review",
+    "title_corrections"
+  ],
+  media_reviewer: [
+    "media_review",
+    "upload_review"
   ],
   admin: [
     "pending",
@@ -91,7 +100,77 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  
+  // Estados para UI
+  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
+  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  
+  // Estados para selección
+  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  
+  // Estados para selección por arrastre
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
+  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
+  const dragSelectionRef = useRef<HTMLDivElement>(null);
 
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Efecto para manejar parámetros de URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("new") === "true") {
+      setNewVideoDialogOpen(true);
+      window.history.replaceState({}, "", "/videos");
+    }
+  }, []);
+
+  // Filtrar videos según criterios
+  const filteredVideos = videos.filter((video) => {
+    if (searchTerm) {
+      return (
+        video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (video.seriesNumber && video.seriesNumber.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (video.creatorName && video.creatorName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // if (status !== "all") {
+    //   return video.status === status;
+    // }
+
+    // if (assignedTo !== "all") {
+    //   return video.assigned_to === assignedTo;
+    // }
+
+    // if (projectId !== "all") {
+    //   return video.project_id === projectId;
+    // }
+
+    // if (dateRange) {
+    //   return (
+    //     video.created_at >= dateRange.startDate &&
+    //     video.created_at <= dateRange.endDate
+    //   );
+    // }
+
+    return true;
+  });
+
+  // Mostrar loader mientras carga el usuario
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center bg-background w-full">
@@ -103,41 +182,20 @@ export default function VideosPage() {
     );
   }
 
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(
-    undefined,
-  );
-  const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(
-    undefined,
-  );
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
-  const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
-  const [selectMode, setSelectMode] = useState(false);
-  
-  // Estados para selección por arrastre
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
-  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
-  const dragSelectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get("new") === "true") {
-      setNewVideoDialogOpen(true);
-      window.history.replaceState({}, "", "/videos");
-    }
-  }, []);
-
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [status, setStatus] = useState("all");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [projectId, setProjectId] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-
+  // Verificar que hay un usuario
   if (!user) return null;
+
+  // Mostrar loader mientras cargan los videos
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando videos...</p>
+        </div>
+      </div>
+    );
+  }
 
   function canSeeVideoDetails(video: ApiVideo): boolean {
     if (user?.role === "admin") return true;
@@ -167,17 +225,6 @@ export default function VideosPage() {
             Nuevo Video
           </Button>
         )}
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando videos...</p>
-        </div>
       </div>
     );
   }
@@ -237,9 +284,19 @@ export default function VideosPage() {
     // Solo permitir arrastre con botón izquierdo
     if (e.button !== 0) return;
     
+    // Capturar las coordenadas relativas al viewport
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    
+    // Calcular coordenadas relativas al contenedor
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    const offsetX = clientX - containerRect.left;
+    const offsetY = clientY - containerRect.top;
+    
+    // Actualizar el estado para reflejar la posición inicial del arrastre
     setIsDragging(true);
-    setDragStartPosition({ x: e.clientX, y: e.clientY });
-    setDragCurrentPosition({ x: e.clientX, y: e.clientY });
+    setDragStartPosition({ x: clientX, y: clientY });
+    setDragCurrentPosition({ x: clientX, y: clientY });
     
     // Prevenir comportamiento de arrastre del navegador
     e.preventDefault();
@@ -248,29 +305,37 @@ export default function VideosPage() {
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
     
+    // Actualizar la posición actual del cursor
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
-    // Detectar elementos en el rectángulo de selección
+    // Solo intentar seleccionar si tenemos el elemento de referencia
     if (dragSelectionRef.current) {
-      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+      // Actualizar el estilo del rectángulo de selección antes de detectar intersecciones
+      const style = getSelectionRectStyle();
+      Object.assign(dragSelectionRef.current.style, style);
       
-      // Obtener todos los elementos de video en la vista actual
-      const videoElements = document.querySelectorAll('.video-card');
-      
-      videoElements.forEach((element) => {
-        const videoRect = element.getBoundingClientRect();
-        const videoId = Number(element.getAttribute('data-video-id'));
+      // Usar requestAnimationFrame para sincronizar con la siguiente actualización de pantalla
+      requestAnimationFrame(() => {
+        if (!dragSelectionRef.current) return;
         
-        // Verificar si el elemento está dentro del rectángulo de selección
-        if (
-          videoId &&
-          rectanglesIntersect(selectionRect, videoRect)
-        ) {
-          // Verificar si ya está seleccionado
-          if (!selectedVideos.includes(videoId)) {
-            setSelectedVideos(prev => [...prev, videoId]);
+        // Obtener el rectángulo calculado después de aplicar los estilos
+        const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+        
+        // Obtener todos los elementos de video en la vista actual
+        const videoElements = document.querySelectorAll('.video-card');
+        
+        videoElements.forEach((element) => {
+          const videoRect = element.getBoundingClientRect();
+          const videoId = Number(element.getAttribute('data-video-id'));
+          
+          // Verificar si el elemento está dentro del rectángulo de selección
+          if (videoId && rectanglesIntersect(selectionRect, videoRect)) {
+            // Agregar a seleccionados si no está ya
+            if (!selectedVideos.includes(videoId)) {
+              setSelectedVideos(prev => [...prev, videoId]);
+            }
           }
-        }
+        });
       });
     }
     
@@ -299,52 +364,29 @@ export default function VideosPage() {
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
     
-    const left = Math.min(dragStartPosition.x, dragCurrentPosition.x);
-    const top = Math.min(dragStartPosition.y, dragCurrentPosition.y);
+    // Obtener el rectángulo del contenedor
+    const containerRect = document.querySelector('.relative')?.getBoundingClientRect();
+    if (!containerRect) return {};
+    
+    // Calcular las coordenadas relativas al contenedor
+    const left = Math.min(dragStartPosition.x, dragCurrentPosition.x) - containerRect.left;
+    const top = Math.min(dragStartPosition.y, dragCurrentPosition.y) - containerRect.top;
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
     
+    // Retornar con precisión de pixeles para evitar problemas de renderizado
     return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
+      left: `${Math.round(left)}px`,
+      top: `${Math.round(top)}px`,
+      width: `${Math.round(width)}px`,
+      height: `${Math.round(height)}px`,
+      backgroundColor: 'rgba(var(--primary), 0.1)',
+      borderColor: 'rgba(var(--primary), 0.3)',
+      borderWidth: '1px',
+      borderStyle: 'solid',
+      borderRadius: '2px'
     };
   };
-  
-  const filteredVideos = videos.filter((video) => {
-    if (searchTerm) {
-      return (
-        video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        video.optimizedTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (video.seriesNumber && video.seriesNumber.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (video.creatorName && video.creatorName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (video.optimizerName && video.optimizerName.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    // if (status !== "all") {
-    //   return video.status === status;
-    // }
-
-    // if (assignedTo !== "all") {
-    //   return video.assigned_to === assignedTo;
-    // }
-
-    // if (projectId !== "all") {
-    //   return video.project_id === projectId;
-    // }
-
-    // if (dateRange) {
-    //   return (
-    //     video.created_at >= dateRange.startDate &&
-    //     video.created_at <= dateRange.endDate
-    //   );
-    // }
-
-    return true;
-  });
   
   // Efecto para atajos de teclado
   useEffect(() => {
@@ -657,7 +699,7 @@ export default function VideosPage() {
             )}
             
             {/* Thumbnail */}
-            <div className="h-16 w-28 rounded overflow-hidden mr-3 flex-shrink-0">
+            <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded mr-3">
               <ThumbnailPreview
                 src={video.thumbnailUrl}
                 alt={video.title}
@@ -665,38 +707,38 @@ export default function VideosPage() {
                 enableZoom={true}
                 showPlaceholder={true}
                 title={video.optimizedTitle || video.title}
-                showHoverActions={false}
+                duration={video.seriesNumber ? `S${video.seriesNumber}` : undefined}
+                className="w-full h-full"
               />
             </div>
             
             {/* Content */}
-            <div className="flex-grow min-w-0">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-sm line-clamp-1">
-                  {video.seriesNumber && <span className="mr-1 text-muted-foreground">S{video.seriesNumber}</span>}
-                  {video.optimizedTitle || video.title}
-                </h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-sm line-clamp-1 mb-1">
+                {video.optimizedTitle || video.title}
+              </h3>
+              
+              <div className="flex flex-wrap gap-2 items-center mt-1">
                 <Badge
                   variant="secondary"
                   className={cn(
-                    "text-xs capitalize ml-2 flex-shrink-0",
+                    "text-xs capitalize",
                     getStatusBadgeColor(video.status)
                   )}
                 >
                   {getStatusLabel(user!.role, video)}
                 </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center mt-1">
-                <UserBadges video={video} compact={true} />
-                <div className="text-xs text-muted-foreground flex-shrink-0">
+                
+                <div className="text-xs text-muted-foreground">
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
                 </div>
+                
+                <UserBadges video={video} compact={true} />
               </div>
             </div>
             
             {/* Actions */}
-            <div className="ml-3 flex items-center space-x-1">
+            <div className="flex items-center ml-4 gap-1">
               {canSeeVideoDetails(video) && (
                 <Button
                   variant="ghost"
@@ -705,7 +747,7 @@ export default function VideosPage() {
                     e.stopPropagation();
                     handleVideoClick(video);
                   }}
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <Eye className="h-4 w-4" />
                   <span className="sr-only">Ver detalles</span>
@@ -718,7 +760,7 @@ export default function VideosPage() {
                       variant="ghost"
                       size="icon"
                       onClick={(e) => e.stopPropagation()}
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Eliminar</span>
@@ -759,136 +801,158 @@ export default function VideosPage() {
 
   function getVideoDialog() {
     return (
-      <Dialog
-        open={!!selectedVideo}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setSelectedVideo(undefined);
+      <VideoDetailDialog
+        video={selectedVideo!}
+        onUpdate={async (data, keepDialogOpen = false) => {
+          if (!selectedVideo) return;
+          
+          setUpdatingVideoId(selectedVideo.id);
+          
+          try {
+            await updateVideo({
+              videoId: selectedVideo.id,
+              projectId: selectedVideo.projectId,
+              updateRequest: data,
+            });
+            toast.success("Video actualizado");
+            
+            // Cerrar diálogo solo si no se indica lo contrario
+            if (!keepDialogOpen) {
+              setSelectedVideo(undefined);
+            }
+          } catch (error) {
+            console.error(error);
+            toast.error("Error al actualizar el video");
+          } finally {
+            setUpdatingVideoId(undefined);
           }
         }}
-      >
-        {selectedVideo && (
-          <VideoDetailDialog
-            video={selectedVideo}
-            onUpdate={async (updateRequest, keepDialog = false) => {
-              if (!selectedVideo) return;
-
-              setUpdatingVideoId(selectedVideo.id);
-              try {
-                await updateVideo({
-                  videoId: selectedVideo.id,
-                  projectId: selectedVideo.projectId,
-                  updateRequest,
-                });
-
-                toast.success("Video actualizado correctamente");
-
-                if (!keepDialog) {
-                  setSelectedVideo(undefined);
-                }
-              } catch (error) {
-                console.error("Error updating video:", error);
-                toast.error(
-                  "Error al actualizar el video. Por favor, intenta de nuevo.",
-                );
-              } finally {
-                setUpdatingVideoId(undefined);
-              }
-            }}
-          />
-        )}
-      </Dialog>
+      />
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Gestión de Videos</h1>
-          <p className="text-muted-foreground">
-            {videos.length} videos disponibles
-          </p>
+    <div 
+      className="relative pb-10"
+      // Eventos para selección por arrastre
+      onMouseDown={handleDragStart}
+      onMouseMove={handleDragMove}
+      onMouseUp={handleDragEnd}
+      onMouseLeave={handleDragEnd}
+    >
+      {/* Rectángulo de selección */}
+      {isDragging && selectMode && (
+        <div
+          ref={dragSelectionRef}
+          className="absolute pointer-events-none z-10"
+          style={getSelectionRectStyle()}
+        ></div>
+      )}
+      
+      {/* Toolbar con acciones */}
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-2">
+          <h1 className="text-2xl font-bold tracking-tight">Videos</h1>
+          <div className="bg-muted px-2 py-1 rounded text-sm font-medium text-muted-foreground">
+            {filteredVideos?.length || 0} videos
+          </div>
         </div>
-
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+        
+        <div className="flex items-center gap-2 flex-wrap">
           {user?.role === "admin" && (
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={toggleSelectionMode}
-            >
+            <>
               {selectMode ? (
                 <>
-                  <CheckSquare className="w-4 h-4" />
-                  Modo selección
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={toggleSelectionMode}
+                    className="gap-1.5"
+                  >
+                    <Square className="h-4 w-4" />
+                    Salir del modo selección
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={selectedVideos.length === 0}
+                        className="gap-1.5"
+                        data-delete-selected
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar seleccionados ({selectedVideos.length})
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminarán permanentemente {selectedVideos.length} videos y
+                          todos sus archivos asociados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="gap-2">
+                        <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleBulkDelete}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               ) : (
-                <>
-                  <Square className="w-4 h-4" />
-                  Seleccionar
-                </>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectionMode}
+                  className="gap-1.5"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  Modo selección
+                </Button>
               )}
-            </Button>
+              
+              <Button
+                size="sm"
+                onClick={() => setNewVideoDialogOpen(true)}
+                className="gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo Video
+              </Button>
+            </>
           )}
           
-          <div className="flex rounded-md overflow-hidden border">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              className={cn(
-                "rounded-none border-0",
-                viewMode === "table" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-              onClick={() => setViewMode("table")}
-            >
-              <Layout className="h-4 w-4" />
-              <span className="sr-only">Vista tabla</span>
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="icon"
-              className={cn(
-                "rounded-none border-0",
-                viewMode === "grid" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-              onClick={() => setViewMode("grid")}
-            >
-              <Grid className="h-4 w-4" />
-              <span className="sr-only">Vista cuadrícula</span>
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="icon"
-              className={cn(
-                "rounded-none border-0",
-                viewMode === "list" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-              onClick={() => setViewMode("list")}
-            >
-              <List className="h-4 w-4" />
-              <span className="sr-only">Vista lista</span>
-            </Button>
-          </div>
-          
           <Button
+            size="sm"
             variant="outline"
-            className="flex items-center gap-2 ml-auto sm:ml-0"
             onClick={() => setShowFilters(!showFilters)}
+            className="gap-1.5 mr-2"
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="h-4 w-4" />
             Filtros
           </Button>
           
-          {user?.role === "admin" && (
-            <Button onClick={() => setNewVideoDialogOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nuevo Video
+          <Link href="/videos/trash" className="no-underline">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              Papelera
             </Button>
-          )}
+          </Link>
         </div>
       </div>
-
+      
+      {/* Filtros */}
       <VideoFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -902,79 +966,50 @@ export default function VideosPage() {
         onProjectChange={setProjectId}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={VISIBLE_STATES[user.role]}
+        visibleStates={user ? VISIBLE_STATES[user.role] : undefined}
       />
-
-      {/* Selected videos actions */}
-      {selectMode && selectedVideos.length > 0 && (
-        <div className="flex items-center gap-2 pl-2 rounded-md bg-muted py-2">
-          <span className="text-sm font-medium">
-            {selectedVideos.length} videos seleccionados
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1"
-                  data-delete-selected
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar ({selectedVideos.length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminarán permanentemente los {selectedVideos.length} videos seleccionados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleBulkDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Eliminar {selectedVideos.length} videos
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      )}
-
-      {/* Contenedor principal con eventos para drag selection */}
-      <div 
-        className="relative"
-        onMouseDown={handleDragStart}
-        onMouseMove={handleDragMove}
-        onMouseUp={handleDragEnd}
-        onMouseLeave={handleDragEnd}
-      >
-        {/* Rectángulo de selección */}
-        {isDragging && dragSelectionRef && (
-          <div
-            ref={dragSelectionRef}
-            className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
-            style={getSelectionRectStyle()}
-          ></div>
-        )}
-        
-        {viewMode === "table" && getTableView()}
-        {viewMode === "grid" && getGridView()}
-        {viewMode === "list" && getListView()}
+      
+      {/* Vista principal */}
+      <div className="flex justify-end mb-2 space-x-1">
+        <Button
+          variant={viewMode === "table" ? "secondary" : "ghost"}
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setViewMode("table")}
+        >
+          <Layout className="h-3.5 w-3.5" />
+          <span className="sr-only">Vista tabla</span>
+        </Button>
+        <Button
+          variant={viewMode === "grid" ? "secondary" : "ghost"}
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setViewMode("grid")}
+        >
+          <Grid className="h-3.5 w-3.5" />
+          <span className="sr-only">Vista cuadrícula</span>
+        </Button>
+        <Button
+          variant={viewMode === "list" ? "secondary" : "ghost"}
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setViewMode("list")}
+        >
+          <List className="h-3.5 w-3.5" />
+          <span className="sr-only">Vista lista</span>
+        </Button>
       </div>
-
-      {/* Modals and dialogs */}
+      
+      {viewMode === "table" && getTableView()}
+      {viewMode === "grid" && getGridView()}
+      {viewMode === "list" && getListView()}
+      
+      {selectedVideo && getVideoDialog()}
+      
       <NewVideoDialog
         open={newVideoDialogOpen}
         onOpenChange={setNewVideoDialogOpen}
       />
-
-      {getVideoDialog()}
     </div>
   );
 }
