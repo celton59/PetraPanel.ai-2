@@ -14,7 +14,7 @@ import { es } from "date-fns/locale";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ProjectSelector } from "@/components/project/ProjectSelector";
+import { ProjectDropdown } from "./ProjectDropdown";
 import { Project } from "@db/schema";
 import { DataTable } from "./DataTable";
 import { 
@@ -863,7 +863,7 @@ function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialo
           
           <div className="space-y-2">
             <h3 className="font-semibold">Proyecto destino</h3>
-            <ProjectSelector
+            <ProjectDropdown
               value={selectedProject}
               onChange={setSelectedProject}
             />

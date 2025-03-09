@@ -76,9 +76,22 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     
     // Nuevo sistema de búsqueda basado en primera vocal o búsqueda completa
     if (firstVowel) {
-      // Si se proporciona la primera vocal, buscamos palabras que empiecen con esa vocal
-      const vowelPattern = `%${firstVowel as string}%`;
-      conditions.push(ilike(youtube_videos.title, vowelPattern));
+      // Implementación mejorada para búsqueda por primera vocal
+      // Buscamos videos donde alguna palabra comience con la vocal especificada
+      // Uso de expresión regular para encontrar palabras que comiencen con vocal
+      
+      // Obtenemos la vocal (asegurándonos que sea minúscula)
+      const vowel = (firstVowel as string).toLowerCase();
+      
+      // Creamos expresión para buscar palabras que empiezan con la vocal
+      // Utilizamos SIMILAR TO que soporta expresiones regulares en PostgreSQL
+      // El patrón busca cualquier palabra en el título que comience con la vocal indicada
+      const regexPattern = `%( |^)${vowel}[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]*%`;
+      
+      // Añadimos la condición a la consulta
+      conditions.push(sql`${youtube_videos.title} SIMILAR TO ${regexPattern}`);
+      
+      console.log(`Buscando videos con palabras que empiezan con la vocal: ${vowel}`);
     } else if (title) {
       // Búsqueda tradicional por título (búsqueda exacta)
       conditions.push(ilike(youtube_videos.title, `%${title}%`));
