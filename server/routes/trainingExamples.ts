@@ -377,11 +377,31 @@ export function setupTrainingExamplesRoutes(
       const userId = req.user?.id;
       
       // Obtener videos del canal desde la base de datos
+      // Primero buscamos el canal por su ID en la base de datos
+      const channel = await db.execute(sql`
+        SELECT channel_id FROM youtube_channels WHERE id = ${channelId}
+      `);
+      
+      // Manejar diferentes formatos de resultados
+      let channelRows = Array.isArray(channel) ? channel : 
+                (channel.rows && Array.isArray(channel.rows) ? channel.rows : 
+                (typeof channel === 'object' ? Object.values(channel) : []));
+      
+      if (channelRows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Canal no encontrado'
+        });
+      }
+      
+      const youtubeChannelId = channelRows[0].channel_id;
+      
+      // Obtener videos del canal desde la base de datos usando el channel_id de YouTube
       const videos = await db.execute(sql`
         SELECT yt.id, yt.title, yt.video_id, yt.channel_id
         FROM youtube_videos yt
         JOIN youtube_channels ch ON yt.channel_id = ch.channel_id
-        WHERE ch.channel_id = ${channelId}
+        WHERE ch.channel_id = ${youtubeChannelId}
         LIMIT 100
       `);
       
