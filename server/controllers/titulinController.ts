@@ -91,9 +91,8 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     const total = Number(totalResult?.count || 0);
     
     // Luego obtenemos los videos paginados
-    const query = db.select({
-        ...getTableColumns(youtube_videos)
-      })
+    // Seleccionamos explícitamente todas las columnas para garantizar compatibilidad
+    const query = db.select()
       .from(youtube_videos)
       .orderBy(desc(youtube_videos.publishedAt))
       .limit(limit)
@@ -136,9 +135,8 @@ async function getChannels (req: Request, res: Response): Promise<Response> {
   }
 
   try {
-    const result = await db.select({
-        ...getTableColumns(youtube_channels)
-      })
+    // Usamos select() sin argumentos para evitar problemas con los nombres de columnas
+    const result = await db.select()
       .from(youtube_channels)
       .execute()
 
@@ -204,6 +202,7 @@ async function syncChannelVideos(req: Request, res: Response): Promise<Response>
     console.log(`Iniciando sincronización de canal ID: ${channelId}`);
     
     // Primero buscamos el canal en la base de datos
+    // También usamos select directo sin getTableColumns para evitar problemas con los nombres de columnas
     const channel = await db.select()
       .from(youtube_channels)
       .where(eq(youtube_channels.id, parseInt(channelId)))
