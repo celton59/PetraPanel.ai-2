@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -148,7 +148,6 @@ export const actionRates = pgTable("action_rates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-
 export const youtube_videos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
   videoId: text("video_id").notNull().unique(),
@@ -164,8 +163,7 @@ export const youtube_videos = pgTable("youtube_videos", {
   tags: text("tags").array(),
   analyzed: boolean("analyzed").default(false),
   // Campo para almacenar los datos de análisis
-  // Comentado para evitar errores de migración
-  // analysisData: jsonb("analysis_data"),
+  analysisData: jsonb("analysis_data"),
   sentToOptimize: boolean("sent_to_optimize").default(false),
   sentToOptimizeAt: timestamp("sent_to_optimize_at"),
   sentToOptimizeProjectId: integer("sent_to_optimize_project_id")

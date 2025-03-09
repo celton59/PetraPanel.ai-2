@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, getTableColumns, count, desc } from "drizzle-orm";
+import { eq, and, or, ilike, getTableColumns, count, desc } from "drizzle-orm";
 import {
   youtube_videos,
   youtube_channels
@@ -71,25 +71,40 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     const countQuery = db.select({ count: count() })
       .from(youtube_videos);
     
+    // Construimos las condiciones de filtrado
+    const conditions = [];
+    
     if (channelId) {
-      countQuery.where(eq(youtube_videos.channelId, channelId as string));
+      conditions.push(eq(youtube_videos.channelId, channelId as string));
+    }
+    
+    if (title) {
+      conditions.push(ilike(youtube_videos.title, `%${title}%`));
+    }
+    
+    // Aplicamos los filtros al contador si hay condiciones
+    if (conditions.length > 0) {
+      countQuery.where(conditions.length === 1 ? conditions[0] : and(...conditions));
     }
     
     const [totalResult] = await countQuery.execute();
     const total = Number(totalResult?.count || 0);
     
     // Luego obtenemos los videos paginados
-    const result = await db.select({
+    const query = db.select({
         ...getTableColumns(youtube_videos)
       })
       .from(youtube_videos)
       .orderBy(desc(youtube_videos.publishedAt))
       .limit(limit)
-      .offset(offset)
-      .where(
-        channelId ? eq(youtube_videos.channelId, channelId as string) : undefined
-      )
-      .execute();
+      .offset(offset);
+      
+    // Aplicamos los mismos filtros a la consulta principal
+    if (conditions.length > 0) {
+      query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
+    }
+    
+    const result = await query.execute();
 
     console.log(`Encontrados ${total} videos en la base de datos (mostrando ${result.length} en página ${page})`);
     
@@ -483,13 +498,14 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
       await db.update(youtube_videos)
         .set({
           analyzed: true,
-          analysisData: JSON.stringify({
+          // Convertimos el objeto JSON a un formato compatible con jsonb
+          analysisData: {
             isEvergreen: isEvergreen,
             confidence: confidence,
             reason: reason,
             score: scorePercentage,
             details: reasons
-          }),
+          },
           updatedAt: new Date()
         })
         .where(eq(youtube_videos.id, parseInt(videoId)))
