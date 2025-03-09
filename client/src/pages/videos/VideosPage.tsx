@@ -891,7 +891,7 @@ export default function VideosPage() {
           </Button>
           
           {user?.role === "admin" && (
-            <Link href="/trash">
+            <Link href="/videos/trash">
               <Button
                 variant="outline"
                 size="icon"
