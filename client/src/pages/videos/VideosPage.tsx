@@ -205,32 +205,73 @@ function VideosPage() {
     e.preventDefault();
   };
   
+  // Función auxiliar para comprobar si un rectángulo de selección contiene un elemento
+  const rectangleContainsElement = (
+    selectionRect: { left: number; right: number; top: number; bottom: number },
+    elementRect: DOMRect
+  ) => {
+    // Un elemento está dentro del rectángulo si hay intersección
+    return !(
+      selectionRect.left > elementRect.right ||
+      selectionRect.right < elementRect.left ||
+      selectionRect.top > elementRect.bottom ||
+      selectionRect.bottom < elementRect.top
+    );
+  };
+
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
     
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
     
-    // Detectar elementos en el rectángulo de selección
-    if (dragSelectionRef.current) {
-      const selectionRect = dragSelectionRef.current.getBoundingClientRect();
+    // Verificamos si existen las posiciones para crear el rectángulo de selección
+    if (!dragStartPosition) return;
+    
+    // Calcular el rectángulo de selección manualmente (sin depender del ref)
+    const selectionRect = {
+      left: Math.min(dragStartPosition.x, e.clientX),
+      right: Math.max(dragStartPosition.x, e.clientX),
+      top: Math.min(dragStartPosition.y, e.clientY),
+      bottom: Math.max(dragStartPosition.y, e.clientY),
+      width: Math.abs(e.clientX - dragStartPosition.x),
+      height: Math.abs(e.clientY - dragStartPosition.y),
+    };
+    
+    // Obtener todos los elementos de video en la vista actual
+    const videoElements = document.querySelectorAll('.video-card');
+    
+    // Guardar los IDs de los videos que están siendo seleccionados en este momento
+    const currentlySelectedIds: number[] = [];
+    
+    videoElements.forEach((element) => {
+      const videoRect = element.getBoundingClientRect();
+      const videoIdAttr = element.getAttribute('data-video-id');
       
-      // Obtener todos los elementos de video en la vista actual
-      const videoElements = document.querySelectorAll('.video-card');
+      if (!videoIdAttr) return;
       
-      videoElements.forEach((element) => {
-        const videoRect = element.getBoundingClientRect();
-        const videoId = Number(element.getAttribute('data-video-id'));
+      const videoId = Number(videoIdAttr);
+      
+      // Verificar si el elemento está dentro del rectángulo de selección
+      if (videoId && rectangleContainsElement(selectionRect, videoRect)) {
+        currentlySelectedIds.push(videoId);
+      }
+    });
+    
+    // Actualizar la selección combinando los videos anteriormente seleccionados
+    // con los que estamos seleccionando en este arrastre
+    if (currentlySelectedIds.length > 0) {
+      setSelectedVideos(prev => {
+        // Crear un array combinado sin duplicados
+        const combinedArray = [...prev];
         
-        // Verificar si el elemento está dentro del rectángulo de selección
-        if (
-          videoId &&
-          rectanglesIntersect(selectionRect, videoRect)
-        ) {
-          // Verificar si ya está seleccionado
-          if (!selectedVideos.includes(videoId)) {
-            setSelectedVideos(prev => [...prev, videoId]);
+        // Añadir sólo los IDs que no estén ya en el array
+        currentlySelectedIds.forEach(id => {
+          if (!combinedArray.includes(id)) {
+            combinedArray.push(id);
           }
-        }
+        });
+        
+        return combinedArray;
       });
     }
     
@@ -942,9 +983,13 @@ function VideosPage() {
         {isDragging && dragSelectionRef && (
           <div
             ref={dragSelectionRef}
-            className="absolute bg-primary/10 border border-primary/30 rounded-sm z-50 pointer-events-none"
+            className="absolute bg-primary/20 border-2 border-primary/50 rounded-sm z-50 pointer-events-none shadow-md backdrop-blur-[1px]"
             style={getSelectionRectStyle()}
-          ></div>
+          >
+            <div className="absolute top-1 left-1 text-xs font-medium text-primary/80 mix-blend-difference">
+              {selectedVideos.length} seleccionados
+            </div>
+          </div>
         )}
         
         {viewMode === "table" && getTableView()}
