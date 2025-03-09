@@ -1,52 +1,74 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getInitials } from "@/lib/utils";
 import { User, UserCheck, UserCog, Upload, Eye } from "lucide-react";
-import { ApiVideo } from "@/hooks/useVideos";
 
 interface UserBadgesProps {
-  video: ApiVideo;
-  compact?: boolean;
+  optimizedBy?: string | null;
+  contentReviewedBy?: string | null;
+  mediaReviewedBy?: string | null;
+  uploaderName?: string | null;
+  creatorName?: string | null;
+  optimizerUsername?: string | null;
+  contentReviewerUsername?: string | null;
+  mediaReviewerUsername?: string | null;
+  uploaderUsername?: string | null;
+  creatorUsername?: string | null;
+  size?: "sm" | "md" | "lg";
 }
 
-export function UserBadges({ video, compact = false }: UserBadgesProps) {
+export function UserBadges({ 
+  optimizedBy,
+  contentReviewedBy,
+  mediaReviewedBy,
+  uploaderName,
+  creatorName,
+  optimizerUsername,
+  contentReviewerUsername,
+  mediaReviewerUsername,
+  uploaderUsername,
+  creatorUsername,
+  size = "md"
+}: UserBadgesProps) {
+  const compact = size === "sm";
+  
   const roles = [
     {
       name: "Creador",
       icon: User,
-      fullName: video.creatorName,
-      username: video.creatorUsername,
+      fullName: creatorName,
+      username: creatorUsername,
       color: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
       iconColor: "text-blue-500"
     },
     {
       name: "Optimizador",
       icon: UserCog,
-      fullName: video.optimizerName,
-      username: video.optimizerUsername,
+      fullName: optimizedBy,
+      username: optimizerUsername,
       color: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400",
       iconColor: "text-purple-500"
     },
     {
       name: "Revisor Cont.",
       icon: Eye,
-      fullName: video.contentReviewerName,
-      username: video.contentReviewerUsername,
+      fullName: contentReviewedBy,
+      username: contentReviewerUsername,
       color: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
       iconColor: "text-amber-500"
     },
     {
       name: "Uploader",
       icon: Upload,
-      fullName: video.uploaderName,
-      username: video.uploaderUsername,
+      fullName: uploaderName,
+      username: uploaderUsername,
       color: "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400",
       iconColor: "text-green-500"
     },
     {
       name: "Revisor Media",
       icon: UserCheck,
-      fullName: video.mediaReviewerName,
-      username: video.mediaReviewerUsername,
+      fullName: mediaReviewedBy,
+      username: mediaReviewerUsername,
       color: "bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-400",
       iconColor: "text-pink-500"
     }

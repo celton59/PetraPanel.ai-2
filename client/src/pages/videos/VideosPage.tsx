@@ -83,7 +83,7 @@ function VideosPage() {
     }
   }, []);
 
-  // Función de callback para manejar los cambios en la selección por arrastre
+  // Definir la función de callback para manejar los cambios en la selección por arrastre
   const handleSelectionChange = useCallback((selectedIds: number[], isDeselecting: boolean) => {
     setSelectedVideos(prev => {
       if (isDeselecting) {
