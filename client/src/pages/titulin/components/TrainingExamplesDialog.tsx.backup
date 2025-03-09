@@ -91,6 +91,7 @@ export function TrainingExamplesDialog({
   open,
   onOpenChange,
 }: TrainingExamplesDialogProps) {
+  // El toast ya se está importando desde Sonner
   const [isLoading, setIsLoading] = useState(false);
   const [examples, setExamples] = useState<TrainingExample[]>([]);
   const [newTitle, setNewTitle] = useState("");
@@ -207,7 +208,11 @@ export function TrainingExamplesDialog({
   // Añadir nuevo ejemplo
   const addExample = async () => {
     if (!newTitle.trim()) {
-      toast.error("El título no puede estar vacío");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El título no puede estar vacío",
+      });
       return;
     }
 
@@ -219,12 +224,19 @@ export function TrainingExamplesDialog({
       });
 
       if (response.data.success) {
-        toast.success("Ejemplo añadido correctamente");
+        toast({
+          title: "Éxito",
+          description: "Ejemplo añadido correctamente",
+        });
         setNewTitle("");
         loadExamples();
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Error al añadir ejemplo");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.response?.data?.message || "Error al añadir ejemplo",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -236,11 +248,18 @@ export function TrainingExamplesDialog({
     try {
       const response = await axios.delete(`/api/titulin/training-examples/${id}`);
       if (response.data.success) {
-        toast.success("Ejemplo eliminado correctamente");
+        toast({
+          title: "Éxito",
+          description: "Ejemplo eliminado correctamente",
+        });
         loadExamples();
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Error al eliminar ejemplo");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.response?.data?.message || "Error al eliminar ejemplo",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -305,9 +324,16 @@ export function TrainingExamplesDialog({
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
       
-      toast.success('Archivo CSV exportado correctamente');
+      toast({
+        title: 'Éxito',
+        description: 'Archivo CSV exportado correctamente',
+      });
     } catch (error: any) {
-      toast.error('Error al exportar ejemplos');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Error al exportar ejemplos',
+      });
       console.error('Error exportando ejemplos:', error);
     } finally {
       setIsExporting(false);
@@ -324,7 +350,11 @@ export function TrainingExamplesDialog({
   // Función para importar ejemplos desde un canal de YouTube
   const handleImportFromYoutube = async () => {
     if (!selectedChannel) {
-      toast.error('Seleccione un canal primero');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Seleccione un canal primero',
+      });
       return;
     }
     
@@ -337,12 +367,19 @@ export function TrainingExamplesDialog({
       });
       
       if (response.data.success) {
-        toast.success(response.data.message || `Títulos del canal ${selectedChannel.name} importados como ${importAsEvergreen ? 'evergreen' : 'no evergreen'}`);
+        toast({
+          title: 'Éxito',
+          description: response.data.message || `Títulos del canal ${selectedChannel.name} importados como ${importAsEvergreen ? 'evergreen' : 'no evergreen'}`,
+        });
         loadExamples(); // Recargar ejemplos
         setYoutubeChannelOpen(false); // Cerrar el diálogo
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al importar títulos desde YouTube');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.message || 'Error al importar títulos desde YouTube',
+      });
       console.error('Error importando desde YouTube:', error);
     } finally {
       setIsImportingFromYoutube(false);
@@ -356,7 +393,11 @@ export function TrainingExamplesDialog({
     
     // Validar que es un archivo CSV
     if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
-      toast.error('Por favor, seleccione un archivo CSV válido');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Por favor, seleccione un archivo CSV válido',
+      });
       return;
     }
     
@@ -374,11 +415,18 @@ export function TrainingExamplesDialog({
       });
       
       if (response.data.success) {
-        toast.success(response.data.message || 'Ejemplos importados correctamente');
+        toast({
+          title: 'Éxito',
+          description: response.data.message || 'Ejemplos importados correctamente',
+        });
         loadExamples(); // Recargar ejemplos
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al importar ejemplos');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.message || 'Error al importar ejemplos',
+      });
       console.error('Error importando ejemplos:', error);
     } finally {
       setIsUploading(false);
@@ -392,7 +440,11 @@ export function TrainingExamplesDialog({
   // Función para gestionar operaciones en lote
   const handleBulkOperation = async (operation: 'delete' | 'update', data?: { is_evergreen?: boolean }) => {
     if (selectedExamples.length === 0) {
-      toast.error('No hay ejemplos seleccionados');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No hay ejemplos seleccionados',
+      });
       return;
     }
     
@@ -405,11 +457,18 @@ export function TrainingExamplesDialog({
       });
       
       if (response.data.success) {
-        toast.success(`${response.data.affectedCount} ejemplos ${operation === 'delete' ? 'eliminados' : 'actualizados'} correctamente`);
+        toast({
+          title: 'Éxito',
+          description: `${response.data.affectedCount} ejemplos ${operation === 'delete' ? 'eliminados' : 'actualizados'} correctamente`,
+        });
         loadExamples(pagination.page, pagination.limit);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || `Error en operación masiva: ${operation}`);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.message || `Error en operación masiva: ${operation}`,
+      });
     } finally {
       setIsLoading(false);
       setSelectedExamples([]);
@@ -571,8 +630,9 @@ export function TrainingExamplesDialog({
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => deleteExample(example.id)}
+                                  disabled={isLoading}
                                 >
-                                  <Trash className="h-4 w-4 text-red-600" />
+                                  <Trash className="h-4 w-4 text-destructive" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -581,119 +641,201 @@ export function TrainingExamplesDialog({
                       </TableBody>
                     </Table>
                   </div>
-
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="space-x-2">
-                      <Button onClick={handleImportClick} disabled={isUploading}>
-                        {isUploading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileUp className="mr-2 h-4 w-4" />
-                        )}
-                        Importar CSV
-                      </Button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept=".csv"
-                      />
-                      <Button variant="outline" onClick={handleExport} disabled={isExporting}>
-                        {isExporting ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileDown className="mr-2 h-4 w-4" />
-                        )}
-                        Exportar CSV
-                      </Button>
-                    </div>
-
-                    {/* Paginación */}
-                    <Pagination>
-                      <PaginationContent>
-                        {pagination.page > 1 && (
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() => handlePageChange(pagination.page - 1)}
-                            />
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page > 2 && (
-                          <PaginationItem>
-                            <PaginationLink onClick={() => handlePageChange(1)}>
-                              1
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page > 3 && (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page > 1 && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pagination.page - 1)}
-                            >
-                              {pagination.page - 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        <PaginationItem>
-                          <PaginationLink isActive>
-                            {pagination.page}
-                          </PaginationLink>
-                        </PaginationItem>
-
-                        {pagination.page < pagination.totalPages && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pagination.page + 1)}
-                            >
-                              {pagination.page + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page < pagination.totalPages - 2 && (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page < pagination.totalPages - 1 && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() => handlePageChange(pagination.totalPages)}
-                            >
-                              {pagination.totalPages}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {pagination.page < pagination.totalPages && (
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() => handlePageChange(pagination.page + 1)}
-                            />
-                          </PaginationItem>
-                        )}
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
                 </TabsContent>
+
+                {/* Contenido de otras pestañas (evergreen y not-evergreen) */}
+                {/* Aquí van los contenidos específicos de las otras pestañas */}
               </div>
             </Tabs>
           </div>
 
-          <DialogFooter className="border-t mt-4 pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-6 flex-col gap-2 sm:flex-row sm:justify-between sm:gap-0">
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={handleExport}
+                disabled={isExporting || examples.length === 0}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4" />
+                )}
+                Exportar CSV
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={handleImportClick}
+                disabled={isUploading}
+                className="gap-1"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileUp className="h-4 w-4" />
+                )}
+                Importar CSV
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => setYoutubeChannelOpen(true)}
+                disabled={isImportingFromYoutube}
+                className="gap-1 ml-2"
+              >
+                {isImportingFromYoutube ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileUp className="h-4 w-4" />
+                )}
+                Importar de YouTube
+              </Button>
+              
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                className="hidden" 
+              />
+            </div>
+            
+            {pagination.totalPages > 1 && (
+              <Pagination className="mb-2">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      className={pagination.page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                    const page = i + 1;
+                    
+                    // Mostrar las primeras 2, las últimas 2 y la actual con las adyacentes
+                    if (
+                      page <= 2 || 
+                      page >= pagination.totalPages - 1 || 
+                      (page >= pagination.page - 1 && page <= pagination.page + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={page === pagination.page}
+                            onClick={() => handlePageChange(page)}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    
+                    // Mostrar puntos suspensivos antes y después del rango actual
+                    if (page === 3 && pagination.page > 4) {
+                      return <PaginationEllipsis key="ellipsis-start" />;
+                    }
+                    
+                    if (page === pagination.totalPages - 2 && pagination.page < pagination.totalPages - 3) {
+                      return <PaginationEllipsis key="ellipsis-end" />;
+                    }
+                    
+                    return null;
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      className={pagination.page >= pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+            
+            <Button 
+              variant="default" 
+              size="default" 
+              onClick={() => onOpenChange(false)}
+              className="px-5"
+            >
               Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para seleccionar canal de YouTube */}
+      <Dialog open={youtubeChannelOpen} onOpenChange={setYoutubeChannelOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Importar títulos desde YouTube</DialogTitle>
+            <DialogDescription>
+              Seleccione un canal de YouTube para importar sus títulos de videos como ejemplos de entrenamiento.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="channel">Canal de YouTube</Label>
+              <Select 
+                value={selectedChannel?.id || ''} 
+                onValueChange={(value) => {
+                  const channel = channels.find(c => c.id === value);
+                  setSelectedChannel(channel || null);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar canal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {channels.length === 0 ? (
+                    <SelectItem value="no-channels" disabled>No hay canales disponibles</SelectItem>
+                  ) : (
+                    channels.map(channel => (
+                      <SelectItem key={channel.id} value={channel.id}>
+                        {channel.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="import-as-evergreen"
+                checked={importAsEvergreen}
+                onCheckedChange={setImportAsEvergreen}
+              />
+              <Label htmlFor="import-as-evergreen">
+                {importAsEvergreen ? (
+                  <span className="text-green-600">Importar como Evergreen</span>
+                ) : (
+                  <span className="text-amber-600">Importar como No Evergreen</span>
+                )}
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setYoutubeChannelOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImportFromYoutube}
+              disabled={!selectedChannel || isImportingFromYoutube}
+            >
+              {isImportingFromYoutube ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Importar Títulos
             </Button>
           </DialogFooter>
         </DialogContent>
