@@ -77,6 +77,24 @@ export default function TitulinPage() {
   // Lista de vocales para búsqueda
   const vowels = ["a", "e", "i", "o", "u"];
   
+  // Hook para obtener estadísticas de distribución de videos por vocal
+  const { data: vowelStats } = useQuery({
+    queryKey: ["youtube-videos-vowel-stats"],
+    queryFn: async () => {
+      const response = await axios.get("/api/titulin/videos/stats", {
+        params: { type: "vowel-distribution" }
+      });
+      const data = response.data?.stats || {};
+      
+      // Asegurar que todas las vocales estén en el resultado aunque no tengan datos
+      return vowels.reduce((acc, vowel) => {
+        acc[vowel] = data[vowel] || 0;
+        return acc;
+      }, {} as Record<string, number>);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+  
   // Función para obtener la primera vocal de una palabra
   const getFirstVowel = (text: string): string | null => {
     if (!text) return null;
@@ -589,7 +607,7 @@ export default function TitulinPage() {
                 <div className="relative flex-1">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <div className="space-y-3">
-                  <div className="relative">
+                    <div className="relative">
                     <Input
                       placeholder="Buscar por título en los 6492 videos..."
                       value={searchValue}
@@ -640,34 +658,61 @@ export default function TitulinPage() {
                     )}
                   </div>
 
-                  {/* Filtro por primera vocal */}
+                  {/* Filtro por primera vocal con visualizaciones de distribución */}
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-sm text-muted-foreground">Filtrar por primera vocal:</span>
                     
                     <div className="flex gap-1">
-                      {vowels.map((vowel) => (
-                        <Button
-                          key={vowel}
-                          variant={selectedVowel === vowel ? "default" : "outline"}
-                          size="sm"
-                          className={`h-8 w-8 p-0 ${selectedVowel === vowel ? 'bg-primary text-primary-foreground' : ''}`}
-                          onClick={() => {
-                            if (selectedVowel === vowel) {
-                              // Si ya está seleccionada, deseleccionamos
-                              setSelectedVowel(null);
-                              setTitleFilter(""); // Limpiar filtro de título también
-                            } else {
-                              // Seleccionar esta vocal
-                              setSelectedVowel(vowel);
-                              setSearchValue(""); // Limpiar campo de búsqueda
-                            }
-                            setCurrentPage(1); // Resetear página
-                          }}
-                          disabled={isSearching || isFetching}
-                        >
-                          {vowel.toUpperCase()}
-                        </Button>
-                      ))}
+                      {vowels.map((vowel) => {
+                        // Calcular estadísticas para este botón de vocal
+                        const count = vowelStats?.[vowel] || 0;
+                        const total = totalVideos || 0;
+                        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                        
+                        return (
+                          <div key={vowel} className="flex flex-col items-center gap-1">
+                            <Button
+                              variant={selectedVowel === vowel ? "default" : "outline"}
+                              size="sm"
+                              className={`h-8 w-8 p-0 ${selectedVowel === vowel ? 'bg-primary text-primary-foreground' : ''}`}
+                              onClick={() => {
+                                if (selectedVowel === vowel) {
+                                  // Si ya está seleccionada, deseleccionamos
+                                  setSelectedVowel(null);
+                                  setTitleFilter(""); // Limpiar filtro de título también
+                                } else {
+                                  // Seleccionar esta vocal
+                                  setSelectedVowel(vowel);
+                                  setSearchValue(""); // Limpiar campo de búsqueda
+                                }
+                                setCurrentPage(1); // Resetear página
+                              }}
+                              disabled={isSearching || isFetching}
+                            >
+                              {vowel.toUpperCase()}
+                            </Button>
+                            
+                            {/* Indicador visual de distribución */}
+                            {vowelStats && (
+                              <div className="text-xs text-muted-foreground w-8 text-center" title={`${count} videos comienzan con la vocal ${vowel.toUpperCase()}`}>
+                                <div 
+                                  className="h-1 bg-muted rounded-full overflow-hidden w-full"
+                                  role="progressbar"
+                                  aria-valuenow={percentage}
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
+                                >
+                                  <div 
+                                    className="h-full bg-primary" 
+                                    style={{ width: `${percentage}%` }} 
+                                  />
+                                </div>
+                                <span>{count}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                       
                       {selectedVowel && (
                         <Button
@@ -682,7 +727,6 @@ export default function TitulinPage() {
                         </Button>
                       )}
                     </div>
-                  </div>
                   </div>
                 </div>
 
