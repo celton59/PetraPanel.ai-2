@@ -113,6 +113,11 @@ export function TrainingExamplesDialog({
   // Estado para importación/exportación
   const [isUploading, setIsUploading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isImportingFromYoutube, setIsImportingFromYoutube] = useState(false);
+  const [youtubeChannelOpen, setYoutubeChannelOpen] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<{id: string, name: string} | null>(null);
+  const [channels, setChannels] = useState<{id: string, name: string}[]>([]);
+  const [importAsEvergreen, setImportAsEvergreen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Estado para ordenamiento
@@ -155,12 +160,28 @@ export function TrainingExamplesDialog({
     }
   };
 
-  // Cargar ejemplos al abrir el diálogo o cambiar filtros
+  // Cargar ejemplos y canales al abrir el diálogo
   useEffect(() => {
     if (open) {
       loadExamples(1, pagination.limit);
+      loadChannels();
     }
   }, [open]);
+  
+  // Cargar canales de YouTube
+  const loadChannels = async () => {
+    try {
+      const response = await axios.get('/api/titulin/channels');
+      if (response.data && Array.isArray(response.data)) {
+        setChannels(response.data.map(channel => ({
+          id: channel.channelId || channel.channel_id,
+          name: channel.name
+        })));
+      }
+    } catch (error) {
+      console.error('Error al cargar canales de YouTube:', error);
+    }
+  };
   
   // Efecto para aplicar filtros con un debounce para la búsqueda
   useEffect(() => {
@@ -326,6 +347,44 @@ export function TrainingExamplesDialog({
   const handleImportClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+  
+  // Función para importar ejemplos desde un canal de YouTube
+  const handleImportFromYoutube = async () => {
+    if (!selectedChannel) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Seleccione un canal primero',
+      });
+      return;
+    }
+    
+    setIsImportingFromYoutube(true);
+    try {
+      const response = await axios.post('/api/titulin/training-examples/import-from-channel', {
+        channelId: selectedChannel.id,
+        isEvergreen: importAsEvergreen
+      });
+      
+      if (response.data.success) {
+        toast({
+          title: 'Éxito',
+          description: response.data.message || `Títulos del canal importados como ${importAsEvergreen ? 'evergreen' : 'no evergreen'}`,
+        });
+        loadExamples(); // Recargar ejemplos
+        setYoutubeChannelOpen(false); // Cerrar el diálogo
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.message || 'Error al importar títulos desde YouTube',
+      });
+      console.error('Error importando desde YouTube:', error);
+    } finally {
+      setIsImportingFromYoutube(false);
     }
   };
   

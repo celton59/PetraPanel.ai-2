@@ -361,6 +361,89 @@ export function setupTrainingExamplesRoutes(
     }
   });
 
+  // Importar ejemplos de entrenamiento desde un canal de YouTube
+  app.post('/api/titulin/training-examples/import-from-channel', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { channelId, isEvergreen = true } = req.body;
+      
+      if (!channelId) {
+        return res.status(400).json({
+          success: false,
+          message: 'El ID del canal es obligatorio'
+        });
+      }
+      
+      // Obtener usuario actual
+      const userId = req.user?.id;
+      
+      // Obtener videos del canal desde la base de datos
+      const videos = await db.execute(sql`
+        SELECT yt.id, yt.title, yt.video_id, yt.channel_id
+        FROM youtube_videos yt
+        JOIN youtube_channels ch ON yt.channel_id = ch.channel_id
+        WHERE ch.channel_id = ${channelId}
+        LIMIT 100
+      `);
+      
+      // Manejar diferentes formatos de resultados
+      let rows = Array.isArray(videos) ? videos : 
+                (videos.rows && Array.isArray(videos.rows) ? videos.rows : 
+                (typeof videos === 'object' ? Object.values(videos) : []));
+      
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontraron videos para este canal'
+        });
+      }
+      
+      // Preparar los títulos para inserción
+      const titles = rows.map(video => video.title);
+      
+      // Insertar en lotes
+      let insertedCount = 0;
+      const batchSize = 50;
+      
+      for (let i = 0; i < titles.length; i += batchSize) {
+        const batch = titles.slice(i, i + batchSize);
+        
+        // Generar SQL para inserción en lote
+        const valuesSql = batch.map(title => 
+          `('${title.replace(/'/g, "''")}', ${!!isEvergreen}, ${userId})`
+        ).join(',');
+        
+        const result = await db.execute(sql`
+          INSERT INTO training_title_examples 
+          (title, is_evergreen, created_by)
+          VALUES ${sql.raw(valuesSql)}
+          ON CONFLICT (title) DO NOTHING
+          RETURNING id
+        `);
+        
+        // Manejar diferentes formatos de resultados
+        let insertedRows = Array.isArray(result) ? result : 
+                (result.rows && Array.isArray(result.rows) ? result.rows : 
+                (typeof result === 'object' ? Object.values(result) : []));
+        
+        insertedCount += insertedRows.length;
+      }
+      
+      return res.status(200).json({
+        success: true,
+        message: `${insertedCount} títulos importados como ${isEvergreen ? 'evergreen' : 'no evergreen'} desde el canal de YouTube`,
+        totalProcessed: rows.length,
+        totalImported: insertedCount
+      });
+    } catch (error: any) {
+      console.error('Error al importar desde canal:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error al importar títulos desde el canal de YouTube',
+        details: error.message
+      });
+    }
+  });
+  
   // Importar ejemplos de entrenamiento desde CSV
   app.post('/api/titulin/training-examples/import', requireAuth, upload.single('file'), async (req: Request, res: Response) => {
     try {
