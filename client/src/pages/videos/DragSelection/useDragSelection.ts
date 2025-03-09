@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect } from "react";
 
 interface Position {
   x: number;
@@ -40,17 +40,15 @@ export function useDragSelection({
   selectionElementSelector = '.video-card',
   idDataAttribute = 'data-video-id'
 }: DragSelectionOptions) {
-  // Estado para el arrastre
   const [isDragging, setIsDragging] = useState(false);
   const [selection, setSelection] = useState<Selection>({
     startPosition: null,
-    currentPosition: null,
+    currentPosition: null
   });
-
-  // Referencia para el intervalo de auto-scroll
+  
   const autoScrollIntervalRef = useRef<number | null>(null);
 
-  // Limpiar el intervalo cuando el componente se desmonta
+  // Clean up auto-scroll interval when component unmounts
   useEffect(() => {
     return () => {
       if (autoScrollIntervalRef.current !== null) {
@@ -60,25 +58,10 @@ export function useDragSelection({
     };
   }, []);
 
-  // Detener arrastre cuando se desactiva el modo selección
-  useEffect(() => {
-    if (!selectMode && isDragging) {
-      setIsDragging(false);
-      setSelection({
-        startPosition: null,
-        currentPosition: null,
-      });
-
-      if (autoScrollIntervalRef.current !== null) {
-        window.clearInterval(autoScrollIntervalRef.current);
-        autoScrollIntervalRef.current = null;
-      }
-    }
-  }, [selectMode, isDragging]);
-
-  // Verificar si un elemento está dentro del rectángulo de selección
-  const isElementInSelection = useCallback(
+  // Function to check if a rectangle contains an element
+  const rectangleContainsElement = useCallback(
     (selectionRect: SelectionRect, elementRect: DOMRect) => {
+      // An element is inside if there's an intersection
       return !(
         selectionRect.left > elementRect.right ||
         selectionRect.right < elementRect.left ||
@@ -89,38 +72,38 @@ export function useDragSelection({
     []
   );
 
-  // Iniciar el arrastre
+  // Handler for starting the drag selection
   const handleDragStart = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!selectMode) return;
       
-      // Solo permitir arrastre con botón izquierdo
+      // Only allow left-button drag
       if (e.button !== 0) return;
-
+      
       setIsDragging(true);
       setSelection({
         startPosition: { x: e.clientX, y: e.clientY },
-        currentPosition: { x: e.clientX, y: e.clientY },
+        currentPosition: { x: e.clientX, y: e.clientY }
       });
-
-      // Prevenir comportamiento predeterminado del navegador
+      
+      // Prevent default browser drag behavior
       e.preventDefault();
     },
     [selectMode]
   );
 
-  // Actualizar mientras se arrastra
+  // Handler for the drag movement
   const handleDragMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!isDragging || !selectMode || !selection.startPosition) return;
-
-      // Actualizar la posición actual
+      
+      // Update current position
       setSelection(prev => ({
         ...prev,
-        currentPosition: { x: e.clientX, y: e.clientY },
+        currentPosition: { x: e.clientX, y: e.clientY }
       }));
-
-      // Calcular el rectángulo de selección
+      
+      // Calculate selection rectangle
       const selectionRect = {
         left: Math.min(selection.startPosition.x, e.clientX),
         right: Math.max(selection.startPosition.x, e.clientX),
@@ -129,134 +112,148 @@ export function useDragSelection({
         width: Math.abs(e.clientX - selection.startPosition.x),
         height: Math.abs(e.clientY - selection.startPosition.y),
       };
-
-      // Si el rectángulo es muy pequeño, considerarlo como un clic
+      
+      // If the selection rectangle is too small, consider it a click
       if (selectionRect.width < minSelectionSize && selectionRect.height < minSelectionSize) {
         return;
       }
-
-      // Auto-scroll cuando el cursor está cerca de los bordes
+      
+      // Calculate distances from the edges of the viewport
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
-      
-      // Calcular distancias a los bordes
       const distanceFromBottom = viewportHeight - e.clientY;
       const distanceFromTop = e.clientY;
       const distanceFromRight = viewportWidth - e.clientX;
       const distanceFromLeft = e.clientX;
       
-      // Determinar si debemos hacer scroll y en qué dirección
+      // Check if we should auto-scroll
       const shouldScrollDown = distanceFromBottom < scrollThreshold;
       const shouldScrollUp = distanceFromTop < scrollThreshold;
       const shouldScrollRight = distanceFromRight < scrollThreshold;
       const shouldScrollLeft = distanceFromLeft < scrollThreshold;
       
-      // Calcular velocidades dinámicas basadas en la proximidad al borde
-      const verticalSpeed = shouldScrollDown
+      // Calculate dynamic scroll speeds based on proximity to the edge
+      const verticalScrollSpeed = shouldScrollDown
         ? baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromBottom) / 3)
         : shouldScrollUp
         ? baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromTop) / 3)
         : 0;
         
-      const horizontalSpeed = shouldScrollRight
+      const horizontalScrollSpeed = shouldScrollRight
         ? baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromRight) / 3)
         : shouldScrollLeft
         ? baseScrollSpeed + Math.max(0, (scrollThreshold - distanceFromLeft) / 3)
         : 0;
       
-      // Limpiar intervalo existente
+      // Clear existing interval if there is one
       if (autoScrollIntervalRef.current !== null) {
         window.clearInterval(autoScrollIntervalRef.current);
         autoScrollIntervalRef.current = null;
       }
       
-      // Establecer nuevo intervalo si estamos cerca de los bordes
+      // Set new interval if we're near the edges
       if (shouldScrollDown || shouldScrollUp || shouldScrollRight || shouldScrollLeft) {
-        autoScrollIntervalRef.current = window.setInterval(() => {
-          // Scroll vertical
+        const intervalId = window.setInterval(() => {
+          // Vertical scrolling
           if (shouldScrollDown) {
-            window.scrollBy(0, verticalSpeed);
+            window.scrollBy(0, verticalScrollSpeed);
           } else if (shouldScrollUp) {
-            window.scrollBy(0, -verticalSpeed);
+            window.scrollBy(0, -verticalScrollSpeed);
           }
           
-          // Scroll horizontal
+          // Horizontal scrolling
           if (shouldScrollRight) {
-            window.scrollBy(horizontalSpeed, 0);
+            window.scrollBy(horizontalScrollSpeed, 0);
           } else if (shouldScrollLeft) {
-            window.scrollBy(-horizontalSpeed, 0);
+            window.scrollBy(-horizontalScrollSpeed, 0);
           }
           
-          // Actualizar posición después del scroll
+          // Update the current position based on the new scroll coordinates
           if (selection.currentPosition) {
             const newY = shouldScrollDown
-              ? selection.currentPosition.y + verticalSpeed
+              ? selection.currentPosition.y + verticalScrollSpeed
               : shouldScrollUp
-              ? selection.currentPosition.y - verticalSpeed
+              ? selection.currentPosition.y - verticalScrollSpeed
               : selection.currentPosition.y;
               
             const newX = shouldScrollRight
-              ? selection.currentPosition.x + horizontalSpeed
+              ? selection.currentPosition.x + horizontalScrollSpeed
               : shouldScrollLeft
-              ? selection.currentPosition.x - horizontalSpeed
+              ? selection.currentPosition.x - horizontalScrollSpeed
               : selection.currentPosition.x;
               
             setSelection(prev => ({
               ...prev,
-              currentPosition: { x: newX, y: newY },
+              currentPosition: { x: newX, y: newY }
             }));
           }
         }, scrollInterval);
+        
+        // Save the interval ID to clear it later
+        autoScrollIntervalRef.current = intervalId;
       }
-
-      // Obtener elementos seleccionados
-      const elements = document.querySelectorAll(selectionElementSelector);
-      const selectedIds: number[] = [];
       
-      elements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const videoIdAttr = element.getAttribute(idDataAttribute);
+      // Get all selectable elements in the current view
+      const selectableElements = document.querySelectorAll(selectionElementSelector);
+      
+      // Store IDs of elements being selected now
+      const currentlySelectedIds: number[] = [];
+      const currentlyDeselectedIds: number[] = [];
+      
+      // Check if Alt key is pressed (for deselection)
+      const isAltKeyPressed = e.altKey;
+      
+      selectableElements.forEach(element => {
+        const elementRect = element.getBoundingClientRect();
+        const elementIdAttr = element.getAttribute(idDataAttribute);
         
-        if (!videoIdAttr) return;
+        if (!elementIdAttr) return;
         
-        const videoId = Number(videoIdAttr);
+        const elementId = Number(elementIdAttr);
+        if (!elementId) return;
         
-        if (!videoId) return;
+        // Check if the element is inside the selection rectangle
+        const isContained = rectangleContainsElement(selectionRect, elementRect);
         
-        if (isElementInSelection(selectionRect, rect)) {
-          selectedIds.push(videoId);
+        if (isContained) {
+          if (isAltKeyPressed) {
+            // Alt pressed, deselecting
+            currentlyDeselectedIds.push(elementId);
+          } else {
+            // No Alt, selecting normally
+            currentlySelectedIds.push(elementId);
+          }
         }
       });
       
-      // Actualizar selección sólo si hay elementos en el rectángulo
-      if (selectedIds.length > 0) {
-        // Detectar si se usa Alt para deseleccionar
-        const isAltKeyPressed = e.altKey;
-        onSelectionChange(selectedIds, isAltKeyPressed);
-      }
+      // Call the callback with the ids and Alt key state
+      onSelectionChange(
+        isAltKeyPressed ? currentlyDeselectedIds : currentlySelectedIds,
+        isAltKeyPressed
+      );
       
       e.preventDefault();
     },
     [
       isDragging,
       selectMode,
-      selection,
+      selection.startPosition,
+      selection.currentPosition,
       scrollThreshold,
       baseScrollSpeed,
-      scrollInterval,
       minSelectionSize,
       selectionElementSelector,
       idDataAttribute,
-      isElementInSelection,
-      onSelectionChange,
+      rectangleContainsElement,
+      onSelectionChange
     ]
   );
 
-  // Finalizar arrastre
+  // Handler for ending the drag selection
   const handleDragEnd = useCallback(() => {
     if (!isDragging || !selectMode) return;
     
-    // Limpiar intervalo de auto-scroll
+    // Clear any auto-scroll interval
     if (autoScrollIntervalRef.current !== null) {
       window.clearInterval(autoScrollIntervalRef.current);
       autoScrollIntervalRef.current = null;
@@ -265,17 +262,15 @@ export function useDragSelection({
     setIsDragging(false);
     setSelection({
       startPosition: null,
-      currentPosition: null,
+      currentPosition: null
     });
   }, [isDragging, selectMode]);
 
-  // Calcular estilo del rectángulo de selección
-  const selectionRectStyle = useCallback(() => {
-    if (!selection.startPosition || !selection.currentPosition) {
-      return {};
-    }
+  // Calculate the selection rectangle style for rendering
+  const getSelectionRectStyle = useCallback(() => {
+    if (!selection.startPosition || !selection.currentPosition) return {};
     
-    // Calcular posiciones
+    // Calculate the position relative to the viewport
     const left = Math.min(selection.startPosition.x, selection.currentPosition.x);
     const top = Math.min(selection.startPosition.y, selection.currentPosition.y);
     const width = Math.abs(selection.currentPosition.x - selection.startPosition.x);
@@ -292,9 +287,9 @@ export function useDragSelection({
 
   return {
     isDragging,
-    selectionRectStyle: selectionRectStyle(),
+    selectionRectStyle: getSelectionRectStyle(),
     handleDragStart,
     handleDragMove,
-    handleDragEnd,
+    handleDragEnd
   };
 }

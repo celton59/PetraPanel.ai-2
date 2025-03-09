@@ -1,2 +1,2 @@
-export { SelectionRectangle } from './SelectionRectangle';
-export { useDragSelection } from './useDragSelection';
+export * from './SelectionRectangle';
+export * from './useDragSelection';
