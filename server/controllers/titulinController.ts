@@ -389,6 +389,31 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
 
 import { getSuggestions } from './titulinSuggestionsController';
 
+// Función para obtener canales para ejemplos de entrenamiento (sin restricción de rol)
+async function getChannelsForTraining(req: Request, res: Response): Promise<Response> {
+  try {
+    // Obtener lista simplificada de canales para selector
+    const result = await db.select({
+      id: youtube_channels.id,
+      channelId: youtube_channels.channelId,
+      name: youtube_channels.name,
+      thumbnailUrl: youtube_channels.thumbnailUrl
+    })
+    .from(youtube_channels)
+    .where(eq(youtube_channels.active, true))
+    .execute();
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error al obtener canales para training examples:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Error al obtener canales',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+}
+
 export function setUpTitulinRoutes (app: Express) {
   app.post('/api/titulin/channels', addChannel)
   app.get('/api/titulin/channels', getChannels)
@@ -403,6 +428,9 @@ export function setUpTitulinRoutes (app: Express) {
   
   // API de sugerencias para autocompletado
   app.get('/api/titulin/suggestions', getSuggestions)
+  
+  // Endpoint público para obtener canales (para ejemplos de entrenamiento)
+  app.get('/api/titulin/channels/for-training', getChannelsForTraining)
   
   // Nueva ruta para búsqueda de títulos similares
   app.get('/api/titulin/videos/:videoId/similar', async (req, res) => {
