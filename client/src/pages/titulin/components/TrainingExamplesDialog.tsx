@@ -616,10 +616,52 @@ Los mejores plugins de WordPress
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-6">
           <DialogHeader className="pb-4">
-            <DialogTitle>Ejemplos de entrenamiento para análisis de contenido</DialogTitle>
-            <DialogDescription>
-              Estos ejemplos ayudan a mejorar la precisión del análisis de títulos, enseñando a la IA a distinguir entre contenido evergreen (atemporal) y no evergreen (temporal). Cuantos más ejemplos de calidad agregue, mejores serán los resultados del análisis.
-            </DialogDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <DialogTitle>Ejemplos de entrenamiento para análisis de contenido</DialogTitle>
+                <DialogDescription>
+                  Estos ejemplos ayudan a mejorar la precisión del análisis de títulos, enseñando a la IA a distinguir entre contenido evergreen (atemporal) y no evergreen (temporal). Cuantos más ejemplos de calidad agregue, mejores serán los resultados del análisis.
+                </DialogDescription>
+              </div>
+              <div className="flex space-x-2">
+                <Button onClick={handleImportClick} disabled={isUploading} variant="outline" size="sm">
+                  {isUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileUp className="mr-2 h-4 w-4" />
+                  )}
+                  Importar CSV
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept=".csv"
+                />
+                <Button 
+                  variant="outline"
+                  onClick={() => setBulkImportOpen(true)}
+                  size="sm"
+                >
+                  <ListPlus className="mr-2 h-4 w-4" />
+                  Importar en masa
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setYoutubeChannelOpen(true)}
+                  disabled={isImportingFromYoutube}
+                  size="sm"
+                >
+                  {isImportingFromYoutube ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                  )}
+                  Importar desde YouTube
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -778,42 +820,6 @@ Los mejores plugins de WordPress
 
                   <div className="flex justify-between items-center mt-4">
                     <div className="space-x-2">
-                      <Button onClick={handleImportClick} disabled={isUploading}>
-                        {isUploading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileUp className="mr-2 h-4 w-4" />
-                        )}
-                        Importar CSV
-                      </Button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept=".csv"
-                      />
-                      <Button 
-                        variant="outline"
-                        onClick={() => setBulkImportOpen(true)}
-                        className="ml-2"
-                      >
-                        <ListPlus className="mr-2 h-4 w-4" />
-                        Importar en masa
-                      </Button>
-                      <Button 
-                        variant="secondary" 
-                        onClick={() => setYoutubeChannelOpen(true)}
-                        disabled={isImportingFromYoutube}
-                        className="ml-2"
-                      >
-                        {isImportingFromYoutube ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <AlertCircle className="mr-2 h-4 w-4" />
-                        )}
-                        Importar desde YouTube
-                      </Button>
                       <Button variant="outline" onClick={handleExport} disabled={isExporting}>
                         {isExporting ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
