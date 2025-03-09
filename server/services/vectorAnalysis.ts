@@ -43,6 +43,72 @@ async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 /**
+ * Obtiene ejemplos de títulos evergreen y no evergreen de la base de datos
+ * @returns Objeto con arrays de ejemplos
+ */
+async function getTrainingExamples(): Promise<{
+  evergreenExamples: string[];
+  nonEvergreenExamples: string[];
+}> {
+  try {
+    const examples = await db.execute(sql`
+      SELECT title, is_evergreen 
+      FROM training_title_examples 
+      ORDER BY id
+    `);
+    
+    const rows = Array.isArray(examples) ? examples : 
+                (examples.rows && Array.isArray(examples.rows) ? examples.rows : 
+                (typeof examples === 'object' ? Object.values(examples) : []));
+    
+    // Construir arrays separados para títulos evergreen y no evergreen
+    const evergreenExamples: string[] = [];
+    const nonEvergreenExamples: string[] = [];
+    
+    if (Array.isArray(rows)) {
+      rows.forEach((row: any) => {
+        if (row.is_evergreen) {
+          evergreenExamples.push(row.title);
+        } else {
+          nonEvergreenExamples.push(row.title);
+        }
+      });
+    }
+    
+    // Si no hay ejemplos, usar algunos por defecto
+    if (evergreenExamples.length === 0) {
+      evergreenExamples.push("Cómo hacer pan casero - Tutorial completo");
+      evergreenExamples.push("5 ejercicios para fortalecer la espalda");
+      evergreenExamples.push("Guía definitiva para aprender a tocar guitarra");
+    }
+    
+    if (nonEvergreenExamples.length === 0) {
+      nonEvergreenExamples.push("Reacción al tráiler de la película que se estrena mañana");
+      nonEvergreenExamples.push("Predicciones para tendencias de 2023");
+      nonEvergreenExamples.push("Análisis de las elecciones presidenciales");
+    }
+    
+    return { evergreenExamples, nonEvergreenExamples };
+  } catch (error) {
+    console.error('Error al obtener ejemplos de entrenamiento:', error);
+    
+    // Devolver ejemplos por defecto en caso de error
+    return {
+      evergreenExamples: [
+        "Cómo hacer pan casero - Tutorial completo",
+        "5 ejercicios para fortalecer la espalda",
+        "Guía definitiva para aprender a tocar guitarra"
+      ],
+      nonEvergreenExamples: [
+        "Reacción al tráiler de la película que se estrena mañana",
+        "Predicciones para tendencias de 2023",
+        "Análisis de las elecciones presidenciales"
+      ]
+    };
+  }
+}
+
+/**
  * Analiza un título para determinar si es evergreen
  * @param title Título del video
  * @param videoId ID del video
@@ -57,6 +123,13 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
     // Generar embedding para el título
     const titleEmbedding = await generateEmbedding(title);
     
+    // Obtener ejemplos de entrenamiento
+    const { evergreenExamples, nonEvergreenExamples } = await getTrainingExamples();
+    
+    // Construir ejemplos para el prompt
+    const evergreenExamplesText = evergreenExamples.map(ex => `- "${ex}"`).join('\n');
+    const nonEvergreenExamplesText = nonEvergreenExamples.map(ex => `- "${ex}"`).join('\n');
+    
     // Usar GPT para analizar si el título es evergreen
     const prompt = `
     Analiza el siguiente título de YouTube y determina si es "evergreen" (contenido atemporal) o no.
@@ -70,14 +143,10 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
     - Suele incluir términos como "cómo", "guía", "tutorial", "tips", etc.
     
     Ejemplos de títulos evergreen:
-    - "Cómo hacer pan casero - Tutorial completo"
-    - "5 ejercicios para fortalecer la espalda"
-    - "Guía definitiva para aprender a tocar guitarra"
+    ${evergreenExamplesText}
     
     Ejemplos de títulos NO evergreen:
-    - "Reacción al tráiler de la película que se estrena mañana"
-    - "Predicciones para tendencias de 2023"
-    - "Análisis de las elecciones presidenciales"
+    ${nonEvergreenExamplesText}
     
     Responde en formato JSON con esta estructura exacta:
     {
@@ -156,13 +225,31 @@ export async function findSimilarTitles(title: string, limit: number = 5): Promi
       LIMIT ${limit}
     `);
     
-    const array = Array.isArray(results) ? results : (results as any);
+    // Aseguramos de siempre obtener un array para procesar
+    if (!results) return [];
     
-    return array.map((row: any) => ({
+    // Manejar diferentes formatos de resultados que podría devolver Drizzle
+    let rows: any[] = [];
+    if (Array.isArray(results)) {
+      rows = results;
+    } else if (results.rows && Array.isArray(results.rows)) {
+      rows = results.rows;
+    } else if (typeof results === 'object') {
+      // Intenta convertir a array si es posible
+      rows = Object.values(results);
+    }
+    
+    console.log('Resultados de búsqueda de títulos similares:', JSON.stringify(rows));
+    
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return [];
+    }
+    
+    return rows.map((row: any) => ({
       videoId: row.video_id,
       title: row.title,
-      similarity: row.similarity,
-      isEvergreen: row.is_evergreen
+      similarity: parseFloat(row.similarity) || 0,
+      isEvergreen: !!row.is_evergreen
     }));
   } catch (error) {
     console.error('Error al buscar títulos similares:', error);

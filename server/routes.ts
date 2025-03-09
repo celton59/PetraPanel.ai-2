@@ -29,6 +29,7 @@ import ProjectController from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
+import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 
 // Utilizamos passwordUtils importado desde auth.ts
 
@@ -180,6 +181,9 @@ export function registerRoutes(app: Express): Server {
 
     // Titulin
     setUpTitulinRoutes(app)
+    
+    // Ejemplos para entrenamiento de IA
+    setupTrainingExamplesRoutes(app, requireAuth)
     
     // Notificaciones
     setupNotificationRoutes(app, requireAuth)
