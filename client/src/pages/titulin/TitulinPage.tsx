@@ -278,10 +278,17 @@ export default function TitulinPage() {
         }
 
         if (!video.analysisData) {
+          // El video está analizado pero no tenemos los datos de análisis
+          // Esto puede ocurrir con la versión actual del esquema de base de datos
           return (
-            <Badge variant="outline" className="text-muted-foreground">
-              No analizado
-            </Badge>
+            <div className="space-y-1">
+              <Badge variant="outline" className="text-muted-foreground">
+                Analizado
+              </Badge>
+              <div className="text-xs text-muted-foreground">
+                Datos no disponibles
+              </div>
+            </div>
           );
         }
 
@@ -326,14 +333,18 @@ export default function TitulinPage() {
     }
 
     // Crear el contenido del CSV con los títulos filtrados
-    const titlesForCSV = filteredVideos.map(video => ({
+    const titlesForCSV = filteredVideos.map((video: TitulinVideo) => ({
       title: video.title,
       views: video.viewCount,
       likes: video.likeCount,
       published: formatDate(video.publishedAt),
       channel: getChannelName(video.channelId),
-      isEvergreen: video.analysisData?.isEvergreen ? "Sí" : "No",
-      confidence: video.analysisData ? `${Math.round(video.analysisData.confidence * 100)}%` : "N/A"
+      isEvergreen: video.analyzed 
+        ? (video.analysisData?.isEvergreen ? "Sí" : video.analysisData === null ? "Desconocido" : "No") 
+        : "Sin analizar",
+      confidence: video.analysisData 
+        ? `${Math.round(video.analysisData.confidence * 100)}%` 
+        : (video.analyzed ? "Datos no disponibles" : "N/A")
     }));
 
     const headers = ["Título", "Vistas", "Likes", "Fecha de Publicación", "Canal", "Evergreen", "Confianza"];
@@ -342,7 +353,7 @@ export default function TitulinPage() {
     const BOM = '\uFEFF';
     const csvContent = BOM + [
       headers.join(";"),  // Usar punto y coma como separador
-      ...titlesForCSV.map(row => [
+      ...titlesForCSV.map((row: any) => [
         `"${row.title.replace(/"/g, '""')}"`, // Escapar comillas dobles
         row.views,
         row.likes,
