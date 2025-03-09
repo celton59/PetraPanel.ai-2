@@ -339,7 +339,7 @@ export function TrainingExamplesDialog({
     try {
       // Enviamos el channelId que corresponde al campo channelId de la tabla youtube_channels
       const response = await axios.post('/api/titulin/training-examples/import-from-channel', {
-        channelId: selectedChannel.id, // Este es el ID de YouTube, no el ID interno de la base de datos
+        channelId: selectedChannel.channelId, // Ahora usamos el channelId de YouTube, no el ID interno
         isEvergreen: importAsEvergreen
       });
       
@@ -623,43 +623,55 @@ Los mejores plugins de WordPress
                   Estos ejemplos ayudan a mejorar la precisión del análisis de títulos, enseñando a la IA a distinguir entre contenido evergreen (atemporal) y no evergreen (temporal). Cuantos más ejemplos de calidad agregue, mejores serán los resultados del análisis.
                 </DialogDescription>
               </div>
-              <div className="flex space-x-2">
-                <Button onClick={handleImportClick} disabled={isUploading} variant="outline" size="sm">
-                  {isUploading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileUp className="mr-2 h-4 w-4" />
-                  )}
-                  Importar CSV
-                </Button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept=".csv"
-                />
-                <Button 
-                  variant="outline"
-                  onClick={() => setBulkImportOpen(true)}
-                  size="sm"
-                >
-                  <ListPlus className="mr-2 h-4 w-4" />
-                  Importar en masa
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setYoutubeChannelOpen(true)}
-                  disabled={isImportingFromYoutube}
-                  size="sm"
-                >
-                  {isImportingFromYoutube ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <AlertCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Importar desde YouTube
-                </Button>
+              <div>
+                <Tabs defaultValue="table" className="w-[350px]">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="table">Tabla</TabsTrigger>
+                    <TabsTrigger value="import">Importaciones</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="import" className="p-2">
+                    <div className="flex flex-col space-y-2">
+                      <Button onClick={handleImportClick} disabled={isUploading} variant="outline" size="sm" className="w-full">
+                        {isUploading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileUp className="mr-2 h-4 w-4" />
+                        )}
+                        Importar CSV
+                      </Button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        accept=".csv"
+                      />
+                      <Button 
+                        variant="outline"
+                        onClick={() => setBulkImportOpen(true)}
+                        size="sm"
+                        className="w-full"
+                      >
+                        <ListPlus className="mr-2 h-4 w-4" />
+                        Importar en masa
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setYoutubeChannelOpen(true)}
+                        disabled={isImportingFromYoutube}
+                        size="sm"
+                        className="w-full"
+                      >
+                        {isImportingFromYoutube ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <AlertCircle className="mr-2 h-4 w-4" />
+                        )}
+                        Importar desde YouTube
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </DialogHeader>

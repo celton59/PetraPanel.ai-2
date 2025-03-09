@@ -439,9 +439,9 @@ export function setupTrainingExamplesRoutes(
       const userId = req.user?.id;
       
       // Obtener videos del canal desde la base de datos
-      // Primero buscamos el canal por su ID en la base de datos
+      // Nota: channelId es el ID del canal de YouTube (string), no el ID numérico de la tabla
       const channel = await db.execute(sql`
-        SELECT channel_id FROM youtube_channels WHERE id = ${channelId}
+        SELECT channel_id FROM youtube_channels WHERE channel_id = ${channelId}
       `);
       
       // Manejar diferentes formatos de resultados
