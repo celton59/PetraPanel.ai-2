@@ -360,4 +360,170 @@ export function setupTrainingExamplesRoutes(
       });
     }
   });
+
+  // Importar ejemplos de entrenamiento desde CSV
+  app.post('/api/titulin/training-examples/import', requireAuth, upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      // Verificar que se subió un archivo
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se proporcionó ningún archivo'
+        });
+      }
+
+      // Obtener usuario actual
+      const userId = req.user?.id;
+      
+      // Leer el archivo
+      const fileContent = await fs.readFile(req.file.path, 'utf8');
+      
+      // Procesar el CSV
+      const records = parse(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        relax_column_count: true,
+        skip_records_with_empty_values: true
+      });
+      
+      // Verificar que hay registros
+      if (!records || !Array.isArray(records) || records.length === 0) {
+        await fs.unlink(req.file.path);  // Eliminar el archivo temporal
+        return res.status(400).json({
+          success: false,
+          message: 'El archivo no contiene registros válidos'
+        });
+      }
+      
+      // Preparar datos para inserción en lotes
+      const insertData: { title: string, isEvergreen: boolean }[] = [];
+      const expectedColumns = ['Título', 'Evergreen'];
+      
+      // Validar y transformar registros
+      for (const record of records) {
+        // Determinar las columnas reales
+        const columns = Object.keys(record);
+        
+        // Verificar que al menos están las columnas mínimas necesarias
+        const hasTitle = columns.some(col => 
+          col.toLowerCase() === 'título' || 
+          col.toLowerCase() === 'titulo' || 
+          col.toLowerCase() === 'title'
+        );
+        
+        const hasEvergreen = columns.some(col => 
+          col.toLowerCase() === 'evergreen' || 
+          col.toLowerCase() === 'es_evergreen' || 
+          col.toLowerCase() === 'is_evergreen'
+        );
+        
+        if (!hasTitle || !hasEvergreen) {
+          continue; // Saltamos este registro
+        }
+        
+        // Obtener los valores
+        const titleKey = columns.find(col => 
+          col.toLowerCase() === 'título' || 
+          col.toLowerCase() === 'titulo' || 
+          col.toLowerCase() === 'title'
+        ) || '';
+        
+        const evergreenKey = columns.find(col => 
+          col.toLowerCase() === 'evergreen' || 
+          col.toLowerCase() === 'es_evergreen' || 
+          col.toLowerCase() === 'is_evergreen'
+        ) || '';
+        
+        const title = record[titleKey];
+        let isEvergreen = record[evergreenKey];
+        
+        // Validar título
+        if (!title || typeof title !== 'string' || title.trim() === '') {
+          continue;
+        }
+        
+        // Normalizar el valor de evergreen
+        if (typeof isEvergreen === 'string') {
+          isEvergreen = isEvergreen.toLowerCase();
+          isEvergreen = isEvergreen === 'true' || 
+                        isEvergreen === 'sí' || 
+                        isEvergreen === 'si' ||
+                        isEvergreen === 'yes' || 
+                        isEvergreen === '1' ||
+                        isEvergreen === 'verdadero';
+        } else {
+          isEvergreen = !!isEvergreen;
+        }
+        
+        // Añadir a los datos de inserción
+        insertData.push({
+          title: title.trim(),
+          isEvergreen: !!isEvergreen
+        });
+      }
+      
+      // Verificar que hay datos para importar
+      if (insertData.length === 0) {
+        await fs.unlink(req.file.path);  // Eliminar el archivo temporal
+        return res.status(400).json({
+          success: false,
+          message: 'No se encontraron registros válidos para importar'
+        });
+      }
+      
+      // Insertar los registros en lotes
+      let insertedCount = 0;
+      const batchSize = 100;
+      
+      for (let i = 0; i < insertData.length; i += batchSize) {
+        const batch = insertData.slice(i, i + batchSize);
+        
+        // Generar consulta SQL para inserción en lote
+        const valuesSql = batch.map(item => `('${item.title.replace(/'/g, "''")}', ${item.isEvergreen}, ${userId})`).join(',');
+        
+        const result = await db.execute(sql`
+          INSERT INTO training_title_examples 
+          (title, is_evergreen, created_by)
+          VALUES ${sql.raw(valuesSql)}
+          ON CONFLICT (title) DO NOTHING
+          RETURNING id
+        `);
+        
+        // Manejar diferentes formatos de resultados
+        let rows = Array.isArray(result) ? result : 
+                  (result.rows && Array.isArray(result.rows) ? result.rows : 
+                  (typeof result === 'object' ? Object.values(result) : []));
+        
+        insertedCount += rows.length;
+      }
+      
+      // Eliminar el archivo temporal
+      await fs.unlink(req.file.path);
+      
+      return res.status(200).json({
+        success: true,
+        message: `${insertedCount} ejemplos importados correctamente de ${insertData.length} registros procesados`,
+        totalProcessed: insertData.length,
+        totalImported: insertedCount
+      });
+    } catch (error: any) {
+      console.error('Error al importar ejemplos:', error);
+      
+      // Intentar eliminar el archivo temporal en caso de error
+      if (req.file?.path) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (unlinkError) {
+          console.error('Error al eliminar archivo temporal:', unlinkError);
+        }
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Error al importar ejemplos de entrenamiento',
+        details: error.message
+      });
+    }
+  });
 }

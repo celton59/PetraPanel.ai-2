@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import {
@@ -24,7 +24,47 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious,
+  PaginationEllipsis
+} from "@/components/ui/pagination";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { 
+  Loader2, 
+  Plus, 
+  Trash, 
+  Search, 
+  FileUp, 
+  FileDown, 
+  CheckCircle, 
+  XCircle,
+  Filter,
+  ChevronDown,
+  AlertCircle
+} from "lucide-react";
 
 interface TrainingExample {
   id: number;
@@ -32,6 +72,13 @@ interface TrainingExample {
   is_evergreen: boolean;
   created_at: string;
   created_by?: number;
+}
+
+interface PaginationData {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface TrainingExamplesDialogProps {
@@ -50,14 +97,52 @@ export function TrainingExamplesDialog({
   const [isEvergreen, setIsEvergreen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  
+  // Estado para paginación
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    page: 1,
+    limit: 50,
+    totalPages: 0
+  });
+  
+  // Estado para operaciones por lotes
+  const [selectedExamples, setSelectedExamples] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  
+  // Estado para importación/exportación
+  const [isUploading, setIsUploading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estado para ordenamiento
+  const [sortBy, setSortBy] = useState<string>("id");
+  const [sortDir, setSortDir] = useState<string>("asc");
 
-  // Cargar ejemplos
-  const loadExamples = async () => {
+  // Cargar ejemplos con paginación
+  const loadExamples = async (page = 1, limit = 50) => {
     setIsLoading(true);
+    setSelectedExamples([]);
+    setSelectAll(false);
+
     try {
-      const response = await axios.get("/api/titulin/training-examples");
+      // Construir parámetros de consulta
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortDir
+      });
+
+      // Añadir parámetros adicionales solo si tienen valor
+      if (searchTerm) params.append('search', searchTerm);
+      if (activeTab !== 'all') params.append('type', activeTab);
+
+      const response = await axios.get(`/api/titulin/training-examples?${params}`);
+      
       if (response.data.success) {
         setExamples(response.data.data);
+        setPagination(response.data.pagination);
       }
     } catch (error: any) {
       toast({
@@ -160,6 +245,154 @@ export function TrainingExamplesDialog({
   const handleTabChange = (value: string) => {
     setSearchTerm('');
     setActiveTab(value);
+    loadExamples(1, pagination.limit);
+  };
+  
+  // Función para cambiar de página
+  const handlePageChange = (page: number) => {
+    if (page !== pagination.page && page > 0 && page <= pagination.totalPages) {
+      loadExamples(page, pagination.limit);
+    }
+  };
+  
+  // Función para exportar ejemplos
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Crear la URL con los parámetros de filtrado
+      let url = '/api/titulin/training-examples/export';
+      if (activeTab !== 'all') {
+        url += `?type=${activeTab.replace('evergreen', 'evergreen').replace('not-evergreen', 'not-evergreen')}`;
+      }
+      
+      // Realizar la petición con responseType blob para descargar el archivo
+      const response = await axios.get(url, { responseType: 'blob' });
+      
+      // Crear un objeto URL para el blob
+      const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Crear un enlace temporal y hacer clic en él
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `ejemplos-entrenamiento-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: 'Éxito',
+        description: 'Archivo CSV exportado correctamente',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Error al exportar ejemplos',
+      });
+      console.error('Error exportando ejemplos:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  // Función para abrir el diálogo de selección de archivo
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Función para importar ejemplos desde CSV
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validar que es un archivo CSV
+    if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Por favor, seleccione un archivo CSV válido',
+      });
+      return;
+    }
+    
+    setIsUploading(true);
+    try {
+      // Crear un formulario con el archivo
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Enviar la petición
+      const response = await axios.post('/api/titulin/training-examples/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        toast({
+          title: 'Éxito',
+          description: response.data.message || 'Ejemplos importados correctamente',
+        });
+        loadExamples(); // Recargar ejemplos
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.message || 'Error al importar ejemplos',
+      });
+      console.error('Error importando ejemplos:', error);
+    } finally {
+      setIsUploading(false);
+      // Limpiar input para permitir seleccionar el mismo archivo nuevamente
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+  
+  // Función para gestionar operaciones en lote
+  const handleBulkOperation = async (operation: 'delete' | 'update', data?: { is_evergreen?: boolean }) => {
+    if (selectedExamples.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No hay ejemplos seleccionados',
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await axios.post('/api/titulin/training-examples/bulk', {
+        operation,
+        ids: selectedExamples,
+        data
+      });
+      
+      if (response.data.success) {
+        toast({
+          title: 'Éxito',
+          description: `${response.data.affectedCount} ejemplos ${operation === 'delete' ? 'eliminados' : 'actualizados'} correctamente`,
+        });
+        loadExamples(pagination.page, pagination.limit);
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.message || `Error en operación masiva: ${operation}`,
+      });
+    } finally {
+      setIsLoading(false);
+      setSelectedExamples([]);
+      setSelectAll(false);
+    }
   };
 
   return (
