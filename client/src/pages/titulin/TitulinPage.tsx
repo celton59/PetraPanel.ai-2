@@ -67,34 +67,45 @@ export default function TitulinPage() {
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
   
-  // Declaramos primero la paginación para evitar errores de referencia
+  // Estados para paginación y búsqueda
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  
-  // Estado simple para el campo de búsqueda
   const [searchValue, setSearchValue] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Función para manejar el cambio en el input de búsqueda
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchValue(newValue);
-    
-    // Limpiar cualquier timeout existente
+  // Efecto para manejar el debounce en la búsqueda
+  useEffect(() => {
+    // Limpiar cualquier timeout previo
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Aplicar debounce para la búsqueda
-    searchTimeoutRef.current = setTimeout(() => {
-      const trimmedValue = newValue.trim();
-      // Solo realizar búsqueda si el valor tiene 3+ caracteres o está vacío
-      if (trimmedValue !== titleFilter && (trimmedValue.length >= 3 || trimmedValue === '')) {
+    const trimmedValue = searchValue.trim();
+    const minSearchLength = 3;
+    
+    // Comprobamos si el valor actual es diferente del filtro aplicado
+    // y si cumple con los requisitos mínimos de longitud o es vacío
+    if (trimmedValue !== titleFilter &&
+        (trimmedValue.length >= minSearchLength || trimmedValue === '')) {
+      
+      setIsSearching(true);
+      
+      // Debounce de 350ms para evitar búsquedas mientras el usuario escribe
+      searchTimeoutRef.current = setTimeout(() => {
         setTitleFilter(trimmedValue);
         setCurrentPage(1);
+        setIsSearching(false);
+      }, 350);
+    }
+    
+    // Limpiar timeout al desmontar
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-    }, 300); // Reducir el tiempo para una experiencia más rápida
-  };
+    };
+  }, [searchValue, titleFilter, setTitleFilter]);
 
   const analyzeEvergeenMutation = useMutation({
     mutationFn: async (videoId: number) => {
@@ -530,32 +541,58 @@ export default function TitulinPage() {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por título en los 6492 videos..."
-                    value={searchValue}
-                    onChange={handleSearchChange}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const currentValue = searchValue.trim();
-                        // Aplicar búsqueda inmediatamente con Enter
-                        if (currentValue !== titleFilter && (currentValue.length >= 3 || currentValue === '')) {
-                          setTitleFilter(currentValue);
-                          setCurrentPage(1);
+                  <div className="relative">
+                    <Input
+                      placeholder="Buscar por título en los 6492 videos..."
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const currentValue = searchValue.trim();
+                          if (currentValue !== titleFilter && (currentValue.length >= 3 || currentValue === '')) {
+                            // Búsqueda inmediata con Enter
+                            setIsSearching(true);
+                            setTitleFilter(currentValue);
+                            setCurrentPage(1);
+                            // Reset del estado de búsqueda después de aplicar
+                            setTimeout(() => setIsSearching(false), 100);
+                          }
                         }
-                      }
-                    }}
-                    aria-label="Buscar videos"
-                    className="pl-8"
-                  />
+                      }}
+                      aria-label="Buscar videos"
+                      className={`pl-8 transition-all ${isSearching ? 'pr-10 bg-muted/30' : ''}`}
+                      disabled={isSearching || isFetching}
+                    />
+                    {(isSearching || isFetching) && (
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Button 
                   onClick={() => {
-                    setTitleFilter(searchValue.trim());
-                    setCurrentPage(1);
+                    const trimmedValue = searchValue.trim();
+                    if (trimmedValue !== titleFilter) {
+                      setIsSearching(true);
+                      setTitleFilter(trimmedValue);
+                      setCurrentPage(1);
+                      // Desactivar el estado de búsqueda después de un breve retraso
+                      setTimeout(() => setIsSearching(false), 100);
+                    }
                   }}
                   type="button"
+                  disabled={isSearching || isFetching}
+                  className="min-w-20 relative"
                 >
-                  Buscar
+                  {isSearching ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Buscando...</span>
+                    </>
+                  ) : (
+                    <span>Buscar</span>
+                  )}
                 </Button>
               </div>
               {titleFilter && (
@@ -595,13 +632,34 @@ export default function TitulinPage() {
             </div>
           </div>
 
-          <div className="relative">
-            {isFetching && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/70 z-10">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="relative rounded-md border">
+            {/* Overlay semi-transparente durante la carga */}
+            {(isFetching || isSearching) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-[1px] z-10 transition-all">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {isSearching ? 'Buscando videos...' : 'Cargando resultados...'}
+                </p>
               </div>
             )}
-            <DataTable columns={columns} data={filteredVideos} />
+            
+            {/* Estado vacío para cuando no hay resultados */}
+            {videos.length === 0 && !isFetching && !isSearching && (
+              <div className="min-h-[300px] flex flex-col items-center justify-center p-8 text-center">
+                <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium">No se encontraron videos</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                  {titleFilter 
+                    ? `No hay resultados para "${titleFilter}". Intenta con otra búsqueda o elimina los filtros.` 
+                    : "No hay videos disponibles. Intenta cambiar los filtros de búsqueda."}
+                </p>
+              </div>
+            )}
+            
+            {/* Tabla con los datos */}
+            {videos.length > 0 && (
+              <DataTable columns={columns} data={filteredVideos} />
+            )}
           </div>
           
           {/* Paginación */}
