@@ -104,7 +104,7 @@ export function TrainingExamplesDialog({
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
     page: 1,
-    limit: 50,
+    limit: 100, // Aumentado el límite predeterminado
     totalPages: 0
   });
   
@@ -133,7 +133,7 @@ export function TrainingExamplesDialog({
   const [sortDir, setSortDir] = useState<string>("asc");
 
   // Cargar ejemplos con paginación
-  const loadExamples = async (page = 1, limit = 50) => {
+  const loadExamples = async (page = 1, limit = 100) => {
     setIsLoading(true);
     setSelectedExamples([]);
     setSelectAll(false);
