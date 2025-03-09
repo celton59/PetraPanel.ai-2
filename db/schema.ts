@@ -163,6 +163,8 @@ export const youtube_videos = pgTable("youtube_videos", {
   duration: text("duration"),
   tags: text("tags").array(),
   analyzed: boolean("analyzed").default(false),
+  // Campo para almacenar los datos de análisis
+  // Comentado para evitar errores de migración
   // analysisData: jsonb("analysis_data"),
   sentToOptimize: boolean("sent_to_optimize").default(false),
   sentToOptimizeAt: timestamp("sent_to_optimize_at"),

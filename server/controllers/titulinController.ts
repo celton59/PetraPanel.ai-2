@@ -248,8 +248,7 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
   const { videoId } = req.params;
   
   try {
-    // Aquí iría la lógica para analizar si un video es evergreen
-    // Por ahora usaremos un ejemplo simple basado en el título y la descripción
+    console.log(`Iniciando análisis de evergreen para video ${videoId}`);
     
     const video = await db.select()
       .from(youtube_videos)
@@ -267,60 +266,218 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
     const videoData = video[0];
     const title = videoData.title?.toLowerCase() || '';
     const description = videoData.description?.toLowerCase() || '';
+    const published = videoData.publishedAt || null;
+    const viewCount = videoData.viewCount || 0;
+    const likeCount = videoData.likeCount || 0;
     
+    // Algoritmo mejorado para análisis de contenido evergreen
+    let points = 0;
+    let maxPoints = 0;
+    let reasons: string[] = [];
+    
+    // 1. Análisis por palabras clave
     // Palabras clave que podrían indicar que un video es evergreen
     const evergreenKeywords = [
       'cómo', 'tutorial', 'guía', 'aprende', 'paso a paso',
       'principiantes', 'básico', 'fundamental', 'esencial',
-      'completo', 'definitivo', 'masterclass'
+      'completo', 'definitivo', 'masterclass', 'tips', 'consejos',
+      'trucos', 'secretos', 'resolver', 'solución', 'método',
+      'técnica', 'estrategia', 'herramienta', 'recurso', 'receta'
     ];
     
     // Palabras que podrían indicar que un video NO es evergreen
     const nonEvergreenKeywords = [
       'actualización', 'noticias', 'novedades', 'tendencia',
       'nuevo lanzamiento', 'última versión', 'predicción',
-      'próximamente', 'evento', 'temporada', 'edición limitada'
+      'próximamente', 'evento', 'temporada', 'edición limitada',
+      'anuncio', 'estreno', 'revelado', 'hoy', 'esta semana',
+      'este mes', 'este año', 'actual', 'breaking', 'última hora',
+      'exclusiva', 'reciente', 'acabamos'
     ];
     
-    // Contamos cuántas palabras clave evergreen aparecen
-    let evergreenScore = 0;
+    const contentEvaluation = {
+      evergreenCount: 0,
+      nonEvergreenCount: 0
+    };
+    
+    // Análisis de título
     evergreenKeywords.forEach(keyword => {
-      if (title.includes(keyword) || description.includes(keyword)) {
-        evergreenScore += 1;
+      if (title.includes(keyword)) {
+        contentEvaluation.evergreenCount += 1;
       }
     });
     
-    // Contamos cuántas palabras clave NO evergreen aparecen
-    let nonEvergreenScore = 0;
     nonEvergreenKeywords.forEach(keyword => {
-      if (title.includes(keyword) || description.includes(keyword)) {
-        nonEvergreenScore += 1;
+      if (title.includes(keyword)) {
+        contentEvaluation.nonEvergreenCount += 1;
       }
     });
     
-    // Calculamos si es evergreen y la confianza
-    const totalKeywords = evergreenKeywords.length + nonEvergreenKeywords.length;
-    const isEvergreen = evergreenScore > nonEvergreenScore;
-    const confidence = Math.min(
-      0.95, 
-      Math.max(0.5, (isEvergreen ? evergreenScore : nonEvergreenScore) / (totalKeywords / 2))
-    );
+    // Análisis de descripción (con menor peso)
+    evergreenKeywords.forEach(keyword => {
+      if (description && description.includes(keyword)) {
+        contentEvaluation.evergreenCount += 0.5;
+      }
+    });
+    
+    nonEvergreenKeywords.forEach(keyword => {
+      if (description && description.includes(keyword)) {
+        contentEvaluation.nonEvergreenCount += 0.5;
+      }
+    });
+    
+    // Evaluación de contenido por palabras clave (máximo 10 puntos)
+    const keywordsMax = 10;
+    maxPoints += keywordsMax;
+    
+    if (contentEvaluation.evergreenCount > contentEvaluation.nonEvergreenCount) {
+      const keywordPoints = Math.min(keywordsMax, 
+        (keywordsMax * (contentEvaluation.evergreenCount - contentEvaluation.nonEvergreenCount)) 
+        / Math.max(evergreenKeywords.length / 2, 1)
+      );
+      points += keywordPoints;
+      reasons.push(`Contiene términos de contenido educativo y atemporal (${contentEvaluation.evergreenCount.toFixed(1)} vs ${contentEvaluation.nonEvergreenCount.toFixed(1)}).`);
+    } else if (contentEvaluation.nonEvergreenCount > contentEvaluation.evergreenCount) {
+      reasons.push(`Contiene términos típicos de contenido temporal o noticioso (${contentEvaluation.nonEvergreenCount.toFixed(1)} vs ${contentEvaluation.evergreenCount.toFixed(1)}).`);
+    } else {
+      // Análisis de palabras neutral, dar 5 puntos
+      points += keywordsMax / 2;
+      reasons.push('El análisis de palabras clave no es concluyente.');
+    }
+    
+    // 2. Análisis por antigüedad
+    // Los videos más antiguos que siguen recibiendo vistas son potencialmente evergreen
+    const ageMax = 10;
+    maxPoints += ageMax;
+    
+    if (published) {
+      const ageInMonths = (new Date().getTime() - new Date(published).getTime()) / (1000 * 60 * 60 * 24 * 30);
+      if (ageInMonths > 12) {
+        points += ageMax;
+        reasons.push(`El video tiene más de 1 año de antigüedad (${Math.floor(ageInMonths)} meses).`);
+      } else if (ageInMonths > 6) {
+        points += ageMax * 0.7;
+        reasons.push(`El video tiene más de 6 meses de antigüedad (${Math.floor(ageInMonths)} meses).`);
+      } else if (ageInMonths > 3) {
+        points += ageMax * 0.4;
+        reasons.push(`El video tiene más de 3 meses de antigüedad (${Math.floor(ageInMonths)} meses).`);
+      } else {
+        reasons.push(`El video es relativamente reciente (${Math.floor(ageInMonths)} meses).`);
+      }
+    }
+    
+    // 3. Análisis por engagement
+    // Una buena relación de likes/vistas puede indicar contenido de valor duradero
+    const engagementMax = 10;
+    maxPoints += engagementMax;
+    
+    if (viewCount > 0) {
+      const engagement = (likeCount / viewCount) * 100;
+      if (engagement > 10) {
+        points += engagementMax;
+        reasons.push(`Excelente ratio de engagement (${engagement.toFixed(1)}%).`);
+      } else if (engagement > 5) {
+        points += engagementMax * 0.7;
+        reasons.push(`Buen ratio de engagement (${engagement.toFixed(1)}%).`);
+      } else if (engagement > 1) {
+        points += engagementMax * 0.4;
+        reasons.push(`Ratio de engagement moderado (${engagement.toFixed(1)}%).`);
+      } else {
+        reasons.push(`Bajo ratio de engagement (${engagement.toFixed(1)}%).`);
+      }
+    }
+    
+    // 4. Análisis de estructura del título 
+    // Títulos de formato "Cómo hacer X" o "Guía para Y" suelen ser más evergreen
+    const titleStructureMax = 5;
+    maxPoints += titleStructureMax;
+    
+    const howToPattern = /^(cómo|como|aprende a|guía para|tutorial de)\s.+/i;
+    const listPattern = /^(\d+|diez|veinte|cinco)\s.+/i;
+    const guidePattern = /(guía|tutorial|manual|curso)/i;
+    
+    if (howToPattern.test(title)) {
+      points += titleStructureMax;
+      reasons.push('El título tiene estructura de tutorial o guía paso a paso.');
+    } else if (listPattern.test(title)) {
+      points += titleStructureMax * 0.7;
+      reasons.push('El título tiene estructura de lista numerada, típico de contenido evergreen.');
+    } else if (guidePattern.test(title)) {
+      points += titleStructureMax * 0.5;
+      reasons.push('El título menciona guía o tutorial.');
+    }
+    
+    // 5. Duración del video
+    // Los videos educativos o evergreen suelen ser más largos
+    const durationMax = 5;
+    maxPoints += durationMax;
+    
+    if (videoData.duration) {
+      try {
+        // Convertir duración ISO 8601 a segundos
+        const match = videoData.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        const hours = (match && match[1]) ? parseInt(match[1]) : 0;
+        const minutes = (match && match[2]) ? parseInt(match[2]) : 0;
+        const seconds = (match && match[3]) ? parseInt(match[3]) : 0;
+        
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        
+        if (totalSeconds > 900) { // Más de 15 minutos
+          points += durationMax;
+          reasons.push(`Video de larga duración (${Math.floor(totalSeconds/60)} minutos), típico de contenido educativo.`);
+        } else if (totalSeconds > 480) { // Más de 8 minutos
+          points += durationMax * 0.7;
+          reasons.push(`Video de duración media (${Math.floor(totalSeconds/60)} minutos).`);
+        } else {
+          points += durationMax * 0.3;
+          reasons.push(`Video corto (${Math.floor(totalSeconds/60)} minutos), menos probable que sea evergreen.`);
+        }
+      } catch (e) {
+        console.error("Error parsing duration:", e);
+      }
+    }
+    
+    // Calculamos el porcentaje final
+    const scorePercentage = Math.round((points / maxPoints) * 100);
+    const isEvergreen = scorePercentage >= 60; // Umbral del 60%
+    const confidence = scorePercentage / 100;
+    
+    // Generamos un mensaje conciso con las principales razones
+    const topReasons = reasons.slice(0, 3);
+    const reason = isEvergreen 
+      ? `Este video es probablemente evergreen. ${topReasons.join(' ')}`
+      : `Este video probablemente no es evergreen. ${topReasons.join(' ')}`;
+    
+    console.log(`Análisis completado para video ${videoId}: ${scorePercentage}% (${isEvergreen ? 'Evergreen' : 'No evergreen'})`);
     
     // Guardamos el análisis en la base de datos
-    await db.update(youtube_videos)
-      .set({
-        analyzed: true,
-        analysisData: JSON.stringify({
-          isEvergreen: isEvergreen,
-          confidence: confidence,
-          reason: isEvergreen 
-            ? `Este video contiene ${evergreenScore} palabras clave de contenido evergreen.`
-            : `Este video contiene ${nonEvergreenScore} palabras clave de contenido temporal.`
-        }),
-        updatedAt: new Date()
-      })
-      .where(eq(youtube_videos.id, parseInt(videoId)))
-      .execute();
+    try {
+      await db.update(youtube_videos)
+        .set({
+          analyzed: true,
+          analysisData: JSON.stringify({
+            isEvergreen: isEvergreen,
+            confidence: confidence,
+            reason: reason,
+            score: scorePercentage,
+            details: reasons
+          }),
+          updatedAt: new Date()
+        })
+        .where(eq(youtube_videos.id, parseInt(videoId)))
+        .execute();
+    } catch (error) {
+      console.error("Error updating analysis data:", error);
+      
+      // Si falla por el campo analysisData, intentamos actualizar solo el flag de analyzed
+      await db.update(youtube_videos)
+        .set({
+          analyzed: true,
+          updatedAt: new Date()
+        })
+        .where(eq(youtube_videos.id, parseInt(videoId)))
+        .execute();
+    }
     
     return res.status(200).json({
       success: true,
@@ -328,7 +485,9 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
       data: {
         videoId: parseInt(videoId),
         isEvergreen: isEvergreen,
-        confidence: confidence
+        confidence: confidence,
+        score: scorePercentage,
+        reason: reason
       }
     });
   } catch (error) {
