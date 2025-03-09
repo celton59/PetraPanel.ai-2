@@ -1,4 +1,4 @@
-import { Youtube } from "lucide-react";
+import { Youtube, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,10 +10,12 @@ import { VideoTable } from "./components/VideoTable";
 import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
 import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
+import { TrainingExamplesDialog } from "./components/TrainingExamplesDialog";
 import { TitulinVideo, Channel, VideoResponse } from "./types";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 export default function TitulinPage() {
   // Estados de la página
@@ -25,6 +27,7 @@ export default function TitulinPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isSearching, setIsSearching] = useState(false);
+  const [isTrainingDialogOpen, setIsTrainingDialogOpen] = useState(false);
 
   // Efecto para gestionar la búsqueda
   useEffect(() => {
@@ -217,9 +220,20 @@ export default function TitulinPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="flex items-center gap-3 mb-8">
-            <Youtube className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Videos de YouTube</h1>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Youtube className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold">Videos de YouTube</h1>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2" 
+              onClick={() => setIsTrainingDialogOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+              <span>Ejemplos de entrenamiento</span>
+            </Button>
           </div>
 
           <VideoStats 
@@ -317,6 +331,21 @@ export default function TitulinPage() {
             }}
           />
         )}
+
+        {/* Modal para configurar ejemplos de entrenamiento */}
+        <TrainingExamplesDialog
+          open={isTrainingDialogOpen}
+          onOpenChange={(open) => {
+            setIsTrainingDialogOpen(open);
+            if (!open) {
+              // Al cerrar el modal, invalidamos la consulta para actualizar los análisis
+              // basados en los nuevos ejemplos de entrenamiento
+              window.setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+              }, 500);
+            }
+          }}
+        />
       </div>
     </div>
   );
