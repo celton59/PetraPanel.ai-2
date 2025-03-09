@@ -10,6 +10,7 @@ import { VideoTable } from "./components/VideoTable";
 import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
 import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
+import { TrainingExamplesDialog } from "./components/TrainingExamplesDialog";
 import { TitulinVideo, Channel, VideoResponse } from "./types";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
