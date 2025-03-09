@@ -157,15 +157,15 @@ export function TrainingExamplesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-6">
+        <DialogHeader className="pb-4">
           <DialogTitle>Ejemplos de entrenamiento para análisis de contenido</DialogTitle>
           <DialogDescription>
             Estos ejemplos ayudan a mejorar la precisión del análisis de títulos, enseñando a la IA a distinguir entre contenido evergreen (atemporal) y no evergreen (temporal). Cuantos más ejemplos de calidad agregue, mejores serán los resultados del análisis.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <TabsList>
@@ -190,8 +190,8 @@ export function TrainingExamplesDialog({
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <TabsContent value="all" className="space-y-4 flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto">
+              <TabsContent value="all" className="space-y-4">
                 <Card>
                   <CardHeader className="py-4">
                     <CardTitle className="text-base">Añadir nuevo ejemplo de entrenamiento</CardTitle>
@@ -357,7 +357,7 @@ export function TrainingExamplesDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="evergreen" className="space-y-4 flex-1 overflow-auto">
+              <TabsContent value="evergreen" className="space-y-4">
                 <Card className="mb-4">
                   <CardContent className="py-4">
                     <div className="flex gap-3 items-center text-green-700">
@@ -428,7 +428,7 @@ export function TrainingExamplesDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="not-evergreen" className="space-y-4 flex-1 overflow-auto">
+              <TabsContent value="not-evergreen" className="space-y-4">
                 <Card className="mb-4">
                   <CardContent className="py-4">
                     <div className="flex gap-3 items-center text-amber-700">
@@ -502,9 +502,14 @@ export function TrainingExamplesDialog({
           </Tabs>
         </div>
 
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cerrar
+        <DialogFooter className="mt-4 pt-3 border-t flex justify-end">
+          <Button 
+            variant="default" 
+            size="default" 
+            onClick={() => onOpenChange(false)}
+            className="px-5"
+          >
+            Cerrar diálogo
           </Button>
         </DialogFooter>
       </DialogContent>
