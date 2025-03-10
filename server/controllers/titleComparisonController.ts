@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, or, ilike, count } from "drizzle-orm";
+import { eq, and, or, ilike, count, sql } from "drizzle-orm";
 import { youtube_videos, youtube_channels } from "@db/schema";
 import { db } from "@db";
 import { youtubeService } from "server/services/youtubeService";
