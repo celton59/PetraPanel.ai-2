@@ -31,7 +31,7 @@ export function VideoTable({
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "published_at", desc: true } // Ordenación por defecto: videos más recientes primero
+    { id: "publishedAt", desc: true } // Ordenación por defecto: videos más recientes primero
   ]);
 
   // Formatear fecha ISO a una fecha legible
@@ -159,7 +159,7 @@ export function VideoTable({
         ),
       },
       {
-        accessorKey: "published_at",
+        accessorKey: "publishedAt",
         header: "Publicado",
         sortingFn: (rowA, rowB) => {
           const aValue = rowA.original.publishedAt ? new Date(rowA.original.publishedAt).getTime() : 0;
