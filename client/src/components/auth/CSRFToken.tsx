@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { refreshCSRFToken } from '../../lib/axios';
 
 /**
  * Componente para obtener y establecer el token CSRF
@@ -12,20 +12,15 @@ export function CSRFToken() {
   useEffect(() => {
     const fetchCSRFToken = async () => {
       try {
-        // Realizar una petición GET para obtener el token del encabezado
-        // Usamos una ruta que no requiera autenticación
-        const response = await axios.get('/api/csrf-token', { withCredentials: true });
-        
-        // Obtener el token del encabezado de respuesta o del cuerpo
-        const token = response.headers['x-csrf-token'] || (response.data && response.data.csrfToken);
+        // Usar la función centralizada para obtener el token
+        const token = await refreshCSRFToken();
         
         if (token) {
-          // Guardar en el estado y también en localStorage para que el interceptor lo pueda usar
+          // Guardar en el estado
           setCsrfToken(token);
-          localStorage.setItem('csrf-token', token);
-          console.log('CSRF Token obtenido correctamente');
+          console.log('CSRF Token inicializado correctamente');
         } else {
-          console.warn('No se recibió token CSRF en la respuesta');
+          console.warn('No se pudo obtener un token CSRF válido');
         }
       } catch (error) {
         console.error('Error al obtener el token CSRF', error);
@@ -34,8 +29,8 @@ export function CSRFToken() {
 
     fetchCSRFToken();
 
-    // Configurar un intervalo para refrescar el token cada 30 minutos
-    const intervalId = setInterval(fetchCSRFToken, 30 * 60 * 1000);
+    // Configurar un intervalo para refrescar el token cada 20 minutos para mayor seguridad
+    const intervalId = setInterval(fetchCSRFToken, 20 * 60 * 1000);
 
     // Limpiar el intervalo cuando el componente se desmonte
     return () => clearInterval(intervalId);
