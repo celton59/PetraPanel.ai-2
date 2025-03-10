@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { eq, and, or, ilike, getTableColumns, count, desc, sql } from "drizzle-orm";
+import { eq, and, or, ilike, getTableColumns, count, desc, sql, inArray } from "drizzle-orm";
 import {
   youtube_videos,
   youtube_channels
@@ -449,6 +449,75 @@ export function setUpTitulinRoutes (app: Express) {
   app.post('/api/titulin/videos/:videoId/sent-to-optimize', markVideoAsSent)
   app.post('/api/titulin/videos/:videoId/analyze', analyzeVideo)
   
+  // Ruta para limpieza de datos huérfanos
+  app.post('/api/titulin/cleanup/orphaned-videos', async (req, res) => {
+    if (!req.user?.role || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para esta acción',
+      });
+    }
+    
+    try {
+      // 1. Identificar videos huérfanos (videos cuyo channelId no existe en la tabla de canales)
+      const orphanedVideosQuery = await db.execute(sql`
+        SELECT y.id, y.video_id, y.title
+        FROM youtube_videos y
+        LEFT JOIN youtube_channels c ON y.channel_id = c.channel_id
+        WHERE c.channel_id IS NULL
+        LIMIT 1000
+      `);
+      
+      // Extraer los resultados según el formato de la respuesta
+      const orphanedVideos = Array.isArray(orphanedVideosQuery) ? orphanedVideosQuery : 
+                           (orphanedVideosQuery.rows ? orphanedVideosQuery.rows : []);
+      
+      if (orphanedVideos.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'No se encontraron videos huérfanos',
+          videosDeleted: 0
+        });
+      }
+      
+      // Obtener IDs para eliminar
+      const videoIds = orphanedVideos.map((v: any) => v.id);
+      const videoIdsYouTube = orphanedVideos.map((v: any) => v.video_id);
+      
+      // 2. Eliminar ejemplos de entrenamiento relacionados con estos videos
+      await db.transaction(async (trx) => {
+        // Eliminar primero los ejemplos de entrenamiento basados en estos videos
+        if (videoIdsYouTube.length > 0) {
+          await trx.execute(sql`
+            DELETE FROM training_title_examples 
+            WHERE youtube_video_id IN (${sql.join(videoIdsYouTube, sql`,`)})
+            OR title IN (SELECT title FROM youtube_videos WHERE id IN (${sql.join(videoIds, sql`,`)}))
+          `);
+        }
+        
+        // Luego eliminar los videos huérfanos usando SQL directo
+        await trx.execute(sql`
+          DELETE FROM youtube_videos
+          WHERE id IN (${sql.join(videoIds, sql`,`)})
+        `);
+      });
+      
+      return res.status(200).json({
+        success: true,
+        message: `Se eliminaron ${orphanedVideos.length} videos huérfanos y sus ejemplos de entrenamiento asociados`,
+        videosDeleted: orphanedVideos.length,
+        videosSample: orphanedVideos.slice(0, 10).map((v: any) => ({ id: v.id, title: v.title }))
+      });
+    } catch (error) {
+      console.error('Error al eliminar videos huérfanos:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error al eliminar videos huérfanos',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  })
+  
   // API de sugerencias para autocompletado
   app.get('/api/titulin/suggestions', getSuggestions)
   
@@ -500,5 +569,7 @@ export function setUpTitulinRoutes (app: Express) {
         details: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
-  })
+  });
+  
+
 }
