@@ -15,6 +15,7 @@ import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
 import { GuideProvider } from "@/components/help/GuideContext";
 import TitulinPage from "./pages/titulin/TitulinPage";
+import { CSRFToken } from "@/components/auth/CSRFToken";
 
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
@@ -80,6 +81,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <GuideProvider>
+        {/* Componente para gestionar el token CSRF */}
+        <CSRFToken />
         <Toaster 
           position="bottom-center"
           expand={false}

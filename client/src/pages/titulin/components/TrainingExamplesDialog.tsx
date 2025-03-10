@@ -188,7 +188,7 @@ export function TrainingExamplesDialog({
   // Cargar canales de YouTube
   const loadChannels = async () => {
     try {
-      const response = await axios.get('/api/titulin/channels/for-training');
+      const response = await api.get('/api/titulin/channels/for-training');
       if (response.data && Array.isArray(response.data)) {
         setChannels(response.data.map(channel => ({
           id: channel.id, // ID interno del canal
@@ -235,7 +235,7 @@ export function TrainingExamplesDialog({
 
     setIsLoading(true);
     try {
-      const response = await axios.post("/api/titulin/training-examples", {
+      const response = await api.post("/api/titulin/training-examples", {
         title: newTitle,
         isEvergreen,
       });
@@ -256,7 +256,7 @@ export function TrainingExamplesDialog({
   const deleteExample = async (id: number) => {
     setIsLoading(true);
     try {
-      const response = await axios.delete(`/api/titulin/training-examples/${id}`);
+      const response = await api.delete(`/api/titulin/training-examples/${id}`);
       if (response.data.success) {
         toast.success("Ejemplo eliminado correctamente");
         loadExamples();
@@ -308,7 +308,7 @@ export function TrainingExamplesDialog({
       }
       
       // Realizar la petición con responseType blob para descargar el archivo
-      const response = await axios.get(url, { responseType: 'blob' });
+      const response = await api.get(url, { responseType: 'blob' });
       
       // Crear un objeto URL para el blob
       const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
@@ -357,7 +357,7 @@ export function TrainingExamplesDialog({
       console.log('Importando desde canal:', selectedChannel);
       
       // Enviamos el channelId que corresponde al campo channelId de la tabla youtube_channels
-      const response = await axios.post('/api/titulin/training-examples/import-from-channel', {
+      const response = await api.post('/api/titulin/training-examples/import-from-channel', {
         channelId: selectedChannel.channelId, // Ahora usamos el channelId de YouTube, no el ID interno
         isEvergreen: importAsEvergreen
       });
@@ -401,7 +401,7 @@ export function TrainingExamplesDialog({
       formData.append('file', file);
       
       // Enviar la petición
-      const response = await axios.post('/api/titulin/training-examples/import', formData, {
+      const response = await api.post('/api/titulin/training-examples/import', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -445,7 +445,7 @@ export function TrainingExamplesDialog({
       }
       
       // Enviar la petición
-      const response = await axios.post('/api/titulin/training-examples/bulk', {
+      const response = await api.post('/api/titulin/training-examples/bulk', {
         operation: 'create',
         titles,
         isEvergreen: bulkIsEvergreen
@@ -476,7 +476,7 @@ export function TrainingExamplesDialog({
     
     setIsLoading(true);
     try {
-      const response = await axios.post('/api/titulin/training-examples/bulk', {
+      const response = await api.post('/api/titulin/training-examples/bulk', {
         operation,
         ids: selectedExamples,
         data
@@ -499,7 +499,7 @@ export function TrainingExamplesDialog({
   const handleCategorizeExamples = async (exampleIds: number[], category: string) => {
     setIsLoading(true);
     try {
-      const response = await axios.post('/api/titulin/training-examples/bulk', {
+      const response = await api.post('/api/titulin/training-examples/bulk', {
         operation: 'update',
         ids: exampleIds,
         data: { category }
@@ -536,7 +536,7 @@ export function TrainingExamplesDialog({
       }
       
       // Enviar petición al servidor para procesar los vectores
-      const response = await axios.post('/api/titulin/training-examples/process-vectors', {
+      const response = await api.post('/api/titulin/training-examples/process-vectors', {
         ids: unprocessedIds
       }, {
         withCredentials: true  // Asegura que se envíen las cookies de autenticación
