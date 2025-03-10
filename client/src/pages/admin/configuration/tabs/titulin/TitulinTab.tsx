@@ -52,6 +52,7 @@ export default function TitulinTab () {
   const [showTitleComparison, setShowTitleComparison] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isCleaningOrphanedVideos, setIsCleaningOrphanedVideos] = useState(false);
   const queryClient = useQueryClient();
 
   // Consulta para canales
@@ -201,6 +202,32 @@ export default function TitulinTab () {
       setSyncingChannelId(null);
     },
   });
+  
+  // Mutación para limpiar videos huérfanos
+  const cleanupOrphanedVideosMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post("/api/titulin/cleanup/orphaned-videos");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Invalidar consultas relacionadas para actualizar los datos
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
+      
+      const message = data.videosDeleted > 0 
+        ? `Se eliminaron ${data.videosDeleted} videos huérfanos correctamente` 
+        : "No se encontraron videos huérfanos para eliminar";
+      
+      toast.success(message);
+    },
+    onError: (error) => {
+      console.error("Error limpiando videos huérfanos:", error);
+      toast.error("No se pudieron limpiar los videos huérfanos");
+    },
+    onSettled: () => {
+      setIsCleaningOrphanedVideos(false);
+    },
+  });
 
   const handleAddChannel = async () => {
     if (!newChannelUrl.trim()) return;
@@ -221,6 +248,11 @@ export default function TitulinTab () {
   const handleCompareChannel = (channelId: string) => {
     setSelectedChannelId(channelId);
     setShowTitleComparison(true);
+  };
+  
+  const cleanupOrphanedVideos = () => {
+    setIsCleaningOrphanedVideos(true);
+    cleanupOrphanedVideosMutation.mutate();
   };
 
   const isLoading = isLoadingChannels || isLoadingStats || isLoadingTitulinStats;
@@ -745,6 +777,53 @@ export default function TitulinTab () {
             <CardFooter>
               <Button className="w-full">Guardar Configuración</Button>
             </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Mantenimiento de Datos</CardTitle>
+              <CardDescription>Herramientas para mantener la integridad de los datos</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <div className="flex flex-col space-y-2 mb-4">
+                    <h3 className="text-sm font-semibold flex items-center">
+                      <Database className="h-4 w-4 mr-2 text-primary" />
+                      Limpieza de Videos Huérfanos
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Elimina los videos que quedaron huérfanos porque su canal fue eliminado.
+                      Esta operación también elimina los ejemplos de entrenamiento asociados a estos videos.
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="w-full border-dashed" size="sm">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Limpiar Videos Huérfanos
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar videos huérfanos?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción eliminará todos los videos cuyos canales ya no existen en la base de datos.
+                          También se eliminarán los ejemplos de entrenamiento derivados de estos videos.
+                          Esta acción no se puede deshacer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => cleanupOrphanedVideos()}>
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
