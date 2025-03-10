@@ -31,7 +31,7 @@ export function VideoTable({
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "published_at", desc: true } // Ordenación por defecto: videos más recientes primero
+    { id: "publishedAt", desc: true } // Ordenación por defecto: videos más recientes primero
   ]);
 
   // Formatear fecha ISO a una fecha legible
@@ -159,16 +159,27 @@ export function VideoTable({
         ),
       },
       {
-        accessorKey: "publishedAt",
+        id: "publishedAt",
         header: "Publicado",
-        sortingFn: (rowA, rowB) => {
-          const aValue = rowA.original.publishedAt ? new Date(rowA.original.publishedAt).getTime() : 0;
-          const bValue = rowB.original.publishedAt ? new Date(rowB.original.publishedAt).getTime() : 0;
-          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        accessorFn: (row) => {
+          // Intentar obtener el valor, ya sea como publishedAt o published_at
+          return row.publishedAt || row['published_at'] || null;
         },
-        cell: ({ row }) => (
-          <span>{formatDate(row.original.publishedAt)}</span>
-        ),
+        sortingFn: (rowA, rowB) => {
+          // Acceder directamente al valor original para la comparación
+          const aValue = rowA.original.publishedAt || rowA.original['published_at'];
+          const bValue = rowB.original.publishedAt || rowB.original['published_at'];
+          
+          // Convertir a fechas para comparar
+          const aTime = aValue ? new Date(aValue).getTime() : 0;
+          const bTime = bValue ? new Date(bValue).getTime() : 0;
+          
+          return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
+        },
+        cell: ({ row }) => {
+          const dateValue = row.original.publishedAt || row.original['published_at'];
+          return <span>{formatDate(dateValue)}</span>;
+        },
       },
       {
         accessorKey: "duration",

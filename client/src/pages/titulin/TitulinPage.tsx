@@ -36,7 +36,7 @@ export default function TitulinPage() {
   const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   const [currentTab, setCurrentTab] = useState("todos");
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "publishedAt", desc: true }
+    { id: "publishedAt", desc: true } // Consistente con la definición del componente VideoTable
   ]);
 
   // Efecto para gestionar la búsqueda
@@ -123,10 +123,13 @@ export default function TitulinPage() {
 
     if (channelFilter !== "all") {
       const selectedChannel = channels.find(c => c.channelId === channelFilter);
-      if (!selectedChannel?.lastVideoFetch) return "Sin datos de actualización";
+      // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
+      const lastFetch = selectedChannel?.lastVideoFetch || selectedChannel?.['last_video_fetch'];
+      
+      if (!lastFetch) return "Sin datos de actualización";
       
       try {
-        const date = parseISO(selectedChannel.lastVideoFetch);
+        const date = parseISO(lastFetch);
         return `Hace ${formatDistanceToNow(date, { locale: es })}`;
       } catch (error) {
         return "Fecha inválida";
@@ -134,9 +137,12 @@ export default function TitulinPage() {
     }
 
     const lastUpdate = channels.reduce((latest, channel) => {
-      if (!channel.lastVideoFetch) return latest;
-      if (!latest) return channel.lastVideoFetch;
-      return channel.lastVideoFetch > latest ? channel.lastVideoFetch : latest;
+      // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
+      const lastFetch = channel.lastVideoFetch || channel['last_video_fetch'];
+      
+      if (!lastFetch) return latest;
+      if (!latest) return lastFetch;
+      return lastFetch > latest ? lastFetch : latest;
     }, null as string | null);
 
     if (!lastUpdate) return "No hay datos";
@@ -177,16 +183,21 @@ export default function TitulinPage() {
       }
       
       // Crear el contenido del CSV
-      const titlesForCSV = exportVideos.map((video: TitulinVideo) => ({
-        title: video.title,
-        views: video.viewCount,
-        likes: video.likeCount,
-        published: formatDate(video.publishedAt),
-        channel: getChannelName(video.channelId),
-        duration: video.duration,
-        isEvergreen: video.analyzed && video.analysisData ? (video.analysisData.isEvergreen ? "Sí" : "No") : "No analizado",
-        url: `https://youtube.com/watch?v=${video.videoId}`
-      }));
+      const titlesForCSV = exportVideos.map((video: TitulinVideo) => {
+        // Obtener la fecha publicada con cualquiera de los dos formatos posibles
+        const publishedDate = video.publishedAt || video['published_at'];
+        
+        return {
+          title: video.title,
+          views: video.viewCount,
+          likes: video.likeCount,
+          published: formatDate(publishedDate),
+          channel: getChannelName(video.channelId),
+          duration: video.duration,
+          isEvergreen: video.analyzed && video.analysisData ? (video.analysisData.isEvergreen ? "Sí" : "No") : "No analizado",
+          url: `https://youtube.com/watch?v=${video.videoId}`
+        };
+      });
       
       // Convertir a formato CSV
       const headers = Object.keys(titlesForCSV[0]).join(',');
