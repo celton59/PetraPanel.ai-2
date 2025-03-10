@@ -87,6 +87,7 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "thumbnailUrl",
         header: "Miniatura",
+        enableSorting: false,
         cell: ({ row }) => (
           <div className="w-24 h-16 bg-muted rounded overflow-hidden">
             {row.original.thumbnailUrl ? (
@@ -124,6 +125,11 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "viewCount",
         header: "Vistas",
+        sortingFn: (rowA, rowB) => {
+          const aValue = Number(rowA.original.viewCount || 0);
+          const bValue = Number(rowB.original.viewCount || 0);
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        },
         cell: ({ row }) => (
           <span>{Number(row.original.viewCount || 0).toLocaleString()}</span>
         ),
@@ -131,6 +137,11 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "likeCount",
         header: "Likes",
+        sortingFn: (rowA, rowB) => {
+          const aValue = Number(rowA.original.likeCount || 0);
+          const bValue = Number(rowB.original.likeCount || 0);
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        },
         cell: ({ row }) => (
           <span>{Number(row.original.likeCount || 0).toLocaleString()}</span>
         ),
@@ -138,6 +149,11 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "publishedAt",
         header: "Publicado",
+        sortingFn: (rowA, rowB) => {
+          const aValue = rowA.original.publishedAt ? new Date(rowA.original.publishedAt).getTime() : 0;
+          const bValue = rowB.original.publishedAt ? new Date(rowB.original.publishedAt).getTime() : 0;
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        },
         cell: ({ row }) => (
           <span>{formatDate(row.original.publishedAt)}</span>
         ),
@@ -213,6 +229,7 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         id: "actions",
         header: "Acciones",
+        enableSorting: false,
         cell: ({ row }) => {
           const video = row.original;
           return (
