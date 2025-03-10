@@ -48,7 +48,7 @@ export async function compareTitleWithExisting(req: Request, res: Response): Pro
         // Obtener videos del canal
         const videos = await db.query.youtube_videos.findMany({
           where: eq(youtube_videos.channelId, channelId),
-          orderBy: (youtube_videos, { desc }) => [desc(youtube_videos.publishedAt)],
+          orderBy: (youtube_videos, { desc }) => [desc(youtube_videos.published_at)],
           limit: 100,
         });
         
