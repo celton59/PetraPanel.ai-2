@@ -145,8 +145,14 @@ export default function TitulinTab () {
       await axios.delete(`/api/titulin/channels/${id}`);
     },
     onSuccess: () => {
+      // Invalidar múltiples consultas relacionadas para asegurar que todo se actualice
       queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      toast.success("Canal eliminado correctamente");
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
+      // Dar tiempo para que ocurra la revalidación
+      setTimeout(() => {
+        toast.success("Canal eliminado correctamente");
+      }, 100);
     },
     onError: (error) => {
       console.error("Error deleting channel:", error);
@@ -160,8 +166,14 @@ export default function TitulinTab () {
       return response.data;
     },
     onSuccess: () => {
+      // Invalidar múltiples consultas relacionadas para una actualización completa
       queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      toast.success("Canal sincronizado correctamente");
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
+      // Dar tiempo para que se completen las revalidaciones
+      setTimeout(() => {
+        toast.success("Canal sincronizado correctamente");
+      }, 100);
     },
     onError: (error) => {
       console.error("Error syncing channel:", error);
