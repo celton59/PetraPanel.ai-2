@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Zap
+  Zap,
+  Search
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -29,6 +30,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { ImprovedTrainingExamplesDialog } from "../../../../titulin/components/ImprovedTrainingExamplesDialog";
+import { TitleComparisonDialog } from "../../../../titulin/components/TitleComparisonDialog";
 
 interface Channel {
   id: number;
@@ -45,6 +47,8 @@ export default function TitulinTab () {
   const [newChannelUrl, setNewChannelUrl] = useState("");
   const [syncingChannelId, setSyncingChannelId] = useState<number | null>(null);
   const [showTrainingExamples, setShowTrainingExamples] = useState(false);
+  const [showTitleComparison, setShowTitleComparison] = useState(false);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const queryClient = useQueryClient();
 
@@ -180,6 +184,11 @@ export default function TitulinTab () {
   const handleSyncChannel = async (id: number) => {
     setSyncingChannelId(id);
     syncChannelMutation.mutate(id);
+  };
+  
+  const handleCompareChannel = (channelId: string) => {
+    setSelectedChannelId(channelId);
+    setShowTitleComparison(true);
   };
 
   const isLoading = isLoadingChannels || isLoadingStats || isLoadingTitulinStats;
