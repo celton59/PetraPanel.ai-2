@@ -128,6 +128,10 @@ export function TrainingExamplesDialog({
   
   // Estado para importación masiva
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  
+  // Estado para procesamiento de vectores
+  const [isProcessingVectors, setIsProcessingVectors] = useState(false);
+  const [unprocessedCount, setUnprocessedCount] = useState(0);
   const [bulkTitles, setBulkTitles] = useState("");
   const [bulkIsEvergreen, setBulkIsEvergreen] = useState(true);
   const [isImportingBulk, setIsImportingBulk] = useState(false);
@@ -160,6 +164,10 @@ export function TrainingExamplesDialog({
       if (response.data.success) {
         setExamples(response.data.data);
         setPagination(response.data.pagination);
+        
+        // Contar ejemplos sin procesar
+        const unprocessed = response.data.data.filter((example: TrainingExample) => !example.vector_processed).length;
+        setUnprocessedCount(unprocessed);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Error al cargar ejemplos de entrenamiento");
@@ -504,6 +512,42 @@ export function TrainingExamplesDialog({
     }
   };
   
+  // Función para procesar vectores en lote
+  const processVectors = async () => {
+    if (unprocessedCount === 0) {
+      toast.info('No hay ejemplos pendientes para procesar');
+      return;
+    }
+    
+    setIsProcessingVectors(true);
+    try {
+      // Obtener sólo los IDs de ejemplos no procesados
+      const unprocessedIds = examples
+        .filter(ex => !ex.vector_processed)
+        .map(ex => ex.id);
+      
+      if (unprocessedIds.length === 0) {
+        toast.info('No hay ejemplos pendientes para procesar');
+        return;
+      }
+      
+      // Enviar petición al servidor para procesar los vectores
+      const response = await axios.post('/api/titulin/training-examples/process-vectors', {
+        ids: unprocessedIds
+      });
+      
+      if (response.data.success) {
+        toast.success(`${response.data.processedCount || unprocessedIds.length} ejemplos procesados correctamente`);
+        loadExamples(); // Recargar ejemplos
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Error al procesar vectores');
+      console.error('Error procesando vectores:', error);
+    } finally {
+      setIsProcessingVectors(false);
+    }
+  };
+  
   // Calcular métricas para visualización
   const dataMetrics = useMemo(() => {
     return {
@@ -723,6 +767,20 @@ Los mejores plugins de WordPress
                       <Video className="mr-2 h-4 w-4" />
                     )}
                     YouTube
+                  </Button>
+                  <Button 
+                    variant="default"
+                    onClick={processVectors}
+                    disabled={isProcessingVectors || unprocessedCount === 0}
+                    size="sm"
+                    className="flex items-center"
+                  >
+                    {isProcessingVectors ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Cpu className="mr-2 h-4 w-4" />
+                    )}
+                    {isProcessingVectors ? 'Procesando...' : `Procesar vectores (${unprocessedCount})`}
                   </Button>
                 </div>
               </div>
