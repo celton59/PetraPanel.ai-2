@@ -1,4 +1,4 @@
-import { Youtube, GitCompareArrows } from "lucide-react";
+import { Youtube, GitCompareArrows, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -255,15 +255,26 @@ export default function TitulinPage() {
               <Youtube className="h-8 w-8 text-primary" />
               <h1 className="text-3xl font-bold">Videos de YouTube</h1>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-2"
-              onClick={() => setShowComparisonDialog(true)}
-            >
-              <GitCompareArrows className="h-4 w-4" />
-              Comparar Títulos
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => setShowComparisonDialog(true)}
+              >
+                <GitCompareArrows className="h-4 w-4" />
+                Comparar Títulos
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => window.location.href = "/configuracion/titulin"}
+              >
+                <Settings className="h-4 w-4" />
+                Configuración
+              </Button>
+            </div>
           </div>
 
           <VideoStats 
