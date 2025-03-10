@@ -116,7 +116,7 @@ export function setupTrainingExamplesRoutes(
       const sortDirSql = sortDir ? sql.raw(sortDir) : sql.raw('ASC');
       
       const examples = await db.execute(sql`
-        SELECT id, title, is_evergreen, created_at, created_by
+        SELECT id, title, is_evergreen, created_at, created_by, vector_processed, confidence, category
         FROM training_title_examples
         WHERE 1=1 ${whereClauseSql}
         ORDER BY ${orderBySql} ${sortDirSql}
