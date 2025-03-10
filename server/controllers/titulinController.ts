@@ -97,7 +97,7 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     // Consulta principal para obtener los videos paginados
     const query = db.select()
       .from(youtube_videos)
-      .orderBy(desc(youtube_videos.published_at))
+      .orderBy(desc(youtube_videos.publishedAt))
       .limit(limit)
       .offset(offset);
       
