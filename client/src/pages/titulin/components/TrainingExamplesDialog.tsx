@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import axios from "axios";
+import api from "../../../lib/axios";
 import {
   Dialog,
   DialogContent,
@@ -160,7 +160,7 @@ export function TrainingExamplesDialog({
       if (activeTab !== 'all') params.append('type', activeTab);
 
       console.log("Cargando todos los ejemplos de entrenamiento");
-      const response = await axios.get(`/api/titulin/training-examples?${params}`);
+      const response = await api.get(`/api/titulin/training-examples?${params}`);
       
       if (response.data.success) {
         setExamples(response.data.data);
