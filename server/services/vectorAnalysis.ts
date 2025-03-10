@@ -28,7 +28,7 @@ interface TitleEmbedding {
  * @param text Texto para generar el embedding
  * @returns Vector de embeddings
  */
-async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const response = await openai.embeddings.create({
       model: "text-embedding-ada-002",
