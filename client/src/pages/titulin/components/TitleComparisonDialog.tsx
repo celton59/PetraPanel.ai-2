@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Dialog,
@@ -108,15 +108,18 @@ interface ChannelCheckResult {
 interface TitleComparisonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialChannelId?: string | null;
 }
 
 export function TitleComparisonDialog({
   open,
-  onOpenChange
+  onOpenChange,
+  initialChannelId
 }: TitleComparisonDialogProps) {
   // Estados para la comparación individual
   const [proposedTitle, setProposedTitle] = useState("");
   const [channelUrl, setChannelUrl] = useState("");
+  const [channelId, setChannelId] = useState<string | null>(initialChannelId || null);
   const [loading, setLoading] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   
@@ -139,7 +142,7 @@ export function TitleComparisonDialog({
     setLoading(true);
     
     try {
-      let channelId = null;
+      let selectedChannelId = channelId;
       
       // Si hay una URL de canal, primero verificar el canal
       if (channelUrl) {
@@ -149,9 +152,11 @@ export function TitleComparisonDialog({
         
         if (channelResponse.data.success) {
           if (channelResponse.data.exists) {
-            channelId = channelResponse.data.channel.channelId;
+            selectedChannelId = channelResponse.data.channel.channelId;
+            setChannelId(selectedChannelId);
           } else if (channelResponse.data.channelInfo) {
-            channelId = channelResponse.data.channelInfo.channelId;
+            selectedChannelId = channelResponse.data.channelInfo.channelId;
+            setChannelId(selectedChannelId);
           }
         }
       }
@@ -159,7 +164,7 @@ export function TitleComparisonDialog({
       // Realizar la comparación
       const response = await axios.post('/api/title-comparison/compare', {
         proposedTitle,
-        channelId
+        channelId: selectedChannelId
       });
       
       if (response.data.success) {
@@ -196,7 +201,7 @@ export function TitleComparisonDialog({
         return;
       }
       
-      let channelId = null;
+      let selectedChannelId = channelId;
       
       // Si hay una URL de canal, primero verificar el canal
       if (channelUrl) {
@@ -206,9 +211,11 @@ export function TitleComparisonDialog({
         
         if (channelResponse.data.success) {
           if (channelResponse.data.exists) {
-            channelId = channelResponse.data.channel.channelId;
+            selectedChannelId = channelResponse.data.channel.channelId;
+            setChannelId(selectedChannelId);
           } else if (channelResponse.data.channelInfo) {
-            channelId = channelResponse.data.channelInfo.channelId;
+            selectedChannelId = channelResponse.data.channelInfo.channelId;
+            setChannelId(selectedChannelId);
           }
         }
       }
@@ -216,7 +223,7 @@ export function TitleComparisonDialog({
       // Realizar la comparación masiva
       const response = await axios.post('/api/title-comparison/bulk', {
         proposedTitles: titles,
-        channelId
+        channelId: selectedChannelId
       });
       
       if (response.data.success) {
@@ -463,6 +470,35 @@ export function TitleComparisonDialog({
     return null;
   };
 
+  // Efecto para cargar los datos del canal si se proporciona initialChannelId
+  useEffect(() => {
+    if (initialChannelId && open) {
+      // Verificar el canal seleccionado
+      const fetchChannelInfo = async () => {
+        setChannelLoading(true);
+        try {
+          const response = await axios.get('/api/title-comparison/check-channel', {
+            params: { channelId: initialChannelId }
+          });
+          
+          if (response.data.success) {
+            setChannelResult(response.data);
+            
+            if (response.data.exists) {
+              toast.success(`Canal cargado: ${response.data.channel.name}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching channel info:', error);
+        } finally {
+          setChannelLoading(false);
+        }
+      };
+      
+      fetchChannelInfo();
+    }
+  }, [initialChannelId, open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -470,6 +506,11 @@ export function TitleComparisonDialog({
           <DialogTitle>Comparador de Títulos</DialogTitle>
           <DialogDescription>
             Compara títulos propuestos con los existentes en YouTube para evitar duplicados
+            {channelId && channelResult?.channel && (
+              <span className="block mt-1 text-xs font-medium">
+                Canal seleccionado: {channelResult.channel.name}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         
