@@ -170,12 +170,49 @@ export async function compareBulkTitles(req: Request, res: Response): Promise<Re
  */
 export async function checkChannelStatus(req: Request, res: Response): Promise<Response> {
   try {
-    const { channelUrl } = req.query;
+    const { channelUrl, channelId } = req.query;
     
+    // Si se proporciona un channelId, es una verificación directa
+    if (channelId) {
+      // Verificar si el canal ya está en nuestra base de datos
+      const existingChannel = await db.query.youtube_channels.findFirst({
+        where: eq(youtube_channels.channelId, channelId as string)
+      });
+      
+      if (existingChannel) {
+        // Obtener algunos detalles del canal
+        const videoCountResult = await db.execute(sql`
+          SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelId}
+        `);
+        
+        const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
+          ? parseInt(videoCountResult[0].count) || 0
+          : 0;
+        
+        return res.status(200).json({
+          success: true,
+          exists: true,
+          channel: {
+            id: existingChannel.id,
+            channelId: existingChannel.channelId,
+            name: existingChannel.name,
+            thumbnailUrl: existingChannel.thumbnailUrl,
+            videoCount
+          }
+        });
+      } else {
+        return res.status(200).json({
+          success: true,
+          exists: false
+        });
+      }
+    }
+    
+    // Si no hay channelId, entonces verificamos por URL
     if (!channelUrl) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Se requiere la URL del canal' 
+        message: 'Se requiere la URL o ID del canal' 
       });
     }
     
@@ -233,12 +270,226 @@ export async function checkChannelStatus(req: Request, res: Response): Promise<R
 }
 
 /**
- * Registra las rutas para el comparador de títulos
+ * Agrega un canal de YouTube a la base de datos
+ * @param req Request con la URL del canal
+ * @param res Response con el resultado
+ */
+export async function addChannel(req: Request, res: Response): Promise<Response> {
+  try {
+    const { url } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Se requiere la URL del canal' 
+      });
+    }
+    
+    // Extraer información del canal de YouTube
+    const channelInfo = await youtubeService.getChannelInfo(url);
+    
+    if (!channelInfo.channelId) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se pudo encontrar el canal en YouTube'
+      });
+    }
+    
+    // Verificar si el canal ya existe en la base de datos
+    const existingChannel = await db.query.youtube_channels.findFirst({
+      where: eq(youtube_channels.channelId, channelInfo.channelId)
+    });
+    
+    if (existingChannel) {
+      return res.status(409).json({
+        success: false,
+        message: 'El canal ya está registrado en el sistema',
+        channel: existingChannel
+      });
+    }
+    
+    // Insertar el canal en la base de datos
+    const result = await db.insert(youtube_channels).values({
+      channelId: channelInfo.channelId,
+      name: channelInfo.name || 'Canal sin nombre',
+      url: url,
+      description: channelInfo.description || null,
+      thumbnailUrl: channelInfo.thumbnailUrl || null,
+      subscriberCount: channelInfo.subscriberCount || null,
+      videoCount: channelInfo.videoCount || null,
+      lastVideoFetch: null
+    }).returning();
+    
+    if (!result || result.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error al insertar el canal en la base de datos'
+      });
+    }
+    
+    // Empezar a recopilar videos del canal de manera asíncrona
+    youtubeService.updateChannelVideos(channelInfo.channelId).catch(error => {
+      console.error(`Error cargando videos del canal ${channelInfo.channelId}:`, error);
+    });
+    
+    return res.status(201).json({
+      success: true,
+      message: 'Canal agregado correctamente',
+      channel: result[0]
+    });
+  } catch (error) {
+    console.error('Error agregando canal:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al agregar el canal'
+    });
+  }
+}
+
+/**
+ * Elimina un canal de YouTube de la base de datos
+ * @param req Request con el ID del canal
+ * @param res Response con el resultado
+ */
+export async function deleteChannel(req: Request, res: Response): Promise<Response> {
+  try {
+    const { channelId } = req.params;
+    
+    if (!channelId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Se requiere el ID del canal' 
+      });
+    }
+    
+    // Verificar si el canal existe
+    const existingChannel = await db.query.youtube_channels.findFirst({
+      where: eq(youtube_channels.channelId, channelId)
+    });
+    
+    if (!existingChannel) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró el canal especificado'
+      });
+    }
+    
+    // Primero eliminar todos los videos asociados al canal
+    await db.delete(youtube_videos).where(eq(youtube_videos.channelId, channelId));
+    
+    // Luego eliminar el canal
+    const result = await db.delete(youtube_channels).where(eq(youtube_channels.channelId, channelId)).returning();
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Canal eliminado correctamente',
+      deletedChannel: existingChannel
+    });
+  } catch (error) {
+    console.error('Error eliminando canal:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al eliminar el canal'
+    });
+  }
+}
+
+/**
+ * Obtiene todos los canales de YouTube registrados
+ * @param req Request
+ * @param res Response con la lista de canales
+ */
+export async function getChannels(req: Request, res: Response): Promise<Response> {
+  try {
+    // Obtener todos los canales de la base de datos
+    const channels = await db.query.youtube_channels.findMany({
+      orderBy: (youtube_channels, { desc }) => [desc(youtube_channels.lastVideoFetch)]
+    });
+    
+    return res.status(200).json(channels);
+  } catch (error) {
+    console.error('Error obteniendo canales:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener los canales'
+    });
+  }
+}
+
+/**
+ * Sincroniza los videos de un canal específico
+ * @param req Request con el ID del canal
+ * @param res Response con el resultado
+ */
+export async function syncChannelVideos(req: Request, res: Response): Promise<Response> {
+  try {
+    const { channelId } = req.params;
+    
+    if (!channelId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Se requiere el ID del canal' 
+      });
+    }
+    
+    // Verificar si el canal existe
+    const existingChannel = await db.query.youtube_channels.findFirst({
+      where: eq(youtube_channels.channelId, channelId)
+    });
+    
+    if (!existingChannel) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró el canal especificado'
+      });
+    }
+    
+    // Actualizar videos del canal (esta función ya está implementada en youtubeService)
+    await youtubeService.updateChannelVideos(channelId);
+    
+    // Obtener la cantidad de videos después de la sincronización
+    const videoCountResult = await db.execute(sql`
+      SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelId}
+    `);
+    
+    const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
+      ? parseInt(videoCountResult[0].count) || 0
+      : 0;
+    
+    // Actualizar la fecha de última sincronización
+    await db.update(youtube_channels)
+      .set({ lastVideoFetch: new Date() })
+      .where(eq(youtube_channels.channelId, channelId));
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Videos del canal sincronizados correctamente',
+      channelId,
+      videoCount
+    });
+  } catch (error) {
+    console.error('Error sincronizando videos del canal:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al sincronizar los videos del canal'
+    });
+  }
+}
+
+/**
+ * Registra las rutas para el comparador de títulos y gestión de canales
  * @param app Express app
  * @param requireAuth Middleware de autenticación
  */
 export function setupTitleComparisonRoutes(app: Express, requireAuth: any) {
+  // Rutas para comparación de títulos
   app.post('/api/title-comparison/compare', requireAuth, compareTitleWithExisting);
   app.post('/api/title-comparison/bulk', requireAuth, compareBulkTitles);
   app.get('/api/title-comparison/check-channel', requireAuth, checkChannelStatus);
+  
+  // Rutas para gestión de canales de YouTube
+  app.get('/api/titulin/channels', requireAuth, getChannels);
+  app.post('/api/titulin/channels', requireAuth, addChannel);
+  app.delete('/api/titulin/channels/:channelId', requireAuth, deleteChannel);
+  app.post('/api/titulin/channels/sync/:channelId', requireAuth, syncChannelVideos);
 }
