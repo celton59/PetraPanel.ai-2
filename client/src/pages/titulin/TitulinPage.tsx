@@ -36,7 +36,7 @@ export default function TitulinPage() {
   const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   const [currentTab, setCurrentTab] = useState("todos");
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "publishedAt", desc: true }
+    { id: "published_at", desc: true }
   ]);
 
   // Efecto para gestionar la búsqueda
