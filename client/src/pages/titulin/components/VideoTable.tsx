@@ -161,6 +161,20 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "duration",
         header: "Duración",
+        sortingFn: (rowA, rowB) => {
+          // Convertir duración a segundos para comparar
+          const getDurationInSeconds = (duration: string | null) => {
+            if (!duration) return 0;
+            const hours = parseInt(duration.match(/(\d+)H/)?.[1] || '0');
+            const minutes = parseInt(duration.match(/(\d+)M/)?.[1] || '0');
+            const seconds = parseInt(duration.match(/(\d+)S/)?.[1] || '0');
+            return hours * 3600 + minutes * 60 + seconds;
+          };
+          
+          const aValue = getDurationInSeconds(rowA.original.duration);
+          const bValue = getDurationInSeconds(rowB.original.duration);
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        },
         cell: ({ row }) => (
           <span>{formatDuration(row.original.duration)}</span>
         ),
@@ -168,6 +182,11 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "channelId",
         header: "Canal",
+        sortingFn: (rowA, rowB) => {
+          const aValue = getChannelName(rowA.original.channelId);
+          const bValue = getChannelName(rowB.original.channelId);
+          return aValue.localeCompare(bValue);
+        },
         cell: ({ row }) => (
           <div className="max-w-[200px] truncate">
             {getChannelName(row.original.channelId)}
@@ -177,6 +196,25 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
       {
         accessorKey: "analysisData",
         header: "Evergreen",
+        sortingFn: (rowA, rowB) => {
+          // Si no está analizado, va al final
+          if (!rowA.original.analyzed && !rowB.original.analyzed) return 0;
+          if (!rowA.original.analyzed) return 1;
+          if (!rowB.original.analyzed) return -1;
+          
+          // Si no hay datos de análisis, va después de los analizados
+          if (!rowA.original.analysisData && !rowB.original.analysisData) return 0;
+          if (!rowA.original.analysisData) return 1;
+          if (!rowB.original.analysisData) return -1;
+          
+          // Primero compara si es evergreen (true primero)
+          if (rowA.original.analysisData.isEvergreen !== rowB.original.analysisData.isEvergreen) {
+            return rowA.original.analysisData.isEvergreen ? -1 : 1;
+          }
+          
+          // Si ambos tienen el mismo estado evergreen, compara por confianza
+          return rowB.original.analysisData.confidence - rowA.original.analysisData.confidence;
+        },
         cell: ({ row }) => {
           const video = row.original;
 
