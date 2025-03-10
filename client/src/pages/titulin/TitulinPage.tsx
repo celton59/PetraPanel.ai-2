@@ -15,6 +15,9 @@ import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SortingState } from "@tanstack/react-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TitulinPage() {
   // Estados de la página
@@ -26,6 +29,13 @@ export default function TitulinPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [onlyEvergreen, setOnlyEvergreen] = useState(false);
+  const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
+  const [currentTab, setCurrentTab] = useState("todos");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "publishedAt", desc: true }
+  ]);
 
   // Efecto para gestionar la búsqueda
   useEffect(() => {
@@ -45,13 +55,20 @@ export default function TitulinPage() {
   const { 
     data: videosData, 
     isLoading, 
-    isFetching 
+    isFetching,
+    refetch 
   } = useQuery<VideoResponse>({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyEvergreen, onlyAnalyzed, currentTab],
     queryFn: async () => {
       const searchParams = {
         ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
         ...(titleFilter ? { title: titleFilter } : {}),
+        ...(onlyEvergreen ? { isEvergreen: true } : {}),
+        ...(onlyAnalyzed ? { analyzed: true } : {}),
+        ...(currentTab === "evergreen" ? { isEvergreen: true } : {}),
+        ...(currentTab === "no-evergreen" ? { isEvergreen: false, analyzed: true } : {}),
+        ...(currentTab === "analizados" ? { analyzed: true } : {}),
+        ...(currentTab === "no-analizados" ? { analyzed: false } : {}),
         page: currentPage,
         limit: pageSize
       };
@@ -210,6 +227,19 @@ export default function TitulinPage() {
   const likesCount = statsData?.totalLikes || 0;
   const isDownloading = downloadCSVMutation.isPending;
 
+  // Función para refrescar datos
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+    toast.success("Datos actualizados correctamente");
+  };
+
+  // Manejador de cambio de ordenación
+  const handleSortingChange = (newSorting: SortingState) => {
+    setSorting(newSorting);
+  };
+
   return (
     <div className="container mx-auto py-10">
       <div className="space-y-8">
@@ -237,60 +267,190 @@ export default function TitulinPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-4"
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
-            <div className="relative flex-1">
-              <div className="flex flex-col md:flex-row gap-4 items-start">
-                <div className="relative flex-1 w-full">
-                  {/* Barra de búsqueda simplificada */}
-                  <SearchBar 
-                    searchValue={searchValue}
-                    setSearchValue={setSearchValue}
-                    setTitleFilter={setTitleFilter}
-                    setCurrentPage={setCurrentPage}
-                    isFetching={isFetching}
-                  />
-                </div>
-
-                {/* Selector de canal y botón de exportar */}
-                <TableActions
-                  channelFilter={channelFilter}
-                  setChannelFilter={setChannelFilter}
-                  setCurrentPage={setCurrentPage}
-                  channels={channels}
-                  handleDownloadCSV={handleDownloadCSV}
-                  isDownloading={isDownloading}
-                />
-              </div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+            <div className="relative flex-1 w-full">
+              {/* Barra de búsqueda simplificada */}
+              <SearchBar 
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                setTitleFilter={setTitleFilter}
+                setCurrentPage={setCurrentPage}
+                isFetching={isFetching}
+              />
             </div>
+
+            {/* Selector de canal y botón de exportar */}
+            <TableActions
+              channelFilter={channelFilter}
+              setChannelFilter={setChannelFilter}
+              setCurrentPage={setCurrentPage}
+              channels={channels}
+              handleDownloadCSV={handleDownloadCSV}
+              isDownloading={isDownloading}
+              onlyEvergreen={onlyEvergreen}
+              setOnlyEvergreen={setOnlyEvergreen}
+              onlyAnalyzed={onlyAnalyzed}
+              setOnlyAnalyzed={setOnlyAnalyzed}
+              refreshData={refreshData}
+              isRefreshing={isRefreshing}
+            />
           </div>
 
-          {/* Estado de carga */}
-          {isLoading && (
-            <div className="text-center py-10">
-              <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Cargando videos...</p>
-            </div>
-          )}
-          
-          {/* Tabla de videos */}
-          {!isLoading && (
-            <>
-              <VideoTable
-                videos={videos}
-                setSelectedVideo={setSelectedVideo}
-                setAnalysisVideo={setAnalysisVideo}
-                getChannelName={getChannelName}
-              />
+          {/* Pestañas para filtrar videos */}
+          <Card>
+            <CardContent className="p-0">
+              <Tabs 
+                defaultValue="todos" 
+                value={currentTab}
+                onValueChange={(value) => {
+                  setCurrentTab(value);
+                  setCurrentPage(1);
+                }}
+                className="w-full"
+              >
+                <div className="p-4 border-b">
+                  <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+                    <TabsTrigger value="todos" className="text-xs md:text-sm">
+                      Todos
+                    </TabsTrigger>
+                    <TabsTrigger value="evergreen" className="text-xs md:text-sm">
+                      Evergreen
+                    </TabsTrigger>
+                    <TabsTrigger value="no-evergreen" className="text-xs md:text-sm">
+                      No Evergreen
+                    </TabsTrigger>
+                    <TabsTrigger value="analizados" className="text-xs md:text-sm">
+                      Analizados
+                    </TabsTrigger>
+                    <TabsTrigger value="no-analizados" className="text-xs md:text-sm">
+                      Sin Analizar
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="todos" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="evergreen" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos evergreen...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="no-evergreen" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos no evergreen...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="analizados" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos analizados...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="no-analizados" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos sin analizar...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
 
-              {/* Paginación */}
-              <PaginationControls
-                currentPage={currentPage}
-                totalPages={pagination.totalPages}
-                setCurrentPage={setCurrentPage}
-              />
-            </>
-          )}
+          {/* Paginación */}
+          <div className="flex justify-between items-center mt-4 px-2">
+            <div className="text-sm text-muted-foreground">
+              {pagination.total > 0 ? (
+                <span>
+                  Mostrando {Math.min((currentPage - 1) * pageSize + 1, pagination.total)} - {Math.min(currentPage * pageSize, pagination.total)} de {pagination.total} videos
+                </span>
+              ) : (
+                <span>No hay videos que coincidan con los filtros</span>
+              )}
+            </div>
+            
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              setCurrentPage={setCurrentPage}
+            />
+          </div>
         </motion.div>
 
         {/* Modal para enviar video a optimización */}
