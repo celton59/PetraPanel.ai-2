@@ -244,18 +244,28 @@ export class OnlineUsersService {
   /**
    * Registra actividad de un usuario (para APIs REST)
    * Útil para actualizar estado de usuario sin WebSocket
+   * Optimizado para evitar actualizaciones excesivas
    */
   public registerUserActivity(user: User) {
     if (!user || !user.id) return;
     
+    const now = Date.now();
     const existingUser = this.activeUsers.get(user.id);
+    
     if (existingUser) {
-      existingUser.lastActivity = Date.now();
+      // Solo actualizar si pasó al menos 10 segundos desde la última actualización
+      // Esto evita que múltiples llamadas API generen actualizaciones innecesarias
+      if (now - existingUser.lastActivity > 10000) {
+        existingUser.lastActivity = now;
+        // No difundir cada actualización para mejorar rendimiento
+      }
     } else {
+      // Nuevo usuario, agregarlo al mapa
       this.activeUsers.set(user.id, {
-        lastActivity: Date.now(),
+        lastActivity: now,
         username: user.username
       });
+      // Difundir cuando hay un nuevo usuario activo
       this.broadcastActiveUsers();
     }
   }

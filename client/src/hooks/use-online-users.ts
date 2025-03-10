@@ -27,10 +27,16 @@ export function useOnlineUsers() {
   const reconnectTimeoutRef = useRef<number | null>(null);
   const connectionAttemptsRef = useRef(0);
   
-  // Función para obtener usuarios activos mediante API REST
+  // Función para obtener usuarios activos mediante API REST con caché
   const fetchOnlineUsersRest = async () => {
     try {
-      const response = await axios.get('/api/online-users');
+      // Usar caché del navegador para reducir el tiempo de carga
+      const response = await axios.get('/api/online-users', {
+        headers: {
+          'Cache-Control': 'max-age=5' // Caché de 5 segundos
+        }
+      });
+      
       if (response.data.success && Array.isArray(response.data.data)) {
         setOnlineUsers(response.data.data);
         setIsConnected(true);
@@ -42,6 +48,27 @@ export function useOnlineUsers() {
     }
   };
   
+  // Iniciar la carga inmediata de usuarios en línea para mejorar tiempos de respuesta
+  useEffect(() => {
+    // Esta función asegura que tengamos datos iniciales lo más rápido posible
+    const loadInitialData = async () => {
+      if (user?.id) {
+        try {
+          const response = await axios.get('/api/online-users');
+          if (response.data.success && Array.isArray(response.data.data)) {
+            setOnlineUsers(response.data.data);
+            setIsConnected(true);
+          }
+        } catch (err) {
+          console.error('Error en carga inicial de usuarios en línea:', err);
+        }
+      }
+    };
+    
+    // Ejecutar inmediatamente para tener datos rápidos
+    loadInitialData();
+  }, [user?.id]); // Solo disparar cuando cambie el usuario
+
   useEffect(() => {
     // Si no hay usuario autenticado, no intentar conectarse
     if (!user?.id) return;

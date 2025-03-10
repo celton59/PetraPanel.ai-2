@@ -15,23 +15,30 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 export function OnlineUsersIndicator() {
   const { onlineUsers, isConnected, error, usingFallback } = useOnlineUsers();
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Renderizar inmediatamente con un placeholder mientras se cargan los datos
+  // Esto evita el delay en mostrar el componente
+  const activeUserCount = onlineUsers?.length || 0;
+  const MAX_AVATARS = 3; // Máximo número de avatares a mostrar
 
-  // Si no hay conexión o no hay usuarios, mostrar un icono simple
-  if (!isConnected && !onlineUsers.length) {
+  // Si no tenemos conexión o datos todavía, mostrar un placeholder con animación de carga
+  if (!isConnected && activeUserCount === 0) {
+    return (
+      <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs animate-pulse">
+        <Users size={14} className="text-muted-foreground" />
+        <span className="font-medium text-muted-foreground">--</span>
+      </div>
+    );
+  }
+  
+  // En lugar de no mostrar nada, mostrar al menos un contador 0
+  if (activeUserCount === 0) {
     return (
       <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs">
         <Users size={14} className="text-muted-foreground" />
         <span className="font-medium text-muted-foreground">0</span>
       </div>
     );
-  }
-
-  const activeUserCount = onlineUsers.length;
-  const MAX_AVATARS = 3; // Máximo número de avatares a mostrar
-
-  // No mostrar nada si no hay usuarios activos
-  if (activeUserCount === 0) {
-    return null;
   }
 
   // Formatear tiempo relativo (ej: "hace 2 min")
