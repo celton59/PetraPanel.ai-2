@@ -18,6 +18,13 @@ import {
 declare global {
   namespace Express {
     interface User extends InsertUser {}
+    interface Request {
+      csrfToken?: () => string;
+      validatedData?: any;
+    }
+    interface Session {
+      csrfToken?: string;
+    }
   }
 }
 
@@ -66,8 +73,9 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
   
   // Middleware de seguridad para protección contra CSRF
+
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Si no hay una sesión de usuario, no necesitamos generar tokens CSRF
+    // Si no hay una sesión de usuario, generamos un token de todas formas
     if (!req.session) {
       return next();
     }
@@ -79,6 +87,9 @@ export function setupAuth(app: Express) {
     
     // Establecer un encabezado X-CSRF-Token para que el cliente pueda leerlo
     res.setHeader('X-CSRF-Token', req.session.csrfToken);
+    
+    // Añadir un método csrfToken a la solicitud
+    req.csrfToken = () => req.session.csrfToken;
     
     // CSRF protection solo se aplica a métodos no seguros
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {

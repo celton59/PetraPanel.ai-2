@@ -55,7 +55,7 @@ const avatarUpload = multer({
 });
 
 async function hashPassword(password: string) {
-  return passwordUtils.hash(password);
+  return passwordUtils.hashPassword(password);
 }
 
 export function registerRoutes(app: Express): Server {
@@ -84,6 +84,17 @@ export function registerRoutes(app: Express): Server {
 
     setupAuth(app); // Authentication setup moved here
     console.log("Authentication setup complete");
+    
+    // Ruta específica para obtener un token CSRF, no requiere autenticación
+    app.get("/api/csrf-token", (req: Request, res: Response) => {
+      // El token CSRF ya está adjunto a la respuesta por el middleware de Express
+      res.json({ 
+        success: true, 
+        message: "CSRF token generated",
+        csrfToken: req.csrfToken?.() || null
+      });
+    });
+    
     console.log("Routes registered successfully");
 
     // Serve uploaded files
