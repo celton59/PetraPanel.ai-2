@@ -27,7 +27,15 @@ export async function compareTitleWithExisting(req: Request, res: Response): Pro
     
     // Si se especificó un canal, verificar si el canal existe
     let channelExists = false;
-    let channelVideos = [];
+    let channelVideos: Array<{
+      id: number;
+      videoId: string;
+      title: string;
+      publishedAt: Date | null;
+      thumbnailUrl: string | null;
+      viewCount: number | null;
+      likeCount: number | null;
+    }> = [];
     
     if (channelId) {
       const channel = await db.query.youtube_channels.findFirst({
@@ -122,13 +130,20 @@ export async function compareBulkTitles(req: Request, res: Response): Promise<Re
       });
       
       if (channel) {
+        // Contar videos del canal de forma manual
+        const videoCountResult = await db.execute(sql`
+          SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelId}
+        `);
+        
+        const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
+          ? parseInt(videoCountResult[0].count) || 0
+          : 0;
+            
         channelInfo = {
           id: channel.id,
           channelId: channel.channelId,
           name: channel.name,
-          videoCount: await db.query.youtube_videos.count({
-            where: eq(youtube_videos.channelId, channelId)
-          })
+          videoCount
         };
       }
     }
@@ -181,9 +196,13 @@ export async function checkChannelStatus(req: Request, res: Response): Promise<R
     
     if (existingChannel) {
       // Obtener algunos detalles del canal
-      const videoCount = await db.query.youtube_videos.count({
-        where: eq(youtube_videos.channelId, channelInfo.channelId)
-      });
+      const videoCountResult = await db.execute(sql`
+        SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelInfo.channelId}
+      `);
+      
+      const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
+        ? parseInt(videoCountResult[0].count) || 0
+        : 0;
       
       return res.status(200).json({
         success: true,

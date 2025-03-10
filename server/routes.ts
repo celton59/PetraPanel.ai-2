@@ -30,6 +30,7 @@ import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
 import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
+import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 
 // Utilizamos passwordUtils importado desde auth.ts
 
@@ -198,6 +199,9 @@ export function registerRoutes(app: Express): Server {
     
     // Notificaciones
     setupNotificationRoutes(app, requireAuth)
+    
+    // Comparación de títulos
+    setupTitleComparisonRoutes(app, requireAuth)
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);
