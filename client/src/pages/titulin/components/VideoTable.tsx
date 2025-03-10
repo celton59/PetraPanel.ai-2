@@ -3,7 +3,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { format, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, SortingState } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, PlayCircle } from "lucide-react";
@@ -16,11 +16,23 @@ interface VideoTableProps {
   setSelectedVideo: (video: TitulinVideo) => void;
   setAnalysisVideo?: (video: TitulinVideo) => void;
   getChannelName: (channelId: string) => string;
+  isLoading?: boolean;
+  onSortingChange?: (sorting: SortingState) => void;
 }
 
-export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChannelName }: VideoTableProps) {
+export function VideoTable({ 
+  videos, 
+  setSelectedVideo, 
+  setAnalysisVideo, 
+  getChannelName,
+  isLoading = false,
+  onSortingChange
+}: VideoTableProps) {
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "publishedAt", desc: true } // Ordenación por defecto: videos más recientes primero
+  ]);
 
   // Formatear fecha ISO a una fecha legible
   const formatDate = (dateString: string | null) => {
@@ -298,9 +310,23 @@ export function VideoTable({ videos, setSelectedVideo, setAnalysisVideo, getChan
     ]);
   }, [analyzeEvergeenMutation.isPending, getChannelName, setSelectedVideo, setAnalysisVideo]);
 
+  // Manejar cambio de ordenación
+  const handleSortingChange = (newSorting: SortingState) => {
+    setSorting(newSorting);
+    if (onSortingChange) {
+      onSortingChange(newSorting);
+    }
+  };
+
   return (
     <div className="rounded-md border">
-      <DataTable columns={columns} data={videos} />
+      <DataTable 
+        columns={columns} 
+        data={videos} 
+        initialSorting={sorting}
+        onSortingChange={handleSortingChange}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
