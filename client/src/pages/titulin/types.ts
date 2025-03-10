@@ -29,6 +29,8 @@ export interface Channel {
   channelId: string;
   name: string;
   lastVideoFetch: string | null;
+  // Permitimos indexación dinámica para manejar campos con formato snake_case
+  [key: string]: any;
 }
 
 export interface VideoResponse {
