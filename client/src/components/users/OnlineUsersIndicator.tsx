@@ -22,19 +22,21 @@ export function OnlineUsersIndicator() {
   const MAX_AVATARS = 3; // Máximo número de avatares a mostrar
 
   // Si no tenemos conexión o datos todavía, mostrar un placeholder con animación de carga
+  // Usando dimensiones fijas para evitar saltos en la interfaz
   if (!isConnected && activeUserCount === 0) {
     return (
-      <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs animate-pulse">
+      <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs w-16 justify-center">
         <Users size={14} className="text-muted-foreground" />
-        <span className="font-medium text-muted-foreground">--</span>
+        <span className="font-medium text-muted-foreground animate-pulse">--</span>
       </div>
     );
   }
   
   // En lugar de no mostrar nada, mostrar al menos un contador 0
+  // También con ancho fijo para mantener consistencia con el estado de carga
   if (activeUserCount === 0) {
     return (
-      <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs">
+      <div className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs w-16 justify-center">
         <Users size={14} className="text-muted-foreground" />
         <span className="font-medium text-muted-foreground">0</span>
       </div>
@@ -147,7 +149,7 @@ export function OnlineUsersIndicator() {
       <HoverCardTrigger asChild>
         <div 
           className={cn(
-            "flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs",
+            "flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs min-w-16",
             "transition-colors cursor-pointer hover:bg-muted"
           )}
         >
