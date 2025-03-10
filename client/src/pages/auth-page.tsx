@@ -43,29 +43,6 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       console.log("Iniciando sesión con:", { username: "hola" });
-      
-      // Asegurarse de que tenemos un token CSRF antes de intentar el login
-      const csrfResponse = await fetch('/api/csrf-token', { 
-        method: 'GET',
-        credentials: 'include'
-      });
-      const csrfData = await csrfResponse.json();
-      
-      if (csrfData && csrfData.csrfToken) {
-        console.log("Token CSRF obtenido antes de login:", csrfData.csrfToken);
-        localStorage.setItem('csrf-token', csrfData.csrfToken);
-        
-        // Agregar el token al DOM también
-        let metaTag = document.querySelector('meta[name="csrf-token"]');
-        if (!metaTag) {
-          metaTag = document.createElement('meta');
-          metaTag.setAttribute('name', 'csrf-token');
-          document.head.appendChild(metaTag);
-        }
-        metaTag.setAttribute('content', csrfData.csrfToken);
-      }
-      
-      // Realizar el login con el token CSRF actualizado
       await login({ username: "hola", password: "1234" });
       
       // Simular un pequeño retraso para una mejor experiencia
@@ -88,33 +65,7 @@ export default function AuthPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // Asegurarse de que tenemos un token CSRF antes de intentar el login
-      const csrfResponse = await fetch('/api/csrf-token', { 
-        method: 'GET',
-        credentials: 'include'
-      });
-      const csrfData = await csrfResponse.json();
-      
-      if (csrfData && csrfData.csrfToken) {
-        console.log("Token CSRF obtenido antes de login:", csrfData.csrfToken);
-        localStorage.setItem('csrf-token', csrfData.csrfToken);
-        
-        // Agregar el token al DOM también
-        let metaTag = document.querySelector('meta[name="csrf-token"]');
-        if (!metaTag) {
-          metaTag = document.createElement('meta');
-          metaTag.setAttribute('name', 'csrf-token');
-          document.head.appendChild(metaTag);
-        }
-        metaTag.setAttribute('content', csrfData.csrfToken);
-      }
-      
-      // Continuar con el inicio de sesión
-      await login({ 
-        username: data.username, 
-        password: data.password,
-        rememberMe: data.rememberMe 
-      });
+      await login({ username: data.username, password: data.password });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {

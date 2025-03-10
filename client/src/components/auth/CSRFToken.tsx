@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { refreshCSRFToken } from '../../lib/axios';
+import axios from 'axios';
 
 /**
  * Componente para obtener y establecer el token CSRF
  * Este componente realiza una petición a la API y establece el token CSRF
- * en una meta tag y en localStorage para que esté disponible para todas las peticiones
+ * en una meta tag para que esté disponible para todas las peticiones
  */
 export function CSRFToken() {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
@@ -12,15 +12,18 @@ export function CSRFToken() {
   useEffect(() => {
     const fetchCSRFToken = async () => {
       try {
-        // Usar la función centralizada para obtener el token
-        const token = await refreshCSRFToken();
+        // Realizar una petición GET para obtener el token del encabezado
+        // Usamos una ruta que no requiera autenticación
+        const response = await axios.get('/api/csrf-token', { withCredentials: true });
+        
+        // Obtener el token del encabezado de respuesta o del cuerpo
+        const token = response.headers['x-csrf-token'] || (response.data && response.data.csrfToken);
         
         if (token) {
-          // Guardar en el estado
           setCsrfToken(token);
-          console.log('CSRF Token inicializado correctamente');
+          console.log('CSRF Token obtenido correctamente');
         } else {
-          console.warn('No se pudo obtener un token CSRF válido');
+          console.warn('No se recibió token CSRF en la respuesta');
         }
       } catch (error) {
         console.error('Error al obtener el token CSRF', error);
@@ -28,31 +31,7 @@ export function CSRFToken() {
     };
 
     fetchCSRFToken();
-
-    // Configurar un intervalo para refrescar el token cada 20 minutos para mayor seguridad
-    const intervalId = setInterval(fetchCSRFToken, 20 * 60 * 1000);
-
-    // Limpiar el intervalo cuando el componente se desmonte
-    return () => clearInterval(intervalId);
   }, []);
-
-  // Agregamos el meta tag en el head y también creamos una meta tag dentro de nuestro retorno
-  useEffect(() => {
-    if (csrfToken) {
-      // Buscar si ya existe la meta tag
-      let metaTag = document.querySelector('meta[name="csrf-token"]');
-      
-      // Si no existe, crearla y agregarla al head
-      if (!metaTag) {
-        metaTag = document.createElement('meta');
-        metaTag.setAttribute('name', 'csrf-token');
-        document.head.appendChild(metaTag);
-      }
-      
-      // Actualizar el contenido en cualquier caso
-      metaTag.setAttribute('content', csrfToken);
-    }
-  }, [csrfToken]);
 
   return (
     <>
