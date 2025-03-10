@@ -167,23 +167,46 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
   
   try {
     await db.transaction(async (trx) => {
-      // Eliminar videos relacionados
+      // 1. Primero obtener los videos relacionados para obtener sus IDs
+      const videos = await trx.query.youtube_videos.findMany({
+        where: eq(youtube_videos.channelId, channelId),
+        columns: {
+          videoId: true
+        }
+      });
+      
+      const videoIds = videos.map(v => v.videoId);
+      
+      // 2. Eliminar los ejemplos de entrenamiento de títulos asociados a estos videos
+      if (videoIds.length > 0) {
+        // Los ejemplos pueden estar basados en estos videos de YouTube
+        await trx.execute(sql`
+          DELETE FROM training_title_examples 
+          WHERE youtube_video_id IN (${sql.join(videoIds, sql`,`)})
+          OR title IN (SELECT title FROM youtube_videos WHERE video_id IN (${sql.join(videoIds, sql`,`)}))
+        `);
+      }
+      
+      // 3. Eliminar videos relacionados
       await trx.delete(youtube_videos)
         .where(eq(youtube_videos.channelId, channelId))
         .execute();
 
-      // Eliminar canal
+      // 4. Eliminar canal
       return await trx.delete(youtube_channels)
         .where(eq(youtube_channels.id, parseInt(channelId)))
         .execute();
     });
     
-    console.log("RESPONDIDO")
-    return res.status(200)
+    console.log("Canal y sus datos asociados eliminados correctamente");
+    return res.status(200).json({
+      success: true,
+      message: 'Canal, videos y ejemplos de entrenamiento relacionados eliminados correctamente'
+    });
   } catch (error) {
     console.error('Error al eliminar canal', error);
     return res.status(500).json({ 
-      error: 'Error al eliminar canal',
+      error: 'Error al eliminar canal y sus datos asociados',
       details: error instanceof Error ? error.message : 'Error desconocido'
     });
   }

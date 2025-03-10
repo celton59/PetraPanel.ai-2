@@ -374,22 +374,46 @@ export async function deleteChannel(req: Request, res: Response): Promise<Respon
       });
     }
     
-    // Primero eliminar todos los videos asociados al canal
-    await db.delete(youtube_videos).where(eq(youtube_videos.channelId, channelId));
-    
-    // Luego eliminar el canal
-    const result = await db.delete(youtube_channels).where(eq(youtube_channels.channelId, channelId)).returning();
+    // Ejecutar todas las operaciones dentro de una transacción
+    await db.transaction(async (trx) => {
+      // 1. Primero obtener los IDs de todos los videos asociados al canal
+      const videos = await trx.query.youtube_videos.findMany({
+        where: eq(youtube_videos.channelId, channelId),
+        columns: {
+          videoId: true
+        }
+      });
+      
+      const videoIds = videos.map(v => v.videoId);
+      
+      // 2. Eliminar los ejemplos de entrenamiento de títulos asociados a estos videos
+      if (videoIds.length > 0) {
+        // Los ejemplos pueden estar basados en estos videos de YouTube
+        await trx.execute(sql`
+          DELETE FROM training_title_examples 
+          WHERE youtube_video_id IN (${sql.join(videoIds, sql`,`)})
+          OR title IN (SELECT title FROM youtube_videos WHERE video_id IN (${sql.join(videoIds, sql`,`)}))
+        `);
+      }
+      
+      // 3. Eliminar todos los videos asociados al canal
+      await trx.delete(youtube_videos).where(eq(youtube_videos.channelId, channelId));
+      
+      // 4. Finalmente, eliminar el canal
+      await trx.delete(youtube_channels).where(eq(youtube_channels.channelId, channelId));
+    });
     
     return res.status(200).json({
       success: true,
-      message: 'Canal eliminado correctamente',
+      message: 'Canal y todos sus datos asociados (videos y ejemplos de entrenamiento) eliminados correctamente',
       deletedChannel: existingChannel
     });
   } catch (error) {
     console.error('Error eliminando canal:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error al eliminar el canal'
+      message: 'Error al eliminar el canal y sus datos asociados',
+      details: error instanceof Error ? error.message : 'Error desconocido'
     });
   }
 }
