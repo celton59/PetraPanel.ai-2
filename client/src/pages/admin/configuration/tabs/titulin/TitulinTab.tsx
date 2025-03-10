@@ -47,6 +47,7 @@ export default function TitulinTab () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [newChannelUrl, setNewChannelUrl] = useState("");
   const [syncingChannelId, setSyncingChannelId] = useState<number | null>(null);
+  const [deletingChannelId, setDeletingChannelId] = useState<number | null>(null);
   const [showTrainingExamples, setShowTrainingExamples] = useState(false);
   const [showTitleComparison, setShowTitleComparison] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -127,9 +128,19 @@ export default function TitulinTab () {
       return response.data;
     },
     onSuccess: () => {
+      // Invalidar todas las consultas relacionadas para una actualización completa
       queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      toast.success("Canal añadido correctamente");
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
+      // Dar un tiempo para que se completen las revalidaciones
+      setTimeout(() => {
+        toast.success("Canal añadido correctamente");
+      }, 100);
       setNewChannelUrl("");
+      // Reforzar la invalidación para asegurar que los datos sean frescos
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      }, 300);
     },
     onError: (error) => {
       console.error("Error adding channel:", error);
@@ -153,10 +164,17 @@ export default function TitulinTab () {
       setTimeout(() => {
         toast.success("Canal eliminado correctamente");
       }, 100);
+      // Reforzar con una segunda invalidación después de un tiempo
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      }, 500);
     },
     onError: (error) => {
       console.error("Error deleting channel:", error);
       toast.error("No se pudo eliminar el canal");
+    },
+    onSettled: () => {
+      setDeletingChannelId(null);
     },
   });
 
@@ -191,6 +209,7 @@ export default function TitulinTab () {
   };
 
   const handleDeleteChannel = async (id: number) => {
+    setDeletingChannelId(id);
     deleteChannelMutation.mutate(id);
   };
 
@@ -592,8 +611,16 @@ export default function TitulinTab () {
                                     <AlertDialogAction
                                       onClick={() => handleDeleteChannel(channel.id)}
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      disabled={deletingChannelId === channel.id}
                                     >
-                                      Eliminar
+                                      {deletingChannelId === channel.id ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Eliminando...
+                                        </>
+                                      ) : (
+                                        "Eliminar"
+                                      )}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
