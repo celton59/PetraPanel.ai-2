@@ -5,6 +5,7 @@ import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
+import { processTrainingExamplesVectors } from '../services/vectorAnalysis';
 
 /**
  * Configuración de rutas para gestionar los ejemplos de entrenamiento
@@ -749,6 +750,47 @@ export function setupTrainingExamplesRoutes(
       return res.status(500).json({
         success: false,
         message: 'Error al importar ejemplos de entrenamiento',
+        details: error.message
+      });
+    }
+  });
+  
+  // Procesar vectores para ejemplos de entrenamiento
+  app.post('/api/titulin/training-examples/process-vectors', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body;
+      
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Lista de IDs vacía o inválida'
+        });
+      }
+      
+      // Validar que todos los IDs sean numéricos
+      const numericIds = ids.map(id => parseInt(String(id), 10))
+                            .filter(id => !isNaN(id));
+      
+      if (numericIds.length !== ids.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Algunos IDs no son válidos'
+        });
+      }
+      
+      // Procesar vectores utilizando el servicio
+      const processedCount = await processTrainingExamplesVectors(numericIds);
+      
+      return res.status(200).json({
+        success: true,
+        message: `${processedCount} ejemplos procesados correctamente`,
+        processedCount
+      });
+    } catch (error: any) {
+      console.error('Error al procesar vectores de ejemplos:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error al procesar vectores de ejemplos',
         details: error.message
       });
     }

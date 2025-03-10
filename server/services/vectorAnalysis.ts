@@ -300,3 +300,70 @@ export async function getUnanalyzedVideos(limit: number = 10): Promise<YoutubeVi
     return [];
   }
 }
+
+/**
+ * Procesa los embeddings para ejemplos de entrenamiento
+ * @param ids IDs de los ejemplos a procesar
+ * @returns Número de ejemplos procesados
+ */
+export async function processTrainingExamplesVectors(ids: number[]): Promise<number> {
+  if (!ids || ids.length === 0) {
+    return 0;
+  }
+  
+  try {
+    let processedCount = 0;
+    
+    // Procesar en lotes para evitar sobrecargar la API
+    const batchSize = 10;
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize);
+      
+      // Obtener los ejemplos a procesar
+      const examples = await db.execute(sql`
+        SELECT id, title, is_evergreen 
+        FROM training_title_examples 
+        WHERE id IN (${sql.raw(batch.join(','))})
+          AND (vector_processed IS NULL OR vector_processed = false)
+      `);
+      
+      let rows: any[] = [];
+      if (Array.isArray(examples)) {
+        rows = examples;
+      } else if (examples.rows && Array.isArray(examples.rows)) {
+        rows = examples.rows;
+      } else if (typeof examples === 'object') {
+        rows = Object.values(examples);
+      }
+      
+      if (rows.length === 0) continue;
+      
+      // Procesar cada ejemplo
+      for (const example of rows) {
+        try {
+          // Generar embedding para el título
+          const embedding = await generateEmbedding(example.title);
+          
+          // Actualizar el ejemplo con el embedding
+          await db.execute(sql`
+            UPDATE training_title_examples 
+            SET embedding = ${JSON.stringify(embedding)}::vector,
+                vector_processed = true,
+                updated_at = NOW()
+            WHERE id = ${example.id}
+          `);
+          
+          processedCount++;
+        } catch (error) {
+          console.error(`Error al procesar vector para ejemplo ${example.id}:`, error);
+          // Continuar con el siguiente aunque este falle
+        }
+      }
+    }
+    
+    return processedCount;
+  } catch (error) {
+    console.error('Error al procesar vectores de ejemplos:', error);
+    throw new Error('Error al procesar vectores de ejemplos de entrenamiento');
+  }
+}
