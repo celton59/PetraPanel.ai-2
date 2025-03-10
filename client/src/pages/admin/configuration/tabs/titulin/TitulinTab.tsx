@@ -11,7 +11,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { TrainingExamplesDialog } from "../../../../titulin/components/TrainingExamplesDialog";
+import { ImprovedTrainingExamplesDialog } from "../../../../titulin/components/ImprovedTrainingExamplesDialog";
 
 interface Channel {
   id: number;
@@ -193,7 +193,7 @@ export default function TitulinTab () {
       </Card>
       
       {/* Diálogo de ejemplos de entrenamiento */}
-      <TrainingExamplesDialog
+      <ImprovedTrainingExamplesDialog
         open={showTrainingExamples}
         onOpenChange={setShowTrainingExamples}
       />
