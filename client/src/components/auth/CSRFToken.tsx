@@ -13,13 +13,17 @@ export function CSRFToken() {
     const fetchCSRFToken = async () => {
       try {
         // Realizar una petición GET para obtener el token del encabezado
-        const response = await axios.get('/api/user', { withCredentials: true });
+        // Usamos una ruta que no requiera autenticación
+        const response = await axios.get('/api/csrf-token', { withCredentials: true });
         
-        // Obtener el token del encabezado de respuesta
-        const token = response.headers['x-csrf-token'];
+        // Obtener el token del encabezado de respuesta o del cuerpo
+        const token = response.headers['x-csrf-token'] || (response.data && response.data.csrfToken);
         
         if (token) {
           setCsrfToken(token);
+          console.log('CSRF Token obtenido correctamente');
+        } else {
+          console.warn('No se recibió token CSRF en la respuesta');
         }
       } catch (error) {
         console.error('Error al obtener el token CSRF', error);
