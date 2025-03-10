@@ -48,23 +48,27 @@ export function setupAuth(app: Express) {
   });
   
   // Configuración mejorada de sesiones con más seguridad
+  // Determinar entorno para configurar cookies adecuadamente
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  console.log(`Configurando sesiones para entorno: ${isDevelopment ? 'development' : 'production'}`);
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || process.env.REPL_ID || "petra-panel-secret",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Cambiado a true para garantizar que la sesión se guarde siempre
     cookie: {
-      // SIEMPRE poner secure: false para Cloudflare Flexible SSL
+      // En desarrollo usamos siempre false para secure
       secure: false,
       httpOnly: true,
       maxAge: SECURITY_CONSTANTS.SESSION_EXPIRY,
       path: '/',
-      sameSite: 'lax' // 'none' puede causar problemas, usamos 'lax'
+      sameSite: isDevelopment ? undefined : 'lax' // En desarrollo, dejamos que el navegador lo gestione
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // 24 horas
     }),
     proxy: true, // Mantener proxy para manejar las cabeceras correctamente
-    // Agregar más flags para prevenir vulnerabilidades de XSS y CSRF
     name: 'petrapanel_sid', // Nombre de cookie personalizado
   };
 
@@ -233,9 +237,54 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    console.log("Login successful for user:", req.user?.username);
-    res.json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    // Personalizar el comportamiento de passport para un mejor control
+    passport.authenticate('local', (err, user, info) => {
+      if (err) {
+        console.error("Authentication error:", err);
+        return res.status(500).json({ message: 'Error interno del servidor' });
+      }
+      
+      if (!user) {
+        // Si no hay usuario, es un fallo de autenticación
+        return res.status(401).json({ 
+          message: info?.message || 'Credenciales inválidas'
+        });
+      }
+      
+      // Iniciar sesión del usuario manualmente
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Login error:", loginErr);
+          return res.status(500).json({ message: 'Error al iniciar sesión' });
+        }
+        
+        // Establecer un CSRF token para la sesión aquí también
+        if (req.session && !req.session.csrfToken) {
+          req.session.csrfToken = securityUtils.generateCSRFToken();
+        }
+        
+        // Guardar la sesión explícitamente para asegurar que los cambios se persisten
+        req.session.save(err => {
+          if (err) {
+            console.error("Session save error:", err);
+          }
+          
+          console.log("Login successful for user:", user.username);
+          console.log("Session ID:", req.sessionID);
+          
+          // Mostrar información de debug sobre la cookie
+          const cookies = res.getHeader('Set-Cookie');
+          console.log("Set-Cookie header:", cookies);
+          
+          // Devolver el usuario y un mensaje de éxito
+          return res.json({
+            user: user,
+            message: 'Inicio de sesión exitoso'
+          });
+        });
+      });
+    })(req, res, next);
   });
 
   // app.post("/api/register", async (req, res) => {

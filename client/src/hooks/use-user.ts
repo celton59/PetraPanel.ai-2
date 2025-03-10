@@ -74,7 +74,41 @@ export function useUser() {
       console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
       
       try {
+        // Primero, obtenemos un CSRF token actualizado
+        const csrfResponse = await axios.get('/api/csrf-token', { withCredentials: true });
+        const csrfToken = csrfResponse.headers['x-csrf-token'] || 
+                           (csrfResponse.data && csrfResponse.data.csrfToken);
+                           
+        if (csrfToken) {
+          localStorage.setItem('csrf-token', csrfToken);
+          // Actualizar meta tag en document
+          let metaTag = document.querySelector('meta[name="csrf-token"]');
+          if (!metaTag) {
+            metaTag = document.createElement('meta');
+            metaTag.setAttribute('name', 'csrf-token');
+            document.head.appendChild(metaTag);
+          }
+          metaTag.setAttribute('content', csrfToken);
+          
+          // Asegurarse de que el interceptor tenga el token actualizado
+          api.defaults.headers.common['X-CSRF-Token'] = csrfToken;
+        }
+        
+        // Ahora intentamos el login con el token actualizado
         const response = await api.post('/api/login', userData);
+        console.log("Respuesta del servidor:", response.data);
+        
+        // Verificar cabeceras de la respuesta en busca de un nuevo token CSRF
+        const newCsrfToken = response.headers['x-csrf-token'];
+        if (newCsrfToken) {
+          localStorage.setItem('csrf-token', newCsrfToken);
+          let metaTag = document.querySelector('meta[name="csrf-token"]');
+          if (metaTag) {
+            metaTag.setAttribute('content', newCsrfToken);
+          }
+          api.defaults.headers.common['X-CSRF-Token'] = newCsrfToken;
+        }
+        
         return response.data;
       } catch (error: any) {
         console.error("Error en inicio de sesión:", error);
@@ -86,12 +120,14 @@ export function useUser() {
       }
     },
     onSuccess: (data) => {
-      // Si la respuesta contiene usuario, usarlo directamente
+      // La respuesta ahora incluye el usuario dentro de un objeto user
       if (data.user) {
+        console.log("Usuario autenticado correctamente:", data.user);
         queryClient.setQueryData(['/api/user'], data.user);
       } else {
-        // Si no, actualizar con una sola consulta específica
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+        // Si por alguna razón el formato es el antiguo (el usuario directamente)
+        console.log("Formato antiguo de respuesta detectado");
+        queryClient.setQueryData(['/api/user'], data);
       }
     },
   });
