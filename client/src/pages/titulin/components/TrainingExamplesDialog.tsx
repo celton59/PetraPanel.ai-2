@@ -60,7 +60,8 @@ import {
   ListPlus,
   Video,
   BarChart4,
-  Layers
+  Layers,
+  Cpu
 } from "lucide-react";
 
 // Importar los nuevos componentes de visualización
