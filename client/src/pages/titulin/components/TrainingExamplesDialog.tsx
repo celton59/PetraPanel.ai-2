@@ -405,6 +405,7 @@ export function TrainingExamplesDialog({
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        withCredentials: true  // Asegura que se envíen las cookies de autenticación
       });
       
       if (response.data.success) {
@@ -448,6 +449,8 @@ export function TrainingExamplesDialog({
         operation: 'create',
         titles,
         isEvergreen: bulkIsEvergreen
+      }, {
+        withCredentials: true  // Asegura que se envíen las cookies de autenticación
       });
       
       if (response.data.success) {
@@ -535,6 +538,8 @@ export function TrainingExamplesDialog({
       // Enviar petición al servidor para procesar los vectores
       const response = await axios.post('/api/titulin/training-examples/process-vectors', {
         ids: unprocessedIds
+      }, {
+        withCredentials: true  // Asegura que se envíen las cookies de autenticación
       });
       
       if (response.data.success) {
