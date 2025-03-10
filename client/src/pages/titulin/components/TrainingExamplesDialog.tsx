@@ -58,8 +58,15 @@ import {
   ChevronDown,
   AlertCircle,
   ListPlus,
-  Video
+  Video,
+  BarChart4,
+  Layers
 } from "lucide-react";
+
+// Importar los nuevos componentes de visualización
+import { DataQualityMetrics } from "./visualization/DataQualityMetrics";
+import { EmbeddingVisualizer } from "./visualization/EmbeddingVisualizer";
+import { AdvancedCategorizationPanel } from "./visualization/AdvancedCategorizationPanel";
 
 interface TrainingExample {
   id: number;
@@ -67,6 +74,11 @@ interface TrainingExample {
   is_evergreen: boolean;
   created_at: string;
   created_by?: number;
+  confidence?: number;
+  category?: string;
+  similarity_score?: number;
+  embedding?: number[];
+  vector_processed?: boolean;
 }
 
 interface PaginationData {
@@ -470,6 +482,39 @@ export function TrainingExamplesDialog({
       setSelectAll(false);
     }
   };
+  
+  // Función para aplicar categoría a ejemplos
+  const handleCategorizeExamples = async (exampleIds: number[], category: string) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post('/api/titulin/training-examples/bulk', {
+        operation: 'update',
+        ids: exampleIds,
+        data: { category }
+      });
+      
+      if (response.data.success) {
+        toast.success(`${response.data.affectedCount} ejemplos categorizados como "${category}" correctamente`);
+        loadExamples();
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Error al categorizar ejemplos");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Calcular métricas para visualización
+  const dataMetrics = useMemo(() => {
+    return {
+      totalExamples: examples.length,
+      evergreenExamples: evergreenCount,
+      nonEvergreenExamples: notEvergreenCount,
+      processedVectors: examples.filter(ex => ex.vector_processed).length,
+      avgConfidence: examples.reduce((acc, ex) => acc + (ex.confidence || 0), 0) / 
+                    (examples.filter(ex => ex.confidence !== undefined).length || 1)
+    };
+  }, [examples, evergreenCount, notEvergreenCount]);
 
   return (
     <>
@@ -712,6 +757,46 @@ Los mejores plugins de WordPress
               {/* Contenido principal */}
               <div className="flex-1 overflow-auto">
                 <TabsContent value="all" className="space-y-4">
+                  {/* Panel de visualización avanzada */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                    <DataQualityMetrics 
+                      totalExamples={dataMetrics.totalExamples}
+                      evergreenExamples={dataMetrics.evergreenExamples}
+                      nonEvergreenExamples={dataMetrics.nonEvergreenExamples}
+                      processedVectors={dataMetrics.processedVectors}
+                      avgConfidence={dataMetrics.avgConfidence}
+                    />
+                    
+                    <Tabs defaultValue="embedding" className="h-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="embedding" className="flex items-center">
+                          <BarChart4 className="h-4 w-4 mr-2" />
+                          <span>Visualización</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="category" className="flex items-center">
+                          <Layers className="h-4 w-4 mr-2" />
+                          <span>Categorización</span>
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="embedding" className="h-full">
+                        <EmbeddingVisualizer 
+                          examples={examples}
+                          className="h-full"
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="category" className="h-full">
+                        <AdvancedCategorizationPanel 
+                          examples={examples}
+                          onCategorize={handleCategorizeExamples}
+                          className="h-full"
+                        />
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                  
+                  {/* Formulario de entrada de ejemplos */}
                   <Card className="mb-4">
                     <CardHeader className="py-4">
                       <CardTitle className="text-base">Añadir nuevo ejemplo de entrenamiento</CardTitle>
