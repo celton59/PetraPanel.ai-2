@@ -491,6 +491,12 @@ export default function TitulinPage() {
             }}
           />
         )}
+
+        {/* Modal para comparación de títulos */}
+        <TitleComparisonDialog
+          open={showComparisonDialog}
+          onOpenChange={setShowComparisonDialog}
+        />
       </div>
     </div>
   );
