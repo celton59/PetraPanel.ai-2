@@ -36,6 +36,7 @@ interface Channel {
   id: number;
   name: string;
   url: string;
+  channelId: string;
   analyzedVideos?: number;
   lastVideoFetch?: string;
   active: boolean;
@@ -547,6 +548,15 @@ export default function TitulinTab () {
                                   <RefreshCw className="h-4 w-4" />
                                 )}
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleCompareChannel(channel.id.toString())}
+                                disabled={syncingChannelId === channel.id}
+                                className="text-primary"
+                              >
+                                <Search className="h-4 w-4" />
+                              </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
@@ -704,6 +714,13 @@ export default function TitulinTab () {
       <ImprovedTrainingExamplesDialog
         open={showTrainingExamples}
         onOpenChange={setShowTrainingExamples}
+      />
+      
+      {/* Diálogo de comparación de títulos */}
+      <TitleComparisonDialog
+        open={showTitleComparison}
+        onOpenChange={setShowTitleComparison}
+        initialChannelId={selectedChannelId}
       />
     </div>
   );
