@@ -520,13 +520,6 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
 
-  if (req.user!.role !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "No tienes permiso para restaurar videos",
-    });
-  }
-  
   try {
     // Verificar que el video exista y esté eliminado
     const [video] = await db
@@ -546,8 +539,8 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
       });
     }
     
-    // Solo los administradores o el creador pueden restaurar videos
-    if (video.createdBy !== req.user!.id) {
+    // Verificar permisos: el usuario debe ser admin o el creador del video
+    if (req.user!.role !== "admin" && video.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: "No tienes permiso para restaurar este video",
