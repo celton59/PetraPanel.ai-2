@@ -27,13 +27,15 @@ export function useUsers(): {
   const { data: response, isLoading, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const res = await fetch(queryKey[0], {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Error al cargar los usuarios");
+      // Usamos axios para la consulta que se beneficia del manejo de credenciales
+      const api = (await import('../lib/axios')).default;
+      try {
+        const response = await api.get(queryKey[0]);
+        return response.data as ApiResponse<ApiUser[]>;
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        throw new Error(error.response?.data?.message || "Error al cargar los usuarios");
       }
-      return res.json() as Promise<ApiResponse<ApiUser[]>>;
     },
     retry: 1,
     refetchInterval: 30000,
