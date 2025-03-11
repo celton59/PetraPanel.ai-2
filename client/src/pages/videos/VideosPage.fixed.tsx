@@ -547,7 +547,7 @@ export default function VideosPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(!videos || videos.length === 0) && renderEmptyState()}
+                {/* El mensaje de "No hay videos" se mostrará fuera de la tabla */}
               </TableBody>
             </Table>
           </div>
@@ -625,7 +625,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
+        {/* El mensaje de "No hay videos" se mostrará en la vista principal */}
       </div>
     );
   }
@@ -754,7 +754,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
+        {/* El mensaje de "No hay videos" se mostrará en la vista principal */}
       </div>
     );
   }
@@ -960,9 +960,15 @@ export default function VideosPage() {
         </Button>
       </div>
       
-      {viewMode === "table" && getTableView()}
-      {viewMode === "grid" && getGridView()}
-      {viewMode === "list" && getListView()}
+      {(!videos || videos.length === 0) 
+        ? renderEmptyState()
+        : (
+          <>
+            {viewMode === "table" && getTableView()}
+            {viewMode === "grid" && getGridView()}
+            {viewMode === "list" && getListView()}
+          </>
+        )}
       
       <Dialog 
         open={videoDialogOpen} 
