@@ -44,13 +44,20 @@ export function useVideos(): {
   const { data: videos, isLoading } = useQuery<ApiVideo[]>({
     queryKey,
     queryFn: async () => {
-      const res = await fetch(queryKey[0], {
-        credentials: "include"
-      });
-      if (!res.ok) {
+      try {
+        // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
+        const api = (await import('../lib/axios')).default;
+        const response = await api.get(queryKey[0]);
+        return response.data;
+      } catch (error: any) {
+        console.error('Error al cargar los videos:', error);
+        // Mostramos el mensaje de error de la API si está disponible
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        // Error genérico
         throw new Error("Error al cargar los videos");
       }
-      return res.json();
     },
     retry: 1,
     refetchOnWindowFocus: false,

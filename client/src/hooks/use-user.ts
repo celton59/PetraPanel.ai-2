@@ -16,31 +16,56 @@ async function handleRequest(
   body?: { username: string; password: string; }
 ): Promise<RequestResult> {
   try {
-    const response = await fetch(url, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      if (response.status >= 500) {
-        return { ok: false, message: "Error del servidor, intente más tarde" };
-      }
-      const text = await response.text();
-      let message;
-      try {
-        const data = JSON.parse(text);
-        message = data.message || text;
-      } catch {
-        message = text;
-      }
-      return { ok: false, message };
+    // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+    const { refreshCSRFToken } = await import('../lib/axios');
+    const api = (await import('../lib/axios')).default;
+    
+    // Refrescar proactivamente el token CSRF para operaciones importantes
+    if (method.toUpperCase() !== 'GET') {
+      await refreshCSRFToken();
     }
-
-    return { ok: true };
+    
+    // Configurar la petición según el método
+    let response;
+    if (method.toUpperCase() === 'GET') {
+      response = await api.get(url);
+    } else if (method.toUpperCase() === 'POST') {
+      response = await api.post(url, body || {});
+    } else if (method.toUpperCase() === 'PUT') {
+      response = await api.put(url, body || {});
+    } else if (method.toUpperCase() === 'DELETE') {
+      response = await api.delete(url);
+    } else {
+      throw new Error(`Método no soportado: ${method}`);
+    }
+    
+    return { ok: true, message: response.data?.message };
   } catch (e: any) {
     console.error("Request error:", e);
+    
+    // Manejo mejorado de errores
+    if (e.response) {
+      // Errores del servidor
+      if (e.response.status >= 500) {
+        return { ok: false, message: "Error del servidor, intente más tarde" };
+      }
+      
+      // Errores de CSRF
+      if (e.response.status === 403 && 
+          (e.response.data?.message?.includes('CSRF') || 
+           e.response.data?.message?.includes('token') || 
+           e.response.data?.message?.includes('Token'))) {
+        return { ok: false, message: "Error de validación de seguridad. Intente de nuevo." };
+      }
+      
+      // Otros errores con mensajes del servidor
+      return { 
+        ok: false, 
+        message: e.response.data?.message || "Error en la petición" 
+      };
+    }
+    
+    // Errores de red u otros
     return { ok: false, message: "Error de conexión" };
   }
 }
@@ -119,19 +144,27 @@ export function useUser() {
 
   // const registerMutation = useMutation({
   //   mutationFn: async (userData: { username: string; password: string; }) => {
-  //     const response = await fetch('/api/register', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify(userData),
-  //       credentials: 'include',
-  //     });
-
-  //     if (!response.ok) {
-  //       const text = await response.text();
-  //       throw new Error(text);
+  //     try {
+  //       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+  //       const { refreshCSRFToken } = await import('../lib/axios');
+  //       const api = (await import('../lib/axios')).default;
+  //       
+  //       // Refrescar proactivamente el token CSRF antes de una operación importante
+  //       await refreshCSRFToken();
+  //       
+  //       // Usar nuestra instancia de axios configurada con manejo CSRF
+  //       const response = await api.post('/api/register', userData);
+  //       return response.data;
+  //     } catch (error: any) {
+  //       console.error("Error registering user:", error);
+  //       
+  //       // Manejo mejorado de errores
+  //       if (error.response?.data?.message) {
+  //         throw new Error(error.response.data.message);
+  //       }
+  //       
+  //       throw new Error("Error al registrar usuario");
   //     }
-
-  //     return response.json();
   //   },
   //   onSuccess: (data) => {
   //     queryClient.setQueryData(['/api/user'], data);
