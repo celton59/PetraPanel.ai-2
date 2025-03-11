@@ -50,7 +50,7 @@ export function PersonalInfoSection ({
       <div className="grid gap-4 md:grid-cols-2">
         <FormField
           control={form.control}
-          name="full_name"
+          name="fullName"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center space-x-2">
