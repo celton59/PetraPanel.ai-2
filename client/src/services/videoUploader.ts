@@ -171,82 +171,110 @@ export class VideoUploader {
    * @returns Datos de la carga multiparte iniciada
    */
   private async initiateMultipartUpload(): Promise<InitiateMultipartUploadResponse> {
-    const response = await fetch(
-      `/api/projects/${this.projectId}/videos/${this.videoId}/initiate-multipart-upload`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+    try {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post(
+        `/api/projects/${this.projectId}/videos/${this.videoId}/initiate-multipart-upload`,
+        {
           originalName: this.file.name,
           fileSize: this.file.size,
           contentType: this.file.type,
-        }),
-        credentials: "include",
+        }
+      );
+      
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error al iniciar la carga multiparte:", error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
       }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Error al iniciar la carga multiparte");
+      
+      throw new Error(error.response?.data?.message || error.message || "Error al iniciar la carga multiparte");
     }
-
-    const data = await response.json();
-    return data.data;
   }
 
   /**
    * Completa una carga multiparte en S3
    */
   private async completeMultipartUpload(): Promise<void> {
-    const response = await fetch(
-      `/api/projects/${this.projectId}/videos/${this.videoId}/complete-multipart-upload`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+    try {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post(
+        `/api/projects/${this.projectId}/videos/${this.videoId}/complete-multipart-upload`,
+        {
           uploadId: this.uploadId,
           key: this.key,
           parts: this.completedParts,
-        }),
-        credentials: "include",
+        }
+      );
+      
+      this.fileUrl = response.data.url;
+    } catch (error: any) {
+      console.error("Error al completar la carga multiparte:", error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
       }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Error al completar la carga multiparte");
+      
+      throw new Error(error.response?.data?.message || error.message || "Error al completar la carga multiparte");
     }
-
-    const data = await response.json();
-    this.fileUrl = data.url;
   }
 
   /**
    * Aborta una carga multiparte en S3
    */
   private async abortMultipartUpload(): Promise<void> {
-    const response = await fetch(
-      `/api/projects/${this.projectId}/videos/${this.videoId}/abort-multipart-upload`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+    try {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      await api.post(
+        `/api/projects/${this.projectId}/videos/${this.videoId}/abort-multipart-upload`,
+        {
           uploadId: this.uploadId,
           key: this.key,
-        }),
-        credentials: "include",
+        }
+      );
+    } catch (error: any) {
+      console.error("Error al abortar la carga multiparte:", error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
       }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Error al abortar la carga multiparte");
+      
+      throw new Error(error.response?.data?.message || error.message || "Error al abortar la carga multiparte");
     }
   }
 
