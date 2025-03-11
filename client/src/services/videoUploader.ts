@@ -171,12 +171,16 @@ export class VideoUploader {
    * @returns Datos de la carga multiparte iniciada
    */
   private async initiateMultipartUpload(): Promise<InitiateMultipartUploadResponse> {
+    // Obtener el token CSRF del meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
     const response = await fetch(
       `/api/projects/${this.projectId}/videos/${this.videoId}/initiate-multipart-upload`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
         },
         body: JSON.stringify({
           originalName: this.file.name,
@@ -200,12 +204,16 @@ export class VideoUploader {
    * Completa una carga multiparte en S3
    */
   private async completeMultipartUpload(): Promise<void> {
+    // Obtener el token CSRF del meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
     const response = await fetch(
       `/api/projects/${this.projectId}/videos/${this.videoId}/complete-multipart-upload`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
         },
         body: JSON.stringify({
           uploadId: this.uploadId,
@@ -229,12 +237,16 @@ export class VideoUploader {
    * Aborta una carga multiparte en S3
    */
   private async abortMultipartUpload(): Promise<void> {
+    // Obtener el token CSRF del meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
     const response = await fetch(
       `/api/projects/${this.projectId}/videos/${this.videoId}/abort-multipart-upload`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
         },
         body: JSON.stringify({
           uploadId: this.uploadId,

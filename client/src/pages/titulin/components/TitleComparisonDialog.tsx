@@ -162,11 +162,21 @@ export function TitleComparisonDialog({
         }
       }
       
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       // Realizar la comparación
-      const response = await axios.post('/api/title-comparison/compare', {
-        proposedTitle,
-        channelId: selectedChannelId
-      });
+      const response = await axios.post('/api/title-comparison/compare', 
+        {
+          proposedTitle,
+          channelId: selectedChannelId
+        },
+        {
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        }
+      );
       
       if (response.data.success) {
         setComparisonResult(response.data);
@@ -221,11 +231,21 @@ export function TitleComparisonDialog({
         }
       }
       
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       // Realizar la comparación masiva
-      const response = await axios.post('/api/title-comparison/bulk', {
-        proposedTitles: titles,
-        channelId: selectedChannelId
-      });
+      const response = await axios.post('/api/title-comparison/bulk', 
+        {
+          proposedTitles: titles,
+          channelId: selectedChannelId
+        },
+        {
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        }
+      );
       
       if (response.data.success) {
         setBulkResults(response.data);
