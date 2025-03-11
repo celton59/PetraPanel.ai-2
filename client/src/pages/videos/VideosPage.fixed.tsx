@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   CheckSquare,
   Square,
+  Copy,
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
