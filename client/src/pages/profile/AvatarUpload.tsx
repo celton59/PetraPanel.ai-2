@@ -24,20 +24,23 @@ export function AvatarUpload({
     try {
       setUploading(true);
 
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('@/lib/axios');
+      const api = (await import('@/lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch('/api/upload-avatar', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post('/api/upload-avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to upload avatar');
-      }
-
-      const data = await response.json();
       onUploadComplete?.();
 
       toast("Avatar actualizado", {
