@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import axios from "@/lib/axios";
 
 /**
  * Interface para la respuesta de inicialización de carga multiparte
@@ -171,94 +172,56 @@ export class VideoUploader {
    * @returns Datos de la carga multiparte iniciada
    */
   private async initiateMultipartUpload(): Promise<InitiateMultipartUploadResponse> {
-    // Obtener el token CSRF del meta tag
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    const response = await fetch(
-      `/api/projects/${this.projectId}/videos/${this.videoId}/initiate-multipart-upload`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken || ''
-        },
-        body: JSON.stringify({
+    try {
+      const response = await axios.post(
+        `/api/projects/${this.projectId}/videos/${this.videoId}/initiate-multipart-upload`,
+        {
           originalName: this.file.name,
           fileSize: this.file.size,
           contentType: this.file.type,
-        }),
-        credentials: "include",
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Error al iniciar la carga multiparte");
+        }
+      );
+      
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al iniciar la carga multiparte");
     }
-
-    const data = await response.json();
-    return data.data;
   }
 
   /**
    * Completa una carga multiparte en S3
    */
   private async completeMultipartUpload(): Promise<void> {
-    // Obtener el token CSRF del meta tag
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    const response = await fetch(
-      `/api/projects/${this.projectId}/videos/${this.videoId}/complete-multipart-upload`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken || ''
-        },
-        body: JSON.stringify({
+    try {
+      const response = await axios.post(
+        `/api/projects/${this.projectId}/videos/${this.videoId}/complete-multipart-upload`,
+        {
           uploadId: this.uploadId,
           key: this.key,
           parts: this.completedParts,
-        }),
-        credentials: "include",
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Error al completar la carga multiparte");
+        }
+      );
+      
+      this.fileUrl = response.data.url;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al completar la carga multiparte");
     }
-
-    const data = await response.json();
-    this.fileUrl = data.url;
   }
 
   /**
    * Aborta una carga multiparte en S3
    */
   private async abortMultipartUpload(): Promise<void> {
-    // Obtener el token CSRF del meta tag
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    const response = await fetch(
-      `/api/projects/${this.projectId}/videos/${this.videoId}/abort-multipart-upload`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken || ''
-        },
-        body: JSON.stringify({
+    try {
+      await axios.post(
+        `/api/projects/${this.projectId}/videos/${this.videoId}/abort-multipart-upload`,
+        {
           uploadId: this.uploadId,
           key: this.key,
-        }),
-        credentials: "include",
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Error al abortar la carga multiparte");
+        }
+      );
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Error al abortar la carga multiparte");
     }
   }
 
