@@ -21,7 +21,7 @@ async function hashPassword(password) {
 async function createUser() {
   // Datos del usuario a crear
   const username = 'hola';
-  const password = '1234';
+  const password = 'hola';
   const role = 'admin'; // Para que tenga acceso completo
   
   try {
