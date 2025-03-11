@@ -107,17 +107,15 @@ export function PasswordSection() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/profile/password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Error al cambiar la contraseña');
-      }
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('@/lib/axios');
+      const api = (await import('@/lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post('/api/profile/password', data);
 
       // Éxito: mostrar toast y resetear formulario
       toast.success("Contraseña actualizada", {
