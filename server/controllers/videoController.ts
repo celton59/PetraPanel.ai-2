@@ -428,7 +428,7 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
-    console.log("⚡ GET /api/videos - Iniciando consulta de videos");
+    console.log("⚡ GET /api/videos - Iniciando consulta de videos simplificada");
     console.log("Usuario:", req.user?.id, req.user?.username, req.user?.role);
     
     // Verificar autenticación
@@ -445,13 +445,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
     console.log("Mostrar eliminados:", showDeleted);
     
     try {
-      // NOTA: Estamos utilizando los alias de tablas ya definidos en la parte superior del archivo:
-      // const contentReviewer = aliasedTable(users, "contentReviewer");
-      // const mediaReviewer = aliasedTable(users, "mediaReviewer"); 
-      // const optimizer = aliasedTable(users, "optimizer");
-      // const creator = aliasedTable(users, "creator");
-      // const uploader = aliasedTable(users, "uploader"); 
-      // const deleter = aliasedTable(users, "deleter");
+      // Versión simplificada sin JOINs complejos para pruebas de funcionamiento básico
       
       // Simplificamos la consulta para verificar si el problema está en la complejidad
       const whereCondition = showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false);
