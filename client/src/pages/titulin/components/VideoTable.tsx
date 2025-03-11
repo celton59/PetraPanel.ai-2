@@ -30,16 +30,9 @@ export function VideoTable({
 }: VideoTableProps) {
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
-  
-  // Verificar si los videos tienen el campo publishedAt antes de ordenar por él
-  const defaultSorting: SortingState = [
-    { id: videos.length > 0 && (videos[0].publishedAt || videos[0]['published_at']) 
-        ? "publishedAt" 
-        : "title", 
-      desc: true }
-  ];
-  
-  const [sorting, setSorting] = useState<SortingState>(defaultSorting);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "publishedAt", desc: true } // Ordenación por defecto: videos más recientes primero
+  ]);
 
   // Formatear fecha ISO a una fecha legible
   const formatDate = (dateString: string | null) => {
@@ -165,15 +158,14 @@ export function VideoTable({
           <span>{Number(row.original.likeCount || 0).toLocaleString()}</span>
         ),
       },
-      // Solo agregar la columna publishedAt si al menos un video tiene este campo
-      ...(videos.length > 0 && (videos[0].publishedAt || videos[0]['published_at']) ? [{
+      {
         id: "publishedAt",
         header: "Publicado",
-        accessorFn: (row: TitulinVideo) => {
+        accessorFn: (row) => {
           // Intentar obtener el valor, ya sea como publishedAt o published_at
           return row.publishedAt || row['published_at'] || null;
         },
-        sortingFn: (rowA: any, rowB: any) => {
+        sortingFn: (rowA, rowB) => {
           // Acceder directamente al valor original para la comparación
           const aValue = rowA.original.publishedAt || rowA.original['published_at'];
           const bValue = rowB.original.publishedAt || rowB.original['published_at'];
@@ -184,11 +176,11 @@ export function VideoTable({
           
           return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
         },
-        cell: ({ row }: { row: any }) => {
+        cell: ({ row }) => {
           const dateValue = row.original.publishedAt || row.original['published_at'];
           return <span>{formatDate(dateValue)}</span>;
         },
-      }] : []),
+      },
       {
         accessorKey: "duration",
         header: "Duración",
@@ -327,7 +319,7 @@ export function VideoTable({
         }
       }
     ]);
-  }, [analyzeEvergeenMutation.isPending, getChannelName, setSelectedVideo, setAnalysisVideo, videos]);
+  }, [analyzeEvergeenMutation.isPending, getChannelName, setSelectedVideo, setAnalysisVideo]);
 
   // Manejar cambio de ordenación
   const handleSortingChange = (newSorting: SortingState) => {
