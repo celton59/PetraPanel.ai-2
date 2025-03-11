@@ -19,6 +19,16 @@ import {
 import { ApiUser, useUsers } from "@/hooks/useUsers";
 import { User } from "@db/schema";
 
+// Definimos la estructura de datos del formulario para evitar errores de tipado
+export interface UserFormData {
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  bio: string;
+  role?: string;
+  password: string;
+}
 
 interface UserSettingsFormProps {
   user: ApiUser | undefined;
@@ -121,7 +131,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                 formData={{
                   role: user?.role,
                   password: "",
-                  full_name: form.watch("fullName"),
+                  fullName: form.watch("fullName"),
                   username: form.watch("username"),
                   email: form.watch("email"),
                   phone: form.watch("phone") || "",
@@ -144,7 +154,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                 formData={{
                   role: user?.role,
                   password: "",
-                  full_name: form.watch("fullName"),
+                  fullName: form.watch("fullName"),
                   username: form.watch("username"),
                   email: form.watch("email"),
                   phone: form.watch("phone") || "",
