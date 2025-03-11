@@ -14,6 +14,7 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { VISIBLE_STATES } from "../lib/role-permissions";
 import { 
   generateS3Key, 
   initiateMultipartUpload as initiateS3Upload, 
@@ -479,13 +480,31 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
         .where(whereCondition);
       
-      // Si no es admin, aplicamos filtro adicional
+      // Determinamos los estados visibles según el rol del usuario
+      let visibleStates: string[] = [];
+      
+      if (req.user.role === "optimizer") {
+        visibleStates = ["available", "content_corrections", "completed"];
+      } else if (req.user.role === "reviewer") {
+        visibleStates = ["content_review", "media_review", "final_review", "completed"];
+      } else if (req.user.role === "content_reviewer") {
+        visibleStates = ["content_review"];
+      } else if (req.user.role === "media_reviewer") {
+        visibleStates = ["media_review"];
+      } else if (req.user.role === "youtuber") {
+        visibleStates = ["upload_media", "media_corrections", "final_review", "completed"];
+      } else if (req.user.role === "admin") {
+        visibleStates = ["available", "content_corrections", "content_review", "upload_media", "media_corrections", "media_review", "final_review", "completed"];
+      }
+      
+      console.log(`Rol ${req.user.role} - Estados visibles:`, visibleStates);
+      
+      // Si no es admin, aplicamos filtro adicional basado en los estados visibles
       const isAdmin = req.user.role === "admin";
       let query;
       
       if (!isAdmin) {
         // Filtro para usuarios que no son admin
-        // Añadimos el filtro en una condición and con el filtro actual
         query = db
           .select({
             ...getTableColumns(videos),
@@ -515,8 +534,8 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
           .where(
             and(
               showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
-              // Asegurar que createdBy no sea null y convertir explícitamente a números para la comparación
-              req.user.id ? eq(videos.createdBy, Number(req.user.id)) : undefined
+              // Filtrar por los estados visibles para el rol del usuario
+              visibleStates.length > 0 ? inArray(videos.status, visibleStates as any) : undefined
             )
           );
       } else {
