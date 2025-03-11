@@ -72,6 +72,8 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   try {
+    // Importamos api dinámicamente para asegurar que siempre usamos la instancia más actualizada
+    const api = (await import('../lib/axios')).default;
     const response = await api.get('/api/user');
     return response.data;
   } catch (error: any) {
@@ -99,6 +101,14 @@ export function useUser() {
       console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
       
       try {
+        // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+        const { refreshCSRFToken } = await import('../lib/axios');
+        const api = (await import('../lib/axios')).default;
+        
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
         const response = await api.post('/api/login', userData);
         return response.data;
       } catch (error: any) {
@@ -126,10 +136,27 @@ export function useUser() {
       console.log("Iniciando cierre de sesión");
       
       try {
+        // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+        const { refreshCSRFToken } = await import('../lib/axios');
+        const api = (await import('../lib/axios')).default;
+        
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
         const response = await api.post('/api/logout');
         return response.data;
       } catch (error: any) {
         console.error("Error en logout:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Intente de nuevo.");
+        }
+        
         throw error;
       }
     },
