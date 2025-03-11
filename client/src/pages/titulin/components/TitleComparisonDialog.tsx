@@ -11,6 +11,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { StandardSearchButton } from "@/components/ui/search-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -534,13 +535,12 @@ export function TitleComparisonDialog({
                     placeholder="Introduce el título a comparar"
                     className="flex-1"
                   />
-                  <Button 
+                  <StandardSearchButton 
                     onClick={compareTitle} 
                     disabled={loading} 
                     className="ml-2"
-                  >
-                    Comparar
-                  </Button>
+                    iconOnly={false}
+                  />
                 </div>
               </div>
               
