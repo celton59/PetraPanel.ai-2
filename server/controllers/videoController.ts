@@ -524,9 +524,6 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         query = baseQuery;
       }
       
-      // Log para depurar - Antes de ejecutar la consulta
-      console.log("⚡ DEBUG: Query creada, a punto de ejecutar");
-      
       console.log("🔍 Ejecutando consulta de videos con JOIN para colaboradores");
       
       // Aplicamos la ordenación directamente en la ejecución
@@ -534,18 +531,6 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
         .execute();
       console.log(`✅ Consulta completada: ${result.length} videos obtenidos`);
-      
-      // Log de depuración para ver si el mediaReviewer se incluye correctamente
-      const videoWithId126 = result.find(v => v.seriesNumber === '1-0126');
-      if (videoWithId126) {
-        console.log("🔎 DEBUG - Video 1-0126:", {
-          id: videoWithId126.id,
-          seriesNumber: videoWithId126.seriesNumber,
-          mediaReviewedBy: videoWithId126.mediaReviewedBy,
-          mediaReviewerName: videoWithId126.mediaReviewerName,
-          mediaReviewerUsername: videoWithId126.mediaReviewerUsername
-        });
-      }
       
       return res.status(200).json(result);
     } catch (dbError) {
