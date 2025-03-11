@@ -36,6 +36,7 @@ export function useVideos(): {
   restoreVideo: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
   emptyTrash: ({projectId}: { projectId: number }) => Promise<any>;
   getTrashVideos: ({projectId}: { projectId: number }) => Promise<ApiVideo[]>;
+  assignVideoToYoutuber: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
 } {
   const queryClient = useQueryClient();
 
