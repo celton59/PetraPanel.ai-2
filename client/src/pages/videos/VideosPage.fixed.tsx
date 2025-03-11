@@ -473,24 +473,8 @@ export default function VideosPage() {
                       </div>
                     </TableCell>
                     {/* Serie */}
-                    <TableCell className="font-medium">
-                      <div className="flex items-center justify-center gap-2">
-                        <span>{video.seriesNumber || "-"}</span>
-                        {video.seriesNumber && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyToClipboard(`${video.seriesNumber}`, "Número de serie copiado");
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                            <span className="sr-only">Copiar número de serie</span>
-                          </Button>
-                        )}
-                      </div>
+                    <TableCell className="font-medium text-center">
+                      <span>{video.seriesNumber || "-"}</span>
                     </TableCell>
                     {/* Título */}
                     <TableCell
@@ -505,7 +489,8 @@ export default function VideosPage() {
                           className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            copyToClipboard(video.optimizedTitle || video.title, "Título copiado");
+                            const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                            copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
                           }}
                         >
                           <Copy className="h-3 w-3" />
@@ -653,7 +638,8 @@ export default function VideosPage() {
                   className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
                   onClick={(e) => {
                     e.stopPropagation();
-                    copyToClipboard(video.optimizedTitle || video.title, "Título copiado");
+                    const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                    copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
                   }}
                 >
                   <Copy className="h-3 w-3" />
