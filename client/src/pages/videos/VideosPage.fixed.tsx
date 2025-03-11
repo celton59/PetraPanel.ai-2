@@ -725,7 +725,8 @@ export default function VideosPage() {
                   className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
                   onClick={(e) => {
                     e.stopPropagation();
-                    copyToClipboard(video.optimizedTitle || video.title, "Título copiado");
+                    const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                    copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
                   }}
                 >
                   <Copy className="h-3 w-3" />
