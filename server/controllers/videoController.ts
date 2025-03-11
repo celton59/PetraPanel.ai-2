@@ -445,15 +445,44 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
     console.log("Mostrar eliminados:", showDeleted);
     
     try {
+      // Definimos un alias para cada relación para evitar conflictos de nombres
+      const creatorAlias = alias(users, 'creator');
+      const optimizerAlias = alias(users, 'optimizer');
+      const contentReviewerAlias = alias(users, 'content_reviewer');
+      const contentUploaderAlias = alias(users, 'content_uploader');
+      const mediaReviewerAlias = alias(users, 'media_reviewer');
+      const deletedByAlias = alias(users, 'deleted_by_user');
+      
       // Simplificamos la consulta para verificar si el problema está en la complejidad
       const whereCondition = showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false);
       
-      // Consulta de base
+      // Creamos la consulta base con todos los JOINs
       let baseQuery = db
         .select({
-          ...getTableColumns(videos)
+          ...getTableColumns(videos),
+          // Añadimos los campos de nombres de los colaboradores
+          creatorName: creatorAlias.fullName,
+          creatorUsername: creatorAlias.username,
+          optimizerName: optimizerAlias.fullName,
+          optimizerUsername: optimizerAlias.username,
+          contentReviewerName: contentReviewerAlias.fullName,
+          contentReviewerUsername: contentReviewerAlias.username,
+          uploaderName: contentUploaderAlias.fullName,
+          uploaderUsername: contentUploaderAlias.username,
+          mediaReviewerName: mediaReviewerAlias.fullName,
+          mediaReviewerUsername: mediaReviewerAlias.username,
+          deletedByName: deletedByAlias.fullName,
+          deletedByUsername: deletedByAlias.username
         })
         .from(videos)
+        // JOIN para el creador (siempre obligatorio porque es la referencia principal)
+        .leftJoin(creatorAlias, eq(videos.createdBy, creatorAlias.id))
+        // JOINs opcionales para los otros roles
+        .leftJoin(optimizerAlias, eq(videos.optimizedBy, optimizerAlias.id))
+        .leftJoin(contentReviewerAlias, eq(videos.contentReviewedBy, contentReviewerAlias.id))
+        .leftJoin(contentUploaderAlias, eq(videos.contentUploadedBy, contentUploaderAlias.id))
+        .leftJoin(mediaReviewerAlias, eq(videos.mediaReviewedBy, mediaReviewerAlias.id))
+        .leftJoin(deletedByAlias, eq(videos.deletedBy, deletedByAlias.id))
         .where(whereCondition);
       
       // Si no es admin, aplicamos filtro adicional
@@ -465,9 +494,30 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         // Añadimos el filtro en una condición and con el filtro actual
         query = db
           .select({
-            ...getTableColumns(videos)
+            ...getTableColumns(videos),
+            // Añadimos los campos de nombres de los colaboradores
+            creatorName: creatorAlias.fullName,
+            creatorUsername: creatorAlias.username,
+            optimizerName: optimizerAlias.fullName,
+            optimizerUsername: optimizerAlias.username,
+            contentReviewerName: contentReviewerAlias.fullName,
+            contentReviewerUsername: contentReviewerAlias.username,
+            uploaderName: contentUploaderAlias.fullName,
+            uploaderUsername: contentUploaderAlias.username,
+            mediaReviewerName: mediaReviewerAlias.fullName,
+            mediaReviewerUsername: mediaReviewerAlias.username,
+            deletedByName: deletedByAlias.fullName,
+            deletedByUsername: deletedByAlias.username
           })
           .from(videos)
+          // JOIN para el creador (siempre obligatorio porque es la referencia principal)
+          .leftJoin(creatorAlias, eq(videos.createdBy, creatorAlias.id))
+          // JOINs opcionales para los otros roles
+          .leftJoin(optimizerAlias, eq(videos.optimizedBy, optimizerAlias.id))
+          .leftJoin(contentReviewerAlias, eq(videos.contentReviewedBy, contentReviewerAlias.id))
+          .leftJoin(contentUploaderAlias, eq(videos.contentUploadedBy, contentUploaderAlias.id))
+          .leftJoin(mediaReviewerAlias, eq(videos.mediaReviewedBy, mediaReviewerAlias.id))
+          .leftJoin(deletedByAlias, eq(videos.deletedBy, deletedByAlias.id))
           .where(
             and(
               showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
@@ -480,7 +530,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         query = baseQuery;
       }
       
-      console.log("🔍 Ejecutando consulta simplificada de videos");
+      console.log("🔍 Ejecutando consulta de videos con JOIN para colaboradores");
       
       // Aplicamos la ordenación directamente en la ejecución
       const result = await query
