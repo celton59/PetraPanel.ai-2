@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ApiUser, useUsers } from "@/hooks/useUsers";
+import { ApiUser, useUsers, UserWithProjects } from "@/hooks/useUsers";
 import { User } from "@db/schema";
 
 // Definimos la estructura de datos del formulario para evitar errores de tipado
@@ -137,6 +137,33 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
     setError(null);
 
     try {
+      // Verificar validez del formulario antes de continuar
+      const formState = form.getValues();
+      const formErrors = form.formState.errors;
+      
+      if (Object.keys(formErrors).length > 0) {
+        const errorMessages = Object.entries(formErrors)
+          .map(([field, error]) => `${field}: ${error.message}`)
+          .join(", ");
+        
+        setError(`Por favor corrija los siguientes errores: ${errorMessages}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validar los campos obligatorios específicamente
+      const missingFields = [];
+      if (!formDataToSubmit.username || formDataToSubmit.username.trim() === '') missingFields.push("nombre de usuario");
+      if (!formDataToSubmit.fullName || formDataToSubmit.fullName.toString().trim() === '') missingFields.push("nombre completo");
+      if (!formDataToSubmit.email || formDataToSubmit.email.toString().trim() === '') missingFields.push("correo electrónico");
+      if (!user && (!formDataToSubmit.password || formDataToSubmit.password.trim() === '')) missingFields.push("contraseña");
+      
+      if (missingFields.length > 0) {
+        setError(`Campos obligatorios vacíos: ${missingFields.join(", ")}`);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Asegúrate de que los campos requeridos no sean undefined
       const userData: Partial<User> & { projectIds: number[] } = {
         fullName: formDataToSubmit.fullName || "",
@@ -146,21 +173,35 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
         bio: formDataToSubmit.bio || null,
         role: formDataToSubmit.role || "youtuber",
         projectIds: selectedProjects,
-        ...(formDataToSubmit.password && { password: formDataToSubmit.password }),
       };
 
+      // Solo incluir la contraseña si está presente y no está vacía
+      if (formDataToSubmit.password && formDataToSubmit.password.trim() !== '') {
+        userData.password = formDataToSubmit.password;
+      }
+
+      // Verificar formato de correo electrónico
+      if (userData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email.toString())) {
+        setError("El formato del correo electrónico no es válido");
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("Datos a enviar:", userData);
 
       if (user) {
         await updateUser({ user: userData, userId: user.id});
       } else {
-        if (!formDataToSubmit.password) {
+        // Verificación adicional para nuevos usuarios
+        if (!userData.password) {
           setError("La contraseña es requerida para nuevos usuarios");
+          setIsSubmitting(false);
           return;
         }
 
-        // Asegurarnos de que los campos requeridos estén presentes
-        if (!userData.username || !userData.fullName || !userData.email) {
-          setError("Todos los campos obligatorios deben estar completos");
+        if (userData.password.length < 6) {
+          setError("La contraseña debe tener al menos 6 caracteres");
+          setIsSubmitting(false);
           return;
         }
 
@@ -169,11 +210,24 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
 
       setIsSubmitting(false);
       setShowConfirmDialog(false);
-      onClose()
+      onClose();
 
     } catch (error: any) {
       console.error("Error en el formulario:", error);
-      setError(error.message || (user ? "Error al actualizar usuario" : "Error al crear usuario"));
+      
+      // Manejo mejorado de errores específicos
+      let errorMessage = error.message || (user ? "Error al actualizar usuario" : "Error al crear usuario");
+      
+      // Detectar errores comunes y dar mensajes más amigables
+      if (errorMessage.includes("CSRF") || errorMessage.includes("token")) {
+        errorMessage = "Error de seguridad en el envío del formulario. Intente nuevamente.";
+      } else if (errorMessage.includes("username") && errorMessage.includes("uso")) {
+        errorMessage = "El nombre de usuario ya está en uso. Por favor elija otro.";
+      } else if (errorMessage.includes("email") && (errorMessage.includes("uso") || errorMessage.includes("existe"))) {
+        errorMessage = "El correo electrónico ya está registrado.";
+      }
+      
+      setError(errorMessage);
       setIsSubmitting(false);
       setShowConfirmDialog(false);
     }
