@@ -6,7 +6,6 @@ import {
   projects,
   InsertVideo,
   User,
-  Video,
   projectAccess,
   VIDEO_STATUSES_ARRAY,
   VideoStatus,

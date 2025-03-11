@@ -131,8 +131,8 @@ export class YouTubeService {
 
       // Optimized query: Get existing video IDs from database
       const startTime = Date.now();
-      const existingVideos: Pick<YoutubeVideo, 'videoId' | 'updatedAt'>[] = await db.select({
-        videoId: youtube_videos.youtubeId,
+      const existingVideos: Pick<YoutubeVideo, 'youtubeId' | 'updatedAt'>[] = await db.select({
+          youtubeId: youtube_videos.youtubeId,
         updatedAt: youtube_videos.updatedAt
       })
       .from(youtube_videos)
@@ -147,7 +147,7 @@ export class YouTubeService {
       const recentlyUpdatedIds = new Set(
         existingVideos
           .filter(v => v.updatedAt && (Date.now() - v.updatedAt.getTime() < 24 * 60 * 60 * 1000))
-          .map(v => v.videoId)
+          .map(v => v.youtubeId)
       );
 
       let allVideos: InsertYoutubeVideo[] = [];
@@ -165,7 +165,14 @@ export class YouTubeService {
           playlistId: uploadsPlaylistId,
           maxResults: 50, // Maximum allowed by YouTube API
           pageToken: nextPageToken,
-        });
+        }) as { 
+          data: {
+            items?: {
+              contentDetails?: { videoId?: string } 
+            }[],
+            nextPageToken?: string
+          }
+        }
 
         if (!playlistResponse.data.items?.length) {
           console.debug(`No items found in playlist page ${pageCounter}`);
@@ -195,7 +202,7 @@ export class YouTubeService {
             });
 
             const batchVideos = videosResponse.data.items?.map(video => ({
-              videoId: video.id!,
+              youtubeId: video.id!,
               channelId,
               title: video.snippet?.title || '',
               description: video.snippet?.description || null,
@@ -210,7 +217,7 @@ export class YouTubeService {
 
             allVideos = [...allVideos, ...batchVideos.map<InsertYoutubeVideo>(bv => {
               return {
-                videoId: bv.videoId,
+                youtubeId: bv.youtubeId,
                 channelId: bv.channelId,
                 title: bv.title,
                 description: bv.description,
@@ -262,14 +269,14 @@ export class YouTubeService {
         .from(youtube_videos)
         .where(inArray(
           youtube_videos.youtubeId, 
-          videos.map(v => v.videoId)
+          videos.map(v => v.youtubeId)
         ));
 
       existingVideos.forEach(v => existingVideoIds.add(v.videoId));
 
       // Separate videos into ones to insert and ones to update
-      const videosToInsert = videos.filter(v => !existingVideoIds.has(v.videoId));
-      const videosToUpdate = videos.filter(v => existingVideoIds.has(v.videoId));
+      const videosToInsert = videos.filter(v => !existingVideoIds.has(v.youtubeId));
+      const videosToUpdate = videos.filter(v => existingVideoIds.has(v.youtubeId));
 
       console.debug(`Processing ${videosToInsert.length} new videos and ${videosToUpdate.length} updates`);
 
@@ -303,7 +310,7 @@ export class YouTubeService {
                 ...video,
                 updatedAt: new Date(),
               })
-              .where(eq(youtube_videos.youtubeId, video.videoId));
+              .where(eq(youtube_videos.youtubeId, video.youtubeId));
           }
         }
       }

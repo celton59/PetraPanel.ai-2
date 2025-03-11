@@ -4,14 +4,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { User as UserIcon, UserRound, Mail, Phone, Type, Loader2, Check, X } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
-import { UserFormData } from "../UserSettingsForm";
+import { User } from "@db/schema";
 
 interface PersonalInfoSectionProps {
-  formData: UserFormData;
-  setFormData: (data: Partial<PersonalInfoSectionProps['formData']>) => void;
   isCheckingUsername: boolean;
   isCheckingEmail: boolean;
-  form: UseFormReturn<UserFormData>;
+  form: UseFormReturn<Partial<User>>;
 }
 
 export function PersonalInfoSection ({
@@ -50,7 +48,7 @@ export function PersonalInfoSection ({
       <div className="grid gap-4 md:grid-cols-2">
         <FormField
           control={form.control}
-          name="full_name"
+          name="fullName"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center space-x-2">
@@ -58,7 +56,7 @@ export function PersonalInfoSection ({
                 <span>Nombre completo *</span>
               </FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Juan Pérez" />
+                <Input {...field} value={field.value || ''} placeholder="Juan Pérez" />
               </FormControl>
               <FormDescription>
                 Usa tu nombre real para una mejor identificación
@@ -104,7 +102,7 @@ export function PersonalInfoSection ({
               </FormLabel>
               <div className="relative">
                 <FormControl>
-                  <Input {...field} type="email" placeholder="usuario@ejemplo.com" />
+                  <Input {...field} value={field.value || ''} type="email" placeholder="usuario@ejemplo.com" />
                 </FormControl>
                 <div className="absolute right-3 top-2.5">
                   {getFieldIcon("email")}
@@ -130,7 +128,7 @@ export function PersonalInfoSection ({
               <FormControl>
                 <Input 
                   {...field}
-                  value={field.value}
+                  value={field.value || ''}
                   placeholder="+34 600 000 000" 
                 />
               </FormControl>

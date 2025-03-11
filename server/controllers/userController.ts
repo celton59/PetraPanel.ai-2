@@ -1,10 +1,11 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { users, projectAccess } from "@db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { db } from "@db";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
+import { type Express } from "express";
 
 const scryptAsync = promisify(scrypt);
 
@@ -404,11 +405,13 @@ export async function deleteUser(
   }
 }
 
-const UserController = {
-  createUser,
-  updateUser,
-  getUsers,
-  deleteUser
-};
 
-export default UserController;
+export function setUpUserRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  app.post("/api/users", requireAuth, createUser);
+
+  app.put("/api/users/:id", requireAuth, updateUser );
+
+  app.get("/api/users", requireAuth, getUsers );
+
+  app.delete("/api/users/:id", requireAuth, deleteUser );
+}

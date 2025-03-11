@@ -3,26 +3,24 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
 import { 
-  users, videos, actionRates, userActions, payments, projects
+  users, actionRates, userActions, payments, projects
 } from "@db/schema"; 
-import { eq, count, sql, and, asc, desc, or, isNull, isNotNull, ne } from "drizzle-orm";
+import { eq, count, sql, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import sharp from "sharp";
 import fs from "fs";
 import express from "express";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
-import UserController from "./controllers/userController.js";
+import { setUpUserRoutes } from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
+import { setUpProfileRoutes } from "./controllers/profileController.js";
 
-const scryptAsync = promisify(scrypt);
 
 const avatarStorage = multer.diskStorage({
   destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
@@ -45,11 +43,6 @@ const avatarUpload = multer({
   }
 });
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
 
 export function registerRoutes(app: Express): Server {
   try {
@@ -75,9 +68,7 @@ export function registerRoutes(app: Express): Server {
       next();
     };
 
-    setupAuth(app); // Authentication setup moved here
-    console.log("Authentication setup complete");
-    console.log("Routes registered successfully");
+    setupAuth(app);
 
     // Serve uploaded files
     app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -95,146 +86,10 @@ export function registerRoutes(app: Express): Server {
     setUpTitulinRoutes(requireAuth, app)
 
     // Users routes
-    app.post("/api/users", requireAuth, UserController.createUser);
-
-    app.put("/api/users/:id", requireAuth, UserController.updateUser );
-    
-    app.get("/api/users", requireAuth, UserController.getUsers );
-
-    app.delete("/api/users/:id", requireAuth, UserController.deleteUser );
+    setUpUserRoutes(requireAuth, app)
 
     // Profile routes
-    app.get("/api/profile", requireAuth, async (req: Request, res: Response) => {      try {
-        const user = await db.select()          .from(users)
-          .where(eq(users.id, req.user!.id as number))
-          .limit(1);
-
-        if (!user || user.length === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "Perfil no encontrado"
-          });
-        }
-
-        const { password, ...profile } = user[0];
-                res.json({
-          success: true,
-          data: profile
-        });
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener el perfil"
-        });
-      }
-    });
-
-    app.post("/api/profile/password", requireAuth, async (req: Request, res: Response) => {
-      const { currentPassword, newPassword } = req.body;
-
-      try {
-        // Verificar contraseña actual
-        const user = await db.select()
-          .from(users)
-          .where(eq(users.id, req.user!.id))
-          .limit(1);
-
-        if (!user.length) {
-          return res.status(404).json({
-            success: false,
-            message: "Usuario no encontrado"
-          });
-        }
-
-        const [salt, hash] = user[0].password.split(".");
-        const buf = (await scryptAsync(currentPassword, salt, 64)) as Buffer;
-        const hashedPassword = `${buf.toString("hex")}.${salt}`;
-
-        if (hashedPassword !== user[0].password) {
-          return res.status(400).json({
-            success: false,
-            message: "Contraseña actual incorrecta"
-          });
-        }
-
-        // Actualizar con nueva contraseña
-        const newHashedPassword = await hashPassword(newPassword);
-        await db.update(users)
-          .set({ password: newHashedPassword})
-          .where(eq(users.id, req.user!.id!));
-
-        res.json({
-          success: true,
-          message: "Contraseña actualizada correctamente"
-        });
-      } catch (error) {
-        console.error("Error updating password:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al actualizar la contraseña"
-        });
-      }
-    });
-
-    app.post("/api/profile", requireAuth, async (req: Request, res: Response) => {      const { fullName, username, phone, bio } = req.body;
-
-      try {
-        // Validar que los campos requeridos estén presentes
-        if (!fullName || !username) {
-          return res.status(400).json({
-            success: false,
-            message: "El nombre completo y el nombre de usuario son requeridos"
-          });
-        }
-
-        // Verificar si el nombre de usuario ya existe (excluyendo el usuario actual)
-        const existingUser = await db
-          .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1);
-
-        if (existingUser.length > 0 && existingUser[0].id !== req.user!.id) {
-          return res.status(400).json({
-            success: false,
-            message: "El nombre de usuario ya está en uso"
-          });
-        }
-
-        const result = await db
-          .update(users)
-          .set({
-            fullName,
-            username,
-            phone: phone || null,
-            bio: bio || null,
-            updatedAt: new Date()
-          })
-          .where(eq(users.id, req.user!.id as number))
-          .returning();
-
-        if (!result || result.length === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "Usuario no encontrado"
-          });
-        }
-
-        const { password, ...profile } = result[0];
-        res.status(200).json({
-          success: true,
-          data: profile,
-          message: "Perfil actualizado correctamente"
-        });
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al actualizar el perfil"
-        });
-      }
-    });
+    setUpProfileRoutes(requireAuth, app)
 
     // Avatar upload route
     app.post("/api/upload-avatar", requireAuth, avatarUpload.single('avatar'), async (req: Request, res: Response) => {
@@ -671,15 +526,14 @@ export function registerRoutes(app: Express): Server {
           })
           .from(userActions)
           .leftJoin(projects, eq(projects.id, userActions.projectId))
-          .where(eq(userActions.userId, userId));
+          .where(and(
+            eq(userActions.userId, userId),
+            // Filtrar por estado de pago si se especifica
+            paid !== undefined ? eq(userActions.isPaid, paid === "true") : undefined
+          ))
+          // Ordenar por fecha (más reciente primero)
+          .orderBy(desc(userActions.createdAt)); 
 
-        // Filtrar por estado de pago si se especifica
-        if (paid !== undefined) {
-          query = query.where(eq(userActions.isPaid, paid === 'true'));
-        }
-
-        // Ordenar por fecha (más reciente primero)
-        query = query.orderBy(desc(userActions.createdAt));
 
         const actions = await query;
 
@@ -829,7 +683,7 @@ export function registerRoutes(app: Express): Server {
 
         // Registra la actividad del usuario actual mediante REST
         if (req.user) {
-          onlineUsersService.registerUserActivity(req.user);
+          onlineUsersService.registerUserActivity(req.user.id, req.user.username);
         }
 
         const activeUsers = onlineUsersService.getActiveUsers();

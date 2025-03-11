@@ -330,7 +330,7 @@ export default function TitulinPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`https://youtube.com/watch?v=${selectedVideo.videoId}`, '_blank')}
+                  onClick={() => window.open(`https://youtube.com/watch?v=${selectedVideo.youtubeId}`, '_blank')}
                 >
                   <Youtube className="h-4 w-4 mr-2" />
                   Ver en YouTube
@@ -520,7 +520,6 @@ export default function TitulinPage() {
           <DataTable
             columns={columns}
             data={filteredVideos}
-            isFetching={isFetchingVideos}
           />
           
           {paginationMetadata && paginationMetadata.totalPages > 1 && (
@@ -530,7 +529,6 @@ export default function TitulinPage() {
                   <PaginationItem>
                     <PaginationPrevious 
                       onClick={() => handlePageChange(page - 1)}
-                      disabled={!paginationMetadata.hasPrevPage}
                     />
                   </PaginationItem>
                   
@@ -539,7 +537,6 @@ export default function TitulinPage() {
                   <PaginationItem>
                     <PaginationNext 
                       onClick={() => handlePageChange(page + 1)}
-                      disabled={!paginationMetadata.hasNextPage}
                     />
                   </PaginationItem>
                 </PaginationContent>

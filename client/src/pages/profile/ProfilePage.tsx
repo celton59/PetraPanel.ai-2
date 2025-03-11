@@ -61,7 +61,7 @@ export default function ProfilePage() {
     setIsUpdating(true);
     try {
       const response = await fetch('/api/profile', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },

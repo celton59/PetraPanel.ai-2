@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
 });
 
 export type User = typeof users.$inferSelect;
@@ -137,7 +138,7 @@ export const actionRates = pgTable("action_rates", {
     ] 
   }).notNull(),
   roleId: text("role_id", { 
-    enum: ["content_reviewer", "media_reviewer", "optimizer", "youtuber"] 
+    enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"]
   }).notNull(),
   rate: numeric("rate").notNull(),
   projectId: integer("project_id").references(() => projects.id),

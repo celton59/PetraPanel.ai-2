@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  UserCheck, Upload, Video, User, Users, 
+  UserCheck, Upload, Video, User as UserIcon, Users, 
   Search, Loader2, ShieldCheck, Pencil, Shield,
   SquareUser, Wifi, WifiOff
 } from "lucide-react";
@@ -18,28 +18,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsers } from "@/hooks/useUsers";
 import { useOnlineUsers } from "@/hooks/use-online-users";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-interface Profile {
-  id: string;
-  username: string;
-  full_name?: string;
-  email: string;
-  avatar_url?: string;
-  role?: string;
-  bio?: string;
-  phone?: string;
-}
+import { User } from "@db/schema";
 
 export const UsersList = () => {
   const { users, isLoading } = useUsers();
   const { onlineUsers: onlineUsersData, isConnected, usingFallback } = useOnlineUsers();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [detailOpen, setDetailOpen] = useState(false);
   
   // Crear un conjunto de IDs de usuarios en línea para búsqueda rápida
-  const onlineUserIds = new Set(onlineUsersData.map(user => user.userId.toString()));
+  const onlineUserIds = new Set(onlineUsersData.map(user => user.userId));
 
   // Filtrar usuarios por rol y búsqueda
   const filteredUsers = users?.filter(user =>
@@ -73,7 +63,7 @@ export const UsersList = () => {
       case "youtuber":
         return <Video className="h-4 w-4 text-green-500" />;
       default:
-        return <User className="h-4 w-4 text-gray-500" />;
+        return <UserIcon className="h-4 w-4 text-gray-500" />;
     }
   };
   
@@ -182,16 +172,7 @@ export const UsersList = () => {
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}
                   onClick={() => {
-                    setSelectedUser({
-                      id: user.id.toString(),
-                      username: user.username,
-                      full_name: user.fullName || "",
-                      email: user.email,
-                      avatar_url: user.avatarUrl || "", 
-                      role: user.role,
-                      bio: "",
-                      phone: ""
-                    });
+                    setSelectedUser(user);
                     setDetailOpen(true);
                   }}
                   className="flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors duration-200"
@@ -206,7 +187,7 @@ export const UsersList = () => {
                       </AvatarFallback>
                     </Avatar>
                     {/* Indicador de estado en línea */}
-                    {onlineUserIds.has(user.id.toString()) ? (
+                    {onlineUserIds.has(user.id) ? (
                       <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 h-2.5 w-2.5 rounded-full border-2 border-background"></div>
                     ) : (
                       <div className="absolute -bottom-0.5 -right-0.5 bg-gray-400/50 h-2.5 w-2.5 rounded-full border-2 border-background"></div>
@@ -236,7 +217,7 @@ export const UsersList = () => {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1 mt-2">
-                      {onlineUserIds.has(user.id.toString()) ? (
+                      {onlineUserIds.has(user.id) ? (
                         <>
                           <div className="bg-green-500 h-1.5 w-1.5 rounded-full"></div>
                           <p className="text-xs text-muted-foreground">

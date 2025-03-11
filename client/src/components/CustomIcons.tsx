@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 // Creamos íconos personalizados que sean compatibles con la interfaz LucideIcon
-export const PaymentIcon: LucideIcon = function PaymentIcon(props) {
+export const PaymentIcon: LucideIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(function PaymentIcon(props, ref) {
   return (
     <svg
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -20,11 +21,12 @@ export const PaymentIcon: LucideIcon = function PaymentIcon(props) {
       <line x1="2" y1="10" x2="22" y2="10" />
     </svg>
   );
-};
+});
 
-export const MoneyIcon: LucideIcon = function MoneyIcon(props) {
+export const MoneyIcon: LucideIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(function MoneyIcon(props, ref) {
   return (
     <svg
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -40,11 +42,12 @@ export const MoneyIcon: LucideIcon = function MoneyIcon(props) {
       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
     </svg>
   );
-};
+});
 
-export const TasksIcon: LucideIcon = function TasksIcon(props) {
+export const TasksIcon: LucideIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(function TasksIcon(props, ref) {
   return (
     <svg
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -60,11 +63,12 @@ export const TasksIcon: LucideIcon = function TasksIcon(props) {
       <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </svg>
   );
-};
+});
 
-export const PendingIcon: LucideIcon = function PendingIcon(props) {
+export const PendingIcon: LucideIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(function PendingIcon(props, ref) {
   return (
     <svg
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -80,4 +84,4 @@ export const PendingIcon: LucideIcon = function PendingIcon(props) {
       <polyline points="12 6 12 12 16 14" />
     </svg>
   );
-};
+});

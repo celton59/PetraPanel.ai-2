@@ -1,4 +1,3 @@
-import { Profile } from "@/types/profile";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Phone, Info, CircleDot } from "lucide-react";
+import { User } from "@db/schema";
 
 interface UserDetailsProps {
-  user: Profile | null;
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
   isOnline: boolean;
@@ -47,9 +47,9 @@ export const UserDetails = ({ user, isOpen, onClose, isOnline }: UserDetailsProp
           <div className="flex items-center gap-4">
             <div className="relative">
               <Avatar className="h-16 w-16 border">
-                <AvatarImage src={user.avatar_url || undefined} />
+                <AvatarImage src={user.avatarUrl || undefined} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {user.full_name?.[0] || user.username?.[0] || "?"}
+                  {user.fullName?.[0] || user.username?.[0] || "?"}
                 </AvatarFallback>
               </Avatar>
               {isOnline && (
@@ -60,7 +60,7 @@ export const UserDetails = ({ user, isOpen, onClose, isOnline }: UserDetailsProp
             </div>
             <div>
               <h3 className="font-semibold text-lg">
-                {user.full_name || user.username || "Usuario sin nombre"}
+                {user.fullName || user.username || "Usuario sin nombre"}
               </h3>
               <Badge variant="outline" className={`${getRoleBadgeColor(user.role)} capitalize mt-1`}>
                 {user.role || "Sin rol"}

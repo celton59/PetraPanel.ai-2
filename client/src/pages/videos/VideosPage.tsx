@@ -641,7 +641,6 @@ export default function VideosPage() {
             projectId={projectId}
             onProjectChange={setProjectId}
             showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
           />
           
           <div className="flex items-center gap-2 ml-auto">
@@ -718,7 +717,6 @@ export default function VideosPage() {
               <PaginationItem>
                 <PaginationPrevious 
                   onClick={() => handlePageChange(page - 1)}
-                  disabled={!paginationMetadata.hasPrevPage}
                 />
               </PaginationItem>
 
@@ -727,7 +725,6 @@ export default function VideosPage() {
               <PaginationItem>
                 <PaginationNext 
                   onClick={() => handlePageChange(page + 1)}
-                  disabled={!paginationMetadata.hasNextPage}
                 />
               </PaginationItem>
             </PaginationContent>

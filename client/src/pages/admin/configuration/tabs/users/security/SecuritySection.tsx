@@ -68,7 +68,7 @@ export function SecuritySection ({
             </FormLabel>
             <FormControl>
               <RoleSelector 
-                value={field.value}
+                value={field.value ?? 'optimizer'}
                 onChange={(value: User['role']) => {
                   field.onChange(value);
                 }}

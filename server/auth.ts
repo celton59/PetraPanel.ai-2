@@ -138,6 +138,7 @@ export function setupAuth(app: Express) {
     console.log("Login successful for user:", req.user?.username);
     const userToReturn = JSON.parse(JSON.stringify(req.user))
     delete userToReturn.password;
+    db.update(users).set({ lastLoginAt: new Date() })
     res.json(userToReturn);
   });
 

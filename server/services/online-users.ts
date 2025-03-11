@@ -1,6 +1,5 @@
 import { Server as HttpServer } from 'http';
 import * as WebSocketModule from 'ws';
-import { User } from '../../db/schema';
 import { log } from '../vite';
 import { IncomingMessage } from 'http';
 
@@ -19,7 +18,7 @@ interface ClientConnection {
  * Servicio para gestionar usuarios conectados en tiempo real
  */
 export class OnlineUsersService {
-  private wss: typeof WebSocketServer;
+  private wss: InstanceType<typeof WebSocketServer>;
   private clients: Map<WebSocket, ClientConnection> = new Map();
   private activeUsers: Map<number, { lastActivity: number; username: string; }> = new Map();
   private heartbeatInterval: NodeJS.Timeout;
@@ -245,16 +244,16 @@ export class OnlineUsersService {
    * Registra actividad de un usuario (para APIs REST)
    * Útil para actualizar estado de usuario sin WebSocket
    */
-  public registerUserActivity(user: User) {
-    if (!user || !user.id) return;
+  public registerUserActivity(userId?: number, userName?: string) {
+    if (!userId || !userName) return;
     
-    const existingUser = this.activeUsers.get(user.id);
+    const existingUser = this.activeUsers.get(userId);
     if (existingUser) {
       existingUser.lastActivity = Date.now();
     } else {
-      this.activeUsers.set(user.id, {
+      this.activeUsers.set(userId, {
         lastActivity: Date.now(),
-        username: user.username
+        username: userName
       });
       this.broadcastActiveUsers();
     }

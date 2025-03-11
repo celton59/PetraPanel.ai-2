@@ -47,7 +47,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       bio: user?.bio ? user.bio : undefined,
       role: user?.role ?? undefined,
       password: "",
-      
     },
   });
 
@@ -118,21 +117,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
             <div className="space-y-6">
               <PersonalInfoSection
                 form={form}
-                formData={{
-                  role: user?.role,
-                  password: "",
-                  full_name: form.watch("fullName"),
-                  username: form.watch("username"),
-                  email: form.watch("email"),
-                  phone: form.watch("phone") || "",
-                  bio: form.watch("bio") || "",
-                }}
-                setFormData={(data) => {
-                  Object.entries(data).forEach(([key, value]) => {
-                    form.setValue(key as keyof Partial<User>, value as string);
-                  });
-                  form.trigger();
-                }}
                 isCheckingUsername={false}
                 isCheckingEmail={false}
               />
@@ -141,21 +125,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
             <div className="space-y-6">
               <SecuritySection
                 form={form}
-                formData={{
-                  role: user?.role,
-                  password: "",
-                  full_name: form.watch("fullName"),
-                  username: form.watch("username"),
-                  email: form.watch("email"),
-                  phone: form.watch("phone") || "",
-                  bio: form.watch("bio") || "",
-                }}
-                setFormData={(data) => {
-                  Object.entries(data).forEach(([key, value]) => {
-                    form.setValue(key as keyof Partial<User>, value as string);
-                  });
-                  form.trigger();
-                }}
                 isEditing={!!user}
                 selectedProjects={selectedProjects}
                 setSelectedProjects={setSelectedProjects}
