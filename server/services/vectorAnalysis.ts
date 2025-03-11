@@ -166,36 +166,52 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
     const evergreenExamplesText = evergreenExamples.map(ex => `- "${ex}"`).join('\n');
     const nonEvergreenExamplesText = nonEvergreenExamples.map(ex => `- "${ex}"`).join('\n');
     
-    // Usar GPT para analizar si el título es evergreen
+    // Usar GPT-4 para analizar si el título es evergreen con un prompt mejorado
     const prompt = `
     Analiza el siguiente título de YouTube y determina si es "evergreen" (contenido atemporal) o no.
     
     Título: "${title}"
     
-    Un título "evergreen" tiene estas características:
-    - Aborda temas que son relevantes a lo largo del tiempo, no atados a eventos actuales o modas pasajeras
-    - Responde a preguntas o problemas universales que la gente siempre busca
-    - No menciona fechas específicas, años, o eventos temporales
-    - Suele incluir términos como "cómo", "guía", "tutorial", "tips", etc.
+    # Criterios para contenido evergreen
+    Un título "evergreen" debe cumplir TODOS estos criterios:
+    1. Abordar temas relevantes a largo plazo, independientes de noticias actuales o tendencias temporales
+    2. Responder a preguntas o problemas que las personas buscan constantemente a lo largo del tiempo
+    3. NO mencionar fechas específicas, años, eventos temporales, versiones específicas de software que serán obsoletas
+    4. Proporcionar información o conocimiento que seguirá siendo valioso por años
+    5. Generalmente usa términos como "cómo", "guía", "tutorial", "consejos", etc.
     
-    Ejemplos de títulos evergreen:
+    # Criterios para contenido NO evergreen
+    Un título NO es evergreen si cumple ALGUNO de estos criterios:
+    1. Menciona eventos recientes, noticias, tendencias actuales o de temporada
+    2. Incluye fechas, años, versiones específicas o referencias temporales ("nuevo", "reciente")
+    3. Se refiere a productos, servicios o tecnologías que cambiarán pronto (como versiones específicas de iOS)
+    4. Contiene reacciones, opiniones o comentarios sobre algo temporal
+    5. Utiliza términos como "ahora", "hoy", "este año", etc.
+    
+    # Ejemplos de títulos evergreen:
     ${evergreenExamplesText}
     
-    Ejemplos de títulos NO evergreen:
+    # Ejemplos de títulos NO evergreen:
     ${nonEvergreenExamplesText}
     
-    Responde en formato JSON con esta estructura exacta:
+    # Instrucciones para el análisis
+    1. Analiza el título cuidadosamente según los criterios anteriores
+    2. Determina si es evergreen o no
+    3. Asigna un nivel de confianza entre 0.0 y 1.0
+    4. Proporciona una explicación clara de tu decisión
+    5. Responde EXACTAMENTE en este formato JSON:
+    
     {
       "isEvergreen": true/false,
       "confidence": 0.0-1.0,
-      "reason": "Explicación de la decisión"
+      "reason": "Explicación detallada de la decisión basada en los criterios anteriores"
     }
     `;
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4-turbo-preview",
       messages: [
-        { role: "system", content: "Eres un asistente de análisis de contenido de YouTube." },
+        { role: "system", content: "Eres un asistente especializado en análisis de contenido de YouTube. Tu tarea es determinar si un título es 'evergreen' (contenido atemporal) o no." },
         { role: "user", content: prompt }
       ],
       temperature: 0.1,
