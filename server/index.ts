@@ -132,7 +132,7 @@ app.use((req, res, next) => {
 
     // Iniciar el servidor en el puerto 5000 como requerido para deployments
     const PORT = process.env.PORT || 5000; // Use PORT environment variable or default to 5000
-    server.listen(PORT, "0.0.0.0", () => {
+    server.listen(Number(PORT), "0.0.0.0", () => {
       const actualPort = (server.address() as any)?.port || PORT;
       console.log(`Server started on port ${actualPort}`);
       log(`Server running on http://0.0.0.0:${actualPort}`);
