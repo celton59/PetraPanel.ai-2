@@ -131,8 +131,8 @@ app.use((req, res, next) => {
     }
 
     // Iniciar el servidor en el puerto 3000 como requerido para deployments
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
+    const PORT = 3000; // Force port 3000 for deployments
+    server.listen(PORT, "0.0.0.0", () => {
       const actualPort = (server.address() as any)?.port || PORT;
       console.log(`Server started on port ${actualPort}`);
       log(`Server running on http://0.0.0.0:${actualPort}`);
