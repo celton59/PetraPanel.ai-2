@@ -130,8 +130,8 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Iniciar el servidor en el puerto 5000 como requerido
-    const PORT = process.env.PORT || 5000;
+    // Iniciar el servidor en el puerto 3000 como requerido para deployments
+    const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
       const actualPort = (server.address() as any)?.port || PORT;
       console.log(`Server started on port ${actualPort}`);
