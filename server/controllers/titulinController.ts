@@ -163,45 +163,63 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
 
   // Obtener channelId del path
   const { channelId } = req.params;
-  console.log("CHANNEL ID", channelId)
+  console.log(`Iniciando eliminación del canal ID: ${channelId}`);
   
   try {
-    await db.transaction(async (trx) => {
-      // 1. Primero obtener los videos relacionados para obtener sus IDs
-      const videos = await trx.query.youtube_videos.findMany({
-        where: eq(youtube_videos.channelId, channelId),
-        columns: {
-          videoId: true
-        }
-      });
+    // 1. Primero obtener los videos relacionados para obtener sus IDs
+    const videos = await db.query.youtube_videos.findMany({
+      where: eq(youtube_videos.channelId, channelId),
+      columns: {
+        id: true,
+        videoId: true,
+        title: true
+      }
+    });
+    
+    console.log(`Encontrados ${videos.length} videos asociados al canal ${channelId}`);
+    
+    // Procesamos por lotes para manejar grandes volúmenes de datos
+    const BATCH_SIZE = 1000;
+    const totalVideoCount = videos.length;
+    let processedCount = 0;
+    
+    // Extraer IDs para utilizarlos en la eliminación
+    const videoIds = videos.map(v => v.videoId);
+    const dbVideoIds = videos.map(v => v.id);
+    
+    // Procesamiento por lotes de la eliminación
+    for (let i = 0; i < totalVideoCount; i += BATCH_SIZE) {
+      const batchVideoIds = videoIds.slice(i, i + BATCH_SIZE);
+      const batchDbIds = dbVideoIds.slice(i, i + BATCH_SIZE);
       
-      const videoIds = videos.map(v => v.videoId);
+      if (batchVideoIds.length === 0) continue;
       
-      // 2. Eliminar los ejemplos de entrenamiento de títulos asociados a estos videos
-      if (videoIds.length > 0) {
-        // Los ejemplos pueden estar basados en estos videos de YouTube
+      await db.transaction(async (trx) => {
+        // Eliminar los ejemplos de entrenamiento basados en los títulos de estos videos
         await trx.execute(sql`
           DELETE FROM training_title_examples 
-          WHERE youtube_video_id IN (${sql.join(videoIds, sql`,`)})
-          OR title IN (SELECT title FROM youtube_videos WHERE video_id IN (${sql.join(videoIds, sql`,`)}))
+          WHERE title IN (SELECT title FROM youtube_videos WHERE video_id IN (${sql.join(batchVideoIds, sql`,`)}))
         `);
-      }
+        
+        // Eliminar los videos de este lote
+        await trx.delete(youtube_videos)
+          .where(inArray(youtube_videos.id, batchDbIds))
+          .execute();
+      });
       
-      // 3. Eliminar videos relacionados
-      await trx.delete(youtube_videos)
-        .where(eq(youtube_videos.channelId, channelId))
-        .execute();
-
-      // 4. Eliminar canal
-      return await trx.delete(youtube_channels)
-        .where(eq(youtube_channels.id, parseInt(channelId)))
-        .execute();
-    });
+      processedCount += batchVideoIds.length;
+      console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(totalVideoCount/BATCH_SIZE)}: ${processedCount}/${totalVideoCount} videos eliminados del canal ${channelId}`);
+    }
+    
+    // Finalmente eliminamos el canal
+    await db.delete(youtube_channels)
+      .where(eq(youtube_channels.id, parseInt(channelId)))
+      .execute();
     
     console.log("Canal y sus datos asociados eliminados correctamente");
     return res.status(200).json({
       success: true,
-      message: 'Canal, videos y ejemplos de entrenamiento relacionados eliminados correctamente'
+      message: `Canal eliminado correctamente junto con ${totalVideoCount} videos y sus ejemplos de entrenamiento asociados`
     });
   } catch (error) {
     console.error('Error al eliminar canal', error);
@@ -465,7 +483,6 @@ export function setUpTitulinRoutes (app: Express) {
         FROM youtube_videos y
         LEFT JOIN youtube_channels c ON y.channel_id = c.channel_id
         WHERE c.channel_id IS NULL
-        LIMIT 1000
       `);
       
       // Extraer los resultados según el formato de la respuesta
@@ -485,22 +502,33 @@ export function setUpTitulinRoutes (app: Express) {
       const videoIdsYouTube = orphanedVideos.map((v: any) => v.video_id);
       
       // 2. Eliminar ejemplos de entrenamiento relacionados con estos videos
-      await db.transaction(async (trx) => {
-        // Eliminar primero los ejemplos de entrenamiento basados en estos videos
-        if (videoIdsYouTube.length > 0) {
+      // Procesar en lotes para manejar grandes volúmenes de datos
+      const BATCH_SIZE = 1000;
+      let deletedCount = 0;
+      const totalCount = orphanedVideos.length;
+      
+      for (let i = 0; i < totalCount; i += BATCH_SIZE) {
+        const batchIds = videoIds.slice(i, i + BATCH_SIZE);
+        
+        if (batchIds.length === 0) continue;
+        
+        await db.transaction(async (trx) => {
+          // Eliminar los ejemplos de entrenamiento basados en los títulos de estos videos
           await trx.execute(sql`
             DELETE FROM training_title_examples 
-            WHERE youtube_video_id IN (${sql.join(videoIdsYouTube, sql`,`)})
-            OR title IN (SELECT title FROM youtube_videos WHERE id IN (${sql.join(videoIds, sql`,`)}))
+            WHERE title IN (SELECT title FROM youtube_videos WHERE id IN (${sql.join(batchIds, sql`,`)}))
           `);
-        }
+          
+          // Luego eliminar los videos huérfanos usando SQL directo
+          await trx.execute(sql`
+            DELETE FROM youtube_videos
+            WHERE id IN (${sql.join(batchIds, sql`,`)})
+          `);
+        });
         
-        // Luego eliminar los videos huérfanos usando SQL directo
-        await trx.execute(sql`
-          DELETE FROM youtube_videos
-          WHERE id IN (${sql.join(videoIds, sql`,`)})
-        `);
-      });
+        deletedCount += batchIds.length;
+        console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(totalCount/BATCH_SIZE)}: ${deletedCount}/${totalCount} videos huérfanos eliminados`);
+      }
       
       return res.status(200).json({
         success: true,

@@ -815,7 +815,7 @@ export default function TitulinTab () {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => cleanupOrphanedVideos()}>
+                        <AlertDialogAction onClick={cleanupOrphanedVideos}>
                           Eliminar
                         </AlertDialogAction>
                       </AlertDialogFooter>

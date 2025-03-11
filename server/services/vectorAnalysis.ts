@@ -44,50 +44,82 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
 /**
  * Obtiene ejemplos de títulos evergreen y no evergreen de la base de datos
+ * @param limit Límite de ejemplos a obtener para cada categoría
  * @returns Objeto con arrays de ejemplos
  */
-async function getTrainingExamples(): Promise<{
+async function getTrainingExamples(limit: number = 10): Promise<{
   evergreenExamples: string[];
   nonEvergreenExamples: string[];
 }> {
   try {
-    const examples = await db.execute(sql`
-      SELECT title, is_evergreen 
+    // Obtener ejemplos evergreen con límite
+    const evergreenQuery = await db.execute(sql`
+      SELECT title 
       FROM training_title_examples 
-      ORDER BY id
+      WHERE is_evergreen = true
+      AND vector_processed = true
+      ORDER BY RANDOM()
+      LIMIT ${limit}
     `);
     
-    const rows = Array.isArray(examples) ? examples : 
-                (examples.rows && Array.isArray(examples.rows) ? examples.rows : 
-                (typeof examples === 'object' ? Object.values(examples) : []));
+    // Obtener ejemplos no evergreen con límite
+    const nonEvergreenQuery = await db.execute(sql`
+      SELECT title 
+      FROM training_title_examples 
+      WHERE is_evergreen = false
+      AND vector_processed = true
+      ORDER BY RANDOM()
+      LIMIT ${limit}
+    `);
     
-    // Construir arrays separados para títulos evergreen y no evergreen
-    const evergreenExamples: string[] = [];
-    const nonEvergreenExamples: string[] = [];
+    // Normalizar resultados para evergreen
+    const evergreenRows = Array.isArray(evergreenQuery) ? evergreenQuery : 
+                (evergreenQuery.rows && Array.isArray(evergreenQuery.rows) ? evergreenQuery.rows : 
+                (typeof evergreenQuery === 'object' ? Object.values(evergreenQuery) : []));
     
-    if (Array.isArray(rows)) {
-      rows.forEach((row: any) => {
-        if (row.is_evergreen) {
-          evergreenExamples.push(row.title);
-        } else {
-          nonEvergreenExamples.push(row.title);
+    // Normalizar resultados para no evergreen
+    const nonEvergreenRows = Array.isArray(nonEvergreenQuery) ? nonEvergreenQuery : 
+                (nonEvergreenQuery.rows && Array.isArray(nonEvergreenQuery.rows) ? nonEvergreenQuery.rows : 
+                (typeof nonEvergreenQuery === 'object' ? Object.values(nonEvergreenQuery) : []));
+    
+    // Extraer los títulos
+    const evergreenExamples: string[] = evergreenRows.map((row: any) => row.title);
+    const nonEvergreenExamples: string[] = nonEvergreenRows.map((row: any) => row.title);
+    
+    // Si no hay suficientes ejemplos, añadir algunos por defecto
+    if (evergreenExamples.length < 3) {
+      const defaultExamples = [
+        "Cómo hacer pan casero - Tutorial completo",
+        "5 ejercicios para fortalecer la espalda",
+        "Guía definitiva para aprender a tocar guitarra",
+        "Aprende inglés en 10 minutos al día",
+        "Tutorial: Cómo configurar WordPress desde cero"
+      ];
+      
+      for (const example of defaultExamples) {
+        if (evergreenExamples.length < 5) {
+          evergreenExamples.push(example);
         }
-      });
+      }
     }
     
-    // Si no hay ejemplos, usar algunos por defecto
-    if (evergreenExamples.length === 0) {
-      evergreenExamples.push("Cómo hacer pan casero - Tutorial completo");
-      evergreenExamples.push("5 ejercicios para fortalecer la espalda");
-      evergreenExamples.push("Guía definitiva para aprender a tocar guitarra");
+    if (nonEvergreenExamples.length < 3) {
+      const defaultExamples = [
+        "Reacción al tráiler de la película que se estrena mañana",
+        "Predicciones para tendencias de 2023",
+        "Análisis de las elecciones presidenciales",
+        "Lo mejor que ha pasado esta semana en YouTube",
+        "Novedades para iPhone en el evento de Apple"
+      ];
+      
+      for (const example of defaultExamples) {
+        if (nonEvergreenExamples.length < 5) {
+          nonEvergreenExamples.push(example);
+        }
+      }
     }
     
-    if (nonEvergreenExamples.length === 0) {
-      nonEvergreenExamples.push("Reacción al tráiler de la película que se estrena mañana");
-      nonEvergreenExamples.push("Predicciones para tendencias de 2023");
-      nonEvergreenExamples.push("Análisis de las elecciones presidenciales");
-    }
-    
+    console.log(`Ejemplos obtenidos: ${evergreenExamples.length} evergreen, ${nonEvergreenExamples.length} no evergreen`);
     return { evergreenExamples, nonEvergreenExamples };
   } catch (error) {
     console.error('Error al obtener ejemplos de entrenamiento:', error);
@@ -97,12 +129,16 @@ async function getTrainingExamples(): Promise<{
       evergreenExamples: [
         "Cómo hacer pan casero - Tutorial completo",
         "5 ejercicios para fortalecer la espalda",
-        "Guía definitiva para aprender a tocar guitarra"
+        "Guía definitiva para aprender a tocar guitarra",
+        "Aprende inglés en 10 minutos al día",
+        "Tutorial: Cómo configurar WordPress desde cero"
       ],
       nonEvergreenExamples: [
         "Reacción al tráiler de la película que se estrena mañana",
         "Predicciones para tendencias de 2023",
-        "Análisis de las elecciones presidenciales"
+        "Análisis de las elecciones presidenciales",
+        "Lo mejor que ha pasado esta semana en YouTube",
+        "Novedades para iPhone en el evento de Apple"
       ]
     };
   }
@@ -302,7 +338,8 @@ export async function getUnanalyzedVideos(limit: number = 10): Promise<YoutubeVi
 }
 
 /**
- * Procesa los embeddings para ejemplos de entrenamiento
+ * Procesa los embeddings para ejemplos de entrenamiento con mejor manejo de lotes
+ * y reintento de operaciones fallidas
  * @param ids IDs de los ejemplos a procesar
  * @returns Número de ejemplos procesados
  */
@@ -312,21 +349,32 @@ export async function processTrainingExamplesVectors(ids: number[]): Promise<num
   }
   
   try {
+    // Configuración de procesamiento
     let processedCount = 0;
+    let failedCount = 0;
+    const totalCount = ids.length;
     
-    // Procesar en lotes para evitar sobrecargar la API
-    const batchSize = 10;
-    for (let i = 0; i < ids.length; i += batchSize) {
-      const batch = ids.slice(i, i + batchSize);
+    // Procesar en lotes más grandes para la consulta inicial
+    const queryBatchSize = 50; // Lotes más grandes para la consulta inicial
+    const processBatchSize = 5; // Lotes más pequeños para el procesamiento de embeddings
+    
+    console.log(`Iniciando procesamiento de vectores para ${totalCount} ejemplos de entrenamiento`);
+    
+    // 1. Procesar por lotes más grandes para la consulta inicial
+    for (let i = 0; i < ids.length; i += queryBatchSize) {
+      const queryBatch = ids.slice(i, i + queryBatchSize);
       
-      // Obtener los ejemplos a procesar
+      console.log(`Obteniendo ejemplos del lote ${Math.floor(i/queryBatchSize) + 1}/${Math.ceil(totalCount/queryBatchSize)} (IDs ${queryBatch[0]}-${queryBatch[queryBatch.length-1]})`);
+      
+      // Obtener los ejemplos a procesar en este lote
       const examples = await db.execute(sql`
         SELECT id, title, is_evergreen 
         FROM training_title_examples 
-        WHERE id IN (${sql.raw(batch.join(','))})
+        WHERE id IN (${sql.raw(queryBatch.join(','))})
           AND (vector_processed IS NULL OR vector_processed = false)
       `);
       
+      // Normalizar el formato de resultados
       let rows: any[] = [];
       if (Array.isArray(examples)) {
         rows = examples;
@@ -336,31 +384,74 @@ export async function processTrainingExamplesVectors(ids: number[]): Promise<num
         rows = Object.values(examples);
       }
       
-      if (rows.length === 0) continue;
+      if (rows.length === 0) {
+        console.log(`No se encontraron ejemplos sin procesar en el lote ${Math.floor(i/queryBatchSize) + 1}`);
+        continue;
+      }
       
-      // Procesar cada ejemplo
-      for (const example of rows) {
-        try {
-          // Generar embedding para el título
-          const embedding = await generateEmbedding(example.title);
-          
-          // Actualizar el ejemplo con el embedding
-          await db.execute(sql`
-            UPDATE training_title_examples 
-            SET embedding = ${JSON.stringify(embedding)}::vector,
-                vector_processed = true,
-                updated_at = NOW()
-            WHERE id = ${example.id}
-          `);
-          
-          processedCount++;
-        } catch (error) {
-          console.error(`Error al procesar vector para ejemplo ${example.id}:`, error);
-          // Continuar con el siguiente aunque este falle
-        }
+      console.log(`Encontrados ${rows.length} ejemplos para procesar en el lote actual`);
+      
+      // 2. Procesar cada sub-lote para la generación de embeddings (evitar sobrecargar la API)
+      for (let j = 0; j < rows.length; j += processBatchSize) {
+        const processBatch = rows.slice(j, j + processBatchSize);
+        
+        console.log(`Procesando sub-lote ${Math.floor(j/processBatchSize) + 1}/${Math.ceil(rows.length/processBatchSize)} de vectores`);
+        
+        // Crear una cola de promesas para procesar cada elemento en paralelo
+        const promises = processBatch.map(async (example) => {
+          try {
+            // Intentar generar embedding para el título con reintento
+            let embedding = null;
+            let retryCount = 0;
+            const maxRetries = 2;
+            
+            while (retryCount <= maxRetries) {
+              try {
+                embedding = await generateEmbedding(example.title);
+                break; // Si tiene éxito, salir del bucle
+              } catch (embeddingError) {
+                retryCount++;
+                if (retryCount > maxRetries) throw embeddingError;
+                // Esperar antes de reintentar (backoff exponencial)
+                const delay = 1000 * Math.pow(2, retryCount);
+                console.log(`Reintento ${retryCount}/${maxRetries} para ejemplo ${example.id} en ${delay}ms`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
+            }
+            
+            if (!embedding) throw new Error("No se pudo generar el embedding después de reintentos");
+            
+            // Actualizar el ejemplo con el embedding
+            await db.execute(sql`
+              UPDATE training_title_examples 
+              SET embedding = ${JSON.stringify(embedding)}::vector,
+                  vector_processed = true,
+                  updated_at = NOW()
+              WHERE id = ${example.id}
+            `);
+            
+            return { success: true, id: example.id };
+          } catch (error) {
+            console.error(`Error al procesar vector para ejemplo ${example.id}:`, error);
+            return { success: false, id: example.id, error };
+          }
+        });
+        
+        // Esperar a que todas las promesas se resuelvan
+        const results = await Promise.all(promises);
+        
+        // Contabilizar éxitos y fallos
+        const subBatchSuccess = results.filter(r => r.success).length;
+        const subBatchFailed = results.filter(r => !r.success).length;
+        
+        processedCount += subBatchSuccess;
+        failedCount += subBatchFailed;
+        
+        console.log(`Resultados del sub-lote: ${subBatchSuccess} procesados, ${subBatchFailed} fallidos. Total acumulado: ${processedCount}/${totalCount}`);
       }
     }
     
+    console.log(`Procesamiento de vectores completado. Total: ${processedCount} procesados, ${failedCount} fallidos`);
     return processedCount;
   } catch (error) {
     console.error('Error al procesar vectores de ejemplos:', error);
