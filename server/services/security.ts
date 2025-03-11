@@ -235,26 +235,3 @@ export const securityUtils = {
     };
   }
 };
-
-/**
- * Middleware para protección contra CSRF
- * Esto debe usarse junto con un token CSRF en formularios y peticiones
- */
-export function csrfProtection(req: any, res: any, next: any) {
-  // Excluir métodos que no modifican datos
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    return next();
-  }
-  
-  const csrfToken = req.headers['x-csrf-token'] || req.body?.csrfToken;
-  const sessionToken = req.session?.csrfToken;
-  
-  if (!csrfToken || !sessionToken || csrfToken !== sessionToken) {
-    return res.status(403).json({
-      success: false,
-      message: "Error de validación CSRF"
-    });
-  }
-  
-  next();
-}

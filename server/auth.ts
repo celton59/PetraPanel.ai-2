@@ -3,7 +3,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { users, type InsertUser } from "@db/schema";
+import { users, type User as DBUser } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { 
@@ -17,15 +17,24 @@ import {
 // Extend Express.User
 declare global {
   namespace Express {
-    interface Request {
-      csrfToken?: () => string;
-      validatedData?: any;
-    }
-    interface Session {
-      csrfToken?: string;
-    }
+    interface User extends DBUser {}
   }
 }
+
+import 'express-session';
+
+declare module 'express-session' {
+  interface SessionData {
+    csrfToken?: string;
+  }
+}
+
+declare module "express-serve-static-core" {
+  interface Request {
+    csrfToken?: () => string | undefined;
+  }
+}
+
 
 // Exportamos las utilidades de manejo de contraseñas mejoradas
 export const passwordUtils = securityUtils;
