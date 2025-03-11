@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { StandardSearchButton } from "@/components/ui/search-button";
 
 interface SearchBarProps {
   searchValue: string;
@@ -71,15 +71,14 @@ export function SearchBar({
         )}
       </div>
       
-      <Button 
-        onClick={handleSearch} 
-        disabled={isFetching}
+      <StandardSearchButton 
+        size="default"
         variant="default"
-        className="whitespace-nowrap h-11 px-5 text-base font-medium"
-      >
-        <Search className="mr-2 h-5 w-5" />
-        Buscar
-      </Button>
+        iconOnly={false}
+        className="h-11 whitespace-nowrap font-medium"
+        disabled={isFetching}
+        onClick={handleSearch}
+      />
     </div>
   );
 }
