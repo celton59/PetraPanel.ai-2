@@ -177,10 +177,33 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         });
     }
 
+    // Si el video está en estado "upload_media" y ya está asignado a otro youtuber, no permitir que otro lo tome
+    if (req.user.role === "youtuber" && 
+        currentVideo.status === "upload_media" && 
+        currentVideo.contentUploadedBy !== null && 
+        currentVideo.contentUploadedBy !== req.user.id) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Este video ya está siendo trabajado por otro youtuber",
+        });
+    }
+
     // Si se asigna un optimizador y el estado sigue siendo "available", actualizar estado a "en progreso"
     let updatedStatus = updates.status as VideoStatus;
     if (updates.optimizedBy && !updates.status && currentVideo?.status === "available") {
       updatedStatus = "content_corrections"; // Usamos content_corrections para indicar que está en progreso de optimización
+    }
+    
+    // Para los youtubers que empiezan a trabajar en un video, asignamos el video a ellos
+    if (req.user.role === "youtuber" && 
+        currentVideo.status === "upload_media" && 
+        !currentVideo.contentUploadedBy) {
+      // Si no está explícitamente en la actualización, lo asignamos al usuario actual
+      if (!updates.contentUploadedBy) {
+        updates.contentUploadedBy = req.user.id;
+      }
     }
 
     // Actualizar el video con la metadata combinada
@@ -535,7 +558,25 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
             and(
               showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
               // Filtrar por los estados visibles para el rol del usuario
-              visibleStates.length > 0 ? inArray(videos.status, visibleStates as any) : undefined
+              visibleStates.length > 0 ? inArray(videos.status, visibleStates as any) : undefined,
+              // Para youtubers: mostrar videos en "upload_media" solo si no están asignados a otro youtuber
+              // o si están asignados a este youtuber
+              req.user.role === "youtuber" ? 
+                or(
+                  // Videos en "upload_media" que no están asignados a nadie o están asignados a este usuario
+                  and(
+                    eq(videos.status, "upload_media"),
+                    or(
+                      isNull(videos.contentUploadedBy),
+                      eq(videos.contentUploadedBy, req.user.id as any)
+                    )
+                  ),
+                  // Videos en otros estados visibles (sin importar asignación)
+                  and(
+                    inArray(videos.status, visibleStates.filter(s => s !== "upload_media") as any)
+                  )
+                )
+              : undefined
             )
           );
       } else {
