@@ -434,6 +434,65 @@ export function useVideos(): {
     }
   }, []);
 
+  // Función para asignar un video a un youtuber cuando lo visualiza
+  const assignVideoToYoutuberMutation = useMutation({
+    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/assign`);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error assigning video to youtuber:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Error cuando el video ya está asignado a otro youtuber
+        if (error.response?.status === 403 && error.response?.data?.message?.includes('asignado a otro youtuber')) {
+          throw new Error(error.response?.data?.message || "Este video ya está asignado a otro youtuber");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al asignar el video");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      // No mostramos toast aquí para evitar notificaciones innecesarias al usuario
+    },
+    onError: (error: Error) => {
+      // Solo mostramos notificación si no es el caso de que ya está asignado al mismo youtuber
+      if (!error.message.includes('ya está asignado a este youtuber')) {
+        // Si es un error de CSRF, mostramos un mensaje más amigable
+        if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+          toast.error("Error de seguridad", {
+            description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+          });
+        } else if (error.message.includes('asignado a otro youtuber')) {
+          toast.error("Video no disponible", {
+            description: "Este video ya está siendo trabajado por otro youtuber",
+          });
+        } else {
+          toast.error("Error", {
+            description: error.message || "No se pudo asignar el video",
+          });
+        }
+      }
+    },
+  });
+
   return {
     videos: videos ?? [],
     isLoading,
@@ -445,5 +504,6 @@ export function useVideos(): {
     restoreVideo: restoreVideoMutation.mutateAsync,
     emptyTrash: emptyTrashMutation.mutateAsync,
     getTrashVideos,
+    assignVideoToYoutuber: assignVideoToYoutuberMutation.mutateAsync,
   };
 }
