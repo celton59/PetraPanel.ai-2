@@ -52,10 +52,18 @@ export function UserBadges({ video, compact = false }: UserBadgesProps) {
     }
   ];
 
+  // Log para depuración
+  console.log("UserBadges props:", {
+    videoId: video.id,
+    videoSeriesNumber: video.seriesNumber,
+    mediaReviewedBy: video.mediaReviewedBy,
+    mediaReviewerName: video.mediaReviewerName,
+    mediaReviewerUsername: video.mediaReviewerUsername
+  });
+  
   // Filtrar roles sin asignar si es compacto
-  const filteredRoles = compact 
-    ? roles.filter(role => role.fullName || role.username)
-    : roles;
+  // Para depuración, mostramos todos los roles siempre
+  const filteredRoles = roles;
 
   return (
     <div className="flex flex-wrap gap-1.5">
