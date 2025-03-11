@@ -471,7 +471,8 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
           .where(
             and(
               showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
-              eq(videos.createdBy, req.user.id)
+              // Asegurar que createdBy no sea null y convertir explícitamente a números para la comparación
+              req.user.id ? eq(videos.createdBy, Number(req.user.id)) : undefined
             )
           );
       } else {

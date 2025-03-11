@@ -116,8 +116,6 @@ export function ThumbnailUploader({
       } else {
         setError(error.response?.data?.message || error.message || 'Error al subir la miniatura');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir la miniatura');
     } finally {
       setIsUploading(false);
     }
