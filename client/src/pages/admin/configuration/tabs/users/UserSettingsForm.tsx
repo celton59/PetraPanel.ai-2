@@ -21,13 +21,13 @@ import { User } from "@db/schema";
 
 // Definimos la estructura de datos del formulario para evitar errores de tipado
 export interface UserFormData {
-  fullName: string;
-  username: string;
-  email: string;
-  phone: string;
-  bio: string;
-  role?: string;
-  password: string;
+  fullName: string | null | undefined;
+  username: string | undefined;
+  email: string | null | undefined;
+  phone: string | null | undefined;
+  bio: string | null | undefined;
+  role?: string | undefined;
+  password: string | undefined;
 }
 
 interface UserSettingsFormProps {
@@ -134,8 +134,8 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                   fullName: form.watch("fullName"),
                   username: form.watch("username"),
                   email: form.watch("email"),
-                  phone: form.watch("phone") || "",
-                  bio: form.watch("bio") || "",
+                  phone: form.watch("phone"),
+                  bio: form.watch("bio"),
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {

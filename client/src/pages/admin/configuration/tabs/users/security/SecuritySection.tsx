@@ -12,7 +12,7 @@ interface SecuritySectionProps {
   isEditing: boolean;
   selectedProjects: number[];
   setSelectedProjects: (projects: number[]) => void;
-  form: UseFormReturn<Partial<User>>;
+  form: UseFormReturn<any>;
   formData: UserFormData;
   setFormData: (data: Partial<UserFormData>) => void;
 }
@@ -73,7 +73,7 @@ export function SecuritySection ({
             </FormLabel>
             <FormControl>
               <RoleSelector 
-                value={field.value}
+                value={field.value || "youtuber"}
                 onChange={(value: User['role']) => {
                   field.onChange(value);
                 }}

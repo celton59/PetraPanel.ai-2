@@ -11,7 +11,7 @@ interface PersonalInfoSectionProps {
   setFormData: (data: Partial<PersonalInfoSectionProps['formData']>) => void;
   isCheckingUsername: boolean;
   isCheckingEmail: boolean;
-  form: UseFormReturn<UserFormData>;
+  form: UseFormReturn<any>;
 }
 
 export function PersonalInfoSection ({
