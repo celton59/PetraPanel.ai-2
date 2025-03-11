@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "@/lib/axios";
 import {
   Dialog,
   DialogContent,
@@ -162,21 +162,11 @@ export function TitleComparisonDialog({
         }
       }
       
-      // Obtener el token CSRF del meta tag
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      
       // Realizar la comparación
-      const response = await axios.post('/api/title-comparison/compare', 
-        {
-          proposedTitle,
-          channelId: selectedChannelId
-        },
-        {
-          headers: {
-            'X-CSRF-Token': csrfToken || ''
-          }
-        }
-      );
+      const response = await axios.post('/api/title-comparison/compare', {
+        proposedTitle,
+        channelId: selectedChannelId
+      });
       
       if (response.data.success) {
         setComparisonResult(response.data);
@@ -231,21 +221,11 @@ export function TitleComparisonDialog({
         }
       }
       
-      // Obtener el token CSRF del meta tag
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      
       // Realizar la comparación masiva
-      const response = await axios.post('/api/title-comparison/bulk', 
-        {
-          proposedTitles: titles,
-          channelId: selectedChannelId
-        },
-        {
-          headers: {
-            'X-CSRF-Token': csrfToken || ''
-          }
-        }
-      );
+      const response = await axios.post('/api/title-comparison/bulk', {
+        proposedTitles: titles,
+        channelId: selectedChannelId
+      });
       
       if (response.data.success) {
         setBulkResults(response.data);
