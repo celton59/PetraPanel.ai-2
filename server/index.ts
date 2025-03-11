@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import path from "path";
 import fs from "fs";
 import { setupOnlineUsersService } from "./services/online-users";
+import { setupNotificationsService } from "./services/notifications";
 
 const app = express();
 app.use(express.json());
@@ -109,6 +110,10 @@ app.use((req, res, next) => {
     // Inicializar servicio de usuarios en línea
     const onlineUsersService = setupOnlineUsersService(server);
     console.log("Online users service initialized");
+    
+    // Inicializar servicio de notificaciones
+    const notificationsService = setupNotificationsService(server);
+    console.log("Notifications service initialized");
 
     // Middleware de manejo de errores
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

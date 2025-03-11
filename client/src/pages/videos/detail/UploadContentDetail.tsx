@@ -13,6 +13,17 @@ import {
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "@/hooks/use-user";
+import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
+
+// Estado inicial de progreso vacío
+const emptyProgressState: UploadProgressState = {
+  isUploading: false,
+  progress: 0,
+  uploadedParts: 0,
+  totalParts: 0,
+  uploadSpeed: 0,
+  estimatedTimeRemaining: 0
+};
 
 interface UploadContentDetailProps {
   video: ApiVideo;
@@ -26,7 +37,8 @@ export function UploadContentDetail({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState | undefined>(undefined);
+  const [uploader, setUploader] = useState<VideoUploader | null>(null);
 
   const { user } = useUser();
 
@@ -80,6 +92,22 @@ export function UploadContentDetail({
     }
   }
 
+  // Función para manejar la cancelación de la carga
+  const handleCancelUpload = async () => {
+    if (uploader) {
+      try {
+        await uploader.cancel();
+        setUploader(null);
+        setIsUploading(false);
+        setUploadProgress(undefined);
+        console.log("Carga cancelada");
+      } catch (error) {
+        console.error("Error al cancelar la carga:", error);
+        toast.error("Error al cancelar la carga");
+      }
+    }
+  };
+
   async function handleUpload() {
     if (!videoFile && !thumbnailFile && !video.mediaReviewComments?.at(0)) {
       toast.error("Se requiere al menos un archivo para subir");
@@ -87,28 +115,33 @@ export function UploadContentDetail({
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
-    try {
-      let videoUrl: string | undefined;
+    let videoUrl: string | undefined;
 
+    try {
+      // Subida de video usando carga multiparte
       if (videoFile) {
-        const { url, uploadUrl } = await uploadVideo(videoFile);
-        console.log("S3 presigned url", uploadUrl)
-        const result = await fetch(uploadUrl!, {
-            method: "PUT",
-            body: videoFile,
-            headers: { "Content-Type": videoFile.type },
+        // Crear la instancia del uploader
+        const videoUploader = new VideoUploader(video.projectId, video.id, videoFile);
+        setUploader(videoUploader);
+        
+        // Configurar el callback de progreso
+        videoUploader.onProgress((progressState) => {
+          setUploadProgress(progressState);
         });
-        console.log("RESULT", result)
-        videoUrl = url
-        setUploadProgress(50);
+        
+        // Iniciar la carga multiparte
+        videoUrl = await videoUploader.upload();
+        
+        // Limpiar el uploader después de completar
+        setUploader(null);
       }
 
+      // Subida de miniatura (mantiene el método anterior)
       if (thumbnailFile) {
         await uploadThumbnail(thumbnailFile);
-        setUploadProgress(100);
       }
 
+      // Actualizar el estado del video
       await onUpdate({
         status: "media_review",
         videoUrl: videoUrl,
@@ -121,7 +154,7 @@ export function UploadContentDetail({
       toast.error(error.message || "Error al subir los archivos");
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      setUploadProgress(undefined);
     }
   }
 
@@ -227,7 +260,8 @@ export function UploadContentDetail({
             onVideoFileChange={setVideoFile}
             onThumbnailFileChange={setThumbnailFile}
             isUploading={isUploading}
-            uploadProgress={uploadProgress}
+            uploadProgress={uploadProgress || undefined}
+            onCancelUpload={handleCancelUpload}
             video={video}
           />
         </div>

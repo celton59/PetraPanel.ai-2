@@ -5,8 +5,8 @@ import { log } from '../vite';
 import { IncomingMessage } from 'http';
 
 // Alias para tipado y uso como valor
-const WebSocketServer = WebSocketModule.WebSocketServer;
 type WebSocket = WebSocketModule.WebSocket;
+const WebSocketServer = WebSocketModule.WebSocketServer;
 const OPEN = WebSocketModule.WebSocket.OPEN;
 
 interface ClientConnection {
@@ -19,13 +19,13 @@ interface ClientConnection {
  * Servicio para gestionar usuarios conectados en tiempo real
  */
 export class OnlineUsersService {
-  private wss: typeof WebSocketServer;
+  private wss: WebSocketModule.WebSocketServer;
   private clients: Map<WebSocket, ClientConnection> = new Map();
   private activeUsers: Map<number, { lastActivity: number; username: string; }> = new Map();
   private heartbeatInterval: NodeJS.Timeout;
   
   constructor(server: HttpServer) {
-    this.wss = new WebSocketServer({ 
+    this.wss = new WebSocketModule.WebSocketServer({ 
       noServer: true,
       path: '/ws/online-users'
     });
@@ -244,18 +244,28 @@ export class OnlineUsersService {
   /**
    * Registra actividad de un usuario (para APIs REST)
    * Útil para actualizar estado de usuario sin WebSocket
+   * Optimizado para evitar actualizaciones excesivas
    */
   public registerUserActivity(user: User) {
     if (!user || !user.id) return;
     
+    const now = Date.now();
     const existingUser = this.activeUsers.get(user.id);
+    
     if (existingUser) {
-      existingUser.lastActivity = Date.now();
+      // Solo actualizar si pasó al menos 10 segundos desde la última actualización
+      // Esto evita que múltiples llamadas API generen actualizaciones innecesarias
+      if (now - existingUser.lastActivity > 10000) {
+        existingUser.lastActivity = now;
+        // No difundir cada actualización para mejorar rendimiento
+      }
     } else {
+      // Nuevo usuario, agregarlo al mapa
       this.activeUsers.set(user.id, {
-        lastActivity: Date.now(),
+        lastActivity: now,
         username: user.username
       });
+      // Difundir cuando hay un nuevo usuario activo
       this.broadcastActiveUsers();
     }
   }

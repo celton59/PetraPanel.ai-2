@@ -1,9 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth.js";
+import { setupAuth, passwordUtils } from "./auth.js";
 import { db } from "@db";
 import { 
-  users, videos, actionRates, userActions, payments, projects
+  users, videos, actionRates, userActions, payments, projects, youtube_channels
 } from "@db/schema"; 
 import { eq, count, sql, and, asc, desc, or, isNull, isNotNull, ne } from "drizzle-orm";
 import multer from "multer";
@@ -11,8 +11,15 @@ import path from "path";
 import sharp from "sharp";
 import fs from "fs";
 import express from "express";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
+// Importamos validaciones
+import { 
+  changePasswordSchema, 
+  validateBody, 
+  validateParams, 
+  validateQuery, 
+  createProfileSchema, 
+  updateProfileSchema 
+} from './lib/validation';
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
@@ -21,8 +28,11 @@ import { setUpVideoRoutes } from "./controllers/videoController";
 import ProjectController from "./controllers/projectController.js";
 import UserController from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
+import { setupNotificationRoutes } from "./routes/notifications";
+import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
+import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 
-const scryptAsync = promisify(scrypt);
+// Utilizamos passwordUtils importado desde auth.ts
 
 const avatarStorage = multer.diskStorage({
   destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
@@ -46,9 +56,7 @@ const avatarUpload = multer({
 });
 
 async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return passwordUtils.hashPassword(password);
 }
 
 export function registerRoutes(app: Express): Server {
@@ -77,6 +85,17 @@ export function registerRoutes(app: Express): Server {
 
     setupAuth(app); // Authentication setup moved here
     console.log("Authentication setup complete");
+    
+    // Ruta específica para obtener un token CSRF, no requiere autenticación
+    app.get("/api/csrf-token", (req: Request, res: Response) => {
+      // El token CSRF ya está adjunto a la respuesta por el middleware de Express
+      res.json({ 
+        success: true, 
+        message: "CSRF token generated",
+        csrfToken: req.csrfToken?.() || null
+      });
+    });
+    
     console.log("Routes registered successfully");
 
     // Serve uploaded files
@@ -174,6 +193,15 @@ export function registerRoutes(app: Express): Server {
 
     // Titulin
     setUpTitulinRoutes(app)
+    
+    // Ejemplos para entrenamiento de IA
+    setupTrainingExamplesRoutes(app, requireAuth)
+    
+    // Notificaciones
+    setupNotificationRoutes(app, requireAuth)
+    
+    // Comparación de títulos
+    setupTitleComparisonRoutes(app, requireAuth)
 
     // Users routes
     app.post("/api/users", requireAuth, UserController.createUser);
@@ -211,42 +239,62 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    app.post("/api/profile/password", requireAuth, async (req: Request, res: Response) => {
-      const { currentPassword, newPassword } = req.body;
+    // Implementar cambio de contraseña con validación robusta
+    app.post(
+      "/api/profile/password", 
+      requireAuth, 
+      // Aplicamos middleware de validación
+      validateBody(changePasswordSchema),
+      async (req: Request, res: Response) => {
+        // Los datos ya han sido validados por validateBody
+        const { currentPassword, newPassword } = req.validatedData;
 
-      try {
-        // Verificar contraseña actual
-        const user = await db.select()
-          .from(users)
-          .where(eq(users.id, req.user!.id))
-          .limit(1);
+        try {
+          // Verificar contraseña actual
+          const user = await db.select()
+            .from(users)
+            .where(eq(users.id, req.user!.id))
+            .limit(1);
 
-        if (!user.length) {
-          return res.status(404).json({
-            success: false,
-            message: "Usuario no encontrado"
-          });
-        }
+          if (!user.length) {
+            return res.status(404).json({
+              success: false,
+              message: "Usuario no encontrado"
+            });
+          }
 
-        const [salt, hash] = user[0].password.split(".");
-        const buf = (await scryptAsync(currentPassword, salt, 64)) as Buffer;
-        const hashedPassword = `${buf.toString("hex")}.${salt}`;
+          // Verificar contraseña actual con timing-safe comparison
+          const isValidPassword = await passwordUtils.comparePassword(currentPassword, user[0].password);
 
-        if (hashedPassword !== user[0].password) {
-          return res.status(400).json({
-            success: false,
-            message: "Contraseña actual incorrecta"
-          });
-        }
+          if (!isValidPassword) {
+            return res.status(400).json({
+              success: false,
+              message: "Contraseña actual incorrecta"
+            });
+          }
 
-        // Actualizar con nueva contraseña
-        const newHashedPassword = await hashPassword(newPassword);
-        await db.update(users)
-          .set({ password: newHashedPassword})
-          .where(eq(users.id, req.user!.id!));
+          // Evaluamos la fortaleza de la nueva contraseña
+          const passwordStrength = passwordUtils.evaluatePasswordStrength(newPassword);
+          
+          // Si la contraseña tiene una puntuación de seguridad baja, registramos pero permitimos
+          if (passwordStrength.score < 70) {
+            console.warn(`Usuario ${req.user!.id} está usando una contraseña de baja seguridad (score: ${passwordStrength.score})`);
+          }
 
-        res.json({
-          success: true,
+          // Actualizar con nueva contraseña utilizando hash seguro
+          const newHashedPassword = await passwordUtils.hashPassword(newPassword);
+          await db.update(users)
+            .set({ 
+              password: newHashedPassword,
+              updatedAt: new Date() // Actualizamos la fecha de modificación
+            })
+            .where(eq(users.id, req.user!.id!));
+
+          // Registramos el cambio de contraseña en logs (sin detalles sensibles)
+          console.log(`Usuario ${req.user!.id} ha cambiado su contraseña exitosamente`);
+
+          res.json({
+            success: true,
           message: "Contraseña actualizada correctamente"
         });
       } catch (error) {
@@ -258,62 +306,71 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    app.post("/api/profile", requireAuth, async (req: Request, res: Response) => {      const { fullName, username, phone, bio } = req.body;
+    app.post(
+      "/api/profile", 
+      requireAuth, 
+      // Aplicamos middleware de validación
+      validateBody(updateProfileSchema),
+      async (req: Request, res: Response) => {
+        const { fullName, username, phone, bio } = req.validatedData;
 
-      try {
-        // Validar que los campos requeridos estén presentes
-        if (!fullName || !username) {
-          return res.status(400).json({
-            success: false,
-            message: "El nombre completo y el nombre de usuario son requeridos"
-          });
-        }
+        try {
+          // Verificar si el nombre de usuario ya existe (excluyendo el usuario actual)
+          let existingUser = null;
+          if (username) {
+            existingUser = await db
+              .select()
+              .from(users)
+              .where(eq(users.username, username))
+              .limit(1);
 
-        // Verificar si el nombre de usuario ya existe (excluyendo el usuario actual)
-        const existingUser = await db
-          .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1);
+            if (existingUser.length > 0 && existingUser[0].id !== req.user!.id) {
+              return res.status(400).json({
+                success: false,
+                message: "El nombre de usuario ya está en uso"
+              });
+            }
+          }
 
-        if (existingUser.length > 0 && existingUser[0].id !== req.user!.id) {
-          return res.status(400).json({
-            success: false,
-            message: "El nombre de usuario ya está en uso"
-          });
-        }
-
-        const result = await db
-          .update(users)
-          .set({
-            fullName,
-            username,
-            phone: phone || null,
-            bio: bio || null,
+          // Construir objeto de actualización con campos no nulos
+          const updateData: Record<string, any> = {
             updatedAt: new Date()
-          })
-          .where(eq(users.id, req.user!.id as number))
-          .returning();
+          };
+          
+          if (fullName !== undefined) updateData.fullName = fullName;
+          if (username !== undefined) updateData.username = username;
+          if (phone !== undefined) updateData.phone = phone;
+          if (bio !== undefined) updateData.bio = bio;
 
-        if (!result || result.length === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "Usuario no encontrado"
+          const result = await db
+            .update(users)
+            .set(updateData)
+            .where(eq(users.id, req.user!.id as number))
+            .returning();
+
+          if (!result || result.length === 0) {
+            return res.status(404).json({
+              success: false,
+              message: "Usuario no encontrado"
+            });
+          }
+
+          // Registramos la actualización del perfil (sin datos sensibles)
+          console.log(`Usuario ${req.user!.id} ha actualizado su perfil`);
+
+          // Excluimos la contraseña de la respuesta
+          const { password, ...profile } = result[0];
+          res.status(200).json({
+            success: true,
+            data: profile,
+            message: "Perfil actualizado correctamente"
           });
-        }
-
-        const { password, ...profile } = result[0];
-        res.status(200).json({
-          success: true,
-          data: profile,
-          message: "Perfil actualizado correctamente"
-        });
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al actualizar el perfil"
-        });
+        } catch (error) {
+          console.error("Error updating profile:", error);
+          res.status(500).json({
+            success: false,
+            message: "Error al actualizar el perfil"
+          });
       }
     });
 
@@ -924,6 +981,314 @@ export function registerRoutes(app: Express): Server {
           success: false,
           message: "Error al obtener usuarios en línea"
         });
+      }
+    });
+    
+    // Endpoint para búsqueda global
+    app.get("/api/search", requireAuth, async (req: Request, res: Response) => {
+      try {
+        const query = (req.query.q as string || '').toLowerCase();
+        
+        // Si no hay query, devolver resultados vacíos
+        if (!query || query.length < 2) {
+          return res.json({ results: [] });
+        }
+        
+        // Arrays para almacenar los diferentes tipos de resultados
+        let dbUsers = [] as any[];
+        let dbVideos = [] as any[];
+        let dbProjects = [] as any[];
+        let dbYoutubeChannels = [] as any[];
+        
+        // 1. Obtener usuarios de la base de datos
+        try {
+          const usersResult = await db.select().from(users).limit(20);
+          
+          dbUsers = usersResult.map(user => ({
+            id: user.id,
+            title: user.fullName || user.username,
+            subtitle: user.email || `@${user.username}`,
+            type: 'user' as const,
+            url: `/users/${user.id}`,
+            thumbnail: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+          }));
+          
+          console.log(`Encontrados ${dbUsers.length} usuarios en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener usuarios de la base de datos:', error);
+        }
+        
+        // 2. Obtener videos de la base de datos
+        try {
+          const videosResult = await db.select({
+            id: videos.id,
+            title: videos.title,
+            description: videos.description,
+            status: videos.status,
+            projectId: videos.projectId,
+            projectName: projects.name,
+            thumbnailUrl: videos.thumbnailUrl,
+            createdAt: videos.createdAt,
+            tags: videos.tags
+          })
+          .from(videos)
+          .leftJoin(projects, eq(videos.projectId, projects.id))
+          .limit(30);
+          
+          dbVideos = videosResult.map(video => ({
+            id: video.id,
+            title: video.title,
+            subtitle: video.projectName ? `Proyecto: ${video.projectName}` : (video.description || 'Sin descripción'),
+            type: 'video' as const,
+            url: `/videos/${video.id}`,
+            thumbnail: video.thumbnailUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=video${video.id}`,
+            status: video.status,
+            date: video.createdAt,
+            tags: video.tags || [],
+          }));
+          
+          console.log(`Encontrados ${dbVideos.length} videos en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener videos de la base de datos:', error);
+        }
+        
+        // Mantener algunos resultados de ejemplo para compatibilidad
+        const results = [
+          // Videos
+          {
+            id: 1,
+            title: 'Cómo optimizar videos para YouTube',
+            subtitle: 'Tutorial SEO',
+            type: 'video',
+            url: '/videos/1',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video1',
+            status: 'completed',
+            tags: ['tutorial', 'seo', 'youtube']
+          },
+          {
+            id: 2,
+            title: 'Los mejores plugins para WordPress 2025',
+            subtitle: 'Guía completa',
+            type: 'video',
+            url: '/videos/2',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video2',
+            status: 'content_review',
+            tags: ['wordpress', 'plugins', 'web']
+          },
+          {
+            id: 3,
+            title: 'Entrevista con Aitor Menta',
+            subtitle: 'Especialista en SEO',
+            type: 'video',
+            url: '/videos/3',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video3',
+            status: 'completed',
+            tags: ['entrevista', 'seo', 'marketing']
+          },
+          {
+            id: 4,
+            title: 'Análisis de redes sociales',
+            subtitle: 'Por Aitor Tilla',
+            type: 'video',
+            url: '/videos/4',
+            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video4',
+            status: 'media_review',
+            tags: ['redes', 'social', 'analisis']
+          },
+          // Proyectos
+          {
+            id: 1,
+            title: 'Marketing Digital',
+            type: 'project',
+            url: '/projects/1',
+            icon: '💼',
+          },
+          {
+            id: 2,
+            title: 'Tutoriales de código',
+            type: 'project',
+            url: '/projects/2',
+            icon: '💻',
+          },
+          {
+            id: 3,
+            title: 'Proyecto Aitor',
+            subtitle: 'Investigación de mercado',
+            type: 'project',
+            url: '/projects/3',
+            icon: '🔍',
+          },
+          // Usuarios
+          {
+            id: 1,
+            title: 'Ana González',
+            subtitle: 'Diseñadora UX',
+            type: 'user',
+            url: '/users/1',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
+          },
+          {
+            id: 2,
+            title: 'Carlos Martínez',
+            subtitle: 'Editor de video',
+            type: 'user',
+            url: '/users/2',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
+          },
+          {
+            id: 3,
+            title: 'Aitor García',
+            subtitle: 'Especialista en SEO',
+            type: 'user',
+            url: '/users/3',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aitor',
+          },
+          {
+            id: 4,
+            title: 'Elena Aitor',
+            subtitle: 'Content Manager',
+            type: 'user',
+            url: '/users/4',
+            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
+          },
+          // Canales
+          {
+            id: 1,
+            title: 'TechTutorials',
+            subtitle: 'Canal YouTube',
+            type: 'channel',
+            url: '/titulin/channels/1',
+            icon: '📺',
+          },
+          {
+            id: 2,
+            title: 'AitorTech',
+            subtitle: 'Canal de tecnología',
+            type: 'channel',
+            url: '/titulin/channels/2',
+            icon: '📱',
+          },
+          // Configuración
+          {
+            id: 1,
+            title: 'Ajustes de perfil',
+            type: 'settings',
+            url: '/profile',
+            icon: '⚙️',
+          },
+          {
+            id: 2,
+            title: 'Configuración de notificaciones',
+            type: 'settings',
+            url: '/settings/notifications',
+            icon: '🔔',
+          },
+          {
+            id: 3,
+            title: 'Gestión de usuarios',
+            type: 'settings',
+            url: '/admin/users',
+            icon: '👥',
+          }
+        ];
+        
+        // 3. Obtener proyectos de la base de datos
+        try {
+          const projectsResult = await db.select().from(projects).limit(20);
+          
+          dbProjects = projectsResult.map(project => ({
+            id: project.id,
+            title: project.name,
+            subtitle: project.description || 'Proyecto',
+            type: 'project' as const,
+            url: `/projects/${project.id}`,
+            icon: project.prefix || '📁',
+          }));
+          
+          console.log(`Encontrados ${dbProjects.length} proyectos en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener proyectos de la base de datos:', error);
+        }
+        
+        // 4. Obtener canales de YouTube
+        try {
+          const channelsResult = await db.select().from(youtube_channels).limit(15);
+          
+          dbYoutubeChannels = channelsResult.map(channel => ({
+            id: channel.id,
+            title: channel.name,
+            subtitle: 'Canal YouTube',
+            type: 'channel' as const,
+            url: `/titulin/channels/${channel.id}`,
+            thumbnail: channel.thumbnailUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${channel.name}`,
+            icon: '📺',
+          }));
+          
+          console.log(`Encontrados ${dbYoutubeChannels.length} canales de YouTube en la base de datos`);
+        } catch (error) {
+          console.error('Error al obtener canales de YouTube de la base de datos:', error);
+        }
+        
+        // 5. Configuración y elementos estáticos
+        const settingsItems = [
+          {
+            id: 'profile',
+            title: 'Ajustes de perfil',
+            type: 'settings' as const,
+            url: '/profile',
+            icon: '⚙️',
+          },
+          {
+            id: 'notifications',
+            title: 'Configuración de notificaciones',
+            type: 'settings' as const,
+            url: '/settings/notifications',
+            icon: '🔔',
+          },
+          {
+            id: 'users',
+            title: 'Gestión de usuarios',
+            type: 'settings' as const,
+            url: '/admin/users',
+            icon: '👥',
+          },
+          {
+            id: 'search',
+            title: 'Configuración de búsqueda',
+            type: 'settings' as const,
+            url: '/settings/search',
+            icon: '🔍',
+          }
+        ];
+        
+        // Combinamos todos los resultados con prioridad a los datos reales
+        const allResults = [
+          ...dbUsers,           // Usuarios reales de la base de datos
+          ...dbVideos,          // Videos reales de la base de datos
+          ...dbProjects,        // Proyectos reales de la base de datos
+          ...dbYoutubeChannels, // Canales reales de YouTube
+          ...settingsItems,     // Items estáticos de configuración
+        ];
+        
+        // Filtrar resultados según query (mejorado para ser más inclusivo)
+        const filteredResults = allResults.filter(item => {
+          const titleMatch = item.title?.toLowerCase().includes(query);
+          const subtitleMatch = item.subtitle?.toLowerCase().includes(query);
+          const tagsMatch = item.tags?.some(tag => tag.toLowerCase().includes(query));
+          
+          // Buscamos también coincidencias parciales en palabras
+          const words = item.title?.toLowerCase().split(' ') || [];
+          const wordMatch = words.some(word => word.startsWith(query));
+          
+          return titleMatch || subtitleMatch || tagsMatch || wordMatch;
+        });
+        
+        console.log(`Búsqueda "${query}" encontró ${filteredResults.length} resultados`);
+        
+        return res.json({ results: filteredResults });
+      } catch (error) {
+        console.error('Error en búsqueda global:', error);
+        return res.status(500).json({ success: false, message: 'Error al realizar la búsqueda' });
       }
     });
 

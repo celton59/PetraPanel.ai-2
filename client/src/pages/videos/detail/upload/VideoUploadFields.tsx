@@ -1,9 +1,9 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Progress } from "@/components/ui/progress";
 import { ApiVideo } from "@/hooks/useVideos";
+import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
+import { UploadProgressState } from "@/services/videoUploader";
+import { Progress } from "@/components/ui/progress";
 
 interface VideoUploadFieldsProps {
   videoFile: File | null;
@@ -11,7 +11,8 @@ interface VideoUploadFieldsProps {
   onVideoFileChange: (file: File | null) => void;
   onThumbnailFileChange: (file: File | null) => void;
   isUploading?: boolean;
-  uploadProgress?: number;
+  uploadProgress?: UploadProgressState;
+  onCancelUpload?: () => void;
   video: ApiVideo
 }
 
@@ -21,7 +22,8 @@ export function VideoUploadFields({
   onVideoFileChange,
   onThumbnailFileChange,
   isUploading,
-  uploadProgress = 0,
+  uploadProgress,
+  onCancelUpload,
   video
 }: VideoUploadFieldsProps) {
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
@@ -72,7 +74,6 @@ export function VideoUploadFields({
     accept,
     type,
     isUploading,
-    uploadProgress,
   }: {
     file: File | null;
     isDragging: boolean;
@@ -83,7 +84,6 @@ export function VideoUploadFields({
     accept: string;
     type: "video" | "image";
     isUploading?: boolean;
-    uploadProgress?: number;
   }) {
     return (
       <div
@@ -115,7 +115,6 @@ export function VideoUploadFields({
           <div className="space-y-1">
             <p className="text-xs font-medium">Archivo seleccionado:</p>
             <p className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-full">{file.name}</p>
-            {isUploading && <Progress value={uploadProgress} className="h-1 mt-1" />}
           </div>
         ) : (
           <div className="space-y-1 py-1">
@@ -133,6 +132,15 @@ export function VideoUploadFields({
 
   return (
     <div className="space-y-6">
+      {/* Barra de progreso de carga si está subiendo */}
+      {isUploading && uploadProgress && (
+        <VideoUploadProgress 
+          progressState={uploadProgress} 
+          onCancel={onCancelUpload}
+          className="mb-4"
+        />
+      )}
+      
       {/* Layout de 2 columnas para actual y nuevo */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* Columna 1: Contenido de video */}
@@ -168,7 +176,6 @@ export function VideoUploadFields({
                 accept="video/*"
                 type="video"
                 isUploading={isUploading}
-                uploadProgress={uploadProgress}
               />
               {!videoFile && (
                 <div className="flex items-center p-2.5 mt-3 rounded-md border border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/30 dark:to-gray-900/10 text-xs text-gray-600 dark:text-gray-400">
@@ -217,7 +224,6 @@ export function VideoUploadFields({
                 accept="image/*"
                 type="image"
                 isUploading={isUploading}
-                uploadProgress={uploadProgress}
               />
               {!thumbnailFile && (
                 <div className="flex items-center p-2.5 mt-3 rounded-md border border-gray-100 dark:border-gray-800 bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-900/30 dark:to-gray-900/10 text-xs text-gray-600 dark:text-gray-400">

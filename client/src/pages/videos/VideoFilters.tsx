@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface VideoFiltersProps {
@@ -40,23 +40,27 @@ export function VideoFilters({
   onProjectChange,
   showFilters,
   onToggleFilters,
+  visibleStates,
 }: VideoFiltersProps) {
   return (
     <div className="space-y-4">
-      <div className="flex-1">
+      {/* Barra de búsqueda siempre visible */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por título, serie, descripción, creador u optimizador"
+          placeholder="Buscar videos por título, descripción, creador..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-[400px] pl-4 h-9 text-base"
+          className="pl-9 w-full"
         />
-    </div>
+      </div>
 
+      {/* Filtros adicionales (colapsables) */}
       {showFilters && (
         <div className="grid gap-4 p-4 border rounded-lg bg-card md:grid-cols-4 relative overflow-hidden">
           {/* Gradiente sutil para filtros */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500/50 via-primary/50 to-violet-500/50"></div>
-          <StatusFilter status={status} onStatusChange={onStatusChange} />
+          <StatusFilter status={status} onStatusChange={onStatusChange} visibleStates={visibleStates} />
           <AssigneeFilter
             assignedTo={assignedTo}
             onAssignedToChange={onAssignedToChange}

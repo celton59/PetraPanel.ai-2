@@ -1,13 +1,18 @@
-import { Video } from "@db/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Video as VideoIcon } from "lucide-react";
+import { AlertCircle, Video as VideoIcon, Maximize2, Info, Download, Share2, Eye } from "lucide-react";
 import { VideoUploader } from "./upload/VideoUploader";
 import { ThumbnailUploader } from "./upload/ThumbnailUploader";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ImagePreview } from "@/components/ui/image-preview";
+import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+import { VideoPreview } from "@/components/ui/video-preview";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { ApiVideo } from "@/hooks/useVideos";
 
 interface FileSelectionForCorrectionsProps {
-  video: Video;
+  video: ApiVideo;
   selectedFiles: {
     video: boolean;
     thumbnail: boolean;
@@ -20,9 +25,9 @@ export function FileSelectionForCorrections({
   selectedFiles,
   onSelectionChange,
 }: FileSelectionForCorrectionsProps) {
-  // Determinar si los archivos necesitan corrección basado en metadata
-  const needsVideoCorrection = video.metadata?.corrections?.files.video?.needsCorrection || false;
-  const needsThumbnailCorrection = video.metadata?.corrections?.files.thumbnail?.needsCorrection || false;
+  // Determinar si los archivos necesitan corrección basado en flags del video
+  const needsVideoCorrection = video.mediaVideoNeedsCorrection || false;
+  const needsThumbnailCorrection = video.mediaThumbnailNeedsCorrection || false;
 
   return (
     <div className="space-y-4">
@@ -45,22 +50,51 @@ export function FileSelectionForCorrections({
             <h3 className="font-medium">Video</h3>
             {video.status === "media_corrections" && needsVideoCorrection && selectedFiles.video ? (
               <VideoUploader
-                videoUrl={video.metadata?.corrections?.files.video?.originalUrl || video.videoUrl}
+                videoUrl={video.videoUrl}
                 onUploadComplete={(url) => {
                   // La lógica de actualización se maneja en el componente padre
                 }}
               />
             ) : video.videoUrl ? (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer" onClick={() => window.open(video.videoUrl, '_blank')}>
-                <video
+              <motion.div 
+                className="aspect-video bg-muted rounded-lg overflow-hidden" 
+                initial={{ opacity: 0.8, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <VideoPreview
                   src={video.videoUrl}
-                  className="w-full h-full object-cover"
-                  controls
+                  alt={video.title || "Video"}
+                  aspectRatio="video"
+                  enableControls={true}
+                  autoPlay={false}
+                  muted={true}
+                  loop={false}
+                  title={video.optimizedTitle || video.title || "Video"}
+                  description={video.description}
+                  onShare={() => {
+                    if (video.videoUrl) {
+                      navigator.clipboard.writeText(video.videoUrl);
+                      toast.success("Enlace de video copiado al portapapeles");
+                    }
+                  }}
+                  onDownload={() => {
+                    if (video.videoUrl) {
+                      window.open(video.videoUrl, '_blank');
+                    }
+                  }}
+                  className="w-full h-full"
                 />
-              </div>
+              </motion.div>
             ) : (
               <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <VideoIcon className="h-8 w-8 text-muted-foreground" />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <VideoIcon className="h-8 w-8 text-muted-foreground" />
+                </motion.div>
               </div>
             )}
             {selectedFiles.video && (
@@ -90,17 +124,35 @@ export function FileSelectionForCorrections({
             <h3 className="font-medium">Miniatura</h3>
             {video.status === "media_corrections" && needsThumbnailCorrection && selectedFiles.thumbnail ? (
               <ThumbnailUploader
-                thumbnailUrl={video.metadata?.corrections?.files.thumbnail?.originalUrl || video.thumbnailUrl}
+                thumbnailUrl={video.thumbnailUrl}
                 onUploadComplete={(url) => {
                   // La lógica de actualización se maneja en el componente padre
                 }}
               />
             ) : video.thumbnailUrl ? (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer" onClick={() => window.open(video.thumbnailUrl, '_blank')}>
-                <img
-                  src={video.thumbnailUrl}
+              <div 
+                className="group aspect-video bg-muted rounded-lg overflow-hidden" 
+              >
+                <ThumbnailPreview
+                  src={video.thumbnailUrl || ''}
                   alt="Miniatura del video"
-                  className="w-full h-full object-cover"
+                  aspectRatio="video"
+                  enableZoom={true}
+                  title={video.optimizedTitle || video.title || "Miniatura del video"}
+                  showHoverActions={true}
+                  showPlayButton={false}
+                  className="cursor-pointer transition-all"
+                  onShare={() => {
+                    if (video.thumbnailUrl) {
+                      navigator.clipboard.writeText(video.thumbnailUrl);
+                      toast.success("Enlace de miniatura copiado al portapapeles");
+                    }
+                  }}
+                  onDownload={() => {
+                    if (video.thumbnailUrl) {
+                      window.open(video.thumbnailUrl, '_blank');
+                    }
+                  }}
                 />
               </div>
             ) : (

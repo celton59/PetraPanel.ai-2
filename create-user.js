@@ -4,6 +4,7 @@ import pg from 'pg';
 const { Client } = pg;
 
 // Función para generar hash de la contraseña (misma que usa la aplicación)
+// Esta función debe coincidir con passwordUtils.hash en auth.ts
 async function hashPassword(password) {
   return new Promise((resolve, reject) => {
     // Generar salt aleatorio

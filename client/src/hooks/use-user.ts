@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@db/schema";
+import api from "../lib/axios";
 
 type RequestResult = {
   ok: true;
@@ -46,21 +47,13 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   try {
-    const response = await fetch('/api/user', {
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return null;
-      }
-      throw new Error(await response.text());
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
+    const response = await api.get('/api/user');
+    return response.data;
+  } catch (error: any) {
     console.error("Error fetching user:", error);
+    if (error.response && error.response.status === 401) {
+      return null;
+    }
     throw error;
   }
 }
@@ -81,31 +74,14 @@ export function useUser() {
       console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
       
       try {
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData),
-          credentials: 'include',
-        });
-
-        const contentType = response.headers.get('content-type');
-        let data;
-        
-        // Parsear según tipo de contenido
-        if (contentType && contentType.includes('application/json')) {
-          data = await response.json();
-        } else {
-          const text = await response.text();
-          data = { success: response.ok, message: text };
-        }
-        
-        if (!response.ok) {
-          throw new Error(data.message || "Error en inicio de sesión");
-        }
-        
-        return data;
+        const response = await api.post('/api/login', userData);
+        return response.data;
       } catch (error: any) {
         console.error("Error en inicio de sesión:", error);
+        // Extrae el mensaje de error de la respuesta de Axios
+        if (error.response && error.response.data) {
+          throw new Error(error.response.data.message || "Error en inicio de sesión");
+        }
         throw error;
       }
     },
@@ -125,17 +101,8 @@ export function useUser() {
       console.log("Iniciando cierre de sesión");
       
       try {
-        const response = await fetch('/api/logout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-        });
-        
-        if (!response.ok) {
-          throw new Error("Error al cerrar sesión");
-        }
-        
-        return { success: true };
+        const response = await api.post('/api/logout');
+        return response.data;
       } catch (error: any) {
         console.error("Error en logout:", error);
         throw error;

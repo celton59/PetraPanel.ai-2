@@ -1,93 +1,92 @@
+import { Youtube, GitCompareArrows, Settings } from "lucide-react";
+import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useLocation as useWouterLocation } from "wouter";
+import { VideoStats } from "./components/VideoStats";
+import { SearchBar } from "./components/SearchBar";
+import { TableActions } from "./components/TableActions";
+import { VideoTable } from "./components/VideoTable";
+import { PaginationControls } from "./components/PaginationControls";
+import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
+import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
+import { TitleComparisonDialog } from "./components/TitleComparisonDialog";
+import { TitulinVideo, Channel, VideoResponse } from "./types";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { motion } from "framer-motion";
-import { Card } from "@/components/ui/card";
-import { Download } from "lucide-react";
 import { toast } from "sonner";
-import { ProjectSelector } from "@/components/project/ProjectSelector";
-import { Project } from "@db/schema";
-import { DataTable } from "./DataTable";
-
-
-interface TitulinVideo {
-  id: number;
-  videoId: string;
-  channelId: string;
-  title: string;
-  description: string | null;
-  publishedAt: string | null;
-  thumbnailUrl: string | null;
-  viewCount: number;
-  likeCount: number;
-  commentCount: number;
-  duration: string | null;
-  tags: string[] | null;
-  analyzed: boolean;
-  sentToOptimize: boolean;
-  sentToOptimizeAt: string | null;
-  sentToOptimizeProjectId: number | null;
-  analysisData: {
-    isEvergreen: boolean;
-    confidence: number;
-    reason: string;
-  } | null;
-}
-
-interface Channel {
-  id: number;
-  channelId: string;
-  name: string;
-  lastVideoFetch: string | null;
-}
-
-
+import { Button } from "@/components/ui/button";
+import { SortingState } from "@tanstack/react-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TitulinPage() {
-  const queryClient = useQueryClient();
+  // Estados de la página
+  const [searchValue, setSearchValue] = useState("");
   const [titleFilter, setTitleFilter] = useState("");
-  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [channelFilter, setChannelFilter] = useState("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
+  const [analysisVideo, setAnalysisVideo] = useState<TitulinVideo | null>(null);
+  const [showComparisonDialog, setShowComparisonDialog] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [onlyEvergreen, setOnlyEvergreen] = useState(false);
+  const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
+  const [currentTab, setCurrentTab] = useState("todos");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "publishedAt", desc: true } // Consistente con la definición del componente VideoTable
+  ]);
 
-  const analyzeEvergeenMutation = useMutation({
-    mutationFn: async (videoId: number) => {
-      const response = await axios.post(`/api/titulin/videos/${videoId}/analyze`);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
-      toast.success("Análisis completado", {
-        description: "El video ha sido analizado correctamente"
-      });
-    },
-    onError: (error) => {
-      console.error("Error analyzing video:", error);
-      toast.error("Error", {
-        description: "No se pudo analizar el video",
-      });
-    }
-  });
+  // Efecto para gestionar la búsqueda
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setTitleFilter(searchValue.trim());
+      setCurrentPage(1);
+      setIsSearching(false);
+    }, 300);
 
-  const { data: videos, isLoading } = useQuery({
-    queryKey: ["youtube-videos", channelFilter],
+    return () => clearTimeout(timerId);
+  }, [searchValue]);
+
+  // Obtener el queryClient para poder usarlo más tarde
+  const queryClient = useQueryClient();
+
+  // Consulta para obtener videos
+  const { 
+    data: videosData, 
+    isLoading, 
+    isFetching,
+    refetch 
+  } = useQuery<VideoResponse>({
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyEvergreen, onlyAnalyzed, currentTab],
     queryFn: async () => {
-      const response = await axios.get("/api/titulin/videos", {
-        params: channelFilter !== "all" ? { channelId: channelFilter } : undefined
+      const searchParams = {
+        ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+        ...(titleFilter ? { title: titleFilter } : {}),
+        ...(onlyEvergreen ? { isEvergreen: true } : {}),
+        ...(onlyAnalyzed ? { analyzed: true } : {}),
+        ...(currentTab === "evergreen" ? { isEvergreen: true } : {}),
+        ...(currentTab === "no-evergreen" ? { isEvergreen: false, analyzed: true } : {}),
+        ...(currentTab === "analizados" ? { analyzed: true } : {}),
+        ...(currentTab === "no-analizados" ? { analyzed: false } : {}),
+        page: currentPage,
+        limit: pageSize
+      };
+      
+      console.log("Parámetros de búsqueda:", searchParams);
+      
+      const response = await axios.get<VideoResponse>("/api/titulin/videos", {
+        params: searchParams
       });
       return response.data;
     },
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
+  // Obtener canales
   const { data: channels } = useQuery<Channel[]>({
     queryKey: ["youtube-channels"],
     queryFn: async () => {
@@ -96,16 +95,16 @@ export default function TitulinPage() {
     },
   });
 
-  const filteredVideos = videos?.filter((video: TitulinVideo) => {
-    const matchesTitle = video.title.toLowerCase().includes(titleFilter.toLowerCase());
-    return matchesTitle;
-  }) || [];
+  // Obtener estadísticas
+  const { data: statsData } = useQuery({
+    queryKey: ["youtube-videos-stats"],
+    queryFn: async () => {
+      const response = await axios.get("/api/titulin/videos/stats");
+      return response.data;
+    },
+  });
 
-  // Calculate statistics
-  const totalVideos = videos?.length || 0;
-  const viewsCount = videos?.reduce((acc: number, video: TitulinVideo) => acc + (video.viewCount || 0), 0) || 0;
-  const likesCount = videos?.reduce((acc: number, video: TitulinVideo) => acc + (video.likeCount || 0), 0) || 0;
-
+  // Función para formatear fechas
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
     try {
@@ -118,441 +117,409 @@ export default function TitulinPage() {
     }
   };
 
-  const formatLastUpdate = (dateString: string | null) => {
-    if (!dateString) return "No hay datos";
-    try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return "Fecha inválida";
-      return `Hace ${formatDistanceToNow(date, { locale: es })}`;
-    } catch (error) {
-      console.error("Error formatting last update:", error);
-      return "Error en fecha";
-    }
-  };
-
+  // Obtener la información de la última actualización
   const getLastUpdateInfo = () => {
     if (!channels || channels.length === 0) return "No hay canales";
 
     if (channelFilter !== "all") {
       const selectedChannel = channels.find(c => c.channelId === channelFilter);
-      return selectedChannel ? formatLastUpdate(selectedChannel.lastVideoFetch) : "Canal no encontrado";
+      // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
+      const lastFetch = selectedChannel?.lastVideoFetch || selectedChannel?.['last_video_fetch'];
+      
+      if (!lastFetch) return "Sin datos de actualización";
+      
+      try {
+        const date = parseISO(lastFetch);
+        return `Hace ${formatDistanceToNow(date, { locale: es })}`;
+      } catch (error) {
+        return "Fecha inválida";
+      }
     }
 
     const lastUpdate = channels.reduce((latest, channel) => {
-      if (!channel.lastVideoFetch) return latest;
-      if (!latest) return channel.lastVideoFetch;
-      return channel.lastVideoFetch > latest ? channel.lastVideoFetch : latest;
+      // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
+      const lastFetch = channel.lastVideoFetch || channel['last_video_fetch'];
+      
+      if (!lastFetch) return latest;
+      if (!latest) return lastFetch;
+      return lastFetch > latest ? lastFetch : latest;
     }, null as string | null);
 
-    return formatLastUpdate(lastUpdate);
-  };
-
-  const formatDuration = (duration: string | null) => {
-    if (!duration) return "-";
-
+    if (!lastUpdate) return "No hay datos";
+    
     try {
-      const hours = duration.match(/(\d+)H/)?.[1];
-      const minutes = duration.match(/(\d+)M/)?.[1];
-      const seconds = duration.match(/(\d+)S/)?.[1];
-
-      const h = parseInt(hours || "0");
-      const m = parseInt(minutes || "0");
-      const s = parseInt(seconds || "0");
-
-      if (h > 0) {
-        return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-      }
-      if (m > 0) {
-        return `${m}:${s.toString().padStart(2, "0")}`;
-      }
-      return `0:${s.toString().padStart(2, "0")}`;
+      const date = parseISO(lastUpdate);
+      return `Hace ${formatDistanceToNow(date, { locale: es })}`;
     } catch (error) {
-      console.error("Error formatting duration:", error);
-      return "-";
+      return "Fecha inválida";
     }
   };
 
+  // Obtener el nombre de un canal
   const getChannelName = (channelId: string) => {
     const channel = channels?.find(c => c.channelId === channelId);
     return channel?.name || channelId;
   };
 
-  const columns: ColumnDef<TitulinVideo>[] = [
-    {
-      accessorKey: "thumbnailUrl",
-      header: "Miniatura",
-      cell: ({ row }) => (
-        <div className="w-24 h-16 bg-muted rounded overflow-hidden">
-          {row.original.thumbnailUrl ? (
-            <img
-              src={row.original.thumbnailUrl}
-              alt={row.original.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "https://via.placeholder.com/120x90?text=No+Image";
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              No img
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "title",
-      header: "Título",
-      cell: ({ row }) => (
-        <div className="max-w-[300px] truncate" title={row.original.title}>
-          {row.original.title}
-          {row.original.sentToOptimize && (
-            <Badge variant="secondary" className="ml-2">
-              Enviado a optimizar
-            </Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "viewCount",
-      header: "Vistas",
-      cell: ({ row }) => (
-        <span>{Number(row.original.viewCount || 0).toLocaleString()}</span>
-      ),
-    },
-    {
-      accessorKey: "likeCount",
-      header: "Likes",
-      cell: ({ row }) => (
-        <span>{Number(row.original.likeCount || 0).toLocaleString()}</span>
-      ),
-    },
-    {
-      accessorKey: "publishedAt",
-      header: "Publicado",
-      cell: ({ row }) => (
-        <span>{formatDate(row.original.publishedAt)}</span>
-      ),
-    },
-    {
-      accessorKey: "duration",
-      header: "Duración",
-      cell: ({ row }) => (
-        <span>{formatDuration(row.original.duration)}</span>
-      ),
-    },
-    {
-      accessorKey: "channelId",
-      header: "Canal",
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate">
-          {getChannelName(row.original.channelId)}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "analysisData",
-      header: "Evergreen",
-      cell: ({ row }) => {
-        const video = row.original;
-
-        if (!video.analyzed) {
-          return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => analyzeEvergeenMutation.mutate(video.id)}
-              disabled={analyzeEvergeenMutation.isPending}
-              className="w-full"
-            >
-              {analyzeEvergeenMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <PlayCircle className="h-4 w-4 mr-2" />
-              )}
-              Analizar
-            </Button>
-          );
+  // Descargar CSV
+  const downloadCSVMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.get("/api/titulin/videos", {
+        params: {
+          ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+          ...(titleFilter ? { title: titleFilter } : {}),
+          limit: 1000,
+          page: 1
         }
-
-        if (!video.analysisData) {
-          return (
-            <Badge variant="outline" className="text-muted-foreground">
-              No analizado
-            </Badge>
-          );
-        }
-
-        return (
-          <div className="space-y-1">
-            <Badge variant={video.analysisData.isEvergreen ? "default" : "secondary"}>
-              {video.analysisData.isEvergreen ? "Evergreen" : "No Evergreen"}
-            </Badge>
-            <div className="text-xs text-muted-foreground">
-              {Math.round(video.analysisData.confidence * 100)}% confianza
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "Acciones",
-      cell: ({ row }) => {
-        const video = row.original;
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSelectedVideo(video)}
-            className="w-full"
-            disabled={video.sentToOptimize}
-          >
-            {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
-          </Button>
-        );
-      }
-    }
-  ];
-
-  const handleDownloadCSV = () => {
-    if (!videos?.length) {
-      toast.error("No hay videos", {
-        description: "No hay videos para descargar.",
       });
-      return;
+      return response.data;
+    },
+    onSuccess: (data) => {
+      const exportVideos = data.videos || [];
+      
+      if (!exportVideos.length) {
+        toast.error("No hay videos para descargar");
+        return;
+      }
+      
+      // Crear el contenido del CSV
+      const titlesForCSV = exportVideos.map((video: TitulinVideo) => {
+        // Obtener la fecha publicada con cualquiera de los dos formatos posibles
+        const publishedDate = video.publishedAt || video['published_at'];
+        
+        return {
+          title: video.title,
+          views: video.viewCount,
+          likes: video.likeCount,
+          published: formatDate(publishedDate),
+          channel: getChannelName(video.channelId),
+          duration: video.duration,
+          isEvergreen: video.analyzed && video.analysisData ? (video.analysisData.isEvergreen ? "Sí" : "No") : "No analizado",
+          url: `https://youtube.com/watch?v=${video.videoId}`
+        };
+      });
+      
+      // Convertir a formato CSV
+      const headers = Object.keys(titlesForCSV[0]).join(',');
+      const rows = titlesForCSV.map((obj: Record<string, any>) => 
+        Object.values(obj).map(value => 
+          typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
+        ).join(',')
+      );
+      const csv = [headers, ...rows].join('\n');
+      
+      // Descargar como archivo
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `youtube_videos_export_${new Date().toISOString().slice(0,10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Se han exportado ${exportVideos.length} videos`);
+    },
+    onError: (error) => {
+      console.error("Error downloading CSV:", error);
+      toast.error("No se pudo generar el archivo CSV");
     }
+  });
 
-    // Crear el contenido del CSV con los títulos filtrados
-    const titlesForCSV = filteredVideos.map(video => ({
-      title: video.title,
-      views: video.viewCount,
-      likes: video.likeCount,
-      published: formatDate(video.publishedAt),
-      channel: getChannelName(video.channelId),
-      isEvergreen: video.analysisData?.isEvergreen ? "Sí" : "No",
-      confidence: video.analysisData ? `${Math.round(video.analysisData.confidence * 100)}%` : "N/A"
-    }));
-
-    const headers = ["Título", "Vistas", "Likes", "Fecha de Publicación", "Canal", "Evergreen", "Confianza"];
-
-    // Agregar BOM para UTF-8
-    const BOM = '\uFEFF';
-    const csvContent = BOM + [
-      headers.join(";"),  // Usar punto y coma como separador
-      ...titlesForCSV.map(row => [
-        `"${row.title.replace(/"/g, '""')}"`, // Escapar comillas dobles
-        row.views,
-        row.likes,
-        `"${row.published}"`,
-        `"${row.channel.replace(/"/g, '""')}"`,
-        `"${row.isEvergreen}"`,
-        `"${row.confidence}"`
-      ].join(";"))
-    ].join("\n");
-
-    // Crear el blob especificando UTF-8
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", "titulos_titulin.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Liberar memoria
+  // Handler para descargar CSV
+  const handleDownloadCSV = () => {
+    downloadCSVMutation.mutate();
   };
 
+  // Extraer datos
+  const videos = videosData?.videos || [];
+  const pagination = videosData?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+  const totalVideos = pagination.total || 0;
+  const viewsCount = statsData?.totalViews || 0;
+  const likesCount = statsData?.totalLikes || 0;
+  const isDownloading = downloadCSVMutation.isPending;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Función para refrescar datos
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+    toast.success("Datos actualizados correctamente");
+  };
+
+  // Manejador de cambio de ordenación
+  const handleSortingChange = (newSorting: SortingState) => {
+    setSorting(newSorting);
+  };
 
   return (
     <div className="container mx-auto py-10">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center gap-3 mb-8">
-          <Youtube className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Videos de YouTube</h1>
-        </div>
+      <div className="space-y-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Youtube className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold">Videos de YouTube</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => setShowComparisonDialog(true)}
+              >
+                <GitCompareArrows className="h-4 w-4" />
+                Comparar Títulos
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => window.location.href = "/configuracion/titulin"}
+              >
+                <Settings className="h-4 w-4" />
+                Configuración
+              </Button>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-primary">{totalVideos}</div>
-            <div className="text-sm text-muted-foreground">Videos Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-green-600">{viewsCount.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Vistas Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-yellow-500">{likesCount.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Likes Totales</div>
-          </Card>
-          <Card className="p-4 shadow-sm">
-            <div className="text-2xl font-bold text-blue-500">{getLastUpdateInfo()}</div>
-            <div className="text-sm text-muted-foreground">Última Actualización</div>
-          </Card>
-        </div>
-      </motion.div>
+          <VideoStats 
+            totalVideos={totalVideos}
+            viewsCount={viewsCount}
+            likesCount={likesCount}
+            lastUpdateInfo={getLastUpdateInfo()}
+          />
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por título..."
-              value={titleFilter}
-              onChange={(e) => setTitleFilter(e.target.value)}
-              className="pl-8"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-4"
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+            <div className="relative flex-1 w-full">
+              {/* Barra de búsqueda simplificada */}
+              <SearchBar 
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                setTitleFilter={setTitleFilter}
+                setCurrentPage={setCurrentPage}
+                isFetching={isFetching}
+              />
+            </div>
+
+            {/* Selector de canal y botón de exportar */}
+            <TableActions
+              channelFilter={channelFilter}
+              setChannelFilter={setChannelFilter}
+              setCurrentPage={setCurrentPage}
+              channels={channels}
+              handleDownloadCSV={handleDownloadCSV}
+              isDownloading={isDownloading}
+              onlyEvergreen={onlyEvergreen}
+              setOnlyEvergreen={setOnlyEvergreen}
+              onlyAnalyzed={onlyAnalyzed}
+              setOnlyAnalyzed={setOnlyAnalyzed}
+              refreshData={refreshData}
+              isRefreshing={isRefreshing}
             />
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-2"
-              disabled={!videos?.length}
-            >
-              <Download className="h-4 w-4" />
-              Descargar CSV
-            </Button>
+          {/* Pestañas para filtrar videos */}
+          <Card>
+            <CardContent className="p-0">
+              <Tabs 
+                defaultValue="todos" 
+                value={currentTab}
+                onValueChange={(value) => {
+                  setCurrentTab(value);
+                  setCurrentPage(1);
+                }}
+                className="w-full"
+              >
+                <div className="p-4 border-b">
+                  <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+                    <TabsTrigger value="todos" className="text-xs md:text-sm">
+                      Todos
+                    </TabsTrigger>
+                    <TabsTrigger value="evergreen" className="text-xs md:text-sm">
+                      Evergreen
+                    </TabsTrigger>
+                    <TabsTrigger value="no-evergreen" className="text-xs md:text-sm">
+                      No Evergreen
+                    </TabsTrigger>
+                    <TabsTrigger value="analizados" className="text-xs md:text-sm">
+                      Analizados
+                    </TabsTrigger>
+                    <TabsTrigger value="no-analizados" className="text-xs md:text-sm">
+                      Sin Analizar
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="todos" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="evergreen" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos evergreen...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="no-evergreen" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos no evergreen...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="analizados" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos analizados...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="no-analizados" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos sin analizar...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
 
-            <Select
-              value={channelFilter}
-              onValueChange={setChannelFilter}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Filtrar por canal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los canales</SelectItem>
-                {channels?.map((channel) => (
-                  <SelectItem key={channel.id} value={channel.channelId}>
-                    {channel.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DataTable columns={columns} data={filteredVideos} />
-
-        <SendToOptimizeDialog
-          video={selectedVideo!}
-          open={!!selectedVideo}
-          onOpenChange={(open) => !open && setSelectedVideo(null)}
-        />
-      </motion.div>
-    </div>
-  );
-}
-
-
-interface SendToOptimizeDialogProps {
-  video: TitulinVideo;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-function SendToOptimizeDialog({ video, open, onOpenChange }: SendToOptimizeDialogProps) {
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setLocation] = useWouterLocation();
-
-  const handleSubmit = async () => {
-    if (!selectedProject) {
-      toast.error("Error", {        
-        description: "Debes seleccionar un proyecto",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Enviar a optimización
-      const response = await axios.post("/api/videos", {
-        projectId: selectedProject,
-        title: video.title,
-        description: video.description,
-        youtubeId: video.videoId,
-        sourceId: video.id
-      });
-
-      // Marcar como enviado a optimización
-      await axios.post(`/api/titulin/videos/${video.id}/sent-to-optimize`, {
-        projectId: selectedProject
-      });
-
-      toast.success("Éxito", {
-        description: "Video enviado a optimización"
-      });
-
-      onOpenChange(false);
-      setLocation("/videos");
-    } catch (error) {
-      console.error("Error sending video to optimization:", error);
-      toast.error("Error", {
-        description: "No se pudo enviar el video a optimización",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enviar a Optimización</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <h3 className="font-medium">Selecciona un proyecto</h3>
-            <p className="text-sm text-muted-foreground">
-              El video será optimizado dentro del proyecto seleccionado
-            </p>
-          </div>
-          <ProjectSelector
-            value={selectedProject?.id ?? null}
-            onChange={setSelectedProject}
-          />
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!selectedProject || isSubmitting}
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {/* Paginación */}
+          <div className="flex justify-between items-center mt-4 px-2">
+            <div className="text-sm text-muted-foreground">
+              {pagination.total > 0 ? (
+                <span>
+                  Mostrando {Math.min((currentPage - 1) * pageSize + 1, pagination.total)} - {Math.min(currentPage * pageSize, pagination.total)} de {pagination.total} videos
+                </span>
+              ) : (
+                <span>No hay videos que coincidan con los filtros</span>
               )}
-              Enviar
-            </Button>
+            </div>
+            
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              setCurrentPage={setCurrentPage}
+            />
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </motion.div>
+
+        {/* Modal para enviar video a optimización */}
+        {selectedVideo && (
+          <SendToOptimizeDialog
+            video={selectedVideo}
+            open={!!selectedVideo}
+            onOpenChange={(open) => {
+              if (!open) setSelectedVideo(null);
+            }}
+          />
+        )}
+
+        {/* Modal para análisis de video */}
+        {analysisVideo && (
+          <VideoAnalysisDialog
+            video={analysisVideo}
+            open={!!analysisVideo}
+            onOpenChange={(open) => {
+              if (!open) setAnalysisVideo(null);
+            }}
+            onAnalysisComplete={() => {
+              // Invalidar la consulta para actualizar los datos
+              window.setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+              }, 500);
+            }}
+          />
+        )}
+
+        {/* Modal para comparación de títulos */}
+        <TitleComparisonDialog
+          open={showComparisonDialog}
+          onOpenChange={setShowComparisonDialog}
+        />
+      </div>
+    </div>
   );
 }

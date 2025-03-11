@@ -1,0 +1,859 @@
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Boolean,
+    Text,
+    select,
+    func,
+    desc,
+    ForeignKey,
+    update,
+    and_,
+    UniqueConstraint,
+    text
+)
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from config import Config
+import asyncio
+import aiohttp
+from datetime import date, datetime, timedelta
+
+# db destino start
+Base = declarative_base()
+
+
+class ScrapYtChannel(Base):
+    __tablename__ = 'scrap_yt_channels'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    channel_id = Column(String(255), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    image_url = Column(String(255), nullable=True)
+    uploads_playlist = Column(String(255), nullable=True)
+    pageToken = Column(String(255), nullable=True)
+    error_log = Column(Text, nullable=True)
+    last_video_count = Column(Integer, nullable=True)
+    to_delete = Column(Boolean, nullable=True)
+    last_sync = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+
+
+class ScrapYtChannelStat(Base):
+    __tablename__ = 'scrap_yt_channel_stats'
+    id = Column(Integer, primary_key=True)
+    scrap_yt_channel_id = Column(Integer, ForeignKey('scrap_yt_channels.id'))
+    video_count = Column(Integer, nullable=True)
+    subscriber_count = Column(Integer, nullable=True)
+    view_count = Column(Integer, nullable=True)
+    date = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+    __table_args__ = (UniqueConstraint('scrap_yt_channel_id', 'date'),)
+
+
+class ScrapYtVideo(Base):
+    __tablename__ = 'scrap_yt_videos'
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    scrap_yt_channel_id = Column(Integer, ForeignKey('scrap_yt_channels.id'))
+    video_id = Column(String(255), nullable=False, unique=True)
+    status = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    image_url = Column(String(255), nullable=True)
+    publish_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+
+
+class ScrapYtVideoStat(Base):
+    __tablename__ = 'scrap_yt_video_stats'
+    id = Column(Integer, primary_key=True)
+    scrap_yt_video_id = Column(Integer, ForeignKey('scrap_yt_videos.id'))
+    view_count = Column(Integer, nullable=True)
+    like_count = Column(Integer, nullable=True)
+    comment_count = Column(Integer, nullable=True)
+    date = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+    __table_args__ = (UniqueConstraint('scrap_yt_video_id', 'date'),)
+
+
+class ApiKey(Base):
+    __tablename__ = 'api_keys'
+    id = Column(Integer, primary_key=True)
+    key = Column(String(255), nullable=False)
+    value = Column(String(255), nullable=False)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+
+
+class ApiKeyLogs(Base):
+    __tablename__ = 'api_key_logs'
+    id = Column(Integer, primary_key=True)
+    api_key_id = Column(Integer, nullable=False)
+    date = Column(DateTime, nullable=False)
+    state = Column(Integer, default=0)  # retry errors
+    count = Column(Integer, nullable=True)
+    log = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+
+
+class StatsMV(Base):
+    __tablename__ = 'stats_materialized_view'
+    id = Column(Integer, primary_key=True)
+    ref_id = Column(String(255))
+
+
+class StatsTT(Base):
+    __tablename__ = 'stats_trigger_table'
+    id = Column(Integer, primary_key=True)
+    tdate = Column(DateTime)
+
+
+class SyncLog(Base):
+    __tablename__ = 'sync_log'
+    id = Column(Integer, primary_key=True)
+    key = Column(String, nullable=True)
+    value = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=True,
+                        default=func.now(), server_default=func.now())
+    updated_at = Column(DateTime, nullable=True,
+                        default=func.now(), onupdate=func.now())
+
+
+async def add_sync_log(async_session, key, value):
+    async with async_session() as session:
+        new_log = SyncLog(
+            key=key,
+            value=value)
+
+        session.add(new_log)
+        await session.commit()
+
+
+DEST_DB_URI = Config.get('DEST_DB_URI')
+PER_PAGE = 15
+
+
+async def get_api_key(async_session, date, key):
+    async with async_session() as session:
+        stmt = select(ApiKey, ApiKeyLogs).join(ApiKeyLogs, and_(
+            ApiKeyLogs.date == date,
+            # ApiKeyLogs.state < 4,
+            ApiKey.id == ApiKeyLogs.api_key_id),
+            isouter=True)\
+            .where(ApiKey.key == key).limit(1)
+
+        result = await session.execute(stmt)
+        instance = result.first()
+        if not instance:
+            return None
+
+        if instance[1]:
+            apk_logs = {
+                'id': instance[1].id,
+                'count': instance[1].count,
+                'date': instance[1].date,
+                'log': instance[1].log,
+                'state': instance[1].state,
+            }
+        else:
+            apk_logs = {
+                'id': -1,
+                'count': 0,
+                'date': date,
+                'log': '',
+                'state': 0,
+            }
+
+        result_keys = {
+            'id': instance[0].id,
+            'value': instance[0].value,
+            'log_id': apk_logs['id'],
+            'log_count': apk_logs['count'],
+            'log_date': apk_logs['date'],
+            'log_log': apk_logs['log'],
+            'log_state': apk_logs['state'],
+        }
+        return result_keys
+
+
+async def update_api_key_logs(async_session, apk_logs):
+    async with async_session() as session:
+        if apk_logs['log_id'] != -1:
+            await session.execute(update(ApiKeyLogs), [{
+                'id': apk_logs['log_id'],
+                'api_key_id': apk_logs['id'],
+                'date': apk_logs['log_date'],
+                'state': apk_logs['log_state'],
+                'count': apk_logs['log_count'],
+                'log': apk_logs['log_log']}])
+        else:
+            new_stats = ApiKeyLogs(
+                api_key_id=apk_logs['id'],
+                date=apk_logs['log_date'],
+                state=apk_logs['log_state'],
+                count=apk_logs['log_count'],
+                log=apk_logs['log_log']
+            )
+            session.add(new_stats)
+
+        await session.commit()
+
+
+async def get_channel_video_count(async_session, channel_id):
+    async with async_session() as session:
+        stmt = select(func.count())\
+            .select_from(ScrapYtVideo).where(ScrapYtVideo.scrap_yt_channel_id == channel_id)
+        result = await session.execute(stmt)
+        instance = result.scalars().one()
+        if not instance:
+            return 0
+        return instance
+
+async def get_sync_cost(async_session):
+    # channel stats channel_count/50
+    # videos stats videos_count/50
+    # channel "daily" new videos channel_count*2 (repeated_pages > 1)
+
+    async with async_session() as session:
+        videos_count = 0
+        channel_count = 0
+        stmt = select(func.count())\
+            .select_from(ScrapYtVideo)
+        result = await session.execute(stmt)
+        instance = result.scalars().one()
+        if instance:
+            videos_count = instance
+
+        stmt = select(func.count())\
+            .select_from(ScrapYtChannel)\
+            .where(ScrapYtChannel.to_delete != True)
+        result = await session.execute(stmt)
+        instance = result.scalars().one()
+        if instance:
+            channel_count = instance
+
+        return channel_count, videos_count, ((channel_count/50) + (videos_count/50))/2
+
+async def get_channels_count(async_session, date):
+    async with async_session() as session:
+        stmt = select(func.count()).select_from(ScrapYtChannel)\
+            .where(ScrapYtChannel.uploads_playlist != None)\
+            .where(ScrapYtChannel.last_sync < date)\
+            .where(ScrapYtChannel.to_delete != True)
+        result = await session.execute(stmt)
+        instance = result.scalars().one()
+        if not instance:
+            return 0
+
+        total_pages = instance // PER_PAGE + 1
+        return total_pages
+
+
+async def get_channels(async_session, date, page):
+    async with async_session() as session:
+        offset = (page - 1) * PER_PAGE
+        stmt = select(ScrapYtChannel)\
+            .where(ScrapYtChannel.uploads_playlist != None)\
+            .where(ScrapYtChannel.last_sync < date)\
+            .where(ScrapYtChannel.to_delete != True)\
+            .order_by(desc(ScrapYtChannel.last_sync))\
+            .offset(offset).limit(PER_PAGE)
+
+        result = await session.execute(stmt)
+        return result.scalars().all()
+
+
+async def add_channels_stats(async_session, channel_stats, date):
+    async with async_session() as session:
+        new_stats = [ScrapYtChannelStat(
+            scrap_yt_channel_id=stat['id'],
+            video_count=stat['video_count'],
+            subscriber_count=stat['subscriber_count'],
+            view_count=stat['view_count'],
+            date=date) for stat in channel_stats]
+
+        session.add_all(new_stats)
+        await session.commit()
+        return new_stats
+
+
+async def update_channel_info(async_session, channel_stats):
+    async with async_session() as session:
+        await session.execute(update(ScrapYtChannel), [{
+            'id': stat['id'],
+            'description': stat['description'],
+            'image_url': stat['img_link'],
+            'uploads_playlist': stat['uploads_playlist']} for stat in channel_stats])
+        await session.commit()
+
+
+async def update_channel_sync(async_session, scrap_yt_channel_id, last_sync, pageToken, error_log):
+    async with async_session() as session:
+        stmt = (
+            update(ScrapYtChannel)
+            .where(ScrapYtChannel.id == scrap_yt_channel_id)
+            .values(
+                last_sync=last_sync,
+                pageToken=pageToken,
+                error_log=error_log,
+            )
+        )
+
+        await session.execute(stmt)
+        await session.commit()
+
+
+async def add_trigger():
+    engine = create_async_engine(
+        DEST_DB_URI,
+        pool_pre_ping=True,
+        echo_pool=True,
+        pool_recycle=Config.get('POOL_RECYCLE')
+    )
+
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        async with async_session() as session:
+            new_stt = StatsTT(tdate=datetime.now())
+            session.add(new_stt)
+            await session.commit()
+    except Exception as e:
+        print("Error", str(e))
+    await engine.dispose()
+
+
+async def update_channel_stats_mv(async_session, pdate):
+    async with async_session() as session:
+        sql_query = f"CALL update_channel_stats_materialized_view('{pdate}');"
+        stmt = text(sql_query)
+        await session.execute(stmt)
+        await session.commit()
+
+
+async def update_video_stats_mv(async_session, pdate):
+    async with async_session() as session:
+        sql_query = f"CALL update_video_stats_materialized_view('{pdate}');"
+        stmt = text(sql_query)
+        await session.execute(stmt)
+        await session.commit()
+
+
+async def get_stats_mv_count(async_session):
+    VIDEO_PAGE = 49
+    async with async_session() as session:
+        stmt = select(func.count()).select_from(StatsMV)
+        result = await session.execute(stmt)
+        instance = result.scalars().one()
+        if not instance:
+            return 0
+
+        total_pages = instance // VIDEO_PAGE + 1
+        return total_pages
+
+
+async def get_stats_mv(async_session, page):
+    VIDEO_PAGE = 49
+    async with async_session() as session:
+        offset = (page - 1) * VIDEO_PAGE
+        stmt = select(StatsMV).offset(offset).limit(VIDEO_PAGE)
+        result = await session.execute(stmt)
+        return result.scalars().all()
+
+
+async def add_videos(async_session, videos, scrap_yt_channel_id):
+    async with async_session() as session:
+        stmt = select(ScrapYtVideo.video_id)\
+            .where(ScrapYtVideo.video_id.in_([video['video_id'] for video in videos]))
+        result = await session.execute(stmt)
+        existing_ids = result.scalars().all()
+
+        new_videos = [ScrapYtVideo(
+            scrap_yt_channel_id=scrap_yt_channel_id,
+            title=video['title'],
+            video_id=video['video_id'],
+            description=video['description'],
+            image_url=video['img_link'],
+            publish_date=video['publishedAt'],
+            status='new') for video in videos if video['video_id'] not in existing_ids]
+        session.add_all(new_videos)
+        await session.commit()
+        return new_videos, existing_ids
+
+
+async def add_videos_stats(async_session, videos_stats, date):
+    async with async_session() as session:
+        new_videos = [ScrapYtVideoStat(
+            scrap_yt_video_id=stat['id'],
+            view_count=stat['view_count'],
+            like_count=stat['like_count'],
+            comment_count=stat['comment_count'],
+            date=date) for stat in videos_stats]
+
+        session.add_all(new_videos)
+        await session.commit()
+        return new_videos
+
+
+async def fetch(url, params):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as response:
+            if response.status != 200:
+                raise Exception(f"Error en la solicitud: {response.status}")
+            return await response.json()
+
+
+async def get_channel_info_wrapper(id, async_session):
+    today_date = date.today()
+    developer_api_keys = await get_api_key(async_session, today_date, 'videos')
+    if not developer_api_keys:
+        raise Exception("Not api keys")
+    result = await api_key_wrapper(get_channel_info, id, key=developer_api_keys)
+    # await update_api_key_logs(async_session, developer_api_keys)
+    return result
+
+
+async def api_key_wrapper(func, *args, key):
+    error = None
+    if key['log_state'] > 10:
+        print("key['log_state'] > 10")
+    else:
+        key['log_count'] += 1
+
+        try:
+            return await func(*args, developer_key=key['value'])
+        except Exception as e:
+            print("Error", str(e))
+            error = str(e)
+            if error not in ["Error en la solicitud: 404", "Error en la solicitud: 500", "Error en la solicitud: 503"]:
+                key['log_state'] += 1
+            key['log_log'] += str(e)
+
+    if not error:
+        print("all keys log_state > 3")
+        error = "all keys log_state > 3"
+
+    raise Exception(error)
+
+
+async def get_channel_info(id, developer_key):
+    url = 'https://youtube.googleapis.com/youtube/v3/channels'
+    params = {
+        'part': 'statistics,snippet,contentDetails',
+        'id': id,
+        'key': developer_key
+    }
+    response = await fetch(url, params)
+    if len(response.get('items', [])) < 1:
+        raise Exception("channel not found")
+
+    snippet = response['items'][0]['snippet']
+    statistics = response['items'][0]['statistics']
+    contentDetails = response['items'][0]['contentDetails']
+
+    description = snippet['description']
+    subscriber_count = statistics['subscriberCount']
+    video_count = statistics['videoCount']
+    view_count = statistics['viewCount']
+    publishedAt = snippet['publishedAt']
+    image_url = snippet['thumbnails']['default']['url']
+    uploads_playlist = contentDetails['relatedPlaylists']['uploads']
+
+    return {
+        'description': description,
+        'subscriber_count': subscriber_count,
+        'video_count': video_count,
+        'view_count': view_count,
+        'publishedAt': publishedAt,
+        'image_url': image_url,
+        'uploads_playlist': uploads_playlist
+    }
+
+
+async def get_channel_stats(id_list, channel_dict, developer_key):
+    print('get_channel_stats')
+    url = 'https://youtube.googleapis.com/youtube/v3/channels'
+    params = {
+        'part': 'statistics,snippet,contentDetails',
+        'id': id_list,
+        'key': developer_key
+    }
+    response = await fetch(url, params)
+
+    response_channels = []
+    for item in response.get('items', []):
+        statistics = item['statistics']
+        snippet = item['snippet']
+
+        description = snippet['description']
+        subscriber_count = statistics.get('subscriberCount', 0)
+        video_count = statistics.get('videoCount', 0)
+        view_count = statistics.get('viewCount', 0)
+        publishedAt = snippet['publishedAt']
+        img_link = snippet['thumbnails']['default']['url']
+        uploads_playlist = item['contentDetails']['relatedPlaylists']['uploads']
+
+        response_channels.append({
+            'id': channel_dict[item['id']],
+            'channel_id': item['id'],
+            'description': description,
+            'subscriber_count': subscriber_count,
+            'video_count': video_count,
+            'view_count': view_count,
+            'publishedAt': publishedAt,
+            'img_link': img_link,
+            'uploads_playlist': uploads_playlist
+        })
+
+    return response_channels
+
+
+async def get_channel_videos(playlistId, pageToken, developer_key):
+    url = 'https://youtube.googleapis.com/youtube/v3/playlistItems'
+    params = {
+        'part': 'id,snippet',
+        'playlistId': playlistId,
+        'key': developer_key,
+        'maxResults': 50
+    }
+
+    if pageToken:
+        params['pageToken'] = pageToken
+
+    response = await fetch(url, params)
+
+    response_videos = []
+    for item in response['items']:
+        snippet = item['snippet']
+
+        video_id = snippet['resourceId']['videoId']
+        title = snippet['title']
+        description = snippet['description']
+        publishedAt = datetime.fromisoformat(
+            snippet['publishedAt'].replace('Z', ''))
+        img_link = snippet['thumbnails']['default']['url']
+
+        response_videos.append({
+            'video_id': video_id,
+            'title': title,
+            'description': description,
+            'publishedAt': publishedAt,
+            'img_link': img_link
+        })
+
+    return response_videos, response['pageInfo']['totalResults'], response.get('nextPageToken')
+
+
+async def get_video_stats(id_list, videos_dict, developer_key):
+    url = 'https://youtube.googleapis.com/youtube/v3/videos'
+    params = {
+        'part': 'statistics',
+        'id': id_list,
+        'key': developer_key
+    }
+    response = await fetch(url, params)
+    response_videos = []
+    response_videos_id = []
+    for item in response.get('items', []):
+        statistics = item['statistics']
+
+        view_count = statistics.get('viewCount', 0)
+        like_count = statistics.get('likeCount', 0)
+        comment_count = statistics.get('commentCount', 0)
+        response_videos.append({
+            "id": videos_dict[item['id']],
+            "video_id": item['id'],
+            'view_count': view_count,
+            'like_count': like_count,
+            'comment_count': comment_count
+        })
+        response_videos_id.append(videos_dict[item['id']])
+
+    return response_videos, response_videos_id
+
+
+async def async_youtube_videos():
+    print("Iniciando tarea asincrónica async_youtube_videos...")
+    engine = create_async_engine(
+        DEST_DB_URI,
+        pool_pre_ping=True,
+        echo_pool=True,
+        pool_recycle=Config.get('POOL_RECYCLE')
+    )
+
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
+    today_date = date.today()
+
+    developer_api_keys = await get_api_key(async_session, today_date, 'videos')
+    if not developer_api_keys:
+        print("Not api keys")
+        await engine.dispose()
+        return
+
+    init_time = datetime.now()
+    time_exceeded = False
+    total_pages = await get_channels_count(async_session, today_date)
+    for page in range(1, total_pages + 1):
+        channels = await get_channels(async_session, today_date, page)
+        for channel in channels:
+            try:
+                nextPageToken = channel.pageToken
+                repeated_pages = 0
+                db_video_count = await get_channel_video_count(async_session, channel.id)
+
+                # get max 5000 videos
+                pending_tasks = []
+                stop = False
+                for _ in range(300):
+                    pending_tasks.append(
+                        api_key_wrapper(
+                            get_channel_videos,
+                            channel.uploads_playlist,  # playlistId
+                            nextPageToken,  # pageToken
+                            key=developer_api_keys)
+                    )
+                    results = await asyncio.gather(*pending_tasks, return_exceptions=True)
+                    for task, result in zip(pending_tasks, results):
+                        if isinstance(result, Exception):
+                            print(f"Error detectado: {result}")
+                            raise result
+
+                        if task.__name__ == "api_key_wrapper":
+                            new_videos, video_count, nextPageToken = result
+                        else:
+                            _, existing_ids = result
+                            new_videos_count = len(new_videos) - len(existing_ids)
+                            db_video_count += new_videos_count
+
+                            if not nextPageToken:
+                                stop = True
+                                break
+
+                            if new_videos_count < 1:
+                                repeated_pages += 1
+
+                            if repeated_pages >= 1 and db_video_count >= video_count:
+                                nextPageToken = None
+                                stop = True
+                                break
+
+                    pending_tasks = []
+                    if not new_videos or stop:
+                        break
+
+                    pending_tasks.append(
+                        add_videos(
+                            async_session,
+                            new_videos,
+                            channel.id)
+                    )
+
+                await asyncio.gather(*pending_tasks)
+
+                await update_channel_sync(
+                    async_session,
+                    channel.id,
+                    today_date,
+                    nextPageToken,
+                    error_log='')
+            except Exception as e:
+                print("Error channel iter", str(e))
+                await update_channel_sync(
+                    async_session, channel.id, today_date, nextPageToken, str(e))
+            
+            execution_time = datetime.now() - init_time
+            if execution_time > timedelta(minutes=10):
+                time_exceeded = True
+                break
+        
+        if time_exceeded:
+            print("Execution async_youtube_videos time_exceeded")
+            break
+
+    await update_api_key_logs(async_session, developer_api_keys)
+    await engine.dispose()
+    print("Tarea asincrónica completada.")
+
+
+async def async_youtube_channel_stats():
+    print("Iniciando tarea async_transfer_stats...")
+    engine = create_async_engine(
+        DEST_DB_URI,
+        pool_pre_ping=True,
+        echo_pool=True,
+        pool_recycle=Config.get('POOL_RECYCLE')
+    )
+
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
+
+    today_date = date.today()
+    developer_api_keys = await get_api_key(async_session, today_date, 'stats')
+    if not developer_api_keys:
+        print("Not api keys")
+        await engine.dispose()
+        return
+
+    await async_youtube_channel_stats_aux(async_session, developer_api_keys)
+    await update_api_key_logs(async_session, developer_api_keys)
+    await engine.dispose()
+    print("Tarea async_transfer_stats completada.")
+
+
+async def async_youtube_channel_stats_aux(async_session, developer_api_keys):
+    print("Sincronizar channel Stats")
+    today_date = (datetime.now() + timedelta(hours=5)).date()  # if cron start 20hrs, 20+5
+    await update_channel_stats_mv(async_session, today_date.strftime("%Y-%m-%d"))
+    total_pages = await get_stats_mv_count(async_session)
+    for page in range(1, total_pages + 1):
+        for atemp in range(2):
+            try:
+                channels = await get_stats_mv(async_session, page)
+
+                channel_dict = {}
+                id_list = []
+                for channel in channels:
+                    channel_dict[channel.ref_id] = channel.id
+                    id_list.append(channel.ref_id)
+
+                new_stats = await api_key_wrapper(get_channel_stats, ','.join(id_list), channel_dict, key=developer_api_keys)
+
+                if new_stats:
+                    await update_channel_info(async_session, new_stats)
+                    await add_channels_stats(async_session, new_stats, today_date)
+
+                # No error
+                break
+            except Exception as e:
+                print("Error", str(e))
+                if str(e) == "all keys log_state > 3":
+                    return
+                await asyncio.sleep(0.1)
+
+
+async def async_youtube_videos_stats():
+    print("Iniciando tarea async_transfer_stats...")
+    engine = create_async_engine(
+        DEST_DB_URI,
+        pool_pre_ping=True,
+        # echo=True,
+        echo_pool=True,
+        pool_recycle=Config.get('POOL_RECYCLE')
+    )
+
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
+
+    today_date = date.today()
+    developer_api_keys = await get_api_key(async_session, today_date, 'stats')
+    if not developer_api_keys:
+        print("Not api keys")
+        await engine.dispose()
+        return
+
+    await youtube_videos_stats(async_session, developer_api_keys)
+
+    await update_api_key_logs(async_session, developer_api_keys)
+    await engine.dispose()
+    print("Tarea async_transfer_stats completada.")
+
+
+async def task_code(page, today_date, async_session, developer_api_keys):
+    for atemp in range(2):
+        try:
+            videos = await get_stats_mv(async_session, page)
+
+            videos_dict = {}
+            id_list = []
+            for video in videos:
+                videos_dict[video.ref_id] = video.id
+                id_list.append(video.ref_id)
+
+            new_stats, _ = await api_key_wrapper(get_video_stats, ','.join(id_list), videos_dict, key=developer_api_keys)
+            if new_stats:
+                await add_videos_stats(async_session, new_stats, today_date)
+            # No error
+            break
+        except Exception as e:
+            print("Error", str(e))
+            if str(e) == "all keys log_state > 3":
+                raise e
+            await asyncio.sleep(0.1)
+
+
+async def youtube_videos_stats(async_session, developer_api_keys):
+    print("Sincronizar videos Stats")
+    # Limitar el número de tareas concurrentes
+    max_concurrent_tasks = Config.get('MAX_CONCURRENT_TASKS')
+    pending_tasks = []
+
+    init_time = datetime.now()
+    today_date = (datetime.now() + timedelta(hours=5)).date()  # if cron start 20hrs, 20+5
+    await update_video_stats_mv(async_session, today_date.strftime("%Y-%m-%d"))
+    total_pages = await get_stats_mv_count(async_session)
+    for page in range(1, total_pages + 1):
+        if (datetime.now() - init_time) > timedelta(minutes=230):#60*3+50
+            print("230 min execution reached")
+            break
+
+        tarea = task_code(page, today_date, async_session, developer_api_keys)
+        pending_tasks.append(tarea)
+
+        # Si alcanzamos el límite de tareas concurrentes, esperar a que al menos una termine
+        if len(pending_tasks) >= max_concurrent_tasks:
+            results = await asyncio.gather(*pending_tasks, return_exceptions=True)
+
+            for result in results:
+                if isinstance(result, Exception):
+                    print(f"Error detectado: {result}")
+                    return
+            pending_tasks = []
+
+    # Esperar a que se completen las tareas restantes
+    await asyncio.gather(*pending_tasks)
+
+
+async def manual_test():
+    print("Iniciando tarea manual_test...")
+    try:
+        engine = create_async_engine(
+            DEST_DB_URI,
+            pool_pre_ping=True,
+            # echo=True,
+            echo_pool=True,
+            pool_recycle=Config.get('POOL_RECYCLE')
+        )
+        async with engine.connect() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        await engine.dispose()
+        await async_youtube_channel_stats()
+        await async_youtube_videos()
+        await async_youtube_videos_stats()
+        await add_trigger()
+    except Exception as e:
+        print("Error manual_test", str(e))
+    print("Tarea manual_test completada.")
+
+if __name__ == "__main__":
+    # asyncio.run(async_youtube_channel_stats())
+    # asyncio.run(manual_test())
+    asyncio.run(async_youtube_videos())
+    # asyncio.run(async_youtube_videos_stats())

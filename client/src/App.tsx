@@ -9,17 +9,21 @@ import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import VideosPage from "@/pages/videos/VideosPage";
+import TrashPage from "@/pages/videos/TrashPage";
 import VideoTranslator from "@/pages/VideoTranslator";
 import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
 import { GuideProvider } from "@/components/help/GuideContext";
 import TitulinPage from "./pages/titulin/TitulinPage";
+import TitulinConfigPage from "./pages/titulin/TitulinConfigPage";
+import { CSRFToken } from "@/components/auth/CSRFToken";
 
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
 import AdminStatsPage from "@/pages/admin/StatsPage";
 import AccountingPage from "@/pages/admin/accounting/AccountingPage";
 import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
+import NotificationsAdminPage from "@/pages/admin/notifications/NotificationsAdminPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -52,8 +56,11 @@ function Router() {
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Index} />} />
       <Route path="/perfil" component={() => <ProtectedRoute component={ProfilePage} />} />
+      <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
+      <Route path="/videos/trash" component={() => <ProtectedRoute component={TrashPage} />} />
       <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
+      <Route path="/configuracion/titulin" component={() => <ProtectedRoute component={TitulinConfigPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       
       {/* Rutas de administración - solo accesibles para administradores */}
@@ -63,6 +70,7 @@ function Router() {
           <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
           <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
           <Route path="/admin/configuration" component={() => <ProtectedRoute component={ConfigurationPage} />} />
+          <Route path="/admin/notifications" component={() => <ProtectedRoute component={NotificationsAdminPage} />} />
         </>
       )}
       
@@ -75,12 +83,23 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <GuideProvider>
+        {/* Componente para gestionar el token CSRF */}
+        <CSRFToken />
         <Toaster 
-          position="top-right"
+          position="bottom-center"
           expand={false}
-          closeButton
+          closeButton={false}
           richColors
-          duration={3000}
+          duration={1500}
+          offset={16}
+          toastOptions={{
+            style: { 
+              fontSize: '0.85rem', 
+              padding: '6px 12px',
+              maxWidth: '320px'
+            },
+            className: 'compact-toast'
+          }}
         />
         <Router>
           {/* <Switch>
