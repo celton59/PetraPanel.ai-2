@@ -388,47 +388,7 @@ export default function VideosPage() {
     };
   };
   
-  // Efecto para atajos de teclado
-  useEffect(() => {
-    if (!selectMode) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Evitar que los atajos se activen cuando se está escribiendo en un input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-      
-      // Esc - Salir del modo selección
-      if (e.key === 'Escape') {
-        toggleSelectionMode();
-        e.preventDefault();
-      }
-      
-      // Ctrl/Cmd + A - Seleccionar todos
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        toggleSelectAll();
-        e.preventDefault();
-      }
-      
-      // Delete - Eliminar videos seleccionados (solo si hay alguno seleccionado)
-      if (e.key === 'Delete' && selectedVideos.length > 0 && user?.role === 'admin') {
-        // Aquí no hacemos la eliminación directamente, solo mostramos el diálogo de confirmación
-        // Esto asegura que el usuario confirme antes de eliminar
-        // Simulamos un clic en el botón de eliminar
-        const deleteButton = document.querySelector('[data-delete-selected]');
-        if (deleteButton) {
-          (deleteButton as HTMLButtonElement).click();
-        }
-        e.preventDefault();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [selectMode, selectedVideos, toggleSelectAll, user?.role, toggleSelectionMode]);
+  // Nota: Los atajos de teclado han sido desactivados para evitar problemas en macOS
 
   function getTableView() {
     return (
