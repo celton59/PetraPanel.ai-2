@@ -173,20 +173,24 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
     Título: "${title}"
     
     # Criterios para contenido evergreen
-    Un título "evergreen" debe cumplir TODOS estos criterios:
-    1. Abordar temas relevantes a largo plazo, independientes de noticias actuales o tendencias temporales
-    2. Responder a preguntas o problemas que las personas buscan constantemente a lo largo del tiempo
-    3. NO mencionar fechas específicas, años, eventos temporales, versiones específicas de software que serán obsoletas
-    4. Proporcionar información o conocimiento que seguirá siendo valioso por años
-    5. Generalmente usa términos como "cómo", "guía", "tutorial", "consejos", etc.
+    Un título "evergreen" debe cumplir LA MAYORÍA de estos criterios:
+    1. Abordar temas relevantes a largo plazo que las personas buscan constantemente
+    2. Enseñar a usar funciones básicas de aplicaciones populares como WhatsApp, Instagram, etc.
+    3. Mostrar cómo hacer algo que seguirá siendo útil por un período prolongado
+    4. Proporcionar soluciones a problemas comunes y recurrentes
+    5. Generalmente usa términos como "cómo", "guía", "tutorial", "consejos", "activar", etc.
     
     # Criterios para contenido NO evergreen
-    Un título NO es evergreen si cumple ALGUNO de estos criterios:
-    1. Menciona eventos recientes, noticias, tendencias actuales o de temporada
-    2. Incluye fechas, años, versiones específicas o referencias temporales ("nuevo", "reciente")
-    3. Se refiere a productos, servicios o tecnologías que cambiarán pronto (como versiones específicas de iOS)
-    4. Contiene reacciones, opiniones o comentarios sobre algo temporal
-    5. Utiliza términos como "ahora", "hoy", "este año", etc.
+    Un título probablemente NO es evergreen si cumple VARIOS de estos criterios:
+    1. Menciona eventos específicos, noticias, o tendencias de corta duración
+    2. Incluye fechas, años específicos, o referencias explícitamente temporales
+    3. Se refiere a versiones beta o muy específicas que serán reemplazadas pronto
+    4. Contiene reacciones, opiniones o comentarios sobre eventos específicos
+    5. Utiliza términos explícitamente temporales como "recién lanzado", "última noticia", etc.
+    
+    # Consideraciones especiales
+    - Los tutoriales sobre funciones específicas de aplicaciones populares como WhatsApp, Facebook, Instagram, etc. generalmente SON evergreen porque estas funciones, aunque cambien ligeramente, siguen siendo buscadas constantemente
+    - Los "trucos" o "consejos" para estas aplicaciones también suelen ser evergreen ya que las personas los buscan continuamente
     
     # Ejemplos de títulos evergreen:
     ${evergreenExamplesText}
