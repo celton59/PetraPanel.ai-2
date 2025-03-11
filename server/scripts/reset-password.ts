@@ -1,7 +1,7 @@
-import { securityUtils } from './server/lib/security.js';
-import { db } from './db/index.js';
-import { users } from './db/schema.js';
+import { users } from '@db/schema';
+import { securityUtils } from '../services/security';
 import { eq } from 'drizzle-orm';
+import { db } from '@db';
 
 async function resetPassword() {
   try {
