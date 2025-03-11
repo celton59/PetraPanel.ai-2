@@ -55,9 +55,17 @@ export function useUsers(): {
         // Refrescar proactivamente el token CSRF antes de una operación importante
         await refreshCSRFToken();
         
-        // Verificar campos obligatorios
-        if (!user.username || !user.email || !user.fullName || !user.password || !user.role) {
-          throw new Error("Faltan campos obligatorios. Verifica que todos los campos marcados con * estén completos");
+        // Verificar campos obligatorios de forma detallada
+        const missingFields = [];
+        if (!user.username) missingFields.push("nombre de usuario");
+        if (!user.email) missingFields.push("correo electrónico");
+        if (!user.fullName) missingFields.push("nombre completo");
+        if (!user.password) missingFields.push("contraseña");
+        if (!user.role) missingFields.push("rol");
+        if (!user.projectIds || user.projectIds.length === 0) missingFields.push("proyectos asignados");
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Faltan campos obligatorios: ${missingFields.join(", ")}. Verifica que todos los campos marcados con * estén completos`);
         }
         
         // Usar nuestra instancia de axios configurada con manejo CSRF

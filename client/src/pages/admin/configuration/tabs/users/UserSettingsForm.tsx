@@ -55,9 +55,68 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       email: user?.email ?? '',
       phone: user?.phone ? user.phone : undefined,
       bio: user?.bio ? user.bio : undefined,
-      role: user?.role ?? undefined,
+      role: user?.role ?? "youtuber",
       password: "",
+    },
+    resolver: async (values) => {
+      const errors: Record<string, { type: string; message: string }> = {};
       
+      // Validar campos requeridos
+      if (!values.username || values.username.trim() === '') {
+        errors.username = {
+          type: 'required',
+          message: 'El nombre de usuario es obligatorio',
+        };
+      } else if (values.username.length < 3) {
+        errors.username = {
+          type: 'minLength',
+          message: 'El nombre de usuario debe tener al menos 3 caracteres',
+        };
+      }
+      
+      // Validar correo electrónico
+      if (!values.email || values.email.trim() === '') {
+        errors.email = {
+          type: 'required',
+          message: 'El correo electrónico es obligatorio',
+        };
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+        errors.email = {
+          type: 'pattern',
+          message: 'Ingresa un correo electrónico válido',
+        };
+      }
+      
+      // Validar nombre completo
+      if (!values.fullName || values.fullName.trim() === '') {
+        errors.fullName = {
+          type: 'required',
+          message: 'El nombre completo es obligatorio',
+        };
+      } else if (values.fullName.length < 3) {
+        errors.fullName = {
+          type: 'minLength',
+          message: 'El nombre completo debe tener al menos 3 caracteres',
+        };
+      }
+      
+      // Validar contraseña solo para nuevos usuarios
+      if (!user && (!values.password || values.password.trim() === '')) {
+        errors.password = {
+          type: 'required',
+          message: 'La contraseña es obligatoria para nuevos usuarios',
+        };
+      } else if (values.password && values.password.length < 6) {
+        errors.password = {
+          type: 'minLength',
+          message: 'La contraseña debe tener al menos 6 caracteres',
+        };
+      }
+      
+      return {
+        values,
+        errors: Object.keys(errors).length > 0 ? errors : {},
+      };
     },
   });
 
