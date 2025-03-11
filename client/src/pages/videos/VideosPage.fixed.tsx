@@ -391,6 +391,18 @@ export default function VideosPage() {
   
   // Nota: Los atajos de teclado han sido desactivados para evitar problemas en macOS
 
+  // Función para copiar al portapapeles
+  function copyToClipboard(text: string, message: string) {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        toast.success(message);
+      },
+      () => {
+        toast.error("Error al copiar al portapapeles");
+      }
+    );
+  }
+
   function getTableView() {
     return (
       <div className="space-y-6">
@@ -461,16 +473,44 @@ export default function VideosPage() {
                       </div>
                     </TableCell>
                     {/* Serie */}
-                    <TableCell className="font-medium text-center">
-                      {video.seriesNumber || "-"}
+                    <TableCell className="font-medium">
+                      <div className="flex items-center justify-center gap-2">
+                        <span>{video.seriesNumber || "-"}</span>
+                        {video.seriesNumber && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(`${video.seriesNumber}`, "Número de serie copiado");
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                            <span className="sr-only">Copiar número de serie</span>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     {/* Título */}
                     <TableCell
                       className={cn("font-medium max-w-md", canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : "")}
                       onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
                     >
-                      <div className="space-y-1">
+                      <div className="flex items-center gap-2">
                         <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(video.optimizedTitle || video.title, "Título copiado");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          <span className="sr-only">Copiar título</span>
+                        </Button>
                       </div>
                     </TableCell>
                     {/* Estado */}
@@ -603,9 +643,23 @@ export default function VideosPage() {
             
             {/* Content */}
             <div className="p-3">
-              <h3 className="font-medium text-sm line-clamp-2 mb-1">
-                {video.optimizedTitle || video.title}
-              </h3>
+              <div className="flex items-start gap-2">
+                <h3 className="font-medium text-sm line-clamp-2 mb-1 flex-1">
+                  {video.optimizedTitle || video.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(video.optimizedTitle || video.title, "Título copiado");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  <span className="sr-only">Copiar título</span>
+                </Button>
+              </div>
               
               <div className="flex justify-between items-center mt-2">
                 <Badge
@@ -675,9 +729,23 @@ export default function VideosPage() {
             
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm line-clamp-1 mb-1">
-                {video.optimizedTitle || video.title}
-              </h3>
+              <div className="flex items-start gap-2">
+                <h3 className="font-medium text-sm line-clamp-1 mb-1 flex-1">
+                  {video.optimizedTitle || video.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(video.optimizedTitle || video.title, "Título copiado");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  <span className="sr-only">Copiar título</span>
+                </Button>
+              </div>
               
               <div className="flex flex-wrap gap-2 items-center mt-1">
                 <Badge
