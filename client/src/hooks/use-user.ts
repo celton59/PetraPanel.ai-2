@@ -72,16 +72,46 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   try {
-    // Importamos api dinámicamente para asegurar que siempre usamos la instancia más actualizada
+    // Importamos api y refreshCSRFToken
+    const { refreshCSRFToken } = await import('../lib/axios');
     const api = (await import('../lib/axios')).default;
+    
+    // Refrescar token CSRF para asegurar que está disponible
+    await refreshCSRFToken();
+    
+    // Intentamos obtener el usuario
     const response = await api.get('/api/user');
+    console.log("CSRF Token obtenido correctamente");
     return response.data;
   } catch (error: any) {
     console.error("Error fetching user:", error);
+    
+    // Si es 401 No autorizado, simplemente devolvemos null (no autenticado)
     if (error.response && error.response.status === 401) {
       return null;
     }
-    throw error;
+    
+    // Si hay error de CSRF, intentamos refrescar el token y reintentamos
+    if (error.response?.status === 403 && 
+        (error.response?.data?.message?.includes('CSRF') || 
+         error.response?.data?.message?.includes('token'))) {
+      try {
+        const { refreshCSRFToken } = await import('../lib/axios');
+        await refreshCSRFToken(true); // Forzar actualización
+        
+        // Reintentamos la petición
+        const api = (await import('../lib/axios')).default;
+        const retryResponse = await api.get('/api/user');
+        return retryResponse.data;
+      } catch (retryError) {
+        console.error("Error en reintento de fetchUser:", retryError);
+        return null;
+      }
+    }
+    
+    // Para otros errores, informamos pero no interrumpimos la aplicación
+    console.warn("Error no crítico al obtener usuario:", error.message);
+    return null;
   }
 }
 
@@ -100,34 +130,82 @@ export function useUser() {
     mutationFn: async (userData: { username: string; password: string; rememberMe?: boolean }) => {
       console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
       
-      try {
-        // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
-        const { refreshCSRFToken } = await import('../lib/axios');
-        const api = (await import('../lib/axios')).default;
-        
-        // Refrescar proactivamente el token CSRF antes de una operación importante
-        await refreshCSRFToken();
-        
-        // Usar nuestra instancia de axios configurada con manejo CSRF
-        const response = await api.post('/api/login', userData);
-        return response.data;
-      } catch (error: any) {
-        console.error("Error en inicio de sesión:", error);
-        // Extrae el mensaje de error de la respuesta de Axios
-        if (error.response && error.response.data) {
-          throw new Error(error.response.data.message || "Error en inicio de sesión");
+      async function attemptLogin(forceNewToken = false) {
+        try {
+          // Importamos api y refreshCSRFToken
+          const { refreshCSRFToken } = await import('../lib/axios');
+          const api = (await import('../lib/axios')).default;
+          
+          // Refrescar proactivamente el token CSRF
+          await refreshCSRFToken(forceNewToken);
+          
+          // Obtener el token actual para enviarlo en la cabecera
+          const csrfToken = localStorage.getItem('csrfToken');
+          
+          // Crear configuración con cabeceras explícitas para asegurar el envío del token
+          const config = {
+            headers: {
+              'X-CSRF-Token': csrfToken,
+              'Content-Type': 'application/json'
+            },
+            withCredentials: true
+          };
+          
+          // Realizar la petición con la configuración explícita
+          const response = await api.post('/api/login', userData, config);
+          return response.data;
+        } catch (error) {
+          throw error;
         }
-        throw error;
+      }
+      
+      try {
+        // Primer intento
+        return await attemptLogin();
+      } catch (error: any) {
+        console.error("Error en primer intento de inicio de sesión:", error);
+        
+        // Si hay error de CSRF, intentar de nuevo con token forzado
+        if (error.response?.status === 403 && 
+           (error.response?.data?.message?.includes('CSRF') || 
+            error.response?.data?.message?.includes('token'))) {
+          try {
+            console.log("Reintentando login con nuevo token CSRF...");
+            return await attemptLogin(true);
+          } catch (retryError: any) {
+            console.error("Error en segundo intento de inicio de sesión:", retryError);
+            
+            // Mensaje personalizado para el error final
+            if (retryError.response?.status === 401) {
+              throw new Error("Nombre de usuario o contraseña incorrectos");
+            } else if (retryError.response?.data?.message) {
+              throw new Error(retryError.response.data.message);
+            } else {
+              throw new Error("Error al iniciar sesión. Intente de nuevo.");
+            }
+          }
+        }
+        
+        // Para el error 401, dar un mensaje amigable
+        if (error.response?.status === 401) {
+          throw new Error("Nombre de usuario o contraseña incorrectos");
+        }
+        
+        // Extrae el mensaje de error de la respuesta de Axios
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        
+        // Error genérico
+        throw new Error("Error al iniciar sesión. Intente de nuevo.");
       }
     },
     onSuccess: (data) => {
-      // Si la respuesta contiene usuario, usarlo directamente
-      if (data.user) {
-        queryClient.setQueryData(['/api/user'], data.user);
-      } else {
-        // Si no, actualizar con una sola consulta específica
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      }
+      // Actualizamos el estado de autenticación
+      queryClient.setQueryData(['/api/user'], data);
+      
+      // Forzamos una recarga de queries que dependen del estado de autenticación
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     },
   });
 
