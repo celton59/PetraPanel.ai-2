@@ -312,12 +312,16 @@ export function useNotificationWebSocket() {
               createConnection();
             }, pollInterval);
             
-            // Obtener notificaciones mediante REST mientras tanto
-            fetch('/api/notifications')
-              .then(response => response.json())
-              .then(data => {
-                if (data.success && data.data) {
-                  data.data.forEach((notification: any) => {
+            // Obtener notificaciones mediante REST mientras tanto con seguridad CSRF
+            // Usamos una función autoejecutable asíncrona
+            (async () => {
+              try {
+                // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
+                const api = (await import('../lib/axios')).default;
+                const response = await api.get('/api/notifications');
+                
+                if (response.data.success && response.data.data) {
+                  response.data.data.forEach((notification: any) => {
                     addNotification({
                       title: notification.title,
                       message: notification.message,
@@ -328,8 +332,11 @@ export function useNotificationWebSocket() {
                     });
                   });
                 }
-              })
-              .catch(err => console.error('Error al obtener notificaciones por REST:', err));
+              } catch (err) {
+                // Registramos el error pero no mostramos nada al usuario para evitar problemas UX
+                console.error('Error al obtener notificaciones por REST:', err);
+              }
+            })();
           }
         }
       };
@@ -365,13 +372,16 @@ export function useNotificationWebSocket() {
 export function useNotificationAPI() {
   const fetchNotifications = async (includeRead = false) => {
     try {
-      const response = await fetch(`/api/notifications?includeRead=${includeRead}`);
-      if (!response.ok) throw new Error('Error al obtener notificaciones');
-      
-      const data = await response.json();
-      return data.data;
-    } catch (error) {
+      // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
+      const api = (await import('../lib/axios')).default;
+      const response = await api.get(`/api/notifications?includeRead=${includeRead}`);
+      return response.data.data;
+    } catch (error: any) {
       console.error('Error al cargar notificaciones:', error);
+      // Mostramos el mensaje de error de la API si está disponible
+      if (error.response?.data?.message) {
+        console.error('Mensaje de error:', error.response.data.message);
+      }
       return [];
     }
   };
@@ -384,24 +394,54 @@ export function useNotificationAPI() {
         return true;
       }
       
-      const response = await fetch(`/api/notifications/${id}/read`, {
-        method: 'POST',
-      });
-      return response.ok;
-    } catch (error) {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      await api.post(`/api/notifications/${id}/read`);
+      return true;
+    } catch (error: any) {
       console.error('Error al marcar notificación como leída:', error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+            error.response?.data?.message?.includes('token') || 
+            error.response?.data?.message?.includes('Token'))) {
+        console.error("Error de validación de seguridad CSRF. Se intentará refrescar automáticamente.");
+      }
+      
       return false;
     }
   };
   
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('/api/notifications/read-all', {
-        method: 'POST',
-      });
-      return response.ok;
-    } catch (error) {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      await api.post('/api/notifications/read-all');
+      return true;
+    } catch (error: any) {
       console.error('Error al marcar todas las notificaciones como leídas:', error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+            error.response?.data?.message?.includes('token') || 
+            error.response?.data?.message?.includes('Token'))) {
+        console.error("Error de validación de seguridad CSRF. Se intentará refrescar automáticamente.");
+      }
+      
       return false;
     }
   };
@@ -414,12 +454,27 @@ export function useNotificationAPI() {
         return true;
       }
       
-      const response = await fetch(`/api/notifications/${id}/archive`, {
-        method: 'POST',
-      });
-      return response.ok;
-    } catch (error) {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      await api.post(`/api/notifications/${id}/archive`);
+      return true;
+    } catch (error: any) {
       console.error('Error al archivar notificación:', error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+            error.response?.data?.message?.includes('token') || 
+            error.response?.data?.message?.includes('Token'))) {
+        console.error("Error de validación de seguridad CSRF. Se intentará refrescar automáticamente.");
+      }
+      
       return false;
     }
   };
