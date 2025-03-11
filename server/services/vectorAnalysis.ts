@@ -145,7 +145,8 @@ async function getTrainingExamples(limit: number = 10): Promise<{
 }
 
 /**
- * Analiza un título para determinar si es evergreen
+ * Analiza un título para determinar si es evergreen usando un enfoque híbrido
+ * que combina similitud de vectores y análisis de GPT cuando es necesario
  * @param title Título del video
  * @param videoId ID del video
  * @returns Objeto con el resultado del análisis
@@ -156,15 +157,96 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
   reason: string;
 }> {
   try {
+    console.log(`Iniciando análisis de evergreen para video ${videoId} usando vectores`);
+    console.log(`Analizando título: "${title}"`);
+    
     // Generar embedding para el título
     const titleEmbedding = await generateEmbedding(title);
     
+    // PASO 1: Buscar títulos similares en nuestra base de datos
+    const similarTitles = await findSimilarTitles(title, 5);
+    console.log('Resultados de búsqueda de títulos similares:', JSON.stringify(similarTitles));
+    
+    // PASO 2: Implementar sistema de votación ponderada si hay suficientes títulos similares
+    // Solo consideramos títulos con similaridad >= 0.7
+    const validSimilarTitles = similarTitles.filter(t => t.similarity >= 0.7);
+    
+    // Si tenemos al menos 3 títulos similares válidos, usamos el sistema de votación
+    if (validSimilarTitles.length >= 3) {
+      let votesEvergreen = 0;
+      let votesNonEvergreen = 0;
+      
+      // Calcular los votos ponderados por similitud
+      for (const similarTitle of validSimilarTitles) {
+        const weight = similarTitle.similarity; // Peso basado en la similitud
+        if (similarTitle.isEvergreen) {
+          votesEvergreen += weight;
+        } else {
+          votesNonEvergreen += weight;
+        }
+      }
+      
+      // Determinar resultado y confianza basados en votos
+      const totalVotes = votesEvergreen + votesNonEvergreen;
+      const isEvergreen = votesEvergreen > votesNonEvergreen;
+      const confidence = isEvergreen 
+        ? votesEvergreen / totalVotes 
+        : votesNonEvergreen / totalVotes;
+      
+      // Si la confianza es alta (>= 0.7), usar el resultado basado en vectores
+      if (confidence >= 0.7) {
+        const result = {
+          isEvergreen,
+          confidence: parseFloat(confidence.toFixed(2)),
+          reason: isEvergreen
+            ? `Este título es considerado evergreen con ${(confidence * 100).toFixed(0)}% de confianza basado en ${validSimilarTitles.length} títulos similares. La mayoría de títulos similares también son evergreen.`
+            : `Este título no es considerado evergreen con ${(confidence * 100).toFixed(0)}% de confianza basado en ${validSimilarTitles.length} títulos similares. La mayoría de títulos similares no son evergreen.`
+        };
+        
+        // Almacenar el resultado en la base de datos
+        await db.execute(sql`
+          INSERT INTO title_embeddings 
+          (video_id, title, embedding, is_evergreen, confidence, created_at) 
+          VALUES (
+            ${videoId}, 
+            ${title}, 
+            ${JSON.stringify(titleEmbedding)}::vector, 
+            ${result.isEvergreen}, 
+            ${result.confidence}, 
+            NOW()
+          )
+        `);
+        
+        console.log(`Análisis completado para video ${videoId}: Evergreen: ${result.isEvergreen}, Confianza: ${result.confidence}`);
+        return result;
+      }
+    }
+    
+    // PASO 3: Si no podemos decidir con suficiente confianza basados en vectores, usamos GPT-4
     // Obtener ejemplos de entrenamiento
     const { evergreenExamples, nonEvergreenExamples } = await getTrainingExamples();
+    console.log(`Ejemplos obtenidos: ${evergreenExamples.length} evergreen, ${nonEvergreenExamples.length} no evergreen`);
     
     // Construir ejemplos para el prompt
     const evergreenExamplesText = evergreenExamples.map(ex => `- "${ex}"`).join('\n');
     const nonEvergreenExamplesText = nonEvergreenExamples.map(ex => `- "${ex}"`).join('\n');
+    
+    // Añadir los títulos más similares al prompt para dar contexto específico
+    let similarTitlesContext = '';
+    if (similarTitles.length > 0) {
+      const evergreen = similarTitles.filter(t => t.isEvergreen && t.similarity >= 0.75);
+      const nonEvergreen = similarTitles.filter(t => !t.isEvergreen && t.similarity >= 0.75);
+      
+      if (evergreen.length > 0) {
+        similarTitlesContext += '\n# Títulos similares que son evergreen:\n';
+        similarTitlesContext += evergreen.map(t => `- "${t.title}" (similaridad: ${(t.similarity * 100).toFixed(0)}%)`).join('\n');
+      }
+      
+      if (nonEvergreen.length > 0) {
+        similarTitlesContext += '\n# Títulos similares que NO son evergreen:\n';
+        similarTitlesContext += nonEvergreen.map(t => `- "${t.title}" (similaridad: ${(t.similarity * 100).toFixed(0)}%)`).join('\n');
+      }
+    }
     
     // Usar GPT-4 para analizar si el título es evergreen con un prompt mejorado
     const prompt = `
@@ -197,13 +279,15 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
     
     # Ejemplos de títulos NO evergreen:
     ${nonEvergreenExamplesText}
+    ${similarTitlesContext}
     
     # Instrucciones para el análisis
     1. Analiza el título cuidadosamente según los criterios anteriores
-    2. Determina si es evergreen o no
-    3. Asigna un nivel de confianza entre 0.0 y 1.0
-    4. Proporciona una explicación clara de tu decisión
-    5. Responde EXACTAMENTE en este formato JSON:
+    2. Considera especialmente los títulos similares y su clasificación (si se proporcionan)
+    3. Determina si es evergreen o no
+    4. Asigna un nivel de confianza entre 0.0 y 1.0
+    5. Proporciona una explicación clara de tu decisión
+    6. Responde EXACTAMENTE en este formato JSON:
     
     {
       "isEvergreen": true/false,
@@ -239,6 +323,7 @@ export async function analyzeTitle(title: string, videoId: number): Promise<{
       )
     `);
     
+    console.log(`Análisis completado para video ${videoId}: Evergreen: ${analysisResult.isEvergreen}, Confianza: ${analysisResult.confidence}`);
     return analysisResult;
   } catch (error) {
     console.error('Error en el análisis de título:', error);
