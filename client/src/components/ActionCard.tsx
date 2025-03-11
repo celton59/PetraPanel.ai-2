@@ -4,7 +4,7 @@ import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-interface ActionCardProps {
+export interface ActionCardProps {
   icon: LucideIcon;
   title: string;
   description: string;

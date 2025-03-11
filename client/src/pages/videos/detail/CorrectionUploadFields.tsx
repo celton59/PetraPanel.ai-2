@@ -1,8 +1,11 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Upload, UploadCloud, RefreshCw, FileVideo, Image as ImageIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { Progress } from "@/components/ui/progress";
+import { UploadProgressState } from "@/services/videoUploader";
+import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
+import { AdvancedFileUpload } from "@/components/ui/advanced-file-upload";
+import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
 
 interface CorrectionUploadFieldsProps {
   videoFile: File | null;
@@ -10,10 +13,20 @@ interface CorrectionUploadFieldsProps {
   onVideoFileChange: (file: File | null) => void;
   onThumbnailFileChange: (file: File | null) => void;
   isUploading?: boolean;
-  uploadProgress?: number;
+  uploadProgress?: UploadProgressState;
   needsVideoCorrection?: boolean;
   needsThumbnailCorrection?: boolean;
 }
+
+// Estado inicial de progreso vacío para usar como valor por defecto
+const emptyProgressState: UploadProgressState = {
+  isUploading: false,
+  progress: 0,
+  uploadedParts: 0,
+  totalParts: 0,
+  uploadSpeed: 0,
+  estimatedTimeRemaining: 0
+};
 
 export function CorrectionUploadFields({
   videoFile,
@@ -21,173 +34,190 @@ export function CorrectionUploadFields({
   onVideoFileChange,
   onThumbnailFileChange,
   isUploading,
-  uploadProgress = 0,
+  uploadProgress = emptyProgressState,
   needsVideoCorrection = false,
   needsThumbnailCorrection = false
 }: CorrectionUploadFieldsProps) {
-  const [isDraggingVideo, setIsDraggingVideo] = useState(false);
-  const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
-
-  const handleDragOver = (e: React.DragEvent, setIsDragging: (value: boolean) => void) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent, setIsDragging: (value: boolean) => void) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (
-    e: React.DragEvent,
-    setIsDragging: (value: boolean) => void,
-    setFile: (file: File | null) => void,
-    fileType: 'video' | 'image'
-  ) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-
-    if (fileType === 'video' && !file.type.startsWith('video/')) {
-      alert('Por favor, sube un archivo de video válido');
-      return;
+  // Configuración de las animaciones para los elementos
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.1
+      }
     }
-
-    if (fileType === 'image' && !file.type.startsWith('image/')) {
-      alert('Por favor, sube un archivo de imagen válido');
-      return;
-    }
-
-    setFile(file);
   };
-
-  const FileUploadZone = ({ 
-    file, 
-    isDragging, 
-    onDragOver, 
-    onDragLeave, 
-    onDrop, 
-    onFileChange,
-    accept,
-    type,
-    isUploading,
-    uploadProgress,
-    needsCorrection
-  }: {
-    file: File | null;
-    isDragging: boolean;
-    onDragOver: (e: React.DragEvent) => void;
-    onDragLeave: (e: React.DragEvent) => void;
-    onDrop: (e: React.DragEvent) => void;
-    onFileChange: (file: File | null) => void;
-    accept: string;
-    type: 'video' | 'image';
-    isUploading?: boolean;
-    uploadProgress?: number;
-    needsCorrection?: boolean;
-  }) => (
-    <div
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      className={`
-        relative border-2 border-dashed rounded-lg p-6 text-center
-        ${isDragging ? 'border-primary bg-primary/5' : 'border-border'}
-        ${isUploading ? 'bg-muted/50' : ''}
-        ${!needsCorrection ? 'opacity-50 cursor-not-allowed' : ''}
-        transition-colors
-      `}
-    >
-      <input
-        type="file"
-        accept={accept}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onFileChange(file);
-        }}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        disabled={isUploading || !needsCorrection}
-      />
-      
-      {file ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Archivo seleccionado:</p>
-          <p className="text-sm text-muted-foreground">{file.name}</p>
-          {isUploading && (
-            <Progress value={uploadProgress} className="h-1" />
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">
-            {needsCorrection ? 
-              `Arrastra y suelta tu ${type === 'video' ? 'video' : 'miniatura'} corregido aquí` :
-              `No se requiere corrección para este ${type === 'video' ? 'video' : 'miniatura'}`
-            }
-          </p>
-          {needsCorrection && (
-            <p className="text-sm text-muted-foreground">
-              O haz clic para seleccionar un archivo
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
 
   return (
-    <div className="space-y-4">
-      {needsVideoCorrection && (
-        <div>
-          <Label className="mb-2 block">Video Corregido</Label>
-          <FileUploadZone
-            file={videoFile}
-            isDragging={isDraggingVideo}
-            onDragOver={(e) => handleDragOver(e, setIsDraggingVideo)}
-            onDragLeave={(e) => handleDragLeave(e, setIsDraggingVideo)}
-            onDrop={(e) => handleDrop(e, setIsDraggingVideo, onVideoFileChange, 'video')}
-            onFileChange={onVideoFileChange}
-            accept="video/*"
-            type="video"
-            isUploading={isUploading}
-            uploadProgress={uploadProgress}
-            needsCorrection={needsVideoCorrection}
-          />
-          <Alert variant="default" className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Formatos soportados: MP4, MOV, AVI. Tamaño máximo: 1GB
-            </AlertDescription>
-          </Alert>
-        </div>
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Encabezado de correcciones solicitadas */}
+      {(needsVideoCorrection || needsThumbnailCorrection) && (
+        <motion.div 
+          className="flex flex-wrap gap-2 mb-2" 
+          variants={itemVariants}
+        >
+          <div className="flex items-center">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Correcciones solicitadas:</span>
+          </div>
+          
+          <AnimatePresence>
+            {needsVideoCorrection && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 flex items-center gap-1 py-1">
+                  <FileVideo className="h-3 w-3" />
+                  <span>Video</span>
+                </Badge>
+              </motion.div>
+            )}
+            
+            {needsThumbnailCorrection && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+              >
+                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 flex items-center gap-1 py-1">
+                  <ImageIcon className="h-3 w-3" />
+                  <span>Miniatura</span>
+                </Badge>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       )}
 
-      {needsThumbnailCorrection && (
-        <div>
-          <Label className="mb-2 block">Miniatura Corregida</Label>
-          <FileUploadZone
-            file={thumbnailFile}
-            isDragging={isDraggingThumbnail}
-            onDragOver={(e) => handleDragOver(e, setIsDraggingThumbnail)}
-            onDragLeave={(e) => handleDragLeave(e, setIsDraggingThumbnail)}
-            onDrop={(e) => handleDrop(e, setIsDraggingThumbnail, onThumbnailFileChange, 'image')}
-            onFileChange={onThumbnailFileChange}
-            accept="image/*"
-            type="image"
-            isUploading={isUploading}
-            uploadProgress={uploadProgress}
-            needsCorrection={needsThumbnailCorrection}
-          />
-          <Alert variant="default" className="mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Formatos soportados: JPG, PNG. Resolución recomendada: 1280x720
-            </AlertDescription>
-          </Alert>
-        </div>
+      <AnimatePresence>
+        {needsVideoCorrection && (
+          <motion.div 
+            className="space-y-2"
+            variants={itemVariants}
+            layout
+            transition={{ 
+              layout: { duration: 0.3, type: "spring" } 
+            }}
+          >
+            <div className="flex items-center mb-2">
+              <FileVideo className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+              <Label className="font-medium text-blue-700 dark:text-blue-300">Video Corregido</Label>
+            </div>
+            
+            <AdvancedFileUpload
+              initialFile={videoFile}
+              onChange={onVideoFileChange}
+              fileType="video"
+              accept="video/*"
+              maxSize={1024 * 1024 * 1000} // 1GB
+              label="Arrastra y suelta tu video corregido aquí"
+              sublabel="o haz clic para seleccionar un archivo"
+              loading={isUploading}
+              disabled={!needsVideoCorrection || isUploading}
+              fileTypeDescription="Formatos soportados: MP4, MOV, AVI. Tamaño máximo: 1GB."
+              actionLabel={isUploading ? "Subiendo..." : "Preparado"}
+              actionIcon={isUploading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
+              className="border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10 hover:border-blue-300 hover:dark:border-blue-700/60 hover:bg-blue-50/80 hover:dark:bg-blue-900/20"
+            />
+            
+            <AnimatePresence>
+              {isUploading && videoFile && uploadProgress && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <VideoUploadProgress 
+                    progressState={{
+                      ...uploadProgress,
+                      isUploading: true
+                    }}
+                    className="mt-3"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            <Alert variant="default" className="border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-300">
+              <AlertCircle className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                Formatos soportados: MP4, MOV, AVI. Tamaño máximo: 1GB
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+
+        {needsThumbnailCorrection && (
+          <motion.div 
+            className="space-y-2"
+            variants={itemVariants}
+            layout
+            transition={{ 
+              layout: { duration: 0.3, type: "spring" } 
+            }}
+          >
+            <div className="flex items-center mb-2">
+              <ImageIcon className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-2" />
+              <Label className="font-medium text-purple-700 dark:text-purple-300">Miniatura Corregida</Label>
+            </div>
+            
+            <AdvancedFileUpload
+              initialFile={thumbnailFile}
+              onChange={onThumbnailFileChange}
+              fileType="image"
+              accept="image/*"
+              maxSize={1024 * 1024 * 10} // 10MB
+              label="Arrastra y suelta tu miniatura corregida aquí"
+              sublabel="o haz clic para seleccionar un archivo"
+              loading={isUploading}
+              disabled={!needsThumbnailCorrection || isUploading}
+              fileTypeDescription="Formatos soportados: JPG, PNG, WEBP. Resolución recomendada: 1280x720."
+              actionLabel={isUploading ? "Procesando..." : "Lista"}
+              actionIcon={isUploading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              className="border-purple-200 dark:border-purple-800/40 bg-purple-50/50 dark:bg-purple-900/10 hover:border-purple-300 hover:dark:border-purple-700/60 hover:bg-purple-50/80 hover:dark:bg-purple-900/20"
+            />
+            
+            <Alert variant="default" className="border-purple-200 dark:border-purple-800/40 bg-purple-50/50 dark:bg-purple-900/10 text-purple-800 dark:text-purple-300">
+              <AlertCircle className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <AlertDescription className="text-purple-700 dark:text-purple-300">
+                Formatos soportados: JPG, PNG. Resolución recomendada: 1280x720
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {!needsVideoCorrection && !needsThumbnailCorrection && (
+        <motion.div 
+          className="py-12 text-center flex flex-col items-center justify-center space-y-3"
+          variants={itemVariants}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">
+            <AlertCircle className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+          </div>
+          <h3 className="text-base font-medium text-gray-700 dark:text-gray-300">Sin correcciones pendientes</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md">
+            No se han solicitado correcciones para este video. Cuando existan correcciones requeridas, aparecerán aquí.
+          </p>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,557 +1,528 @@
 
+import { Youtube, GitCompareArrows, Settings } from "lucide-react";
+import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Youtube, PlayCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VideoStats } from "./components/VideoStats";
+import { SearchBar } from "./components/SearchBar";
+import { TableActions } from "./components/TableActions";
+import { VideoTable } from "./components/VideoTable";
+import { PaginationControls } from "./components/PaginationControls";
+import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
+import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
+import { TitleComparisonDialog } from "./components/TitleComparisonDialog";
+import { TitulinVideo, Channel, VideoResponse } from "./types";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Card } from "@/components/ui/card";
-import { Download } from "lucide-react";
 import { toast } from "sonner";
-import { ProjectSelector } from "@/components/project/ProjectSelector";
-import { YoutubeChannel, YoutubeVideo } from "@db/schema";
-import { DataTable } from "./DataTable";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationEllipsis, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
-} from "@/components/ui/pagination";
-
-// Interfaz para los datos de paginación
-interface PaginationMetadata {
-  page: number;
-  limit: number;
-  totalVideos: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
-
-// Interfaz para la respuesta del servidor
-interface VideosResponse {
-  videos: YoutubeVideo[];
-  pagination: PaginationMetadata;
-}
+import { Button } from "@/components/ui/button";
+import { SortingState } from "@tanstack/react-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TitulinPage() {
-  const queryClient = useQueryClient();
+  // Estados de la página
+  const [searchValue, setSearchValue] = useState("");
   const [titleFilter, setTitleFilter] = useState("");
-  const [channelFilter, setYoutubeChannelFilter] = useState<string>("all");
-  const [selectedVideo, setSelectedVideo] = useState<YoutubeVideo | null>(null);
-  const [targetProjectId, setTargetProjectId] = useState<number | null>(null);
-  
-  // Estado para la paginación
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [paginationMetadata, setPaginationMetadata] = useState<PaginationMetadata | null>(null);
 
-  // Consultar canales
-  const { data: channels } = useQuery({
+  const [channelFilter, setChannelFilter] = useState("all");
+  const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
+  const [analysisVideo, setAnalysisVideo] = useState<TitulinVideo | null>(null);
+  const [showComparisonDialog, setShowComparisonDialog] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [onlyEvergreen, setOnlyEvergreen] = useState(false);
+  const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
+  const [currentTab, setCurrentTab] = useState("todos");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "publishedAt", desc: true } // Consistente con la definición del componente VideoTable
+  ]);
+
+  // Efecto para gestionar la búsqueda
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setTitleFilter(searchValue.trim());
+      setCurrentPage(1);
+      setIsSearching(false);
+    }, 300);
+
+    return () => clearTimeout(timerId);
+  }, [searchValue]);
+
+  // Obtener el queryClient para poder usarlo más tarde
+  const queryClient = useQueryClient();
+
+  // Consulta para obtener videos
+  const { 
+    data: videosData, 
+    isLoading, 
+    isFetching,
+    refetch 
+  } = useQuery<VideoResponse>({
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyEvergreen, onlyAnalyzed, currentTab],
+    queryFn: async () => {
+      const searchParams = {
+        ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+        ...(titleFilter ? { title: titleFilter } : {}),
+        ...(onlyEvergreen ? { isEvergreen: true } : {}),
+        ...(onlyAnalyzed ? { analyzed: true } : {}),
+        ...(currentTab === "evergreen" ? { isEvergreen: true } : {}),
+        ...(currentTab === "no-evergreen" ? { isEvergreen: false, analyzed: true } : {}),
+        ...(currentTab === "analizados" ? { analyzed: true } : {}),
+        ...(currentTab === "no-analizados" ? { analyzed: false } : {}),
+        page: currentPage,
+        limit: pageSize
+      };
+      
+      console.log("Parámetros de búsqueda:", searchParams);
+      
+      const response = await axios.get<VideoResponse>("/api/titulin/videos", {
+        params: searchParams
+      });
+      return response.data;
+
+    },
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Obtener canales
+  const { data: channels } = useQuery<Channel[]>({
     queryKey: ["youtube-channels"],
     queryFn: async () => {
-      const { data } = await axios.get<YoutubeChannel[]>("/api/titulin/channels");
-      return data;
+      const response = await axios.get("/api/titulin/channels");
+      return response.data;
     },
   });
 
-  // Consultar videos con paginación
-  const {
-    data: videosData,
-    isLoading: isLoadingVideos,
-    isFetching: isFetchingVideos,
-  } = useQuery({
-    queryKey: ["youtube-videos", channelFilter, page, limit],
+  // Obtener estadísticas
+  const { data: statsData } = useQuery({
+    queryKey: ["youtube-videos-stats"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      
-      // Añadir parámetros de paginación
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-      
-      // Añadir filtro de canal si es necesario
-      if (channelFilter !== "all") {
-        params.append("channelId", channelFilter);
-      }
-
-      const { data } = await axios.get<VideosResponse>(`/api/titulin/videos?${params.toString()}`);
-      
-      // Guardar los metadatos de paginación
-      setPaginationMetadata(data.pagination);
-      
-      return data;
+      const response = await axios.get("/api/titulin/videos/stats");
+      return response.data;
     },
   });
 
-  const videos = videosData?.videos || [];
+  // Función para formatear fechas
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return "-";
+      return format(date, "PPp", { locale: es });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "-";
+    }
+  };
 
-  // Mutación para enviar video a optimizar
-  const sendToOptimize = useMutation({
-    mutationFn: async ({ videoId, projectId }: { videoId: number; projectId: number }) => {
-      const { data } = await axios.post(`/api/titulin/videos/${videoId}/send-to-optimize`, {
-        projectId,
+  // Obtener la información de la última actualización
+  const getLastUpdateInfo = () => {
+    if (!channels || channels.length === 0) return "No hay canales";
+
+    if (channelFilter !== "all") {
+      const selectedChannel = channels.find(c => c.channelId === channelFilter);
+      // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
+      const lastFetch = selectedChannel?.lastVideoFetch || selectedChannel?.['last_video_fetch'];
+      
+      if (!lastFetch) return "Sin datos de actualización";
+      
+      try {
+        const date = parseISO(lastFetch);
+        return `Hace ${formatDistanceToNow(date, { locale: es })}`;
+      } catch (error) {
+        return "Fecha inválida";
+      }
+    }
+
+    const lastUpdate = channels.reduce((latest, channel) => {
+      // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
+      const lastFetch = channel.lastVideoFetch || channel['last_video_fetch'];
+      
+      if (!lastFetch) return latest;
+      if (!latest) return lastFetch;
+      return lastFetch > latest ? lastFetch : latest;
+    }, null as string | null);
+
+    if (!lastUpdate) return "No hay datos";
+    
+    try {
+      const date = parseISO(lastUpdate);
+      return `Hace ${formatDistanceToNow(date, { locale: es })}`;
+    } catch (error) {
+      return "Fecha inválida";
+    }
+  };
+
+  // Obtener el nombre de un canal
+  const getChannelName = (channelId: string) => {
+    const channel = channels?.find(c => c.channelId === channelId);
+    return channel?.name || channelId;
+  };
+
+  // Descargar CSV
+  const downloadCSVMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.get("/api/titulin/videos", {
+        params: {
+          ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
+          ...(titleFilter ? { title: titleFilter } : {}),
+          limit: 1000,
+          page: 1
+        }
       });
-      return data;
+      return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
-
-      toast.success("¡Video enviado a optimizar con éxito!");
-      setSelectedVideo(null);
+    onSuccess: (data) => {
+      const exportVideos = data.videos || [];
+      
+      if (!exportVideos.length) {
+        toast.error("No hay videos para descargar");
+        return;
+      }
+      
+      // Crear el contenido del CSV
+      const titlesForCSV = exportVideos.map((video: TitulinVideo) => {
+        // Obtener la fecha publicada con cualquiera de los dos formatos posibles
+        const publishedDate = video.publishedAt || video['published_at'];
+        
+        return {
+          title: video.title,
+          views: video.viewCount,
+          likes: video.likeCount,
+          published: formatDate(publishedDate),
+          channel: getChannelName(video.channelId),
+          duration: video.duration,
+          isEvergreen: video.analyzed && video.analysisData ? (video.analysisData.isEvergreen ? "Sí" : "No") : "No analizado",
+          url: `https://youtube.com/watch?v=${video.videoId}`
+        };
+      });
+      
+      // Convertir a formato CSV
+      const headers = Object.keys(titlesForCSV[0]).join(',');
+      const rows = titlesForCSV.map((obj: Record<string, any>) => 
+        Object.values(obj).map(value => 
+          typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
+        ).join(',')
+      );
+      const csv = [headers, ...rows].join('\n');
+      
+      // Descargar como archivo
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `youtube_videos_export_${new Date().toISOString().slice(0,10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Se han exportado ${exportVideos.length} videos`);
     },
     onError: (error) => {
-      console.error("Error al enviar a optimizar:", error);
-      toast.error("Error al enviar el video a optimizar");
-    },
+      console.error("Error downloading CSV:", error);
+      toast.error("No se pudo generar el archivo CSV");
+    }
   });
 
-  const filteredVideos = videos.filter((video) =>
-    video.title.toLowerCase().includes(titleFilter.toLowerCase())
-  );
+  // Handler para descargar CSV
+  const handleDownloadCSV = () => {
+    downloadCSVMutation.mutate();
+  };
 
-  const columns: ColumnDef<YoutubeVideo>[] = [
-    {
-      accessorKey: "thumbnailUrl",
-      header: "Miniatura",
-      cell: ({ row }) => (
-        <div className="w-24 h-16 bg-muted rounded overflow-hidden">
-          {row.original.thumbnailUrl ? (
-            <img
-              src={row.original.thumbnailUrl}
-              alt={row.original.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "https://via.placeholder.com/120x90?text=No+Image";
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              No img
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "title",
-      header: "Título",
-      cell: ({ row }) => (
-        <div className="max-w-[300px] truncate" title={row.original.title}>
-          {row.original.title}
-          {row.original.sentToOptimize && (
-            <Badge variant="secondary" className="ml-2">
-              Enviado a optimizar
-            </Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "viewCount",
-      header: "Vistas",
-      cell: ({ row }) => (
-        <span>{Number(row.original.viewCount || 0).toLocaleString()}</span>
-      ),
-    },
-    {
-      accessorKey: "likeCount",
-      header: "Likes",
-      cell: ({ row }) => (
-        <span>{Number(row.original.likeCount || 0).toLocaleString()}</span>
-      ),
-    },
-    {
-      accessorKey: "publishedAt",
-      header: "Publicación",
-      cell: ({ row }) => {
-        const date = row.original.publishedAt
-          ? parseISO(row.original.publishedAt.toString())
-          : null;
+  // Extraer datos
+  const videos = videosData?.videos || [];
+  const pagination = videosData?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+  const totalVideos = pagination.total || 0;
+  const viewsCount = statsData?.totalViews || 0;
+  const likesCount = statsData?.totalLikes || 0;
+  const isDownloading = downloadCSVMutation.isPending;
 
-        return date && isValid(date) ? (
-          <span title={format(date, "PPP", { locale: es })}>
-            {formatDistanceToNow(date, { addSuffix: true, locale: es })}
-          </span>
-        ) : (
-          <span>Desconocido</span>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "Acciones",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedVideo(row.original)}
-          >
-            <PlayCircle className="h-4 w-4 mr-1" />
-            Detalles
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  // Función para refrescar datos
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+    toast.success("Datos actualizados correctamente");
+  };
 
-  function handlePageChange(newPage: number) {
-    if (newPage >= 1 && (!paginationMetadata || newPage <= paginationMetadata.totalPages)) {
-      setPage(newPage);
-      window.scrollTo(0, 0);
-    }
-  }
-
-  function renderPaginationItems() {
-    if (!paginationMetadata) return null;
-    
-    const { page: currentPage, totalPages } = paginationMetadata;
-    const items = [];
-    
-    // Siempre mostrar la primera página
-    items.push(
-      <PaginationItem key="first">
-        <PaginationLink 
-          isActive={currentPage === 1}
-          onClick={() => handlePageChange(1)}
-        >
-          1
-        </PaginationLink>
-      </PaginationItem>
-    );
-    
-    // Si hay muchas páginas, mostrar elipsis después de la primera página
-    if (currentPage > 3) {
-      items.push(
-        <PaginationItem key="ellipsis1">
-          <PaginationEllipsis />
-        </PaginationItem>
-      );
-    }
-    
-    // Mostrar páginas alrededor de la página actual
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-      if (i <= 1 || i >= totalPages) continue;
-      items.push(
-        <PaginationItem key={i}>
-          <PaginationLink 
-            isActive={currentPage === i}
-            onClick={() => handlePageChange(i)}
-          >
-            {i}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    
-    // Si hay muchas páginas, mostrar elipsis antes de la última página
-    if (currentPage < totalPages - 2) {
-      items.push(
-        <PaginationItem key="ellipsis2">
-          <PaginationEllipsis />
-        </PaginationItem>
-      );
-    }
-    
-    // Siempre mostrar la última página si hay más de una página
-    if (totalPages > 1) {
-      items.push(
-        <PaginationItem key="last">
-          <PaginationLink 
-            isActive={currentPage === totalPages}
-            onClick={() => handlePageChange(totalPages)}
-          >
-            {totalPages}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    
-    return items;
-  }
-
-  function handleSendToOptimize() {
-    if (!selectedVideo || !targetProjectId) {
-      toast.error("Selecciona un proyecto válido");
-      return;
-    }
-
-    sendToOptimize.mutate({
-      videoId: selectedVideo.id,
-      projectId: targetProjectId,
-    });
-  }
-
-  // Función para renderizar el diálogo de detalle de video
-  function renderVideoDialog () {
-    if (!selectedVideo) return null;
-
-    return (
-      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              {selectedVideo.title}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
-            <div className="space-y-4">
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                {selectedVideo.thumbnailUrl ? (
-                  <img
-                    src={selectedVideo.thumbnailUrl.replace('default', 'maxresdefault')}
-                    alt={selectedVideo.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = selectedVideo.thumbnailUrl || "https://via.placeholder.com/640x360?text=No+Image";
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No preview available
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`https://youtube.com/watch?v=${selectedVideo.youtubeId}`, '_blank')}
-                >
-                  <Youtube className="h-4 w-4 mr-2" />
-                  Ver en YouTube
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                  Descripción
-                </h3>
-                <div className="text-sm border rounded-md p-3 h-[150px] overflow-y-auto whitespace-pre-line">
-                  {selectedVideo.description || "Sin descripción"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                    Vistas
-                  </h3>
-                  <p>{Number(selectedVideo.viewCount || 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                    Likes
-                  </h3>
-                  <p>{Number(selectedVideo.likeCount || 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                    Comentarios
-                  </h3>
-                  <p>
-                    {Number(selectedVideo.commentCount || 0).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                    Publicado
-                  </h3>
-                  <p>
-                    {selectedVideo.publishedAt
-                      ? format(new Date(selectedVideo.publishedAt), "dd/MM/yyyy")
-                      : "Desconocido"}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                  Etiquetas
-                </h3>
-                <div className="flex flex-wrap gap-1">
-                  {selectedVideo.tags && selectedVideo.tags.length > 0 ? (
-                    selectedVideo.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">
-                      Sin etiquetas
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {!selectedVideo.sentToOptimize && (
-                <div className="mt-4 pt-4 border-t">
-                  <h3 className="text-sm font-medium mb-2">
-                    Enviar a optimizar
-                  </h3>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <ProjectSelector
-                        value={targetProjectId}
-                        onChange={ p => setTargetProjectId(p.id) }
-                      />
-                    </div>
-                    <Button 
-                      onClick={handleSendToOptimize}
-                      disabled={sendToOptimize.isPending || !targetProjectId}
-                    >
-                      {sendToOptimize.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" />
-                          Enviar
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+  // Manejador de cambio de ordenación
+  const handleSortingChange = (newSorting: SortingState) => {
+    setSorting(newSorting);
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Titulin</h1>
-          <p className="text-muted-foreground">
-            Explorador de videos de YouTube para optimización de contenido
-          </p>
-        </div>
-      </div>
-
-      <Card className="mb-6">
-        <div className="p-4 md:p-6 space-y-4">
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar videos por título..."
-                  className="pl-8"
-                  value={titleFilter}
-                  onChange={(e) => setTitleFilter(e.target.value)}
-                />
-              </div>
+    <div className="container mx-auto py-10">
+      <div className="space-y-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Youtube className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold">Videos de YouTube</h1>
             </div>
-
-            <div className="w-full sm:w-[260px]">
-              <Select
-                value={channelFilter}
-                onValueChange={setYoutubeChannelFilter}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => setShowComparisonDialog(true)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por canal" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los canales</SelectItem>
-                  {channels?.map((channel) => (
-                    <SelectItem key={channel.id} value={channel.channelId}>
-                      {channel.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="w-full sm:w-[140px]">
-              <Select
-                value={limit.toString()}
-                onValueChange={(value) => setLimit(Number(value))}
+                <GitCompareArrows className="h-4 w-4" />
+                Comparar Títulos
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => window.location.href = "/configuracion/titulin"}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Mostrar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 por página</SelectItem>
-                  <SelectItem value="25">25 por página</SelectItem>
-                  <SelectItem value="50">50 por página</SelectItem>
-                  <SelectItem value="100">100 por página</SelectItem>
-                </SelectContent>
-              </Select>
+                <Settings className="h-4 w-4" />
+                Configuración
+              </Button>
             </div>
           </div>
-        </div>
-      </Card>
 
-      {isLoadingVideos ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : videos.length === 0 ? (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium">No hay videos disponibles</h3>
-          <p className="text-muted-foreground mt-1">
-            Intenta cambiar los filtros o añadir más canales
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <DataTable
-            columns={columns}
-            data={filteredVideos}
+          <VideoStats 
+            totalVideos={totalVideos}
+            viewsCount={viewsCount}
+            likesCount={likesCount}
+            lastUpdateInfo={getLastUpdateInfo()}
           />
-          
-          {paginationMetadata && paginationMetadata.totalPages > 1 && (
-            <div className="mt-4">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => handlePageChange(page - 1)}
-                    />
-                  </PaginationItem>
-                  
-                  {renderPaginationItems()}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => handlePageChange(page + 1)}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-              
-              <div className="text-center text-sm text-muted-foreground mt-2">
-                Mostrando {filteredVideos.length} de {paginationMetadata.totalVideos} videos • 
-                Página {paginationMetadata.page} de {paginationMetadata.totalPages}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        </motion.div>
 
-      {renderVideoDialog()}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-4"
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+            <div className="relative flex-1 w-full">
+              {/* Barra de búsqueda simplificada */}
+              <SearchBar 
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                setTitleFilter={setTitleFilter}
+                setCurrentPage={setCurrentPage}
+                isFetching={isFetching}
+              />
+            </div>
+
+            {/* Selector de canal y botón de exportar */}
+            <TableActions
+              channelFilter={channelFilter}
+              setChannelFilter={setChannelFilter}
+              setCurrentPage={setCurrentPage}
+              channels={channels}
+              handleDownloadCSV={handleDownloadCSV}
+              isDownloading={isDownloading}
+              onlyEvergreen={onlyEvergreen}
+              setOnlyEvergreen={setOnlyEvergreen}
+              onlyAnalyzed={onlyAnalyzed}
+              setOnlyAnalyzed={setOnlyAnalyzed}
+              refreshData={refreshData}
+              isRefreshing={isRefreshing}
+            />
+          </div>
+
+          {/* Pestañas para filtrar videos */}
+          <Card>
+            <CardContent className="p-0">
+              <Tabs 
+                defaultValue="todos" 
+                value={currentTab}
+                onValueChange={(value) => {
+                  setCurrentTab(value);
+                  setCurrentPage(1);
+                }}
+                className="w-full"
+              >
+                <div className="p-4 border-b">
+                  <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+                    <TabsTrigger value="todos" className="text-xs md:text-sm">
+                      Todos
+                    </TabsTrigger>
+                    <TabsTrigger value="evergreen" className="text-xs md:text-sm">
+                      Evergreen
+                    </TabsTrigger>
+                    <TabsTrigger value="no-evergreen" className="text-xs md:text-sm">
+                      No Evergreen
+                    </TabsTrigger>
+                    <TabsTrigger value="analizados" className="text-xs md:text-sm">
+                      Analizados
+                    </TabsTrigger>
+                    <TabsTrigger value="no-analizados" className="text-xs md:text-sm">
+                      Sin Analizar
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="todos" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="evergreen" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos evergreen...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="no-evergreen" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos no evergreen...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="analizados" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos analizados...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="no-analizados" className="m-0">
+                  {isLoading ? (
+                    <div className="text-center py-10">
+                      <div className="animate-spin h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando videos sin analizar...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <VideoTable
+                        videos={videos}
+                        setSelectedVideo={setSelectedVideo}
+                        setAnalysisVideo={setAnalysisVideo}
+                        getChannelName={getChannelName}
+                        isLoading={isFetching}
+                        onSortingChange={handleSortingChange}
+                      />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Paginación */}
+          <div className="flex justify-between items-center mt-4 px-2">
+            <div className="text-sm text-muted-foreground">
+              {pagination.total > 0 ? (
+                <span>
+                  Mostrando {Math.min((currentPage - 1) * pageSize + 1, pagination.total)} - {Math.min(currentPage * pageSize, pagination.total)} de {pagination.total} videos
+                </span>
+              ) : (
+                <span>No hay videos que coincidan con los filtros</span>
+              )}
+            </div>
+            
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              setCurrentPage={setCurrentPage}
+            />
+          </div>
+        </motion.div>
+
+        {/* Modal para enviar video a optimización */}
+        {selectedVideo && (
+          <SendToOptimizeDialog
+            video={selectedVideo}
+            open={!!selectedVideo}
+            onOpenChange={(open) => {
+              if (!open) setSelectedVideo(null);
+            }}
+          />
+        )}
+
+        {/* Modal para análisis de video */}
+        {analysisVideo && (
+          <VideoAnalysisDialog
+            video={analysisVideo}
+            open={!!analysisVideo}
+            onOpenChange={(open) => {
+              if (!open) setAnalysisVideo(null);
+            }}
+            onAnalysisComplete={() => {
+              // Invalidar la consulta para actualizar los datos
+              window.setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+              }, 500);
+            }}
+          />
+        )}
+
+        {/* Modal para comparación de títulos */}
+        <TitleComparisonDialog
+          open={showComparisonDialog}
+          onOpenChange={setShowComparisonDialog}
+        />
+      </div>
     </div>
   );
 }

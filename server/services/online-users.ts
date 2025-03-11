@@ -4,8 +4,8 @@ import { log } from '../vite';
 import { IncomingMessage } from 'http';
 
 // Alias para tipado y uso como valor
-const WebSocketServer = WebSocketModule.WebSocketServer;
 type WebSocket = WebSocketModule.WebSocket;
+const WebSocketServer = WebSocketModule.WebSocketServer;
 const OPEN = WebSocketModule.WebSocket.OPEN;
 
 interface ClientConnection {
@@ -24,7 +24,7 @@ export class OnlineUsersService {
   private heartbeatInterval: NodeJS.Timeout;
   
   constructor(server: HttpServer) {
-    this.wss = new WebSocketServer({ 
+    this.wss = new WebSocketModule.WebSocketServer({ 
       noServer: true,
       path: '/ws/online-users'
     });
@@ -243,18 +243,28 @@ export class OnlineUsersService {
   /**
    * Registra actividad de un usuario (para APIs REST)
    * Útil para actualizar estado de usuario sin WebSocket
+   * Optimizado para evitar actualizaciones excesivas
    */
   public registerUserActivity(userId?: number, userName?: string) {
     if (!userId || !userName) return;
     
     const existingUser = this.activeUsers.get(userId);
+    const now = Date.now();
+    
     if (existingUser) {
-      existingUser.lastActivity = Date.now();
+      // Solo actualizar si pasó al menos 10 segundos desde la última actualización
+      // Esto evita que múltiples llamadas API generen actualizaciones innecesarias
+      if (now - existingUser.lastActivity > 10000) {
+        existingUser.lastActivity = now;
+        // No difundir cada actualización para mejorar rendimiento
+      }
     } else {
+      // Nuevo usuario, agregarlo al mapa
       this.activeUsers.set(userId, {
         lastActivity: Date.now(),
         username: userName
-      });
+      })
+      // Difundir cuando hay un nuevo usuario activo
       this.broadcastActiveUsers();
     }
   }

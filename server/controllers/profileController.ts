@@ -6,6 +6,8 @@ import { db } from "@db";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import { type Express } from "express";
+import { changePasswordSchema, updateProfileSchema, validateBody } from "server/services/validation";
+import { passwordUtils } from "server/auth";
 
 const scryptAsync = promisify(scrypt);
 
@@ -24,7 +26,7 @@ export async function getProfile(
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.id, req.user!.id as number))
+      .where(eq(users.id, req.user!.id!))
       .limit(1);
 
     if (!user || user.length === 0) {
@@ -52,50 +54,62 @@ export async function changePassword(
   req: Request,
   res: Response,
 ): Promise<Response> {
-  const { currentPassword, newPassword } = req.body;
+    // Los datos ya han sido validados por validateBody
+    const { currentPassword, newPassword } = req.validatedData;
 
-  try {
-    // Verificar contraseña actual
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, req.user!.id!))
-      .limit(1);
+    try {
+      // Verificar contraseña actual
+      const user = await db.select()
+        .from(users)
+        .where(eq(users.id, req.user!.id!))
+        .limit(1);
 
-    if (!user.length) {
-      return res.status(404).json({
-        success: false,
-        message: "Usuario no encontrado",
-      });
-    }
+      if (!user.length) {
+        return res.status(404).json({
+          success: false,
+          message: "Usuario no encontrado"
+        });
+      }
 
-    const [salt, hash] = user[0].password.split(".");
-    const buf = (await scryptAsync(currentPassword, salt, 64)) as Buffer;
-    const hashedPassword = `${buf.toString("hex")}.${salt}`;
+      // Verificar contraseña actual con timing-safe comparison
+      const isValidPassword = await passwordUtils.comparePassword(currentPassword, user[0].password);
 
-    if (hashedPassword !== user[0].password) {
-      return res.status(400).json({
-        success: false,
-        message: "Contraseña actual incorrecta",
-      });
-    }
+      if (!isValidPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Contraseña actual incorrecta"
+        });
+      }
 
-    // Actualizar con nueva contraseña
-    const newHashedPassword = await hashPassword(newPassword);
-    await db
-      .update(users)
-      .set({ password: newHashedPassword })
-      .where(eq(users.id, req.user!.id!));
+      // Evaluamos la fortaleza de la nueva contraseña
+      const passwordStrength = passwordUtils.evaluatePasswordStrength(newPassword);
 
-    return res.json({
-      success: true,
-      message: "Contraseña actualizada correctamente",
+      // Si la contraseña tiene una puntuación de seguridad baja, registramos pero permitimos
+      if (passwordStrength.score < 70) {
+        console.warn(`Usuario ${req.user!.id} está usando una contraseña de baja seguridad (score: ${passwordStrength.score})`);
+      }
+
+      // Actualizar con nueva contraseña utilizando hash seguro
+      const newHashedPassword = await passwordUtils.hashPassword(newPassword);
+      await db.update(users)
+        .set({ 
+          password: newHashedPassword,
+          updatedAt: new Date() // Actualizamos la fecha de modificación
+        })
+        .where(eq(users.id, req.user!.id!));
+
+      // Registramos el cambio de contraseña en logs (sin detalles sensibles)
+      console.log(`Usuario ${req.user!.id} ha cambiado su contraseña exitosamente`);
+
+      return res.json({
+        success: true,
+      message: "Contraseña actualizada correctamente"
     });
   } catch (error) {
     console.error("Error updating password:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al actualizar la contraseña",
+      message: "Error al actualizar la contraseña"
     });
   }
 }
@@ -104,62 +118,65 @@ export async function updateProfile(
   req: Request,
   res: Response,
 ): Promise<Response> {
-  const { fullName, username, phone, bio } = req.body;
+    const { fullName, username, phone, bio } = req.validatedData;
 
-  try {
-    // Validar que los campos requeridos estén presentes
-    if (!fullName || !username) {
-      return res.status(400).json({
-        success: false,
-        message: "El nombre completo y el nombre de usuario son requeridos",
+    try {
+      // Verificar si el nombre de usuario ya existe (excluyendo el usuario actual)
+      let existingUser = null;
+      if (username) {
+        existingUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, username))
+          .limit(1);
+
+        if (existingUser.length > 0 && existingUser[0].id !== req.user!.id) {
+          return res.status(400).json({
+            success: false,
+            message: "El nombre de usuario ya está en uso"
+          });
+        }
+      }
+
+      // Construir objeto de actualización con campos no nulos
+      const updateData: Record<string, any> = {
+        updatedAt: new Date()
+      };
+
+      if (fullName !== undefined) updateData.fullName = fullName;
+      if (username !== undefined) updateData.username = username;
+      if (phone !== undefined) updateData.phone = phone;
+      if (bio !== undefined) updateData.bio = bio;
+
+      const result = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, req.user!.id as number))
+        .returning();
+
+      if (!result || result.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Usuario no encontrado"
+        });
+      }
+
+      // Registramos la actualización del perfil (sin datos sensibles)
+      console.log(`Usuario ${req.user!.id} ha actualizado su perfil`);
+
+      // Excluimos la contraseña de la respuesta
+      const { password, ...profile } = result[0];
+      return res.status(200).json({
+        success: true,
+        data: profile,
+        message: "Perfil actualizado correctamente"
       });
-    }
-
-    // Verificar si el nombre de usuario ya existe (excluyendo el usuario actual)
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-
-    if (existingUser.length > 0 && existingUser[0].id !== req.user!.id) {
-      return res.status(400).json({
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      return res.status(500).json({
         success: false,
-        message: "El nombre de usuario ya está en uso",
+        message: "Error al actualizar el perfil"
       });
-    }
-
-    const result = await db
-      .update(users)
-      .set({
-        fullName,
-        username,
-        phone: phone || null,
-        bio: bio || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, req.user!.id as number))
-      .returning();
-
-    if (!result || result.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Usuario no encontrado",
-      });
-    }
-
-    const { password, ...profile } = result[0];
-    return res.status(200).json({
-      success: true,
-      data: profile,
-      message: "Perfil actualizado correctamente",
-    });
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al actualizar el perfil",
-    });
   }
 }
 
@@ -173,7 +190,7 @@ export function setUpProfileRoutes(
 ) {
   app.get("/api/profile", requireAuth, getProfile);
 
-  app.post( "/api/profile/password", requireAuth, changePassword);
+  app.post( "/api/profile/password", requireAuth, validateBody(changePasswordSchema), changePassword);
 
-  app.put("/api/profile", requireAuth, updateProfile );
+  app.put("/api/profile", requireAuth, validateBody(updateProfileSchema), updateProfile );
 }

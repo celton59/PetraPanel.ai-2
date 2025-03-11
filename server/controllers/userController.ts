@@ -6,6 +6,7 @@ import { db } from "@db";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import { type Express } from "express";
+import { passwordUtils } from "../auth.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -36,11 +37,6 @@ const updateUserSchema = z.object({
 type CreateUserSchema = z.infer<typeof createUserSchema>;
 type UpdateUserSchema = z.infer<typeof updateUserSchema>;
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
 
 export async function createUser(
   req: Request,
@@ -92,7 +88,7 @@ export async function createUser(
     }
 
     // Hash de la contraseña
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await passwordUtils.hashPassword(password);
 
     // Crear nuevo usuario
     const newUser = await db.transaction(async (tx) => {
@@ -198,7 +194,7 @@ export async function updateUser(
     console.log("Actualizando usuario:", { id, projectIds });
 
     // Hash password if provided and user is admin
-    const hashedPassword = password ? await hashPassword(password) : undefined;
+    const hashedPassword = password ? await passwordUtils.hashPassword(password) : undefined;
 
     const [updatedUser] = await db.transaction(async (tx) => {
       // Verificar si el usuario existe

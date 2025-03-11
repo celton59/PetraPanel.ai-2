@@ -1,110 +1,114 @@
 import { Video } from "@db/schema";
 import { Badge } from "@/components/ui/badge";
 import { 
-  List, 
-  CheckCircle2, 
-  XCircle, 
   X, 
-  Share2, 
-  Download, 
-  BarChart3,
   Copy, 
-  ChevronRight,
-  Facebook,
-  Twitter,
-  Linkedin,
-  Mail,
-  Link,
-  Check
+  Download, 
+  Youtube,
+  Check,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useUser } from "@/hooks/use-user";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Importamos los componentes modulares para cada estado
+import { MediaReviewContent } from "./media-review/MediaReviewContent";
+import { FinalReviewContent } from "./final-review/FinalReviewContent";
+import { CompletedVideoContent } from "./completed/CompletedVideoContent";
 
 export default function MediaReviewDetail({
   video,
-  onUpdate,
+  onUpdate
 }: MediaReviewDetailProps) {
-  const { user } = useUser();
+  const [videoNeedsCorrection, setVideoNeedsCorrection] = useState(false);
+  const [thumbnailNeedsCorrection, setThumbnailNeedsCorrection] = useState(false);
+  const [reviewComments, setReviewComments] = useState("");
+  
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [videoPreviewOpen, setVideoPreviewOpen] = useState(false);
+  const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
+  
+  const [linkCopied, setLinkCopied] = useState(false);
+  
+  const [youtubeUploadStatus, setYoutubeUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [youtubeUploadData, setYoutubeUploadData] = useState<{
+    title: string;
+    description: string;
+    tags: string[];
+    privacyStatus: 'public' | 'unlisted' | 'private';
+  }>({
+    title: video.optimizedTitle || video.title || "",
+    description: video.optimizedDescription || video.description || "",
+    tags: video.tags ? video.tags.split(',').map(tag => tag.trim()) : [],
+    privacyStatus: 'unlisted'
+  });
 
-  const [reviewComments, setReviewComments] = useState<string | undefined>(
-    undefined,
-  );
-  const [videoNeedsCorrection, setVideoNeedsCorrection] = useState<boolean>(false);
-  const [thumbnailNeedsCorrection, setThumbnailNeedsCorrection] = useState<boolean>(false);
-  const [imagePreviewOpen, setImagePreviewOpen] = useState<boolean>(false);
-  const [videoPreviewOpen, setVideoPreviewOpen] = useState<boolean>(false);
-  const [linkCopied, setLinkCopied] = useState<boolean>(false);
+  // Funciones de manejo
 
-  function handleApprove() {
-    if (video.status === 'media_review') {
-      onUpdate({
-        status: "final_review",
-        mediaReviewedBy: user?.id,
-        mediaVideoNeedsCorrection: false,
-        mediaThumbnailNeedsCorrection: false
-      });
-    } else {
-      onUpdate({
+  async function handleYouTubeUpload() {
+    try {
+      setYoutubeUploadStatus('uploading');
+      
+      // Simulación de carga
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Actualizar el vídeo con la URL de YouTube
+      // En una implementación real, aquí se haría una carga real a YouTube
+      const youtubeUrl = `https://youtube.com/watch?v=sample-${Date.now()}`;
+      
+      await onUpdate({
+        youtubeUrl,
         status: 'completed'
       });
+      
+      setYoutubeUploadStatus('success');
+      
+      // Cerrar el diálogo después de un breve retraso
+      setTimeout(() => {
+        setYoutubeDialogOpen(false);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error al subir a YouTube:', error);
+      setYoutubeUploadStatus('error');
     }
   }
-  
+
+  function handleApprove() {
+    onUpdate({ status: 'final_review' });
+  }
+
   function handleCopyLink() {
     if (video.videoUrl) {
-      navigator.clipboard.writeText(video.videoUrl)
-        .then(() => {
-          setLinkCopied(true);
-          toast.success("Enlace copiado al portapapeles");
-          setTimeout(() => setLinkCopied(false), 2000);
-        })
-        .catch(() => {
-          toast.error("No se pudo copiar el enlace");
-        });
+      navigator.clipboard.writeText(video.videoUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
     }
   }
-  
+
   function handleDownload() {
     if (video.videoUrl) {
       const link = document.createElement('a');
       link.href = video.videoUrl;
-      link.download = `${video.optimizedTitle || video.title || 'video'}.mp4`;
+      link.setAttribute('download', `${video.title || 'video'}.mp4`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success("Descarga iniciada");
     }
   }
 
   function handleReject() {
-    if (!reviewComments) {
-      toast.error("Debes de escribir un comentario para rechazar el video");
-      return;
-    }
-
+    if (!videoNeedsCorrection && !thumbnailNeedsCorrection) return;
+    
     onUpdate({
-      status: "media_corrections",
-      mediaReviewedBy: user?.id,
-      mediaReviewComments: [
-        ...(video.mediaReviewComments ?? []),
-        reviewComments,
-      ],
-      mediaVideoNeedsCorrection: videoNeedsCorrection,
-      mediaThumbnailNeedsCorrection: thumbnailNeedsCorrection,
+      status: 'media_corrections',
+      reviewComments
     });
   }
 
@@ -160,6 +164,106 @@ export default function MediaReviewDetail({
               </video>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de publicación en YouTube */}
+      <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-lg font-semibold">
+              <Youtube className="mr-2 h-5 w-5 text-red-600" /> 
+              Publicar en YouTube
+            </DialogTitle>
+            <DialogDescription>
+              Configura los detalles para publicar este video en YouTube
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 my-6">
+            <div className="space-y-2">
+              <Label htmlFor="youtube-title">Título</Label>
+              <Input 
+                id="youtube-title"
+                value={youtubeUploadData.title} 
+                onChange={(e) => setYoutubeUploadData({
+                  ...youtubeUploadData,
+                  title: e.target.value
+                })}
+                className="w-full"
+                disabled={youtubeUploadStatus === 'uploading'}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="youtube-description">Descripción</Label>
+              <Textarea 
+                id="youtube-description"
+                value={youtubeUploadData.description} 
+                onChange={(e) => setYoutubeUploadData({
+                  ...youtubeUploadData,
+                  description: e.target.value
+                })}
+                className="min-h-[150px]"
+                disabled={youtubeUploadStatus === 'uploading'}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="youtube-privacy">Visibilidad</Label>
+              <Select 
+                value={youtubeUploadData.privacyStatus}
+                onValueChange={(value: 'public' | 'unlisted' | 'private') => setYoutubeUploadData({
+                  ...youtubeUploadData,
+                  privacyStatus: value
+                })}
+                disabled={youtubeUploadStatus === 'uploading'}
+              >
+                <SelectTrigger id="youtube-privacy">
+                  <SelectValue placeholder="Seleccionar visibilidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">Privado</SelectItem>
+                  <SelectItem value="unlisted">No listado</SelectItem>
+                  <SelectItem value="public">Público</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setYoutubeDialogOpen(false)}
+              disabled={youtubeUploadStatus === 'uploading'}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleYouTubeUpload}
+              disabled={youtubeUploadStatus === 'uploading'}
+              className={`
+                ${youtubeUploadStatus === 'uploading' ? 'opacity-80 cursor-not-allowed' : ''}
+                ${youtubeUploadStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}
+                ${youtubeUploadStatus === 'error' ? 'bg-red-600 hover:bg-red-700' : ''}
+              `}
+            >
+              {youtubeUploadStatus === 'idle' && (
+                <>
+                  <Youtube className="mr-2 h-4 w-4" />
+                  Publicar en YouTube
+                </>
+              )}
+              {youtubeUploadStatus === 'uploading' && "Publicando..."}
+              {youtubeUploadStatus === 'success' && (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Publicado con éxito
+                </>
+              )}
+              {youtubeUploadStatus === 'error' && "Error al publicar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -220,54 +324,66 @@ export default function MediaReviewDetail({
                     Tu navegador no soporta la visualización del video.
                   </video>
                   <div
-                    className="absolute top-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded cursor-pointer"
+                    className="absolute top-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80"
                     onClick={() => setVideoPreviewOpen(true)}
                   >
-                    Ver en pantalla completa
+                    Ampliar
+                  </div>
+                  <div className="absolute bottom-2 right-2 flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 bg-black/60 text-white hover:bg-black/80 hover:text-white rounded-full"
+                      onClick={handleCopyLink}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span className="sr-only">Copiar enlace del video</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon" 
+                      className="h-7 w-7 bg-black/60 text-white hover:bg-black/80 hover:text-white rounded-full"
+                      onClick={handleDownload}
+                    >
+                      <Download className="h-3 w-3" />
+                      <span className="sr-only">Descargar video</span>
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <div className="w-full h-[180px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-md">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No hay video disponible</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Video no disponible</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* Información Optimizada */}
-        <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative mb-4">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 dark:from-blue-600 dark:via-purple-600 dark:to-blue-600"></div>
+        
+        {/* Card para el contenido optimizado */}
+        <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm mb-4">
           <div className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-900/50">
-                <List className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Título Optimizado</h4>
+                <div className="p-2 bg-white/60 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-md">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {video.optimizedTitle || video.title || "Sin título"}
+                  </p>
+                </div>
               </div>
-              <h3 className="font-medium text-blue-700 dark:text-blue-300 text-sm">Contenido Optimizado</h3>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-3">
+              
+              {video.tags && (
                 <div>
-                  <h4 className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Título</h4>
-                  <div className="p-2 bg-white/60 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-md">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{video.optimizedTitle || video.title}</p>
+                  <h4 className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Tags</h4>
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-white/60 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-md">
+                    {video.tags.split(",").map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+                        {tag.trim()}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-                
-                {video.tags && (
-                  <div>
-                    <h4 className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Tags</h4>
-                    <div className="flex flex-wrap gap-1.5 p-2 bg-white/60 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-md">
-                      {video.tags.split(",").map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
-                          {tag.trim()}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
               
               <div>
                 <h4 className="text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Descripción</h4>
@@ -281,246 +397,31 @@ export default function MediaReviewDetail({
           </div>
         </Card>
 
-        {/* YouTube Ready Decision - Media Review */}
-        <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative mb-4">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 dark:from-amber-600 dark:via-amber-500 dark:to-amber-600"></div>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded-md bg-amber-50 dark:bg-amber-900/50">
-                  <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                </div>
-                <h3 className="font-medium text-amber-700 dark:text-amber-300 text-sm">Verificación de Contenido</h3>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="py-1 h-7 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 text-white"
-                  onClick={handleApprove}
-                  disabled={videoNeedsCorrection || thumbnailNeedsCorrection}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                  Aprobar
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="py-1 h-7"
-                  onClick={handleReject}
-                  disabled={!videoNeedsCorrection && !thumbnailNeedsCorrection}
-                >
-                  <XCircle className="w-3.5 h-3.5 mr-1" />
-                  Rechazar
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 p-3 rounded-md bg-white/80 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
-                  <Checkbox
-                    id="video-correction"
-                    onCheckedChange={(checked) => setVideoNeedsCorrection(checked as boolean)}
-                    className="border-amber-500 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                  />
-                  <label htmlFor="video-correction" className="text-xs font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                    Necesita corregir Vídeo
-                  </label>
-                </div>
-                
-                <div className="flex items-center gap-2 p-3 rounded-md bg-white/80 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
-                  <Checkbox
-                    id="thumbnail-correction"
-                    onCheckedChange={(checked) => setThumbnailNeedsCorrection(checked as boolean)}
-                    className="border-amber-500 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                  />
-                  <label htmlFor="thumbnail-correction" className="text-xs font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                    Necesita corregir Miniatura
-                  </label>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
-                  Comentarios de Revisión
-                </label>
-                <Textarea
-                  placeholder="Escribe aquí los motivos del rechazo o sugerencias de mejora..."
-                  value={reviewComments}
-                  disabled={!videoNeedsCorrection && !thumbnailNeedsCorrection}
-                  onChange={(e) => setReviewComments(e.target.value)}
-                  className="min-h-[80px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-amber-200 dark:border-amber-800/70 focus-visible:ring-amber-500/30 focus-visible:border-amber-300"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
+        {/* Componentes de estados específicos */}
+        <MediaReviewContent
+          video={video}
+          videoNeedsCorrection={videoNeedsCorrection}
+          thumbnailNeedsCorrection={thumbnailNeedsCorrection}
+          reviewComments={reviewComments}
+          setVideoNeedsCorrection={setVideoNeedsCorrection}
+          setThumbnailNeedsCorrection={setThumbnailNeedsCorrection}
+          setReviewComments={setReviewComments}
+          handleApprove={handleApprove}
+          handleReject={handleReject}
+        />
 
-        {/* Final Review Decision */}
-        {video.status === "final_review" && (
-          <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 via-green-600 to-green-500 dark:from-green-600 dark:via-green-500 dark:to-green-600"></div>
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 rounded-md bg-green-50 dark:bg-green-900/50">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="font-medium text-green-700 dark:text-green-300 text-sm">Revisión Final</h3>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="py-1 h-7 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 text-white"
-                    onClick={handleApprove}
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Aprobar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="py-1 h-7"
-                    onClick={handleReject}
-                  >
-                    <XCircle className="w-3.5 h-3.5 mr-1" />
-                    Rechazar
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
-                  Comentarios de Revisión Final
-                </label>
-                <Textarea
-                  placeholder="Escribe aquí los motivos del rechazo o sugerencias finales..."
-                  value={reviewComments}
-                  onChange={(e) => setReviewComments(e.target.value)}
-                  className="min-h-[80px] resize-none text-xs bg-white/80 dark:bg-gray-900/60 border-green-200 dark:border-green-800/70 focus-visible:ring-green-500/30 focus-visible:border-green-300"
-                />
-              </div>
-            </div>
-          </Card>
-        )}
+        <FinalReviewContent
+          video={video}
+          onUpdate={onUpdate}
+          openYoutubeDialog={() => setYoutubeDialogOpen(true)}
+        />
 
-        {/* Video Completado - Acciones adicionales */}
-        {video.status === "completed" && (
-          <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative mb-4">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500 dark:from-purple-600 dark:via-indigo-600 dark:to-purple-600"></div>
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-900/50">
-                    <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="font-medium text-purple-700 dark:text-purple-300 text-sm">Video Publicado</h3>
-                </div>
-                <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white border-0">
-                  Completado
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="col-span-1 md:col-span-1">
-                  <div 
-                    className="p-4 rounded-md border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 hover:bg-white/90 dark:hover:bg-gray-900/50 transition-all cursor-pointer flex items-center gap-3"
-                    onClick={handleCopyLink}
-                  >
-                    <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/50">
-                      {linkCopied ? (
-                        <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <Link className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">Compartir enlace</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Copia el enlace directo al video</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-span-1 md:col-span-1">
-                  <div 
-                    className="p-4 rounded-md border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 hover:bg-white/90 dark:hover:bg-gray-900/50 transition-all cursor-pointer flex items-center gap-3"
-                    onClick={handleDownload}
-                  >
-                    <div className="p-2 rounded-full bg-indigo-100 dark:bg-indigo-900/50">
-                      <Download className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">Descargar video</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Guardar video en tu dispositivo</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-span-1 md:col-span-1">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <div className="p-4 rounded-md border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 hover:bg-white/90 dark:hover:bg-gray-900/50 transition-all cursor-pointer flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                          <Share2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">Compartir en redes</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Publicar en redes sociales</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 ml-auto text-gray-400" />
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
-                      <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                        <Facebook className="h-4 w-4 text-blue-600" />
-                        <span>Facebook</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                        <Twitter className="h-4 w-4 text-sky-500" />
-                        <span>Twitter</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                        <Linkedin className="h-4 w-4 text-blue-700" />
-                        <span>LinkedIn</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                        <Mail className="h-4 w-4 text-gray-600" />
-                        <span>Correo electrónico</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Métricas estimadas</h4>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-purple-600 dark:text-purple-400">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    Ver estadísticas completas
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">24.5K</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Visualizaciones est.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">18.2%</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Tasa de interacción</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">4:23</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Tiempo de vis. promedio</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
+        <CompletedVideoContent
+          video={video}
+          handleCopyLink={handleCopyLink}
+          handleDownload={handleDownload}
+          linkCopied={linkCopied}
+        />
       </div>
     </div>
   );

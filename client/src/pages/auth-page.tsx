@@ -38,6 +38,29 @@ export default function AuthPage() {
     },
   });
 
+  // Helper de inicio de sesión rápido con credenciales predefinidas para pruebas
+  const handleQuickLogin = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Iniciando sesión con:", { username: "hola" });
+      await login({ username: "hola", password: "1234" });
+      
+      // Simular un pequeño retraso para una mejor experiencia
+      setTimeout(() => {
+        setLocation("/");
+        setIsLoading(false);
+      }, 500);
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error("Error en inicio de sesión:", error);
+      toast.error("Error de inicio de sesión", {
+        description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
+        position: "top-right",
+        duration: 3000
+      });
+    }
+  };
+
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
@@ -47,11 +70,6 @@ export default function AuthPage() {
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
         setLocation("/");
-        toast.success("¡Bienvenido!", { 
-          description: "Has iniciado sesión correctamente",
-          position: "top-right",
-          duration: 3000
-        });
         setIsLoading(false);
       }, 500);
     } catch (error: any) {
@@ -99,6 +117,21 @@ export default function AuthPage() {
             </p>
           </div>
         </div>
+
+        {/* Botón de inicio rápido para pruebas */}
+        <Button 
+          variant="outline" 
+          onClick={handleQuickLogin}
+          disabled={isLoading}
+          className="w-full max-w-md mx-auto mb-4 flex items-center gap-2"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LogIn className="h-4 w-4" />
+          )}
+          Inicio rápido para pruebas
+        </Button>
 
         {/* Auth Form Card */}
         <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>

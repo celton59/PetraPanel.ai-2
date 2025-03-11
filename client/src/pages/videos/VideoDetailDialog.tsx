@@ -4,6 +4,7 @@ import {
   AlertCircle,  
 } from "lucide-react";
 import {  
+  Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -18,12 +19,15 @@ import { UploadContentDetail } from "./detail/UploadContentDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/hooks/use-user";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
+import { canUserSeeVideoDetails } from "@/lib/role-permissions";
 import MediaReviewDetail from "./detail/MediaReviewDetail";
+import { MediaCorrectionsDetail } from "./detail/MediaCorrectionsDetail";
+import { CompletedVideoDetail } from "./detail/CompletedVideoDetail";
 import { ApiVideo } from "@/hooks/useVideos";
 
 const statusDescriptions: Record<VideoStatus, string> = {
   available: "Video recién creado, esperando asignación",
-  content_corrections: "Se han solicitado correcciones al título",
+  content_corrections: "Video en proceso de optimización",
   content_review: "En revisión por el equipo de optimización",
   upload_media: "En revisión de archivos (video y miniatura)",
   media_review: "Listo para subir a YouTube",
@@ -34,21 +38,37 @@ const statusDescriptions: Record<VideoStatus, string> = {
 
 export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const { user } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
+  
+  // Si no hay video o usuario, mostrar estado de carga
+  if (!video || !user || isUserLoading) {
+    return (
+      <DialogContent>
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center space-y-2">
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-sm text-muted-foreground">
+              {!video ? "Cargando datos del video..." : "Verificando permisos..."}
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    );
+  }
 
-  // Determinar si el usuario tiene visibilidad usando getRoleStatus
-  // const hasVisibility = getRoleStatus(video.status as VideoStatus)[userRole] === 'disponible';
-  // TODO
-  const hasVisibility = true;
+  // Determinar si el usuario tiene visibilidad según su rol y el estado del video
+  const hasVisibility = user ? canUserSeeVideoDetails(user.role, video.status) : false;
 
   if (!hasVisibility) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          No tienes acceso a ver el contenido de este video en este momento.
-        </AlertDescription>
-      </Alert>
+      <DialogContent>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No tienes acceso a ver el contenido de este video en este momento.
+          </AlertDescription>
+        </Alert>
+      </DialogContent>
     );
   }
 
@@ -81,16 +101,24 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
           />
         );
       case "upload_media":
-      case "media_corrections":
         return (
           <UploadContentDetail
             video={video}
             onUpdate={onUpdate}
           />
         );
+      case "media_corrections":
+        return (
+          <MediaCorrectionsDetail
+            video={video}
+            onUpdate={onUpdate}
+          />
+        );
       case "media_review":
       case "final_review":
-        return <MediaReviewDetail video={video} onUpdate={onUpdate} />;      
+        return <MediaReviewDetail video={video} onUpdate={onUpdate} />;
+      case "completed":
+        return <CompletedVideoDetail video={video} />;      
     }
   }
 

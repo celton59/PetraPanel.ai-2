@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -97,7 +97,12 @@ export const videos = pgTable("videos", {
   mediaVideoNeedsCorrection: boolean("media_video_needs_correction"),
   mediaThumbnailNeedsCorrection: boolean("media_thumbnail_needs_correction"),
   
-  publishedAt: timestamp("published_at")
+  publishedAt: timestamp("published_at"),
+  
+  // Campos para la papelera
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: integer("deleted_by").references(() => users.id)
 });
 
 export type Video = typeof videos.$inferSelect
@@ -161,6 +166,8 @@ export const youtube_videos = pgTable("youtube_videos", {
   duration: text("duration"),
   tags: text("tags").array(),
   analyzed: boolean("analyzed").default(false),
+  // Campo para almacenar los datos de análisis
+  analysisData: jsonb("analysis_data"),
   sentToOptimize: boolean("sent_to_optimize").default(false),
   sentToOptimizeAt: timestamp("sent_to_optimize_at"),
   sentToOptimizeProjectId: integer("sent_to_optimize_project_id")
@@ -229,4 +236,84 @@ export const selectUserActionSchema = createSelectSchema(userActions);
 
 export const insertPaymentSchema = createInsertSchema(payments);
 export const selectPaymentSchema = createSelectSchema(payments);
+
+// Tabla para notificaciones
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type", { 
+    enum: ["info", "success", "warning", "error", "system"] 
+  }).notNull().default("info"),
+  isRead: boolean("is_read").default(false),
+  isArchived: boolean("is_archived").default(false),
+  actionUrl: text("action_url"),
+  actionLabel: text("action_label"),
+  relatedEntityType: text("related_entity_type"),
+  relatedEntityId: integer("related_entity_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id)
+});
+
+// Tabla para configuración de notificaciones por usuario
+export const notificationSettings = pgTable("notification_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  emailEnabled: boolean("email_enabled").default(true),
+  pushEnabled: boolean("push_enabled").default(true),
+  inAppEnabled: boolean("in_app_enabled").default(true),
+  // Tipos específicos de notificaciones que el usuario puede configurar
+  contentChangesEnabled: boolean("content_changes_enabled").default(true),
+  assignmentsEnabled: boolean("assignments_enabled").default(true),
+  mentionsEnabled: boolean("mentions_enabled").default(true),
+  statusChangesEnabled: boolean("status_changes_enabled").default(true),
+  systemMessagesEnabled: boolean("system_messages_enabled").default(true),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+export type NotificationSetting = typeof notificationSettings.$inferSelect;
+export type InsertNotificationSetting = typeof notificationSettings.$inferInsert;
+
+export const insertNotificationSchema = createInsertSchema(notifications);
+export const selectNotificationSchema = createSelectSchema(notifications);
+
+export const insertNotificationSettingSchema = createInsertSchema(notificationSettings);
+export const selectNotificationSettingSchema = createSelectSchema(notificationSettings);
+
+
+// Tabla para title embeddings
+
+export const titleEmbeddings = pgTable("title_embeddings", {
+  id: serial("id").primaryKey(),
+  videoId: integer("video_id").notNull(),
+  title: text("title").notNull(),
+  vector: vector("vector", { dimensions: 1536 }).notNull(),
+  is_evergreen: boolean("is_evergreen").default(false),
+  confidence: numeric("confidence"),
+  createdAt: timestamp("created_at").defaultNow()
+})
+
+// Tabla training title examples 
+
+export const trainingTitleExamples = pgTable("training_title_examples", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  youtubeId: text("youtube_id").notNull(), 
+  is_evergreen: boolean("is_evergreen").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
+  vectorProcessed: boolean("vector_processed").default(false),
+  confidence: numeric("confidence"),
+  category: text("category").notNull(),
+  embedding: vector("embedding", { dimensions: 1536 }).notNull(),
+})
 
