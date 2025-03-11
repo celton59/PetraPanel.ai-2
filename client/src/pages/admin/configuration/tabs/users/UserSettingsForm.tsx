@@ -78,13 +78,14 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
     setError(null);
 
     try {
+      // Asegúrate de que los campos requeridos no sean undefined
       const userData: Partial<User> & { projectIds: number[] } = {
-        fullName: formDataToSubmit.fullName,
-        username: formDataToSubmit.username,
-        email: formDataToSubmit.email,
-        phone: formDataToSubmit.phone,
-        bio: formDataToSubmit.bio,
-        role: formDataToSubmit.role,
+        fullName: formDataToSubmit.fullName || "",
+        username: formDataToSubmit.username || "",
+        email: formDataToSubmit.email || "",
+        phone: formDataToSubmit.phone || null,
+        bio: formDataToSubmit.bio || null,
+        role: formDataToSubmit.role || "youtuber",
         projectIds: selectedProjects,
         ...(formDataToSubmit.password && { password: formDataToSubmit.password }),
       };
@@ -98,7 +99,12 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
           return;
         }
 
-        // TODO fix this
+        // Asegurarnos de que los campos requeridos estén presentes
+        if (!userData.username || !userData.fullName || !userData.email) {
+          setError("Todos los campos obligatorios deben estar completos");
+          return;
+        }
+
         await createUser(userData as unknown as User);
       }
 
@@ -157,8 +163,8 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                   fullName: form.watch("fullName"),
                   username: form.watch("username"),
                   email: form.watch("email"),
-                  phone: form.watch("phone") || "",
-                  bio: form.watch("bio") || "",
+                  phone: form.watch("phone"),
+                  bio: form.watch("bio"),
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {
