@@ -60,9 +60,15 @@ export function useVideos(): {
 
   const createVideoMutation = useMutation({
     mutationFn: async (video: Pick<Video, "title" | "description" | "projectId">) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       const res = await fetch(`/api/projects/${video.projectId}/videos`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         body: JSON.stringify(video),
         credentials: "include",
       });
@@ -90,9 +96,15 @@ export function useVideos(): {
   
   const createBulkVideosMutation = useMutation({
     mutationFn: async ({ projectId, titles }: { projectId: number, titles: string[] }) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       const res = await fetch(`/api/projects/${projectId}/videos/bulk`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         body: JSON.stringify({ titles }),
         credentials: "include",
       });
@@ -122,13 +134,17 @@ export function useVideos(): {
 
   const updateVideoMutation = useMutation({
     mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       
-
       console.log('Datos de actualización:', updateRequest);
 
       const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         body: JSON.stringify(updateRequest),
         credentials: "include",
       });
@@ -155,8 +171,15 @@ export function useVideos(): {
 
   const deleteVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       const res = await fetch(`/api/projects/${projectId}/videos/${videoId}${permanent ? '?permanent=true' : ''}`, {
         method: "DELETE",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         credentials: "include",
       });
 
@@ -184,9 +207,15 @@ export function useVideos(): {
 
   const bulkDeleteVideosMutation = useMutation({
     mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       const res = await fetch(`/api/projects/${projectId}/videos${permanent ? '?permanent=true' : ''}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         body: JSON.stringify({ videoIds }),
         credentials: "include",
       });
@@ -216,8 +245,15 @@ export function useVideos(): {
   // Nueva función para restaurar videos de la papelera
   const restoreVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       const res = await fetch(`/api/projects/${projectId}/videos/${videoId}/restore`, {
         method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         credentials: "include",
       });
 
@@ -244,8 +280,15 @@ export function useVideos(): {
   // Nueva función para vaciar la papelera de un proyecto
   const emptyTrashMutation = useMutation({
     mutationFn: async ({projectId}: { projectId: number }) => {
+      // Obtener el token CSRF del meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
       const res = await fetch(`/api/projects/${projectId}/trash`, {
         method: "DELETE",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || ''
+        },
         credentials: "include",
       });
 
