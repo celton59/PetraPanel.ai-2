@@ -40,18 +40,21 @@ export function UserMenu({ className }: UserMenuProps) {
   }
 
   return (
-    <div className={`flex items-center px-4 h-14 ${className}`}>
+    <div className={`flex items-center px-4 h-16 ${className}`}>
       <div className="flex items-center space-x-2 sm:space-x-4 ml-auto">
         {/* Mobile search button */}
         <Button 
-          variant="ghost" 
-          size="icon" 
-          className="md:hidden"
+          variant="default" 
+          size="sm" 
+          className="md:hidden h-9 px-3 rounded-md"
           onClick={() => {
-            // Mobile search functionality would go here
+            // Usamos la misma función que el botón de escritorio
+            const { openSearch } = require('@/hooks/use-global-search').useGlobalSearch();
+            openSearch();
           }}
         >
-          <Search className="h-5 w-5 text-muted-foreground" />
+          <Search className="h-5 w-5 mr-1" />
+          <span className="text-sm font-medium">Buscar</span>
         </Button>
         
         {/* Indicador de usuarios en línea - oculto en móvil */}

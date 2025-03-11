@@ -27,15 +27,15 @@ export function SearchButton({
       size={size}
       onClick={openSearch}
       className={cn(
-        'gap-2',
-        iconOnly && 'px-2',
+        'gap-2 h-10 py-2 text-base font-medium',
+        iconOnly ? 'px-3' : 'px-4',
         className
       )}
     >
-      <Search className="h-4 w-4" />
+      <Search className="h-5 w-5" />
       {!iconOnly && <span>Buscar</span>}
       {showShortcut && !iconOnly && (
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+        <kbd className="pointer-events-none hidden h-6 select-none items-center gap-1 rounded border bg-muted px-2 font-mono text-[11px] font-medium opacity-100 sm:flex">
           <span className="text-xs">
             {navigator.userAgent.indexOf('Mac') !== -1 ? '⌘' : 'Ctrl'}
           </span>
