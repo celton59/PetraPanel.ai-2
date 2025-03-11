@@ -17,7 +17,6 @@ import {
 // Extend Express.User
 declare global {
   namespace Express {
-    interface User extends InsertUser {}
     interface Request {
       csrfToken?: () => string;
       validatedData?: any;
