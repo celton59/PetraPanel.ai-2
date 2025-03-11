@@ -2,6 +2,7 @@ import React from 'react';
 import { Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import api from "../../../lib/axios";
 
 interface AssigneeFilterProps {
   assignedTo: string;
@@ -12,11 +13,14 @@ export const AssigneeFilter = ({ assignedTo, onAssignedToChange }: AssigneeFilte
   const { data: response } = useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
-      const response = await fetch('/api/users', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Error fetching users');
-      return response.json();
+      try {
+        // Usamos la instancia de axios configurada con protección CSRF
+        const response = await api.get('/api/users');
+        return response.data;
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        throw new Error(error.response?.data?.message || 'Error fetching users');
+      }
     }
   });
 
