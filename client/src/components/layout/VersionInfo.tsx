@@ -43,6 +43,10 @@ const versionHistory: ChangelogEntry[] = [
       },
       { 
         type: 'improved', 
+        description: 'Avatar predeterminado unificado en todos los indicadores de usuario para coherencia visual'
+      },
+      { 
+        type: 'improved', 
         description: 'Algoritmo de subida multiparte optimizado para transferencias hasta un 30% más rápidas'
       },
       { 
