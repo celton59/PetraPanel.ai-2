@@ -118,7 +118,7 @@ export default function MediaReviewDetail({
     
     onUpdate({
       status: 'media_corrections',
-      reviewComments
+      mediaReviewComments: video.mediaReviewComments ? [...video.mediaReviewComments, reviewComments] : [reviewComments]
     });
   }
 

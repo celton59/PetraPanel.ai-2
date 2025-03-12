@@ -1,9 +1,14 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { users, projectAccess } from "@db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { db } from "@db";
 import { passwordUtils } from "../auth";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
+import { type Express } from "express";
+
+const scryptAsync = promisify(scrypt);
 
 const createUserSchema = z.object({
   username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).max(30, { message: "El nombre de usuario debe tener como máximo 30 caracteres" }),
@@ -32,10 +37,6 @@ const updateUserSchema = z.object({
 type CreateUserSchema = z.infer<typeof createUserSchema>;
 type UpdateUserSchema = z.infer<typeof updateUserSchema>;
 
-// Usamos passwordUtils.hashPassword de auth.ts
-async function hashPassword(password: string) {
-  return passwordUtils.hashPassword(password);
-}
 
 export async function createUser(
   req: Request,
@@ -87,7 +88,7 @@ export async function createUser(
     }
 
     // Hash de la contraseña
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await passwordUtils.hashPassword(password);
 
     // Crear nuevo usuario
     const newUser = await db.transaction(async (tx) => {
@@ -193,7 +194,7 @@ export async function updateUser(
     console.log("Actualizando usuario:", { id, projectIds });
 
     // Hash password if provided and user is admin
-    const hashedPassword = password ? await hashPassword(password) : undefined;
+    const hashedPassword = password ? await passwordUtils.hashPassword(password) : undefined;
 
     const [updatedUser] = await db.transaction(async (tx) => {
       // Verificar si el usuario existe
@@ -400,11 +401,13 @@ export async function deleteUser(
   }
 }
 
-const UserController = {
-  createUser,
-  updateUser,
-  getUsers,
-  deleteUser
-};
 
-export default UserController;
+export function setUpUserRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  app.post("/api/users", requireAuth, createUser);
+
+  app.put("/api/users/:id", requireAuth, updateUser );
+
+  app.get("/api/users", requireAuth, getUsers );
+
+  app.delete("/api/users/:id", requireAuth, deleteUser );
+}

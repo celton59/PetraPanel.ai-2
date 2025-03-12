@@ -57,6 +57,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       bio: user?.bio ? user.bio : undefined,
       role: user?.role ?? "youtuber",
       password: "",
+
     },
     resolver: async (values) => {
       const errors: Record<string, { type: string; message: string }> = {};
@@ -247,21 +248,6 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
             <div className="space-y-6">
               <PersonalInfoSection
                 form={form}
-                formData={{
-                  role: user?.role,
-                  password: "",
-                  fullName: form.watch("fullName"),
-                  username: form.watch("username"),
-                  email: form.watch("email"),
-                  phone: form.watch("phone"),
-                  bio: form.watch("bio"),
-                }}
-                setFormData={(data) => {
-                  Object.entries(data).forEach(([key, value]) => {
-                    form.setValue(key as keyof Partial<User>, value as string);
-                  });
-                  form.trigger();
-                }}
                 isCheckingUsername={false}
                 isCheckingEmail={false}
               />

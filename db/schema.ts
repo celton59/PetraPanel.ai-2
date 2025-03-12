@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
 });
 
 export type User = typeof users.$inferSelect;
@@ -126,6 +127,9 @@ export const youtube_channels = pgTable("youtube_channels", {
    createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   });
+
+export type YoutubeChannel = typeof youtube_channels.$inferSelect;
+
 // Tabla para configurar las tarifas por acción según el rol
 export const actionRates = pgTable("action_rates", {
   id: serial("id").primaryKey(),
@@ -139,7 +143,7 @@ export const actionRates = pgTable("action_rates", {
     ] 
   }).notNull(),
   roleId: text("role_id", { 
-    enum: ["content_reviewer", "media_reviewer", "optimizer", "youtuber"] 
+    enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"]
   }).notNull(),
   rate: numeric("rate").notNull(),
   projectId: integer("project_id").references(() => projects.id),
@@ -150,7 +154,7 @@ export const actionRates = pgTable("action_rates", {
 
 export const youtube_videos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
-  videoId: text("video_id").notNull().unique(),
+  youtubeId: text("youtube_id").notNull().unique(),
   channelId: text("channel_id").notNull(),
   title: text("title").notNull(),
   description: text("description"),
@@ -170,6 +174,8 @@ export const youtube_videos = pgTable("youtube_videos", {
     .references(() => projects.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  isEvergreen: boolean("is_evergreen"),
+  evergreenConfidence: numeric("evergreen_confidence")
 });
 
 export type YoutubeVideo = typeof youtube_videos.$inferSelect
@@ -281,4 +287,33 @@ export const selectNotificationSchema = createSelectSchema(notifications);
 
 export const insertNotificationSettingSchema = createInsertSchema(notificationSettings);
 export const selectNotificationSettingSchema = createSelectSchema(notificationSettings);
+
+
+// Tabla para title embeddings
+
+export const titleEmbeddings = pgTable("title_embeddings", {
+  id: serial("id").primaryKey(),
+  videoId: integer("video_id").notNull(),
+  title: text("title").notNull(),
+  vector: vector("vector", { dimensions: 1536 }).notNull(),
+  is_evergreen: boolean("is_evergreen").default(false),
+  confidence: numeric("confidence"),
+  createdAt: timestamp("created_at").defaultNow()
+})
+
+// Tabla training title examples 
+
+export const trainingTitleExamples = pgTable("training_title_examples", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  youtubeId: text("youtube_id").notNull(), 
+  is_evergreen: boolean("is_evergreen").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
+  vectorProcessed: boolean("vector_processed").default(false),
+  confidence: numeric("confidence"),
+  category: text("category").notNull(),
+  embedding: vector("embedding", { dimensions: 1536 }).notNull(),
+})
 

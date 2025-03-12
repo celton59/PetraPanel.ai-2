@@ -51,7 +51,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
-const VISIBLE_STATES = {
+const VISIBLE_STATES: Record<User['role'], string[]> = {
   optimizer: [
     "pending",
     "in_progress",
@@ -1030,8 +1030,7 @@ export default function VideosPage() {
         projectId={projectId}
         onProjectChange={setProjectId}
         showFilters={showFilters}
-        onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={user ? VISIBLE_STATES[user.role] : undefined}
+        visibleStates={user ? VISIBLE_STATES[user.role] : []}
       />
       
       {/* Vista principal */}

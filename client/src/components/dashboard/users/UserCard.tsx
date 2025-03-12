@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone } from "lucide-react";
-import { User } from "@/types/user";
+import { User } from "@db/schema";
 
 interface UserCardProps {
   user: User;
@@ -19,7 +19,7 @@ export function UserCard({ user, isOnline, onSelect }: UserCardProps) {
       <div className="flex items-center space-x-4">
         <div className="relative">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={user.avatarUrl} />
+            <AvatarImage src={user.avatarUrl ?? 'https://via.placeholder.com/150'} />
             <AvatarFallback>{user.username[0]}</AvatarFallback>
           </Avatar>
           {isOnline && (

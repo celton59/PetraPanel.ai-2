@@ -2,7 +2,7 @@ import * as React from "react"
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { ButtonProps, buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 
 const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
   <nav
@@ -27,24 +27,21 @@ const PaginationContent = React.forwardRef<
 PaginationContent.displayName = "PaginationContent"
 
 const PaginationItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ className, ...props }, ref) => (
-  <li ref={ref} className={cn("", className)} {...props} />
-))
-PaginationItem.displayName = "PaginationItem"
-
-type PaginationLinkProps = {
-  isActive?: boolean
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">
+  HTMLLIElement,  React.ComponentProps<"li">
+  >(({ className, ...props }, ref) => (
+    <li ref={ref} className={cn("", className)} {...props} />
+  ))
+  PaginationItem.displayName = "PaginationItem"
 
 const PaginationLink = ({
   className,
   isActive,
   size = "icon",
   ...props
-}: PaginationLinkProps) => (
+}: React.ComponentProps<"a"> & {
+  isActive?: boolean
+  size?: "default" | "sm" | "lg" | "icon"
+}) => (
   <a
     aria-current={isActive ? "page" : undefined}
     className={cn(
@@ -70,7 +67,7 @@ const PaginationPrevious = ({
     {...props}
   >
     <ChevronLeft className="h-4 w-4" />
-    <span>Previous</span>
+    <span>Anterior</span>
   </PaginationLink>
 )
 PaginationPrevious.displayName = "PaginationPrevious"
@@ -85,7 +82,7 @@ const PaginationNext = ({
     className={cn("gap-1 pr-2.5", className)}
     {...props}
   >
-    <span>Next</span>
+    <span>Siguiente</span>
     <ChevronRight className="h-4 w-4" />
   </PaginationLink>
 )
@@ -105,6 +102,7 @@ const PaginationEllipsis = ({
   </span>
 )
 PaginationEllipsis.displayName = "PaginationEllipsis"
+
 
 export {
   Pagination,

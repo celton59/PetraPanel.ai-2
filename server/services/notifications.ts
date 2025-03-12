@@ -1,7 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { Server as HttpServer, IncomingMessage } from 'http';
 import { User } from '@db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '@db/index';
 import { notifications, users, notificationSettings } from '@db/schema';
 import { log } from '../vite';
@@ -94,9 +94,13 @@ export class NotificationsService {
       const unreadNotifications = await db
         .select()
         .from(notifications)
-        .where(eq(notifications.userId, userId))
-        .where(eq(notifications.isRead, false))
-        .where(eq(notifications.isArchived, false))
+        .where(
+          and(
+            eq(notifications.userId, userId),
+            eq(notifications.isRead, false),
+            eq(notifications.isArchived, false)
+          )
+        )
         .orderBy(notifications.createdAt);
 
       if (unreadNotifications.length > 0) {
@@ -189,8 +193,12 @@ export class NotificationsService {
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(eq(notifications.id, notificationId))
-        .where(eq(notifications.userId, userId));
+        .where(
+          and(
+            eq(notifications.id, notificationId),
+            eq(notifications.userId, userId)
+          )
+        )
     } catch (error) {
       log(`Error al marcar notificación como leída: ${error}`, 'notifications');
     }
@@ -204,8 +212,12 @@ export class NotificationsService {
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(eq(notifications.userId, userId))
-        .where(eq(notifications.isRead, false));
+        .where(
+          and(
+            eq(notifications.userId, userId),
+            eq(notifications.isRead, false)
+          )
+        )
     } catch (error) {
       log(`Error al marcar todas las notificaciones como leídas: ${error}`, 'notifications');
     }
@@ -219,8 +231,12 @@ export class NotificationsService {
       await db
         .update(notifications)
         .set({ isArchived: true })
-        .where(eq(notifications.id, notificationId))
-        .where(eq(notifications.userId, userId));
+        .where(
+          and(
+            eq(notifications.id, notificationId),
+            eq(notifications.userId, userId)
+          )
+        )
     } catch (error) {
       log(`Error al archivar notificación: ${error}`, 'notifications');
     }
@@ -376,19 +392,20 @@ export class NotificationsService {
         })
         .from(notifications)
         .leftJoin(users, eq(notifications.createdBy, users.id))
-        .where(eq(notifications.userId, userId))
-        .where(eq(notifications.isArchived, false))
+        .where(
+          and(
+            eq(notifications.userId, userId),
+            eq(notifications.isArchived, false),
+            ! includeRead ? eq(notifications.isRead, false) : undefined
+          )
+        )
         .orderBy(notifications.createdAt);
-      
-      if (!includeRead) {
-        query = query.where(eq(notifications.isRead, false));
-      }
       
       const results = await query.limit(limit);
       
       return results.map(({ notification, sender }) => ({
         ...notification,
-        sender: sender.id ? sender : undefined
+        sender: sender?.id ? sender : undefined
       }));
     } catch (error) {
       log(`Error al obtener notificaciones del usuario: ${error}`, 'notifications');

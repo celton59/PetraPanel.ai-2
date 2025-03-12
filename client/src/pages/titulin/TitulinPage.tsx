@@ -1,3 +1,4 @@
+
 import { Youtube, GitCompareArrows, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -25,6 +26,7 @@ export default function TitulinPage() {
   // Estados de la página
   const [searchValue, setSearchValue] = useState("");
   const [titleFilter, setTitleFilter] = useState("");
+
   const [channelFilter, setChannelFilter] = useState("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
   const [analysisVideo, setAnalysisVideo] = useState<TitulinVideo | null>(null);
@@ -100,6 +102,7 @@ export default function TitulinPage() {
         params: searchParams
       });
       return response.data;
+
     },
     staleTime: 30000,
     refetchOnWindowFocus: false,

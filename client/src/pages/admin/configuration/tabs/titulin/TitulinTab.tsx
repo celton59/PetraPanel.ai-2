@@ -29,19 +29,10 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
+import { YoutubeChannel } from "@db/schema";
 import { ImprovedTrainingExamplesDialog } from "../../../../titulin/components/ImprovedTrainingExamplesDialog";
 import { TitleComparisonDialog } from "../../../../titulin/components/TitleComparisonDialog";
 
-interface Channel {
-  id: number;
-  name: string;
-  url: string;
-  channelId: string;
-  analyzedVideos?: number;
-  lastVideoFetch?: string;
-  active: boolean;
-  thumbnailUrl?: string;
-}
 
 export default function TitulinTab () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
@@ -56,7 +47,7 @@ export default function TitulinTab () {
   const queryClient = useQueryClient();
 
   // Consulta para canales
-  const { data: channels = [], isLoading: isLoadingChannels } = useQuery<Channel[]>({
+  const { data: channels = [], isLoading: isLoadingChannels } = useQuery<YoutubeChannel[]>({
     queryKey: ["titulin-channels"],
     queryFn: async () => {
       try {
@@ -111,7 +102,7 @@ export default function TitulinTab () {
     },
   });
 
-  const formatLastUpdate = (dateString?: string) => {
+  function formatLastUpdate (dateString?: string) {
     if (!dateString) return "Nunca";
     try {
       const date = parseISO(dateString);
@@ -154,7 +145,10 @@ export default function TitulinTab () {
 
   const deleteChannelMutation = useMutation({
     mutationFn: async (id: number) => {
-      await axios.delete(`/api/titulin/channels/${id}`);
+      // await axios.delete(`/api/titulin/channels/${id}`);
+      await fetch(`/api/titulin/channels/${id}`, {
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       // Invalidar múltiples consultas relacionadas para asegurar que todo se actualice
@@ -180,8 +174,8 @@ export default function TitulinTab () {
   });
 
   const syncChannelMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await axios.post(`/api/titulin/channels/${id}/sync`);
+    mutationFn: async (channelId: string) => {
+      const response = await axios.post(`/api/titulin/channels/${channelId}/sync`);
       return response.data;
     },
     onSuccess: () => {
@@ -240,9 +234,9 @@ export default function TitulinTab () {
     deleteChannelMutation.mutate(id);
   };
 
-  const handleSyncChannel = async (id: number) => {
+  const handleSyncChannel = async (id: number, channelId: string) => {
     setSyncingChannelId(id);
-    syncChannelMutation.mutate(id);
+    syncChannelMutation.mutate(channelId);
   };
   
   const handleCompareChannel = (channelId: string) => {
@@ -280,11 +274,15 @@ export default function TitulinTab () {
     const lastUpdateDates = channels
       .filter(channel => channel.lastVideoFetch)
       .map(channel => ({
-        date: parseISO(channel.lastVideoFetch || ''),
+        date: channel.lastVideoFetch,
         channelName: channel.name
       }))
       .filter(item => isValid(item.date))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+      .sort((a, b) => {
+        const dateA = a.date ? a.date.getTime() : 0;
+        const dateB = b.date ? b.date.getTime() : 0;
+        return dateB - dateA;
+      });
       
     return lastUpdateDates.length > 0 ? lastUpdateDates[0] : null;
   };
@@ -300,6 +298,7 @@ export default function TitulinTab () {
             Gestiona los canales y ejemplos de entrenamiento para análisis de títulos
           </p>
         </div>
+
       </div>
 
       {/* Panel de Resumen */}
@@ -319,13 +318,13 @@ export default function TitulinTab () {
                   {activeChannels} activos
                 </p>
               </div>
-              {lastSync && (
+              {lastSync?.date && (
                 <div className="text-right">
                   <p className="text-sm font-medium">Última actualización</p>
                   <p className="text-sm text-muted-foreground">
                     {formatDistanceToNow(lastSync.date, { locale: es, addSuffix: true })}
                   </p>
-                  <p className="text-xs text-muted-foreground/70">{lastSync.channelName}</p>
+                  <p className="text-xs text-muted-foreground/70">{lastSync?.channelName}</p>
                 </div>
               )}
             </div>
@@ -437,7 +436,7 @@ export default function TitulinTab () {
                   <p className="font-medium">Última sincronización</p>
                   <div className="flex items-center">
                     <Badge variant={lastSync ? "default" : "secondary"}>
-                      {lastSync ? formatDistanceToNow(lastSync.date, { locale: es, addSuffix: true }) : "Nunca"}
+                      {lastSync?.date ? formatDistanceToNow(lastSync.date, { locale: es, addSuffix: true }) : "Nunca"}
                     </Badge>
                   </div>
                 </div>
@@ -489,7 +488,7 @@ export default function TitulinTab () {
                   <Button variant="outline" className="w-full flex items-center justify-between" 
                     onClick={() => {
                       const activeChannel = channels.find(c => c.active);
-                      if (activeChannel) handleSyncChannel(activeChannel.id);
+                      if (activeChannel) handleSyncChannel(activeChannel.id, activeChannel.channelId);
                     }}
                     disabled={!channels.some(c => c.active)}
                   >
@@ -585,9 +584,9 @@ export default function TitulinTab () {
                               {channel.name}
                             </div>
                           </TableCell>
-                          <TableCell>{channel.analyzedVideos || 0}</TableCell>
+                          <TableCell>{channel.videoCount || 0}</TableCell>
                           <TableCell>
-                            {formatLastUpdate(channel.lastVideoFetch)}
+                            {formatLastUpdate(channel.lastVideoFetch?.toDateString())}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -602,7 +601,7 @@ export default function TitulinTab () {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleSyncChannel(channel.id)}
+                                onClick={() => handleSyncChannel(channel.id, channel.channelId )}
                                 disabled={syncingChannelId === channel.id}
                               >
                                 {syncingChannelId === channel.id ? (

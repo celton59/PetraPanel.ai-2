@@ -5,6 +5,9 @@ import { PersonalInfoSection } from "./components/PersonalInfoSection";
 import { PasswordSection } from "./components/PasswordSection";
 import { NotificationsSection } from "./components/NotificationsSection";
 import { ActivitySection } from "./components/ActivitySection";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 
 export default function ProfilePage() {
   const { user, refetch } = useUser();

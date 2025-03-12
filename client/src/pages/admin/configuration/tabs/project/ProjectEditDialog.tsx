@@ -102,7 +102,7 @@ export function ProjectEditDialog({
                 <FormItem>
                   <FormLabel>Prefijo</FormLabel>
                   <FormControl>
-                    <Input  {...field} />
+                    <Input {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +115,7 @@ export function ProjectEditDialog({
                 <FormItem>
                   <FormLabel>Descripción</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

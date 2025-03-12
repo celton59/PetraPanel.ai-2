@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -67,7 +66,7 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
               <FormItem>
                 <FormLabel>Prefijo</FormLabel>
                 <FormControl>
-                  <Input placeholder="PRJ" {...field} />
+                  <Input placeholder="PRJ" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -80,7 +79,7 @@ export function ProjectForm({ isSubmitting, onAddProject }: ProjectFormProps) {
               <FormItem>
                 <FormLabel>Descripción</FormLabel>
                 <FormControl>
-                  <Input placeholder="Descripción del Proyecto" {...field} />
+                  <Input placeholder="Descripción del Proyecto" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

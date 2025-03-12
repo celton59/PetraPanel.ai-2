@@ -3,7 +3,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { users, type InsertUser } from "@db/schema";
+import { users, type User as DBUser } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { 
@@ -12,7 +12,7 @@ import {
   recordFailedLoginAttempt, 
   resetFailedLoginAttempts,
   SECURITY_CONSTANTS
-} from "./lib/security";
+} from "./services/security";
 
 // Extender SessionData para incluir csrfToken
 declare module 'express-session' {
@@ -24,15 +24,25 @@ declare module 'express-session' {
 // Extend Express.User
 declare global {
   namespace Express {
-    interface User extends InsertUser {}
-    interface Request {
-      csrfToken?: () => string;
-      validatedData?: any;
-    }
-    // No necesita interfaces adicionales aquí
-    
+    interface User extends DBUser {}
   }
 }
+
+import 'express-session';
+
+declare module 'express-session' {
+  interface SessionData {
+    csrfToken?: string;
+  }
+}
+
+declare module "express-serve-static-core" {
+  interface Request {
+    csrfToken?: () => string | undefined;
+    validatedData?: any
+  }
+}
+
 
 // Exportamos las utilidades de manejo de contraseñas mejoradas
 export const passwordUtils = securityUtils;
@@ -252,42 +262,12 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     console.log("Login successful for user:", req.user?.username);
-    res.json(req.user);
+    const userToReturn = JSON.parse(JSON.stringify(req.user))
+    delete userToReturn.password;
+    db.update(users).set({ lastLoginAt: new Date() })
+    res.json(userToReturn);
   });
 
-  // app.post("/api/register", async (req, res) => {
-  //   try {
-  //     const { username, password } = req.body;
-  //     console.log("Registering user:", username);
-
-  //     // Verificar si el usuario ya existe
-  //     const [existingUser] = await db
-  //       .select()
-  //       .from(users)
-  //       .where(eq(users.username, username))
-  //       .limit(1);
-
-  //     if (existingUser) {
-  //       return res.status(400).send("Username already taken");
-  //     }
-
-  //     const hashedPassword = await passwordUtils.hash(password);
-  //     const [user] = await db
-  //       .insert(users)
-  //       .values({ username, password: hashedPassword, role: "youtuber" })
-  //       .returning();
-
-  //     req.login(user, (err) => {
-  //       if (err) {
-  //         return res.status(500).send(err.message);
-  //       }
-  //       res.json(user);
-  //     });
-  //   } catch (error: any) {
-  //     console.error("Registration error:", error);
-  //     res.status(500).send(error.message);
-  //   }
-  // });
 
   app.post("/api/logout", (req, res) => {
     const username = req.user?.username;
@@ -303,7 +283,9 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      return res.json(req.user);
+      const userToReturn = JSON.parse(JSON.stringify(req.user))
+      delete userToReturn.password;
+      return res.json(userToReturn);
     }
     res.status(401).send("No autenticado");
   });

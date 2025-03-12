@@ -73,7 +73,7 @@ export function SecuritySection ({
             </FormLabel>
             <FormControl>
               <RoleSelector 
-                value={field.value || "youtuber"}
+                value={field.value ?? "youtuber"}
                 onChange={(value: User['role']) => {
                   field.onChange(value);
                 }}

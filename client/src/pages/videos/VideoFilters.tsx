@@ -23,8 +23,7 @@ interface VideoFiltersProps {
   projectId: string;
   onProjectChange: (value: string) => void;
   showFilters: boolean;
-  onToggleFilters: () => void;
-  visibleStates?: readonly string[];
+  visibleStates: string[]
 }
 
 export function VideoFilters({
@@ -39,7 +38,6 @@ export function VideoFilters({
   projectId,
   onProjectChange,
   showFilters,
-  onToggleFilters,
   visibleStates,
 }: VideoFiltersProps) {
   return (

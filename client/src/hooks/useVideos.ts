@@ -2,11 +2,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema'
 import { toast } from "sonner";
 import { useCallback } from "react";
+import { useState } from "react";
 
+export type PaginationMetadata = {
+  page: number;
+  limit: number;
+  totalVideos: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
 
 export type UpdateVideoData = Omit< Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl' >
 
-export const getRoleStatus = 1
 
 export type ApiVideo = {
   [K in keyof Video]: Video[K];
@@ -25,7 +33,7 @@ export type ApiVideo = {
   deletedByUsername: User["username"] | null
 }
 
-export function useVideos(): {
+interface VideosResponse {
   videos: ApiVideo[];
   isLoading: boolean;
   createVideo: (video: Pick<Video, "title" | "description" | "projectId">) => Promise<any>;
@@ -36,19 +44,29 @@ export function useVideos(): {
   restoreVideo: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
   emptyTrash: ({projectId}: { projectId: number }) => Promise<any>;
   getTrashVideos: ({projectId}: { projectId: number }) => Promise<ApiVideo[]>;
-  assignVideoToYoutuber: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
-} {
+  pagination: PaginationMetadata;
+assignVideoToYoutuber: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
+}
+
+export function useVideos() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
-  const queryKey = ['/api/videos']
+  const queryKey = ["/api/videos", page, limit]
 
-  const { data: videos, isLoading } = useQuery<ApiVideo[]>({
+  const {
+    data: videosData,
+    isLoading,
+    isFetching,
+  } = useQuery<VideosResponse>({
     queryKey,
     queryFn: async () => {
+
       try {
         // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
         const api = (await import('../lib/axios')).default;
-        const response = await api.get(queryKey[0]);
+        const response = await api.get(queryKey[0] as string);
         return response.data;
       } catch (error: any) {
         console.error('Error al cargar los videos:', error);
@@ -167,6 +185,7 @@ export function useVideos(): {
   });
 
   const updateVideoMutation = useMutation({
+
     mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
 
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
@@ -197,8 +216,9 @@ export function useVideos(): {
         throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
       toast.success("Video actualizado", {
         description: "El video se ha actualizado correctamente",
       });
@@ -218,6 +238,7 @@ export function useVideos(): {
   });
 
   const deleteVideoMutation = useMutation({
+
     mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
 
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
@@ -267,6 +288,7 @@ export function useVideos(): {
       }
     },
   });
+
 
   const bulkDeleteVideosMutation = useMutation({
     mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
@@ -499,8 +521,9 @@ export function useVideos(): {
   });
 
   return {
-    videos: videos ?? [],
+    videos: videosData?.videos || [],
     isLoading,
+    isFetching,
     createVideo: createVideoMutation.mutateAsync,
     createBulkVideos: createBulkVideosMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,

@@ -3,11 +3,10 @@ import { LucideProps } from 'lucide-react';
 
 export const createIconWrapper = (IconComponent: React.FC<{ className?: string }>) => {
   const IconWrapper = React.forwardRef<SVGSVGElement, LucideProps>(
-    ({ color = 'currentColor', size = 24, ...props }, ref) => {
+    ({ color = 'currentColor', size = 24, ...props }) => {
       return (
         <IconComponent 
-          className={props.className} 
-          ref={ref} 
+          className={props.className}
           {...props} 
         />
       );

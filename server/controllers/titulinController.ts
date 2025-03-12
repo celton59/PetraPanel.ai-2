@@ -1,8 +1,10 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { eq, and, or, ilike, getTableColumns, count, desc, sql, inArray } from "drizzle-orm";
 import {
   youtube_videos,
-  youtube_channels
+  youtube_channels,
+  videos,
+  trainingTitleExamples
 } from "@db/schema";
 import { db } from "@db";
 import { type Express } from "express";
@@ -17,7 +19,7 @@ async function addChannel (req: Request, res: Response): Promise<Response> {
       message: 'No tienes permisos para agregar canales',
     });
   }
-  
+
   try {
     const { url } = req.body;
     if (!url) {
@@ -120,10 +122,10 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
       }
     });
   } catch (error) {
-    console.error('Error al obtener youtube videos', error);
-    return res.status(500).json({ 
-      error: 'Error al obtener youtube videos',
-      details: error instanceof Error ? error.message : 'Error desconocido'
+    console.error("Error getting YouTube videos:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error obteniendo videos de YouTube",
     });
   }
 }
@@ -163,44 +165,34 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
 
   // Obtener channelId del path
   const { channelId } = req.params;
-  console.log(`Iniciando eliminación del canal ID: ${channelId}`);
-  
+
   try {
     // 1. Primero obtener los videos relacionados para obtener sus IDs
-    const videos = await db.query.youtube_videos.findMany({
+    const channelVideos = await db.query.youtube_videos.findMany({
       where: eq(youtube_videos.channelId, channelId),
-      columns: {
-        id: true,
-        videoId: true,
-        title: true
-      }
+      columns: { id: true, youtubeId: true }
     });
     
-    console.log(`Encontrados ${videos.length} videos asociados al canal ${channelId}`);
+    console.log(`Encontrados ${channelVideos.length} videos asociados al canal ${channelId}`);
     
     // Procesamos por lotes para manejar grandes volúmenes de datos
     const BATCH_SIZE = 1000;
-    const totalVideoCount = videos.length;
     let processedCount = 0;
     
     // Extraer IDs para utilizarlos en la eliminación
-    const videoIds = videos.map(v => v.videoId);
-    const dbVideoIds = videos.map(v => v.id);
+    const youtubeVideoIds = channelVideos.map(v => v.youtubeId);
+    const dbVideoIds = channelVideos.map(v => v.id);
     
     // Procesamiento por lotes de la eliminación
-    for (let i = 0; i < totalVideoCount; i += BATCH_SIZE) {
-      const batchVideoIds = videoIds.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < channelVideos.length; i += BATCH_SIZE) {
+      const batchVideoIds = youtubeVideoIds.slice(i, i + BATCH_SIZE);
       const batchDbIds = dbVideoIds.slice(i, i + BATCH_SIZE);
       
       if (batchVideoIds.length === 0) continue;
       
       await db.transaction(async (trx) => {
         // Eliminar los ejemplos de entrenamiento basados en los títulos de estos videos
-        await trx.execute(sql`
-          DELETE FROM training_title_examples 
-          WHERE title IN (SELECT title FROM youtube_videos WHERE video_id IN (${sql.join(batchVideoIds, sql`,`)}))
-        `);
-        
+        await trx.delete(trainingTitleExamples).where(inArray(trainingTitleExamples.youtubeId, batchVideoIds));
         // Eliminar los videos de este lote
         await trx.delete(youtube_videos)
           .where(inArray(youtube_videos.id, batchDbIds))
@@ -208,7 +200,7 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
       });
       
       processedCount += batchVideoIds.length;
-      console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(totalVideoCount/BATCH_SIZE)}: ${processedCount}/${totalVideoCount} videos eliminados del canal ${channelId}`);
+      console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(channelVideos.length/BATCH_SIZE)}: ${processedCount}/${channelVideos.length} videos eliminados del canal ${channelId}`);
     }
     
     // Finalmente eliminamos el canal
@@ -219,104 +211,12 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
     console.log("Canal y sus datos asociados eliminados correctamente");
     return res.status(200).json({
       success: true,
-      message: `Canal eliminado correctamente junto con ${totalVideoCount} videos y sus ejemplos de entrenamiento asociados`
+      message: `Canal eliminado correctamente junto con ${channelVideos.length} videos y sus ejemplos de entrenamiento asociados`
     });
   } catch (error) {
     console.error('Error al eliminar canal', error);
     return res.status(500).json({ 
       error: 'Error al eliminar canal y sus datos asociados',
-      details: error instanceof Error ? error.message : 'Error desconocido'
-    });
-  }
-}
-
-// Función para sincronizar videos de un canal
-async function syncChannelVideos(req: Request, res: Response): Promise<Response> {
-  if (!req.user?.role || req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      message: 'No tienes permisos para sincronizar canales',
-    });
-  }
-
-  // Obtener channelId del path
-  const { channelId } = req.params;
-  
-  try {
-    console.log(`Iniciando sincronización de canal ID: ${channelId}`);
-    
-    // Primero buscamos el canal en la base de datos
-    // También usamos select directo sin getTableColumns para evitar problemas con los nombres de columnas
-    const channel = await db.select()
-      .from(youtube_channels)
-      .where(eq(youtube_channels.id, parseInt(channelId)))
-      .limit(1)
-      .execute();
-    
-    if (!channel || channel.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Canal no encontrado' 
-      });
-    }
-    
-    // Obtenemos el ID de YouTube del canal
-    const youtubeChannelId = channel[0].channelId;
-    
-    // Ejecutar sincronización
-    const result = await youtubeService.updateChannelVideos(youtubeChannelId);
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Sincronización completada con éxito',
-      data: {
-        ...result,
-        channelId: parseInt(channelId),
-        channelName: channel[0].name
-      }
-    });
-  } catch (error) {
-    console.error(`Error al sincronizar canal ${channelId}:`, error);
-    return res.status(500).json({ 
-      success: false,
-      message: 'Error al sincronizar canal',
-      details: error instanceof Error ? error.message : 'Error desconocido'
-    });
-  }
-}
-
-// Función para marcar un video como enviado a optimización
-async function markVideoAsSent(req: Request, res: Response): Promise<Response> {
-  if (!req.user?.role || req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      message: 'No tienes permisos para esta acción',
-    });
-  }
-
-  const { videoId } = req.params;
-  const { projectId } = req.body;
-  
-  try {
-    await db.update(youtube_videos)
-      .set({
-        sentToOptimize: true,
-        sentToOptimizeAt: new Date(),
-        sentToOptimizeProjectId: projectId,
-        updatedAt: new Date()
-      })
-      .where(eq(youtube_videos.id, parseInt(videoId)))
-      .execute();
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Video marcado como enviado a optimización'
-    });
-  } catch (error) {
-    console.error(`Error al marcar video ${videoId} como enviado:`, error);
-    return res.status(500).json({ 
-      success: false,
-      message: 'Error al marcar video como enviado',
       details: error instanceof Error ? error.message : 'Error desconocido'
     });
   }
@@ -455,149 +355,310 @@ async function getChannelsForTraining(req: Request, res: Response): Promise<Resp
   }
 }
 
-export function setUpTitulinRoutes (app: Express) {
-  app.post('/api/titulin/channels', addChannel)
-  app.get('/api/titulin/channels', getChannels)
-  app.delete('/api/titulin/channels/:channelId', deleteChannel)
-  app.get('/api/titulin/videos', getVideos)
-  app.get('/api/titulin/videos/stats', getVideoStats)
+async function syncChannel (req: Request, res: Response): Promise<Response> {
+
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para sincronizar canales',
+    });
+  }
+
+  const channelId = req.params.channelId;
+
+  if (!channelId) {
+    return res.status(400).json({
+      success: false,
+      message: 'No se ha especificado el canal',
+    });
+  }
+
+  try {
+
+    const now = new Date()
+    const videos = await youtubeService.getChannelVideos(channelId)
+
+    console.info(`Fetched ${videos.length} videos for batch update for channel ${channelId}`);
+
+    // No videos to process
+    if (videos.length === 0) {
+      console.info(`No videos to update for channel ${channelId}`);
+
+      // Still update the channel's last fetch time
+      ;
+      await db
+        .update(youtube_channels)
+        .set({
+          lastVideoFetch: now,
+          updatedAt: now
+        })
+        .where(eq(youtube_channels.channelId, channelId));
+
+    }
+
+    // Use the optimized DbUtils function for batch upsert
+    const startTime = Date.now();
+    const successCount = await youtubeService.upsertYoutubeVideos(videos);
+
+    const queryTime = Date.now() - startTime;
+    if (queryTime > 500) {
+      console.debug(`Slow batch operation detected: ${queryTime}ms for ${videos.length} videos`);
+    }
+
+    console.info(`Successfully processed ${successCount} videos for channel ${channelId}`);
+
+    // Update channel's last fetch time
+    await db
+      .update(youtube_channels)
+      .set({
+        lastVideoFetch: now,
+        updatedAt: now
+      })
+      .where(eq(youtube_channels.channelId, channelId));
+
+    return res.status(200).json({
+      success: true
+    })
+
+  } catch (error) {
+    console.error('Error adding channel:', error);
+    return res.status(500).json({ 
+      error: 'Error al añadir canal',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+  });
+}
+
+}
+
+async function sendToOptimize (req: Request, res: Response): Promise<Response> {
+
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para agregar canales',
+    });
+  }
+
+  try {
+    const { videoId } = req.params;
+    // Get videoId and projectId from body
+    const { projectId } = req.body as { projectId: number }
+    // Check if videoId and projectId are provided
+    if (!videoId || !projectId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se ha especificado el videoId o el projectId',
+      });
+    }
+
+    // Get the youtube video from the database
+    const youtubeVideo = await db.select({
+      ...getTableColumns(youtube_videos)
+    }).from(youtube_videos).where(eq(youtube_videos.id, parseInt(videoId))).execute();
+
+    // Check if the youtube video exists
+    if (!youtubeVideo.at(0)) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se ha encontrado el video',
+      });
+    }
+  
+    if (youtubeVideo.at(0)?.sentToOptimize) {
+      return res.status(400).json({
+        success: false,
+        message: 'El video ya está optimizado',
+      });
+    }
+
+    // Insert the video into the database and set the sentToOptimize flag to true
+    await db.transaction(async (trx) => {
+        await trx.insert(videos)
+          .values({
+            projectId: projectId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            title: youtubeVideo.at(0)!.title,
+            createdBy: req.user?.id,
+            description: youtubeVideo.at(0)!.description,
+            status: 'available',
+            tags: youtubeVideo.at(0)!.tags?.toString(),
+            thumbnailUrl: youtubeVideo.at(0)!.thumbnailUrl,
+            youtubeUrl: `https://www.youtube.com/watch?v=${youtubeVideo.at(0)!.youtubeId}`,
+          })
+          .returning();
+
+        await trx.update(youtube_videos).set({
+          sentToOptimize: true,
+          updatedAt: new Date()
+        }).where(eq(youtube_videos.id, parseInt(videoId)));
+    });
+
+    return res.status(200).json({
+      success: true
+    })
+    
+  }
+  catch (error) {
+    console.error('Error adding channel:', error);
+    return res.status(500).json({ 
+      error: 'Error al añadir canal',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+}
+
+async function cleanOrphans (req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para esta acción',
+    });
+  }
+
+  try {
+    // 1. Identificar videos huérfanos (videos cuyo channelId no existe en la tabla de canales)
+    const orphanedVideosQuery = await db.execute(sql`
+      SELECT y.id, y.video_id, y.title
+      FROM youtube_videos y
+      LEFT JOIN youtube_channels c ON y.channel_id = c.channel_id
+      WHERE c.channel_id IS NULL
+    `);
+
+    // Extraer los resultados según el formato de la respuesta
+    const orphanedVideos = Array.isArray(orphanedVideosQuery) ? orphanedVideosQuery : 
+                         (orphanedVideosQuery.rows ? orphanedVideosQuery.rows : []);
+
+    if (orphanedVideos.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No se encontraron videos huérfanos',
+        videosDeleted: 0
+      });
+    }
+
+    // Obtener IDs para eliminar
+    const videoIds = orphanedVideos.map((v: any) => v.id);
+    const videoIdsYouTube = orphanedVideos.map((v: any) => v.video_id);
+
+    // 2. Eliminar ejemplos de entrenamiento relacionados con estos videos
+    // Procesar en lotes para manejar grandes volúmenes de datos
+    const BATCH_SIZE = 1000;
+    let deletedCount = 0;
+    const totalCount = orphanedVideos.length;
+
+    for (let i = 0; i < totalCount; i += BATCH_SIZE) {
+      const batchIds = videoIds.slice(i, i + BATCH_SIZE);
+
+      if (batchIds.length === 0) continue;
+
+      await db.transaction(async (trx) => {
+        // Eliminar los ejemplos de entrenamiento basados en los títulos de estos videos
+        await trx.execute(sql`
+          DELETE FROM training_title_examples 
+          WHERE title IN (SELECT title FROM youtube_videos WHERE id IN (${sql.join(batchIds, sql`,`)}))
+        `);
+
+        // Luego eliminar los videos huérfanos usando SQL directo
+        await trx.execute(sql`
+          DELETE FROM youtube_videos
+          WHERE id IN (${sql.join(batchIds, sql`,`)})
+        `);
+      });
+
+      deletedCount += batchIds.length;
+      console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(totalCount/BATCH_SIZE)}: ${deletedCount}/${totalCount} videos huérfanos eliminados`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Se eliminaron ${orphanedVideos.length} videos huérfanos y sus ejemplos de entrenamiento asociados`,
+      videosDeleted: orphanedVideos.length,
+      videosSample: orphanedVideos.slice(0, 10).map((v: any) => ({ id: v.id, title: v.title }))
+    });
+  } catch (error) {
+    console.error('Error al eliminar videos huérfanos:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al eliminar videos huérfanos',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+}
+
+async function getSimilarVideos (req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes permisos para esta acción',
+    });
+  }
+
+  const { videoId } = req.params;
+  const limit = Number(req.query.limit || '5');
+
+  try {
+    const video = await db.select()
+      .from(youtube_videos)
+      .where(eq(youtube_videos.id, parseInt(videoId)))
+      .limit(1)
+      .execute();
+
+    if (!video || video.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Video no encontrado' 
+      });
+    }
+
+    const title = video[0].title || '';
+    const similarTitles = await findSimilarTitles(title, limit);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        videoId: parseInt(videoId),
+        title: title,
+        similarTitles: similarTitles
+      }
+    });
+  } catch (error) {
+    console.error(`Error al buscar títulos similares para ${videoId}:`, error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Error al buscar títulos similares',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+}
+
+export function setUpTitulinRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  app.post('/api/titulin/channels', requireAuth, addChannel )
+  app.get('/api/titulin/channels', requireAuth, getChannels )
+  app.delete('/api/titulin/channels/:channelId', requireAuth, deleteChannel )
+  app.post('/api/titulin/channels/:channelId/sync', requireAuth, syncChannel )
+  app.get('/api/titulin/videos', requireAuth, getVideos )
+  app.post('/api/titulin/videos/:videoId/send-to-optimize', requireAuth, sendToOptimize)
+  app.post('/api/titulin/channels', requireAuth, addChannel)
+  app.get('/api/titulin/channels', requireAuth, getChannels)
+  app.delete('/api/titulin/channels/:channelId', requireAuth, deleteChannel)
+  app.get('/api/titulin/videos', requireAuth, getVideos)
+  app.get('/api/titulin/videos/stats', requireAuth, getVideoStats)
   
   // Nuevas rutas
-  app.post('/api/titulin/channels/:channelId/sync', syncChannelVideos)
-  app.post('/api/titulin/videos/:videoId/sent-to-optimize', markVideoAsSent)
-  app.post('/api/titulin/videos/:videoId/analyze', analyzeVideo)
+  app.post('/api/titulin/videos/:videoId/analyze', requireAuth, analyzeVideo)
   
   // Ruta para limpieza de datos huérfanos
-  app.post('/api/titulin/cleanup/orphaned-videos', async (req, res) => {
-    if (!req.user?.role || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para esta acción',
-      });
-    }
-    
-    try {
-      // 1. Identificar videos huérfanos (videos cuyo channelId no existe en la tabla de canales)
-      const orphanedVideosQuery = await db.execute(sql`
-        SELECT y.id, y.video_id, y.title
-        FROM youtube_videos y
-        LEFT JOIN youtube_channels c ON y.channel_id = c.channel_id
-        WHERE c.channel_id IS NULL
-      `);
-      
-      // Extraer los resultados según el formato de la respuesta
-      const orphanedVideos = Array.isArray(orphanedVideosQuery) ? orphanedVideosQuery : 
-                           (orphanedVideosQuery.rows ? orphanedVideosQuery.rows : []);
-      
-      if (orphanedVideos.length === 0) {
-        return res.status(200).json({
-          success: true,
-          message: 'No se encontraron videos huérfanos',
-          videosDeleted: 0
-        });
-      }
-      
-      // Obtener IDs para eliminar
-      const videoIds = orphanedVideos.map((v: any) => v.id);
-      const videoIdsYouTube = orphanedVideos.map((v: any) => v.video_id);
-      
-      // 2. Eliminar ejemplos de entrenamiento relacionados con estos videos
-      // Procesar en lotes para manejar grandes volúmenes de datos
-      const BATCH_SIZE = 1000;
-      let deletedCount = 0;
-      const totalCount = orphanedVideos.length;
-      
-      for (let i = 0; i < totalCount; i += BATCH_SIZE) {
-        const batchIds = videoIds.slice(i, i + BATCH_SIZE);
-        
-        if (batchIds.length === 0) continue;
-        
-        await db.transaction(async (trx) => {
-          // Eliminar los ejemplos de entrenamiento basados en los títulos de estos videos
-          await trx.execute(sql`
-            DELETE FROM training_title_examples 
-            WHERE title IN (SELECT title FROM youtube_videos WHERE id IN (${sql.join(batchIds, sql`,`)}))
-          `);
-          
-          // Luego eliminar los videos huérfanos usando SQL directo
-          await trx.execute(sql`
-            DELETE FROM youtube_videos
-            WHERE id IN (${sql.join(batchIds, sql`,`)})
-          `);
-        });
-        
-        deletedCount += batchIds.length;
-        console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(totalCount/BATCH_SIZE)}: ${deletedCount}/${totalCount} videos huérfanos eliminados`);
-      }
-      
-      return res.status(200).json({
-        success: true,
-        message: `Se eliminaron ${orphanedVideos.length} videos huérfanos y sus ejemplos de entrenamiento asociados`,
-        videosDeleted: orphanedVideos.length,
-        videosSample: orphanedVideos.slice(0, 10).map((v: any) => ({ id: v.id, title: v.title }))
-      });
-    } catch (error) {
-      console.error('Error al eliminar videos huérfanos:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error al eliminar videos huérfanos',
-        details: error instanceof Error ? error.message : 'Error desconocido'
-      });
-    }
-  })
+  app.post('/api/titulin/cleanup/orphaned-videos', requireAuth, cleanOrphans)
   
   // API de sugerencias para autocompletado
-  app.get('/api/titulin/suggestions', getSuggestions)
+  app.get('/api/titulin/suggestions', requireAuth, getSuggestions)
   
   // Endpoint público para obtener canales (para ejemplos de entrenamiento)
-  app.get('/api/titulin/channels/for-training', getChannelsForTraining)
+  app.get('/api/titulin/channels/for-training', requireAuth, getChannelsForTraining)
   
   // Nueva ruta para búsqueda de títulos similares
-  app.get('/api/titulin/videos/:videoId/similar', async (req, res) => {
-    if (!req.user?.role || req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para esta acción',
-      });
-    }
-    
-    const { videoId } = req.params;
-    const limit = Number(req.query.limit || '5');
-    
-    try {
-      const video = await db.select()
-        .from(youtube_videos)
-        .where(eq(youtube_videos.id, parseInt(videoId)))
-        .limit(1)
-        .execute();
-      
-      if (!video || video.length === 0) {
-        return res.status(404).json({ 
-          success: false,
-          message: 'Video no encontrado' 
-        });
-      }
-      
-      const title = video[0].title || '';
-      const similarTitles = await findSimilarTitles(title, limit);
-      
-      return res.status(200).json({
-        success: true,
-        data: {
-          videoId: parseInt(videoId),
-          title: title,
-          similarTitles: similarTitles
-        }
-      });
-    } catch (error) {
-      console.error(`Error al buscar títulos similares para ${videoId}:`, error);
-      return res.status(500).json({ 
-        success: false,
-        message: 'Error al buscar títulos similares',
-        details: error instanceof Error ? error.message : 'Error desconocido'
-      });
-    }
-  });
+  app.get('/api/titulin/videos/:videoId/similar', requireAuth, getSimilarVideos );
   
 
 }

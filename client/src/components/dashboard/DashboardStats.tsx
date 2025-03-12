@@ -8,17 +8,18 @@ export const DashboardStats = () => {
   const { videos } = useVideos();
   const { users } = useUsers();
 
-  const pendingVideos = videos?.filter(v => v.status === 'pending').length || 0;
-  const inProgressVideos = videos?.filter(v => v.status === 'in_progress').length || 0;
-  const completedVideos = videos?.filter(v => v.status === 'completed').length || 0;
   const totalVideos = videos?.length || 0;
+  const availableVideos = videos?.filter(v => v.status === 'available').length || 0;
+  const completedVideos = videos?.filter(v => v.status === 'completed').length || 0;
+  const inProgressVideos = totalVideos - completedVideos - availableVideos;
+  
   const activeUsers = users?.filter(u => u.lastLoginAt && new Date(u.lastLoginAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length || 0;
 
   const statsCards = [
     {
       title: "Total Videos",
       value: totalVideos.toString(),
-      change: `${pendingVideos} pendientes`,
+      change: `${availableVideos} pendientes`,
       isPositive: true,
       icon: Video,
       animation: {

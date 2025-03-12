@@ -1,7 +1,8 @@
-import type { Request, Response } from "express";
-import { eq, and, desc, getTableColumns } from "drizzle-orm";
-import { videos, users, projectAccess, InsertProject, projects } from "@db/schema";
+import type { NextFunction, Request, Response } from "express";
+import { eq, getTableColumns } from "drizzle-orm";
+import { InsertProject, projects } from "@db/schema";
 import { db } from "@db";
+import { type Express } from "express";
 
 async function createProject(req: Request, res: Response): Promise<Response> {
   const { name, prefix, description } = req.body;
@@ -162,12 +163,12 @@ async function deleteProject(req: Request, res: Response): Promise<Response> {
 }
 
 
-const ProjectController = {
-  createProject,
-  getProjects,
-  updateProject,
-  deleteProject
+export function setUpProjectRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+  app.post("/api/projects", requireAuth, createProject);
+
+  app.get("/api/projects", requireAuth, getProjects);
+
+  app.put("/api/projects/:id", requireAuth, updateProject);
+
+  app.delete("/api/projects/:id", requireAuth, deleteProject);;
 }
-
-
-export default ProjectController

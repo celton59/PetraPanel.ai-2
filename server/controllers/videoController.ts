@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, desc, getTableColumns, aliasedTable, isNull, inArray, or } from "drizzle-orm";
+import { eq, and, desc, getTableColumns, aliasedTable, isNull, inArray, or, sql } from "drizzle-orm";
 import {
   videos,
   users,
@@ -14,17 +14,17 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { VISIBLE_STATES } from "../lib/role-permissions";
 import { 
   generateS3Key, 
   initiateMultipartUpload as initiateS3Upload, 
   completeMultipartUpload as completeS3Upload, 
   abortMultipartUpload as abortS3Upload,
   getSignedUploadUrl,
-} from "../lib/s3"
+  s3,
+  getSignedUrl
+} from "../services/s3"
 
 // Cliente S3 para métodos antiguos
-import { s3 } from "../lib/s3"
 import { type Express } from "express";
 import multer from "multer";
 
@@ -541,159 +541,151 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 }
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
-  try {
-    console.log("⚡ GET /api/videos - Iniciando consulta de videos simplificada");
-    console.log("Usuario:", req.user?.id, req.user?.username, req.user?.role);
-    
-    // Verificar autenticación
-    if (!req.user) {
-      console.log("❌ Usuario no autenticado en GET /api/videos");
-      return res.status(401).json({
+
+  // Parámetros de paginación (obligatorios)
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  // Validar parámetros de paginación
+  if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+    return res.status(400).json({
         success: false,
-        message: "No autenticado"
+        message: "Los parámetros de paginación son inválidos. 'page' y 'limit' son requeridos y deben ser números positivos."
       });
-    }
+  }
+
+  // Calcular el offset
+  const offset = (page - 1) * limit;
+  
+  
+  try {
+
+    // Consulta para obtener el total de videos (para metadata de paginación)
+    const [countResult] = await db.select({
+      count: sql`count(*)`.mapWith(Number)
+    }).from(videos);
+    
     
     // Verificar si queremos mostrar elementos de la papelera
     const showDeleted = req.query.trash === 'true';
-    console.log("Mostrar eliminados:", showDeleted);
-    
-    try {
-      // Versión simplificada sin JOINs complejos para pruebas de funcionamiento básico
-      
-      // Simplificamos la consulta para verificar si el problema está en la complejidad
-      const whereCondition = showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false);
-      
-      // Creamos la consulta base con todos los JOINs
-      let baseQuery = db
-        .select({
-          ...getTableColumns(videos),
-          // Añadimos los campos de nombres de los colaboradores
-          creatorName: creator.fullName,
-          creatorUsername: creator.username,
-          optimizerName: optimizer.fullName,
-          optimizerUsername: optimizer.username,
-          contentReviewerName: contentReviewer.fullName,
-          contentReviewerUsername: contentReviewer.username,
-          uploaderName: uploader.fullName,
-          uploaderUsername: uploader.username,
-          mediaReviewerName: mediaReviewer.fullName,
-          mediaReviewerUsername: mediaReviewer.username,
-          deletedByName: deleter.fullName,
-          deletedByUsername: deleter.username
-        })
-        .from(videos)
-        // JOIN para el creador (siempre obligatorio porque es la referencia principal)
-        .leftJoin(creator, eq(videos.createdBy, creator.id))
-        // JOINs opcionales para los otros roles
-        .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
-        .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
-        .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
-        .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
-        .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
-        .where(whereCondition);
-      
-      // Determinamos los estados visibles según el rol del usuario
-      let visibleStates: string[] = [];
-      
-      if (req.user.role === "optimizer") {
-        visibleStates = ["available", "content_corrections", "completed"];
-      } else if (req.user.role === "reviewer") {
-        visibleStates = ["content_review", "media_review", "final_review", "completed"];
-      } else if (req.user.role === "content_reviewer") {
-        visibleStates = ["content_review"];
-      } else if (req.user.role === "media_reviewer") {
-        visibleStates = ["media_review"];
-      } else if (req.user.role === "youtuber") {
-        visibleStates = ["upload_media", "media_corrections", "final_review", "completed"];
-      } else if (req.user.role === "admin") {
-        visibleStates = ["available", "content_corrections", "content_review", "upload_media", "media_corrections", "media_review", "final_review", "completed"];
+
+    const query = db
+      .selectDistinct({
+        ...getTableColumns(videos),
+
+        // Datos del content reviewer
+        contentReviewerName: contentReviewer.fullName,
+        contentReviewerUsername: contentReviewer.username,
+
+        // Datos del media reviewer
+        mediaReviewerName: mediaReviewer.fullName,
+        mediaReviewerUsername: mediaReviewer.username,
+
+        // Datos del uploader
+        uploaderName: uploader.fullName,
+        uploaderUsername: uploader.username,
+
+        // Datos del creador
+        creatorName: creator.fullName,
+        creatorUsername: creator.username,
+
+        // Datos del optimizador
+        optimizerName: optimizer.fullName,
+        optimizerUsername: optimizer.username,
+        
+        // Datos de quien eliminó el video
+        deletedByName: deleter.fullName,
+        deletedByUsername: deleter.username
+      })
+      .from(videos)
+      .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
+      .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
+      .leftJoin(creator, eq(videos.createdBy, creator.id))
+      .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
+      .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
+      .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
+      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
+      .where(
+        and(
+          // Filtro de papelera - mostrar solo videos en papelera o no en papelera según el parámetro
+          showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
+
+          // Filtros segun rol
+          or(
+            req.user?.role === "optimizer"
+              ? eq(videos.status, "available")
+              : undefined,
+            req.user?.role === "optimizer"
+              ? eq(videos.status, "content_corrections")
+              : undefined,
+            req.user?.role === "optimizer"
+              ? eq(videos.optimizedBy, req.user!.id!)
+              : undefined,
+            req.user?.role === "optimizer"
+              ? isNull(videos.optimizedBy)
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+              ? eq(videos.status, "content_review")
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+              ? eq(videos.contentReviewedBy, req.user!.id!)
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+              ? isNull(videos.contentReviewedBy)
+              : undefined,
+            req.user?.role === "youtuber"
+              ? eq(videos.status, "upload_media")
+              : undefined,
+            req.user?.role === "youtuber"
+              ? eq(videos.status, "media_corrections")
+              : undefined,
+            req.user?.role === "youtuber"
+              ? eq(videos.contentUploadedBy, req.user!.id!)
+              : undefined,
+            req.user?.role === "youtuber"
+              ? isNull(videos.contentUploadedBy)
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+              ? eq(videos.status, "media_review")
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+              ? eq(videos.mediaReviewedBy, req.user!.id!)
+              : undefined,
+            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+              ? isNull(videos.mediaReviewedBy)
+              : undefined,
+          ),
+          
+          // Acceso a proyectos (para usuarios no administradores)
+          req.user?.role !== "admin"
+            ? eq(projectAccess.userId, req.user!.id!)
+            : undefined,
+        ),
+      )
+      .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
+      .limit(limit)
+      .offset(offset)
+
+    const result = await query.execute();
+
+    // Calcular metadata de paginación
+    const totalVideos = countResult?.count || 0;
+    const totalPages = Math.ceil(totalVideos / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return res.status(200).json({
+      videos: result,
+      pagination: {
+        page,
+        limit,
+        totalVideos,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
       }
-      
-      console.log(`Rol ${req.user.role} - Estados visibles:`, visibleStates);
-      
-      // Si no es admin, aplicamos filtro adicional basado en los estados visibles
-      const isAdmin = req.user.role === "admin";
-      let query;
-      
-      if (!isAdmin) {
-        // Filtro para usuarios que no son admin
-        query = db
-          .select({
-            ...getTableColumns(videos),
-            // Añadimos los campos de nombres de los colaboradores
-            creatorName: creator.fullName,
-            creatorUsername: creator.username,
-            optimizerName: optimizer.fullName,
-            optimizerUsername: optimizer.username,
-            contentReviewerName: contentReviewer.fullName,
-            contentReviewerUsername: contentReviewer.username,
-            uploaderName: uploader.fullName,
-            uploaderUsername: uploader.username,
-            mediaReviewerName: mediaReviewer.fullName,
-            mediaReviewerUsername: mediaReviewer.username,
-            deletedByName: deleter.fullName,
-            deletedByUsername: deleter.username
-          })
-          .from(videos)
-          // JOIN para el creador (siempre obligatorio porque es la referencia principal)
-          .leftJoin(creator, eq(videos.createdBy, creator.id))
-          // JOINs opcionales para los otros roles
-          .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
-          .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
-          .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
-          .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
-          .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
-          .where(
-            and(
-              showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
-              // Filtrar por los estados visibles para el rol del usuario
-              visibleStates.length > 0 ? inArray(videos.status, visibleStates as any) : undefined,
-              // Para youtubers: mostrar videos en "upload_media" solo si no están asignados a otro youtuber
-              // o si están asignados a este youtuber
-              req.user.role === "youtuber" ? 
-                or(
-                  // Videos en "upload_media" que no están asignados a nadie o están asignados a este usuario
-                  and(
-                    eq(videos.status, "upload_media"),
-                    or(
-                      isNull(videos.contentUploadedBy),
-                      eq(videos.contentUploadedBy, req.user.id as any)
-                    )
-                  ),
-                  // Videos en otros estados visibles (sin importar asignación)
-                  and(
-                    inArray(videos.status, visibleStates.filter(s => s !== "upload_media") as any)
-                  )
-                )
-              : undefined
-            )
-          );
-      } else {
-        // Admin ve todos los videos
-        query = baseQuery;
-      }
-      
-      console.log("🔍 Ejecutando consulta de videos con JOIN para colaboradores");
-      
-      // Aplicamos la ordenación directamente en la ejecución
-      const result = await query
-        .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
-        .execute();
-      console.log(`✅ Consulta completada: ${result.length} videos obtenidos`);
-      
-      return res.status(200).json(result);
-    } catch (dbError) {
-      console.error("❌ Error en consulta básica:", dbError);
-      
-      // Si hay error incluso con la consulta simplificada, devolvemos ese error
-      return res.status(500).json({
-        success: false,
-        message: "Error en la consulta de la base de datos",
-        error: dbError instanceof Error ? dbError.message : "Error desconocido",
-        stack: process.env.NODE_ENV !== 'production' && dbError instanceof Error ? dbError.stack : undefined
-      });
-    }
+    });
+
   } catch (error) {
     console.error("❌ Error general en getVideos:", error);
     return res.status(500).json({
