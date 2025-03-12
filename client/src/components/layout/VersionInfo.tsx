@@ -39,11 +39,31 @@ const versionHistory: ChangelogEntry[] = [
     changes: [
       { 
         type: 'new', 
+        description: 'Sistema de visualización adaptativo en modo móvil optimizado para la pestaña "Evergreen"'
+      },
+      { 
+        type: 'new', 
+        description: 'Sistema de avatares unificado con SVG predeterminado para todos los usuarios'
+      },
+      { 
+        type: 'new', 
+        description: 'Nueva información de "última conexión" y seguimiento de actividad de usuarios'
+      },
+      { 
+        type: 'new', 
         description: 'Toasts mejorados: más compactos y menos intrusivos para una mejor experiencia de usuario'
       },
       { 
         type: 'improved', 
         description: 'Avatar predeterminado unificado en todos los indicadores de usuario para coherencia visual'
+      },
+      { 
+        type: 'improved', 
+        description: 'Formato de copia de video estandarizado con "S[número] - [título]" para todos los casos'
+      },
+      { 
+        type: 'improved', 
+        description: 'Experiencia táctil mejorada para todas las vistas de videos con controles accesibles'
       },
       { 
         type: 'improved', 
@@ -55,7 +75,15 @@ const versionHistory: ChangelogEntry[] = [
       },
       { 
         type: 'fixed', 
+        description: 'Corrección de la sincronización de estados de usuario en conexiones simultáneas'
+      },
+      { 
+        type: 'fixed', 
         description: 'Corrección del bug del ícono de carga persistente al cerrar el diálogo de detalles de video'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Solucionado problema con la columna "última conexión" en la base de datos'
       },
       { 
         type: 'improved', 
