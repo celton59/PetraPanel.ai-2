@@ -91,7 +91,7 @@ const Index = () => {
         variants={itemVariants}
         className="text-center text-sm text-muted-foreground mt-12 mb-4 opacity-80"
       >
-        PetraPanel v2.5.0 • Actualizado: 01.03.2025
+        {/* La información de versión ahora se maneja desde VersionInfo.tsx */}
       </motion.div>
     </motion.div>
   );
