@@ -10,16 +10,15 @@ import { VideoTable } from "./components/VideoTable";
 import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
 import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
-import { TitleComparisonDialog } from "./components/TitleComparisonDialog";
+import { TitleComparisonDialog } from "./configuration/TitleComparisonDialog";
 import { TitulinVideo, Channel, VideoResponse } from "./types";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { SortingState } from "@tanstack/react-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import TitulinTab from "../admin/configuration/tabs/titulin/TitulinTab";
+import TitulinConfiguration from "./configuration/TitulinConfiguration";
 
 function VideoOverviewTab({ children }: { children: React.ReactNode }) {
   return <div className="space-y-8">{children}</div>;
@@ -514,7 +513,7 @@ export default function TitulinPage() {
           </TabsContent>
 
           <TabsContent value="config">
-            <TitulinTab />
+            <TitulinConfiguration />
           </TabsContent>
         </Tabs>
       </div>

@@ -17,7 +17,6 @@ import {
   Settings,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Zap,
   Search
 } from "lucide-react";
@@ -29,13 +28,11 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { ImprovedTrainingExamplesDialog } from "../../../../titulin/components/ImprovedTrainingExamplesDialog";
-import { TitleComparisonDialog } from "../../../../titulin/components/TitleComparisonDialog";
-
-
 import { useTitulinChannels } from "@/hooks/useTitulinChannels";
+import { ImprovedTrainingExamplesDialog } from "./ImprovedTrainingExamplesDialog";
+import { TitleComparisonDialog } from "./TitleComparisonDialog";
 
-export default function TitulinTab () {
+export default function TitulinConfiguration () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [newChannelUrl, setNewChannelUrl] = useState("");
   const [syncingChannelId, setSyncingChannelId] = useState<number | null>(null);

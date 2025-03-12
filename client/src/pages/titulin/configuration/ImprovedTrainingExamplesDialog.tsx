@@ -68,9 +68,9 @@ import {
 } from "lucide-react";
 
 // Importar los componentes de visualización
-import { DataQualityMetrics } from "./visualization/DataQualityMetrics";
-import { EmbeddingVisualizer } from "./visualization/EmbeddingVisualizer";
-import { AdvancedCategorizationPanel } from "./visualization/AdvancedCategorizationPanel";
+import { DataQualityMetrics } from "../visualization/DataQualityMetrics";
+import { EmbeddingVisualizer } from "../visualization/EmbeddingVisualizer";
+import { AdvancedCategorizationPanel } from "../visualization/AdvancedCategorizationPanel";
 
 interface TrainingExample {
   id: number;
