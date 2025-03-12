@@ -12,8 +12,8 @@ export const SECURITY_CONSTANTS = {
   SALT_LENGTH: 32,
   CSRF_TOKEN_LENGTH: 64,
   SESSION_EXPIRY: 30 * 24 * 60 * 60 * 1000, // 30 días
-  FAILED_ATTEMPTS_THRESHOLD: 10, // Aumentado para entorno de desarrollo
-  LOCKOUT_TIME: 5 * 60 * 1000, // Reducido a 5 minutos para facilitar las pruebas
+  FAILED_ATTEMPTS_THRESHOLD: 1000, // Desactivado para pruebas
+  LOCKOUT_TIME: 1 * 1000, // Reducido a 1 segundo para pruebas
 };
 
 // Mapa para seguir los intentos fallidos

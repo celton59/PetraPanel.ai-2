@@ -20,9 +20,9 @@ async function hashPassword(password) {
 
 async function createUser() {
   // Datos del usuario a crear - Personalizar según sea necesario
-  const username = 'hola';
-  const password = 'hola';
-  const role = 'admin'; // Opciones: admin, coordinator, content_creator, media_creator, media_review, youtuber
+  const username = 'mediareviewer';
+  const password = 'Petra123!';
+  const role = 'media_reviewer'; // Opciones: admin, reviewer, content_reviewer, media_reviewer, optimizer, youtuber
   
   try {
     // Obtener y validar DATABASE_URL desde variables de entorno
