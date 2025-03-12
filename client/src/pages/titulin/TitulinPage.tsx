@@ -269,7 +269,7 @@ export default function TitulinPage() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Youtube className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">Videos de YouTube</h1>
+              <h1 className="text-3xl font-bold">Titulín</h1>
             </div>
           </div>
         </motion.div>
