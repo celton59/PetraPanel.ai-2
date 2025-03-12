@@ -1,3 +1,4 @@
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -76,13 +77,13 @@ export default function AuthPage() {
 
   // Definimos credenciales predeterminadas para diferentes roles
   const predefinedCredentials = [
-    { username: "hola", password: "1234", role: "admin", displayName: "Admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
-    { username: "mediareviewer", password: "1234", role: "media_reviewer", displayName: "Media Reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
-    { username: "youtuber", password: "1234", role: "youtuber", displayName: "Youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
-    { username: "optimizer", password: "1234", role: "optimizer", displayName: "Optimizer", icon: <PenTool className="h-4 w-4 mr-2" /> },
-    { username: "reviewer", password: "1234", role: "reviewer", displayName: "Reviewer", icon: <ClipboardCheck className="h-4 w-4 mr-2" /> },
-    { username: "contentreviewer", password: "1234", role: "content_reviewer", displayName: "Content Reviewer", icon: <FileText className="h-4 w-4 mr-2" /> },
-    { username: "uploader", password: "1234", role: "uploader", displayName: "Uploader", icon: <Upload className="h-4 w-4 mr-2" /> },
+    { username: "hola", password: "1234", role: "admin", displayName: "Admin", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { username: "mediareviewer", password: "1234", role: "media_reviewer", displayName: "Media Reviewer", icon: <Camera className="h-5 w-5" /> },
+    { username: "youtuber", password: "1234", role: "youtuber", displayName: "Youtuber", icon: <Video className="h-5 w-5" /> },
+    { username: "optimizer", password: "1234", role: "optimizer", displayName: "Optimizer", icon: <PenTool className="h-5 w-5" /> },
+    { username: "reviewer", password: "1234", role: "reviewer", displayName: "Reviewer", icon: <ClipboardCheck className="h-5 w-5" /> },
+    { username: "contentreviewer", password: "1234", role: "content_reviewer", displayName: "Content Reviewer", icon: <FileText className="h-5 w-5" /> },
+    { username: "uploader", password: "1234", role: "uploader", displayName: "Uploader", icon: <Upload className="h-5 w-5" /> },
   ];
   
   // Función para manejar los cambios en los campos del PIN
@@ -374,15 +375,15 @@ export default function AuthPage() {
                   variant="outline" 
                   onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
                   disabled={isLoading}
-                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all"
+                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full"
                   size="sm"
                 >
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
                     {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      cred.icon
+                      <>{cred.icon}</>
                     )}
                   </div>
                   <span className="text-xs font-medium">{cred.displayName}</span>
