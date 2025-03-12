@@ -14,6 +14,7 @@ import { HelpButton } from "@/components/help/HelpButton"
 import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator"
 import { useOnlineUsers } from "@/hooks/use-online-users"
 import { NotificationCenter } from "../notifications/NotificationCenter"
+import { useGlobalSearch } from "@/hooks/use-global-search"
 
 interface UserMenuProps {
   className?: string;
@@ -23,6 +24,7 @@ export function UserMenu({ className }: UserMenuProps) {
   const [, setLocation] = useLocation()
   const { user, logout } = useUser()
   const isMobile = useIsMobile()
+  const { openSearch } = useGlobalSearch()
   
   // Usar el hook real de usuarios en línea
   const { onlineUsers } = useOnlineUsers()
@@ -47,12 +49,7 @@ export function UserMenu({ className }: UserMenuProps) {
           variant="default" 
           size="sm" 
           className="md:hidden h-9 px-3 rounded-md"
-          onClick={() => {
-            // Usamos la misma función que el botón de escritorio pero importada correctamente
-            const { useGlobalSearch } = require('@/hooks/use-global-search');
-            // Llamamos a openSearch directamente
-            useGlobalSearch().openSearch();
-          }}
+          onClick={openSearch} // Usamos la función que ya fue extraída del hook al inicio del componente
         >
           <Search className="h-5 w-5 mr-1" />
           <span className="text-sm font-medium">Buscar</span>
