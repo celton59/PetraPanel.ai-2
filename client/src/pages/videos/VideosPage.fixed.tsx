@@ -101,7 +101,7 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos } = useVideos();
+  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos, assignVideoToYoutuber } = useVideos();
   
   // Estados para UI
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
@@ -205,6 +205,28 @@ export default function VideosPage() {
   }
 
   async function handleVideoClick(video: ApiVideo) {
+    // Asignar el video automáticamente al youtuber cuando está en estado 'upload_media' y no está asignado
+    if (
+      user?.role === 'youtuber' && 
+      video.status === 'upload_media' && 
+      (!video.youtuber || video.youtuber === user.id)
+    ) {
+      try {
+        // Intentar asignar el video al youtuber
+        await assignVideoToYoutuber({
+          videoId: video.id,
+          projectId: video.projectId
+        });
+        // No es necesario un toast aquí porque es una operación transparente para el usuario
+      } catch (error: any) {
+        // No mostramos error si ya está asignado al mismo youtuber
+        if (!error.message?.includes('ya está asignado a este youtuber')) {
+          console.error('Error al asignar video automáticamente:', error);
+        }
+      }
+    }
+    
+    // Mostrar los detalles del video
     setSelectedVideo(video);
   }
 
@@ -573,7 +595,7 @@ export default function VideosPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(!videos || videos.length === 0) && renderEmptyState()}
+                {/* El mensaje de "No hay videos" se mostrará fuera de la tabla */}
               </TableBody>
             </Table>
           </div>
@@ -666,7 +688,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
+        {/* El mensaje de "No hay videos" se mostrará en la vista principal */}
       </div>
     );
   }
@@ -810,7 +832,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {(!videos || videos.length === 0) && renderEmptyState()}
+        {/* El mensaje de "No hay videos" se mostrará en la vista principal */}
       </div>
     );
   }
@@ -1016,9 +1038,15 @@ export default function VideosPage() {
         </Button>
       </div>
       
-      {viewMode === "table" && getTableView()}
-      {viewMode === "grid" && getGridView()}
-      {viewMode === "list" && getListView()}
+      {(!videos || videos.length === 0) 
+        ? renderEmptyState()
+        : (
+          <>
+            {viewMode === "table" && getTableView()}
+            {viewMode === "grid" && getGridView()}
+            {viewMode === "list" && getListView()}
+          </>
+        )}
       
       <Dialog 
         open={videoDialogOpen} 

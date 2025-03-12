@@ -12,13 +12,18 @@ interface ApiResponse<T> {
   data: T;
 }
 
+// Interfaz extendida para incluir projectIds en el usuario
+export interface UserWithProjects extends User {
+  projectIds?: number[];
+}
+
 export function useUsers(): {
   users: ApiUser[];
   isLoading: boolean;
   refetch: () => Promise<QueryObserverResult<ApiResponse<ApiUser[]>>>;
   deleteUser: (userId: number) => Promise<void>;
-  createUser: (user: User) => Promise<void>;
-  updateUser: ({userId, user}: { userId: number; user: Partial<User>}) => Promise<void>;
+  createUser: (user: UserWithProjects) => Promise<void>;
+  updateUser: ({userId, user}: { userId: number; user: Partial<UserWithProjects>}) => Promise<void>;
 } {
   
   const queryClient = useQueryClient();
@@ -46,7 +51,7 @@ export function useUsers(): {
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (user: User) => {
+    mutationFn: async (user: UserWithProjects) => {
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../lib/axios');
       const api = (await import('../lib/axios')).default;
@@ -54,6 +59,19 @@ export function useUsers(): {
       try {
         // Refrescar proactivamente el token CSRF antes de una operación importante
         await refreshCSRFToken();
+        
+        // Verificar campos obligatorios de forma detallada
+        const missingFields = [];
+        if (!user.username) missingFields.push("nombre de usuario");
+        if (!user.email) missingFields.push("correo electrónico");
+        if (!user.fullName) missingFields.push("nombre completo");
+        if (!user.password) missingFields.push("contraseña");
+        if (!user.role) missingFields.push("rol");
+        if (!user.projectIds || user.projectIds.length === 0) missingFields.push("proyectos asignados");
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Faltan campos obligatorios: ${missingFields.join(", ")}. Verifica que todos los campos marcados con * estén completos`);
+        }
         
         // Usar nuestra instancia de axios configurada con manejo CSRF
         const response = await api.post(queryKey[0], user);
@@ -99,7 +117,7 @@ export function useUsers(): {
   })
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, user }: { userId: number; user: Partial<User> }) => {
+    mutationFn: async ({ userId, user }: { userId: number; user: Partial<UserWithProjects> }) => {
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../lib/axios');
       const api = (await import('../lib/axios')).default;

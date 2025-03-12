@@ -8,7 +8,7 @@ import {
 import { User } from "@db/schema";
 
 interface RoleSelectorProps {
-  value: User['role'];
+  value: User['role'] | undefined;
   onChange: (value: User['role']) => void;
 }
 
@@ -24,14 +24,14 @@ export function RoleSelector ({ value, onChange }: RoleSelectorProps) {
   }
   
   return (
-    <Select value={value} onValueChange={(val) => onChange(val as User['role'])}>
+    <Select value={value || "youtuber"} onValueChange={(val) => onChange(val as User['role'])}>
       <SelectTrigger>
         <SelectValue placeholder="Selecciona un rol" />
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(roles).map( ([key, value]) => (
+        {Object.entries(roles).map( ([key, label]) => (
           <SelectItem key={key} value={key}>
-            {value}
+            {label}
           </SelectItem>
         ))}
       </SelectContent>

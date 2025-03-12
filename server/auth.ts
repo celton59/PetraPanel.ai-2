@@ -14,6 +14,13 @@ import {
   SECURITY_CONSTANTS
 } from "./lib/security";
 
+// Extender SessionData para incluir csrfToken
+declare module 'express-session' {
+  interface SessionData {
+    csrfToken?: string;
+  }
+}
+
 // Extend Express.User
 declare global {
   namespace Express {
@@ -22,9 +29,8 @@ declare global {
       csrfToken?: () => string;
       validatedData?: any;
     }
-    interface Session {
-      csrfToken?: string;
-    }
+    // No necesita interfaces adicionales aquí
+    
   }
 }
 
@@ -89,7 +95,7 @@ export function setupAuth(app: Express) {
     res.setHeader('X-CSRF-Token', req.session.csrfToken);
     
     // Añadir un método csrfToken a la solicitud
-    req.csrfToken = () => req.session.csrfToken;
+    req.csrfToken = () => req.session.csrfToken || "";
     
     // CSRF protection solo se aplica a métodos no seguros
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -182,9 +188,18 @@ export function setupAuth(app: Express) {
         }
 
         // Verificar contraseña con timing-safe compare
+        console.log(`Verificando contraseña para ${username} (rol: ${user.role})`);
         const isMatch = await passwordUtils.comparePassword(password, user.password);
         
         if (!isMatch) {
+          console.log(`Contraseña incorrecta para ${username} (rol: ${user.role})`);
+          
+          // Para desarrollo, mostramos más detalles del error
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`Contraseña proporcionada: '${password}'`);
+            console.log(`Hash almacenado: '${user.password.substring(0, 20)}...'`);
+          }
+          
           // Registramos el intento fallido
           const failedAttempt = recordFailedLoginAttempt(user.username);
           
@@ -194,6 +209,8 @@ export function setupAuth(app: Express) {
             : "Nombre de usuario o contraseña incorrectos.";
             
           return done(null, false, { message });
+        } else {
+          console.log(`Autenticación exitosa para ${username} (rol: ${user.role})`);
         }
 
         // Login exitoso, reseteamos los intentos fallidos

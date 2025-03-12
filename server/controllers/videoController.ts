@@ -14,6 +14,7 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { VISIBLE_STATES } from "../lib/role-permissions";
 import { 
   generateS3Key, 
   initiateMultipartUpload as initiateS3Upload, 
@@ -176,10 +177,33 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         });
     }
 
+    // Si el video está en estado "upload_media" y ya está asignado a otro youtuber, no permitir que otro lo tome
+    if (req.user.role === "youtuber" && 
+        currentVideo.status === "upload_media" && 
+        currentVideo.contentUploadedBy !== null && 
+        currentVideo.contentUploadedBy !== req.user.id) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Este video ya está siendo trabajado por otro youtuber",
+        });
+    }
+
     // Si se asigna un optimizador y el estado sigue siendo "available", actualizar estado a "en progreso"
     let updatedStatus = updates.status as VideoStatus;
     if (updates.optimizedBy && !updates.status && currentVideo?.status === "available") {
       updatedStatus = "content_corrections"; // Usamos content_corrections para indicar que está en progreso de optimización
+    }
+    
+    // Para los youtubers que empiezan a trabajar en un video, asignamos el video a ellos
+    if (req.user.role === "youtuber" && 
+        currentVideo.status === "upload_media" && 
+        !currentVideo.contentUploadedBy) {
+      // Si no está explícitamente en la actualización, lo asignamos al usuario actual
+      if (!updates.contentUploadedBy) {
+        updates.contentUploadedBy = req.user.id;
+      }
     }
 
     // Actualizar el video con la metadata combinada
@@ -303,6 +327,96 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
     return res.status(500).json({
       success: false,
       message: permanent ? "Error al eliminar el video permanentemente" : "Error al mover el video a la papelera",
+    });
+  }
+}
+
+/**
+ * Asigna un video a un youtuber cuando lo visualiza
+ * @param req Request con ID del video y proyecto
+ * @param res Response con el resultado de la asignación
+ * @returns Response con resultado de la operación
+ */
+async function assignVideoToYoutuber(req: Request, res: Response): Promise<Response> {
+  try {
+    const projectId = parseInt(req.params.projectId);
+    const videoId = parseInt(req.params.videoId);
+    
+    // Verificar que el usuario sea un youtuber
+    if (req.user!.role !== "youtuber") {
+      return res.status(403).json({
+        success: false,
+        message: "Solo los youtubers pueden ser asignados a videos"
+      });
+    }
+    
+    // Verificar que el video exista y esté en estado upload_media
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(and(
+        eq(videos.id, videoId), 
+        eq(videos.projectId, projectId),
+        eq(videos.status, "upload_media"),
+        eq(videos.isDeleted, false)
+      ))
+      .limit(1);
+      
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video no encontrado o no está en estado de carga de medios"
+      });
+    }
+    
+    // Verificar si el video ya está asignado a otro youtuber
+    if (video.contentUploadedBy !== null && video.contentUploadedBy !== req.user!.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Este video ya está asignado a otro youtuber"
+      });
+    }
+    
+    // Si ya está asignado al mismo youtuber, no hacemos nada
+    if (video.contentUploadedBy === req.user!.id) {
+      return res.status(200).json({
+        success: true,
+        message: "El video ya está asignado a este youtuber",
+        videoId
+      });
+    }
+    
+    // Asignar el video al youtuber actual
+    const [updatedVideo] = await db
+      .update(videos)
+      .set({
+        contentUploadedBy: req.user!.id
+      })
+      .where(and(
+        eq(videos.id, videoId),
+        eq(videos.projectId, projectId)
+      ))
+      .returning();
+      
+    if (!updatedVideo) {
+      return res.status(500).json({
+        success: false,
+        message: "Error al asignar el video"
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: "Video asignado correctamente",
+      videoId
+    });
+    
+  } catch (error: any) {
+    console.error("Error al asignar video:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error al asignar el video",
+      stack: process.env.NODE_ENV === "development" && error instanceof Error ? error.stack : undefined
     });
   }
 }
@@ -479,13 +593,31 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
         .where(whereCondition);
       
-      // Si no es admin, aplicamos filtro adicional
+      // Determinamos los estados visibles según el rol del usuario
+      let visibleStates: string[] = [];
+      
+      if (req.user.role === "optimizer") {
+        visibleStates = ["available", "content_corrections", "completed"];
+      } else if (req.user.role === "reviewer") {
+        visibleStates = ["content_review", "media_review", "final_review", "completed"];
+      } else if (req.user.role === "content_reviewer") {
+        visibleStates = ["content_review"];
+      } else if (req.user.role === "media_reviewer") {
+        visibleStates = ["media_review"];
+      } else if (req.user.role === "youtuber") {
+        visibleStates = ["upload_media", "media_corrections", "final_review", "completed"];
+      } else if (req.user.role === "admin") {
+        visibleStates = ["available", "content_corrections", "content_review", "upload_media", "media_corrections", "media_review", "final_review", "completed"];
+      }
+      
+      console.log(`Rol ${req.user.role} - Estados visibles:`, visibleStates);
+      
+      // Si no es admin, aplicamos filtro adicional basado en los estados visibles
       const isAdmin = req.user.role === "admin";
       let query;
       
       if (!isAdmin) {
         // Filtro para usuarios que no son admin
-        // Añadimos el filtro en una condición and con el filtro actual
         query = db
           .select({
             ...getTableColumns(videos),
@@ -515,8 +647,26 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
           .where(
             and(
               showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
-              // Asegurar que createdBy no sea null y convertir explícitamente a números para la comparación
-              req.user.id ? eq(videos.createdBy, Number(req.user.id)) : undefined
+              // Filtrar por los estados visibles para el rol del usuario
+              visibleStates.length > 0 ? inArray(videos.status, visibleStates as any) : undefined,
+              // Para youtubers: mostrar videos en "upload_media" solo si no están asignados a otro youtuber
+              // o si están asignados a este youtuber
+              req.user.role === "youtuber" ? 
+                or(
+                  // Videos en "upload_media" que no están asignados a nadie o están asignados a este usuario
+                  and(
+                    eq(videos.status, "upload_media"),
+                    or(
+                      isNull(videos.contentUploadedBy),
+                      eq(videos.contentUploadedBy, req.user.id as any)
+                    )
+                  ),
+                  // Videos en otros estados visibles (sin importar asignación)
+                  and(
+                    inArray(videos.status, visibleStates.filter(s => s !== "upload_media") as any)
+                  )
+                )
+              : undefined
             )
           );
       } else {
@@ -1235,6 +1385,9 @@ export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, nex
 
   // Actualización de videos
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
+  
+  // Asignación de video a youtuber cuando lo visualiza
+  app.post("/api/projects/:projectId/videos/:videoId/assign", requireAuth, assignVideoToYoutuber);
 
   // Eliminación de videos (mover a papelera o eliminación permanente)
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);

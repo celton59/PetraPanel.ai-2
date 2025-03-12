@@ -172,6 +172,7 @@ export class VideoUploader {
    */
   private async initiateMultipartUpload(): Promise<InitiateMultipartUploadResponse> {
     try {
+
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../lib/axios');
       const api = (await import('../lib/axios')).default;
@@ -191,6 +192,7 @@ export class VideoUploader {
       
       return response.data.data;
     } catch (error: any) {
+
       console.error("Error al iniciar la carga multiparte:", error);
       
       // Manejo mejorado de errores de CSRF
@@ -210,6 +212,7 @@ export class VideoUploader {
    */
   private async completeMultipartUpload(): Promise<void> {
     try {
+
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../lib/axios');
       const api = (await import('../lib/axios')).default;
@@ -229,6 +232,7 @@ export class VideoUploader {
       
       this.fileUrl = response.data.url;
     } catch (error: any) {
+
       console.error("Error al completar la carga multiparte:", error);
       
       // Manejo mejorado de errores de CSRF
@@ -248,6 +252,7 @@ export class VideoUploader {
    */
   private async abortMultipartUpload(): Promise<void> {
     try {
+
       // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../lib/axios');
       const api = (await import('../lib/axios')).default;
@@ -264,6 +269,7 @@ export class VideoUploader {
         }
       );
     } catch (error: any) {
+
       console.error("Error al abortar la carga multiparte:", error);
       
       // Manejo mejorado de errores de CSRF
