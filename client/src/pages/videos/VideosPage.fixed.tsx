@@ -1085,6 +1085,15 @@ export default function VideosPage() {
             {viewMode === "table" && getTableView()}
             {viewMode === "grid" && getGridView()}
             {viewMode === "list" && getListView()}
+            
+            {/* Control de paginación */}
+            {pagination && pagination.totalPages > 1 && (
+              <VideoPaginationControls
+                currentPage={page}
+                totalPages={pagination.totalPages}
+                setCurrentPage={setPage}
+              />
+            )}
           </>
         )}
       
