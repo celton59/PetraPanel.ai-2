@@ -173,7 +173,16 @@ export class VideoUploader {
    */
   private async initiateMultipartUpload(): Promise<InitiateMultipartUploadResponse> {
     try {
-      const response = await axios.post(
+
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post(
         `/api/projects/${this.projectId}/videos/${this.videoId}/initiate-multipart-upload`,
         {
           originalName: this.file.name,
@@ -184,7 +193,18 @@ export class VideoUploader {
       
       return response.data.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Error al iniciar la carga multiparte");
+
+      console.error("Error al iniciar la carga multiparte:", error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
+      }
+      
+      throw new Error(error.response?.data?.message || error.message || "Error al iniciar la carga multiparte");
     }
   }
 
@@ -193,7 +213,16 @@ export class VideoUploader {
    */
   private async completeMultipartUpload(): Promise<void> {
     try {
-      const response = await axios.post(
+
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post(
         `/api/projects/${this.projectId}/videos/${this.videoId}/complete-multipart-upload`,
         {
           uploadId: this.uploadId,
@@ -204,7 +233,18 @@ export class VideoUploader {
       
       this.fileUrl = response.data.url;
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Error al completar la carga multiparte");
+
+      console.error("Error al completar la carga multiparte:", error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
+      }
+      
+      throw new Error(error.response?.data?.message || error.message || "Error al completar la carga multiparte");
     }
   }
 
@@ -213,7 +253,16 @@ export class VideoUploader {
    */
   private async abortMultipartUpload(): Promise<void> {
     try {
-      await axios.post(
+
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      await api.post(
         `/api/projects/${this.projectId}/videos/${this.videoId}/abort-multipart-upload`,
         {
           uploadId: this.uploadId,
@@ -221,7 +270,18 @@ export class VideoUploader {
         }
       );
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Error al abortar la carga multiparte");
+
+      console.error("Error al abortar la carga multiparte:", error);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
+      }
+      
+      throw new Error(error.response?.data?.message || error.message || "Error al abortar la carga multiparte");
     }
   }
 

@@ -1,0 +1,237 @@
+GET https://petrapanel.ai/api/videos 500 (Internal Server Error)
+queryFn @ index-BWMW2PIf.js:834
+i @ index-BWMW2PIf.js:48
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.then
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+start @ index-BWMW2PIf.js:48
+fetch @ index-BWMW2PIf.js:48
+Rm @ index-BWMW2PIf.js:48
+onSubscribe @ index-BWMW2PIf.js:48
+subscribe @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+IL @ index-BWMW2PIf.js:38
+Vb @ index-BWMW2PIf.js:40
+Hd @ index-BWMW2PIf.js:40
+CZ @ index-BWMW2PIf.js:40
+_c @ index-BWMW2PIf.js:40
+kO @ index-BWMW2PIf.js:40
+uc @ index-BWMW2PIf.js:38
+(anonymous) @ index-BWMW2PIf.js:40
+setTimeout
+a @ index-BWMW2PIf.js:48
+o @ index-BWMW2PIf.js:48
+batch @ index-BWMW2PIf.js:48
+mo @ index-BWMW2PIf.js:48
+l @ index-BWMW2PIf.js:48
+h @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48
+Promise.catch
+g @ index-BWMW2PIf.js:48
+(anonymous) @ index-BWMW2PIf.js:48

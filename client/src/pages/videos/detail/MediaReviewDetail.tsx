@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUser } from "@/hooks/use-user";
 
 // Importamos los componentes modulares para cada estado
 import { MediaReviewContent } from "./media-review/MediaReviewContent";
@@ -80,8 +81,17 @@ export default function MediaReviewDetail({
     }
   }
 
+  const { user } = useUser();
+  
   function handleApprove() {
-    onUpdate({ status: 'final_review' });
+    // Asignamos el usuario actual como revisor de media
+    onUpdate({ 
+      status: 'final_review',
+      mediaReviewedBy: user?.id 
+    });
+    
+    // Registramos para depuración
+    console.log('Media review approved by user:', user?.id, user?.username);
   }
 
   function handleCopyLink() {

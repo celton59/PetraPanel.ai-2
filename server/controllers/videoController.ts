@@ -14,6 +14,7 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { VISIBLE_STATES } from "../lib/role-permissions";
 import { 
   generateS3Key, 
   initiateMultipartUpload as initiateS3Upload, 
@@ -176,10 +177,33 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
         });
     }
 
+    // Si el video está en estado "upload_media" y ya está asignado a otro youtuber, no permitir que otro lo tome
+    if (req.user.role === "youtuber" && 
+        currentVideo.status === "upload_media" && 
+        currentVideo.contentUploadedBy !== null && 
+        currentVideo.contentUploadedBy !== req.user.id) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Este video ya está siendo trabajado por otro youtuber",
+        });
+    }
+
     // Si se asigna un optimizador y el estado sigue siendo "available", actualizar estado a "en progreso"
     let updatedStatus = updates.status as VideoStatus;
     if (updates.optimizedBy && !updates.status && currentVideo?.status === "available") {
       updatedStatus = "content_corrections"; // Usamos content_corrections para indicar que está en progreso de optimización
+    }
+    
+    // Para los youtubers que empiezan a trabajar en un video, asignamos el video a ellos
+    if (req.user.role === "youtuber" && 
+        currentVideo.status === "upload_media" && 
+        !currentVideo.contentUploadedBy) {
+      // Si no está explícitamente en la actualización, lo asignamos al usuario actual
+      if (!updates.contentUploadedBy) {
+        updates.contentUploadedBy = req.user.id;
+      }
     }
 
     // Actualizar el video con la metadata combinada
@@ -308,6 +332,96 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
 }
 
 /**
+ * Asigna un video a un youtuber cuando lo visualiza
+ * @param req Request con ID del video y proyecto
+ * @param res Response con el resultado de la asignación
+ * @returns Response con resultado de la operación
+ */
+async function assignVideoToYoutuber(req: Request, res: Response): Promise<Response> {
+  try {
+    const projectId = parseInt(req.params.projectId);
+    const videoId = parseInt(req.params.videoId);
+    
+    // Verificar que el usuario sea un youtuber
+    if (req.user!.role !== "youtuber") {
+      return res.status(403).json({
+        success: false,
+        message: "Solo los youtubers pueden ser asignados a videos"
+      });
+    }
+    
+    // Verificar que el video exista y esté en estado upload_media
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(and(
+        eq(videos.id, videoId), 
+        eq(videos.projectId, projectId),
+        eq(videos.status, "upload_media"),
+        eq(videos.isDeleted, false)
+      ))
+      .limit(1);
+      
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video no encontrado o no está en estado de carga de medios"
+      });
+    }
+    
+    // Verificar si el video ya está asignado a otro youtuber
+    if (video.contentUploadedBy !== null && video.contentUploadedBy !== req.user!.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Este video ya está asignado a otro youtuber"
+      });
+    }
+    
+    // Si ya está asignado al mismo youtuber, no hacemos nada
+    if (video.contentUploadedBy === req.user!.id) {
+      return res.status(200).json({
+        success: true,
+        message: "El video ya está asignado a este youtuber",
+        videoId
+      });
+    }
+    
+    // Asignar el video al youtuber actual
+    const [updatedVideo] = await db
+      .update(videos)
+      .set({
+        contentUploadedBy: req.user!.id
+      })
+      .where(and(
+        eq(videos.id, videoId),
+        eq(videos.projectId, projectId)
+      ))
+      .returning();
+      
+    if (!updatedVideo) {
+      return res.status(500).json({
+        success: false,
+        message: "Error al asignar el video"
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: "Video asignado correctamente",
+      videoId
+    });
+    
+  } catch (error: any) {
+    console.error("Error al asignar video:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error al asignar el video",
+      stack: process.env.NODE_ENV === "development" && error instanceof Error ? error.stack : undefined
+    });
+  }
+}
+
+/**
  * Elimina o mueve a la papelera múltiples videos en masa
  * @param req Request con IDs de videos a eliminar
  * @param res Response
@@ -428,113 +542,165 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
+    console.log("⚡ GET /api/videos - Iniciando consulta de videos simplificada");
+    console.log("Usuario:", req.user?.id, req.user?.username, req.user?.role);
+    
+    // Verificar autenticación
+    if (!req.user) {
+      console.log("❌ Usuario no autenticado en GET /api/videos");
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado"
+      });
+    }
     
     // Verificar si queremos mostrar elementos de la papelera
     const showDeleted = req.query.trash === 'true';
-
-    const query = db
-      .selectDistinct({
-        ...getTableColumns(videos),
-
-        // Datos del content reviewer
-        contentReviewerName: contentReviewer.fullName,
-        contentReviewerUsername: contentReviewer.username,
-
-        // Datos del media reviewer
-        mediaReviewerName: mediaReviewer.fullName,
-        mediaReviewerUsername: mediaReviewer.username,
-
-        // Datos del uploader
-        uploaderName: uploader.fullName,
-        uploaderUsername: uploader.username,
-
-        // Datos del creador
-        creatorName: creator.fullName,
-        creatorUsername: creator.username,
-
-        // Datos del optimizador
-        optimizerName: optimizer.fullName,
-        optimizerUsername: optimizer.username,
-        
-        // Datos de quien eliminó el video
-        deletedByName: deleter.fullName,
-        deletedByUsername: deleter.username
-      })
-      .from(videos)
-      .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
-      .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
-      .leftJoin(creator, eq(videos.createdBy, creator.id))
-      .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
-      .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
-      .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
-      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
-      .where(
-        and(
-          // Filtro de papelera - mostrar solo videos en papelera o no en papelera según el parámetro
-          showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
-
-          // Filtros segun rol
-          or(
-            req.user?.role === "optimizer"
-              ? eq(videos.status, "available")
-              : undefined,
-            req.user?.role === "optimizer"
-              ? eq(videos.status, "content_corrections")
-              : undefined,
-            req.user?.role === "optimizer"
-              ? eq(videos.optimizedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "optimizer"
-              ? isNull(videos.optimizedBy)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? eq(videos.status, "content_review")
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? eq(videos.contentReviewedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? isNull(videos.contentReviewedBy)
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.status, "upload_media")
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.status, "media_corrections")
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.contentUploadedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "youtuber"
-              ? isNull(videos.contentUploadedBy)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? eq(videos.status, "media_review")
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? eq(videos.mediaReviewedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? isNull(videos.mediaReviewedBy)
-              : undefined,
-          ),
-          
-          // Acceso a proyectos (para usuarios no administradores)
-          req.user?.role !== "admin"
-            ? eq(projectAccess.userId, req.user!.id!)
-            : undefined,
-        ),
-      )
-      .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt));
-
-    const result = await query.execute();
-
-    return res.status(200).json(result);
+    console.log("Mostrar eliminados:", showDeleted);
+    
+    try {
+      // Versión simplificada sin JOINs complejos para pruebas de funcionamiento básico
+      
+      // Simplificamos la consulta para verificar si el problema está en la complejidad
+      const whereCondition = showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false);
+      
+      // Creamos la consulta base con todos los JOINs
+      let baseQuery = db
+        .select({
+          ...getTableColumns(videos),
+          // Añadimos los campos de nombres de los colaboradores
+          creatorName: creator.fullName,
+          creatorUsername: creator.username,
+          optimizerName: optimizer.fullName,
+          optimizerUsername: optimizer.username,
+          contentReviewerName: contentReviewer.fullName,
+          contentReviewerUsername: contentReviewer.username,
+          uploaderName: uploader.fullName,
+          uploaderUsername: uploader.username,
+          mediaReviewerName: mediaReviewer.fullName,
+          mediaReviewerUsername: mediaReviewer.username,
+          deletedByName: deleter.fullName,
+          deletedByUsername: deleter.username
+        })
+        .from(videos)
+        // JOIN para el creador (siempre obligatorio porque es la referencia principal)
+        .leftJoin(creator, eq(videos.createdBy, creator.id))
+        // JOINs opcionales para los otros roles
+        .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
+        .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
+        .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
+        .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
+        .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
+        .where(whereCondition);
+      
+      // Determinamos los estados visibles según el rol del usuario
+      let visibleStates: string[] = [];
+      
+      if (req.user.role === "optimizer") {
+        visibleStates = ["available", "content_corrections", "completed"];
+      } else if (req.user.role === "reviewer") {
+        visibleStates = ["content_review", "media_review", "final_review", "completed"];
+      } else if (req.user.role === "content_reviewer") {
+        visibleStates = ["content_review"];
+      } else if (req.user.role === "media_reviewer") {
+        visibleStates = ["media_review"];
+      } else if (req.user.role === "youtuber") {
+        visibleStates = ["upload_media", "media_corrections", "final_review", "completed"];
+      } else if (req.user.role === "admin") {
+        visibleStates = ["available", "content_corrections", "content_review", "upload_media", "media_corrections", "media_review", "final_review", "completed"];
+      }
+      
+      console.log(`Rol ${req.user.role} - Estados visibles:`, visibleStates);
+      
+      // Si no es admin, aplicamos filtro adicional basado en los estados visibles
+      const isAdmin = req.user.role === "admin";
+      let query;
+      
+      if (!isAdmin) {
+        // Filtro para usuarios que no son admin
+        query = db
+          .select({
+            ...getTableColumns(videos),
+            // Añadimos los campos de nombres de los colaboradores
+            creatorName: creator.fullName,
+            creatorUsername: creator.username,
+            optimizerName: optimizer.fullName,
+            optimizerUsername: optimizer.username,
+            contentReviewerName: contentReviewer.fullName,
+            contentReviewerUsername: contentReviewer.username,
+            uploaderName: uploader.fullName,
+            uploaderUsername: uploader.username,
+            mediaReviewerName: mediaReviewer.fullName,
+            mediaReviewerUsername: mediaReviewer.username,
+            deletedByName: deleter.fullName,
+            deletedByUsername: deleter.username
+          })
+          .from(videos)
+          // JOIN para el creador (siempre obligatorio porque es la referencia principal)
+          .leftJoin(creator, eq(videos.createdBy, creator.id))
+          // JOINs opcionales para los otros roles
+          .leftJoin(optimizer, eq(videos.optimizedBy, optimizer.id))
+          .leftJoin(contentReviewer, eq(videos.contentReviewedBy, contentReviewer.id))
+          .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
+          .leftJoin(mediaReviewer, eq(videos.mediaReviewedBy, mediaReviewer.id))
+          .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
+          .where(
+            and(
+              showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
+              // Filtrar por los estados visibles para el rol del usuario
+              visibleStates.length > 0 ? inArray(videos.status, visibleStates as any) : undefined,
+              // Para youtubers: mostrar videos en "upload_media" solo si no están asignados a otro youtuber
+              // o si están asignados a este youtuber
+              req.user.role === "youtuber" ? 
+                or(
+                  // Videos en "upload_media" que no están asignados a nadie o están asignados a este usuario
+                  and(
+                    eq(videos.status, "upload_media"),
+                    or(
+                      isNull(videos.contentUploadedBy),
+                      eq(videos.contentUploadedBy, req.user.id as any)
+                    )
+                  ),
+                  // Videos en otros estados visibles (sin importar asignación)
+                  and(
+                    inArray(videos.status, visibleStates.filter(s => s !== "upload_media") as any)
+                  )
+                )
+              : undefined
+            )
+          );
+      } else {
+        // Admin ve todos los videos
+        query = baseQuery;
+      }
+      
+      console.log("🔍 Ejecutando consulta de videos con JOIN para colaboradores");
+      
+      // Aplicamos la ordenación directamente en la ejecución
+      const result = await query
+        .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
+        .execute();
+      console.log(`✅ Consulta completada: ${result.length} videos obtenidos`);
+      
+      return res.status(200).json(result);
+    } catch (dbError) {
+      console.error("❌ Error en consulta básica:", dbError);
+      
+      // Si hay error incluso con la consulta simplificada, devolvemos ese error
+      return res.status(500).json({
+        success: false,
+        message: "Error en la consulta de la base de datos",
+        error: dbError instanceof Error ? dbError.message : "Error desconocido",
+        stack: process.env.NODE_ENV !== 'production' && dbError instanceof Error ? dbError.stack : undefined
+      });
+    }
   } catch (error) {
-    console.error("Error fetching videos:", error);
+    console.error("❌ Error general en getVideos:", error);
     return res.status(500).json({
       success: false,
       message: "Error al obtener los videos",
+      error: error instanceof Error ? error.message : "Error desconocido",
+      stack: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.stack : undefined
     });
   }
 }
@@ -549,13 +715,6 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
 
-  if (req.user!.role !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "No tienes permiso para restaurar videos",
-    });
-  }
-  
   try {
     // Verificar que el video exista y esté eliminado
     const [video] = await db
@@ -575,8 +734,8 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
       });
     }
     
-    // Solo los administradores o el creador pueden restaurar videos
-    if (video.createdBy !== req.user!.id) {
+    // Verificar permisos: el usuario debe ser admin o el creador del video
+    if (req.user!.role !== "admin" && video.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: "No tienes permiso para restaurar este video",
@@ -1226,6 +1385,9 @@ export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, nex
 
   // Actualización de videos
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
+  
+  // Asignación de video a youtuber cuando lo visualiza
+  app.post("/api/projects/:projectId/videos/:videoId/assign", requireAuth, assignVideoToYoutuber);
 
   // Eliminación de videos (mover a papelera o eliminación permanente)
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);

@@ -1,6 +1,11 @@
 // Script para crear un usuario con el hash de contraseña adecuado
 import crypto from 'crypto';
 import pg from 'pg';
+import dotenv from 'dotenv';
+
+// Cargar variables de entorno desde .env si existe
+dotenv.config();
+
 const { Client } = pg;
 
 // Función para generar hash de la contraseña (misma que usa la aplicación)
@@ -18,12 +23,7 @@ async function hashPassword(password) {
   });
 }
 
-async function createUser() {
-  // Datos del usuario a crear
-  const username = 'hola';
-  const password = '1234';
-  const role = 'admin'; // Para que tenga acceso completo
-  
+async function createOrUpdateUser(username, password, role, fullName = 'Usuario de Prueba') {
   try {
     // Obtener y validar DATABASE_URL desde variables de entorno
     const connectionString = process.env.DATABASE_URL;
@@ -37,7 +37,7 @@ async function createUser() {
     });
     
     await client.connect();
-    console.log('Conectado a la base de datos');
+    console.log(`Procesando usuario '${username}'...`);
     
     // Verificar si el usuario ya existe
     const checkResult = await client.query(
@@ -45,11 +45,11 @@ async function createUser() {
       [username]
     );
     
+    // Generar el hash de la contraseña
+    const hashedPassword = await hashPassword(password);
+    
     if (checkResult.rows.length > 0) {
       console.log(`El usuario '${username}' ya existe, actualizando contraseña...`);
-      
-      // Generar el hash de la contraseña
-      const hashedPassword = await hashPassword(password);
       
       // Actualizar usuario existente
       await client.query(
@@ -61,13 +61,10 @@ async function createUser() {
     } else {
       console.log(`Creando nuevo usuario '${username}'...`);
       
-      // Generar el hash de la contraseña
-      const hashedPassword = await hashPassword(password);
-      
       // Insertar nuevo usuario
       await client.query(
         'INSERT INTO users (username, password, role, full_name) VALUES ($1, $2, $3, $4)',
-        [username, hashedPassword, role, 'Usuario de Prueba']
+        [username, hashedPassword, role, fullName]
       );
       
       console.log(`Usuario '${username}' creado con éxito`);
@@ -86,11 +83,35 @@ async function createUser() {
     }
     
     await client.end();
-    console.log('Desconectado de la base de datos');
+    console.log(`Procesamiento de '${username}' completado`);
+    return true;
     
   } catch (error) {
-    console.error('Error:', error);
+    console.error(`Error procesando usuario '${username}':`, error);
+    return false;
   }
+}
+
+async function createUser() {
+  // Lista de usuarios a crear o actualizar
+  const users = [
+    { username: 'hola', password: '1234', role: 'admin', fullName: 'Administrador' },
+    { username: 'mediareviewer', password: '1234', role: 'media_reviewer', fullName: 'Revisor de Medios' },
+    { username: 'youtuber', password: '1234', role: 'youtuber', fullName: 'Youtuber' },
+    { username: 'optimizer', password: '1234', role: 'optimizer', fullName: 'Optimizador' },
+    { username: 'reviewer', password: '1234', role: 'reviewer', fullName: 'Revisor General' },
+    { username: 'contentreviewer', password: '1234', role: 'content_reviewer', fullName: 'Revisor de Contenido' },
+    { username: 'uploader', password: '1234', role: 'uploader', fullName: 'Subidor de Contenido' }
+  ];
+  
+  console.log('Iniciando actualización de usuarios...');
+  
+  for (const user of users) {
+    await createOrUpdateUser(user.username, user.password, user.role, user.fullName);
+    console.log('-----------------------------------');
+  }
+  
+  console.log('Proceso completado para todos los usuarios');
 }
 
 // Ejecutar la función

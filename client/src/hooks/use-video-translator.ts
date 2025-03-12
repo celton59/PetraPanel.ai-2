@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
+// Importamos axios para usar la instancia con protección CSRF
+import api, { refreshCSRFToken } from "../lib/axios";
 
 export type TranslationStep = 
   | "uploading"
@@ -42,32 +44,43 @@ export function useVideoTranslator() {
       const formData = new FormData();
       formData.append("video", file);
 
-      const uploadResponse = await fetch("/api/translator/upload", {
-        method: "POST",
-        body: formData,
-        credentials: 'include'
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con protección CSRF
+      const uploadResponse = await api.post("/api/translator/upload", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (!uploadResponse.ok) {
-        if (uploadResponse.status === 401) {
-          throw new Error("Por favor, inicia sesión para usar el traductor");
-        }
-        throw new Error("Error al subir el video");
-      }
-
-      const { videoId, status } = await uploadResponse.json();
+      const { videoId, status } = uploadResponse.data;
       setProgress({ step: status, videoId });
 
       toast("Video subido", {
         description: "El video se ha subido correctamente. Puedes continuar con el siguiente paso.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Error desconocido"
-      });
-      setProgress({ step: "error", error: error instanceof Error ? error.message : "Error desconocido" });
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else if (error.response?.status === 401) {
+        toast.error("Error de autenticación", {
+          description: "Por favor, inicia sesión para usar el traductor",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.response?.data?.message || error.message || "Error desconocido"
+        });
+      }
+      setProgress({ step: "error", error: error.response?.data?.message || error.message || "Error desconocido" });
     } finally {
       setIsProcessing(false);
     }
@@ -80,28 +93,35 @@ export function useVideoTranslator() {
       setIsProcessing(true);
       setProgress(prev => ({ ...prev!, step: "extracting_audio" }));
 
-      const response = await fetch(`/api/translator/${progress.videoId}/extract-audio`, {
-        method: "POST",
-        credentials: 'include'
-      });
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con protección CSRF
+      const response = await api.post(`/api/translator/${progress.videoId}/extract-audio`);
 
-      if (!response.ok) {
-        throw new Error("Error al extraer el audio");
-      }
-
-      const result = await response.json();
+      const result = response.data;
       setProgress(prev => ({ ...prev!, ...result, step: "audio_extracted" }));
 
       toast("Audio extraído", {
         description: "El audio se ha extraído correctamente. Puedes continuar con el siguiente paso.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Error al extraer el audio"
-      });
-      setProgress({step: "error", error: error instanceof Error ? error.message : "Error al extraer el audio"})
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.response?.data?.message || error.message || "Error al extraer el audio"
+        });
+      }
+      setProgress({step: "error", error: error.response?.data?.message || error.message || "Error al extraer el audio"})
     } finally {
       setIsProcessing(false);
     }
@@ -114,28 +134,35 @@ export function useVideoTranslator() {
       setIsProcessing(true);
       setProgress(prev => ({ ...prev!, step: "separating_voice" }));
 
-      const response = await fetch(`/api/translator/${progress.videoId}/separate-voice`, {
-        method: "POST",
-        credentials: 'include'
-      });
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con protección CSRF
+      const response = await api.post(`/api/translator/${progress.videoId}/separate-voice`);
 
-      if (!response.ok) {
-        throw new Error("Error al separar la voz");
-      }
-
-      const result = await response.json();
+      const result = response.data;
       setProgress(prev => ({ ...prev!, ...result, step: "voice_separated" }));
 
       toast("Voz separada", {
         description: "La voz se ha separado correctamente. Puedes continuar con el siguiente paso.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Error al separar la voz",
-      });
-      setProgress({step: "error", error: error instanceof Error ? error.message : "Error al separar la voz"})
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.response?.data?.message || error.message || "Error al separar la voz",
+        });
+      }
+      setProgress({step: "error", error: error.response?.data?.message || error.message || "Error al separar la voz"})
     } finally {
       setIsProcessing(false);
     }
@@ -148,28 +175,35 @@ export function useVideoTranslator() {
       setIsProcessing(true);
       setProgress(prev => ({ ...prev!, step: "transcribing" }));
 
-      const response = await fetch(`/api/translator/${progress.videoId}/transcribe`, {
-        method: "POST",
-        credentials: 'include'
-      });
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con protección CSRF
+      const response = await api.post(`/api/translator/${progress.videoId}/transcribe`);
 
-      if (!response.ok) {
-        throw new Error("Error al transcribir");
-      }
-
-      const result = await response.json();
+      const result = response.data;
       setProgress(prev => ({ ...prev!, ...result, step: "transcribed" }));
 
       toast("Transcripción completada", {
         description: "El audio se ha transcrito correctamente.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Error al transcribir",
-      });
-      setProgress({step: "error", error: error instanceof Error ? error.message : "Error al transcribir"})
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.response?.data?.message || error.message || "Error al transcribir",
+        });
+      }
+      setProgress({step: "error", error: error.response?.data?.message || error.message || "Error al transcribir"})
     } finally {
       setIsProcessing(false);
     }
@@ -182,28 +216,35 @@ export function useVideoTranslator() {
       setIsProcessing(true);
       setProgress(prev => ({ ...prev!, step: "cloning_voice" }));
 
-      const response = await fetch(`/api/translator/${progress.videoId}/clone-voice`, {
-        method: "POST",
-        credentials: 'include'
-      });
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con protección CSRF
+      const response = await api.post(`/api/translator/${progress.videoId}/clone-voice`);
 
-      if (!response.ok) {
-        throw new Error("Error al clonar la voz");
-      }
-
-      const result = await response.json();
+      const result = response.data;
       setProgress(prev => ({ ...prev!, ...result, step: "voice_cloned" }));
 
       toast("Voz clonada", {
         description: "La voz se ha clonado correctamente. Puedes continuar con el siguiente paso.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : "Error al clonar la voz",
-      });
-      setProgress({step: "error", error: error instanceof Error ? error.message : "Error al clonar la voz"})
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.response?.data?.message || error.message || "Error al clonar la voz",
+        });
+      }
+      setProgress({step: "error", error: error.response?.data?.message || error.message || "Error al clonar la voz"})
     } finally {
       setIsProcessing(false);
     }
@@ -223,24 +264,22 @@ export function useVideoTranslator() {
       successStep: TranslationStep;
       successToast: { title: string; description: string };
       errorMessage: string;
-      options?: RequestInit;
+      options?: any; // Cambiamos a any para compatibilidad con axios
     }
   ): Promise<T | null> => {
     try {
       setIsProcessing(true);
       setProgress(prev => ({ ...prev!, step: preStep }));
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        credentials: 'include',
-        ...options
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con protección CSRF
+      const response = await api.post(endpoint, options.body, {
+        headers: options.headers
       });
 
-      if (!response.ok) {
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json() as T;
+      const result = response.data as T;
       setProgress(prev => ({ ...prev!, ...result, step: successStep }));
 
       toast(successToast.title, {
@@ -249,12 +288,22 @@ export function useVideoTranslator() {
 
       return result;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("Error", {
-        description: error instanceof Error ? error.message : errorMessage,
-      });
-      setProgress({ step: "error", error: error instanceof Error ? error.message : errorMessage });
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.response?.data?.message || error.message || errorMessage,
+        });
+      }
+      setProgress({ step: "error", error: error.response?.data?.message || error.message || errorMessage });
       return null;
     } finally {
       setIsProcessing(false);

@@ -36,24 +36,25 @@ export default function NotificationSettings() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/notifications/settings');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setSettings({
-              emailEnabled: data.data.emailEnabled || false,
-              pushEnabled: data.data.pushEnabled || false,
-              inAppEnabled: data.data.inAppEnabled || false,
-              contentChangesEnabled: data.data.contentChangesEnabled || false,
-              assignmentsEnabled: data.data.assignmentsEnabled || false,
-              mentionsEnabled: data.data.mentionsEnabled || false,
-              statusChangesEnabled: data.data.statusChangesEnabled || false,
-              systemMessagesEnabled: data.data.systemMessagesEnabled || false
-            });
-            setInitialized(true);
-          }
-        } else {
-          console.error('Error al cargar configuración de notificaciones');
+        // Importamos el cliente axios seguro
+        const api = (await import('@/lib/axios')).default;
+        
+        // Utilizamos el cliente axios con manejo de CSRF
+        const response = await api.get('/api/notifications/settings');
+        const data = response.data;
+        
+        if (data.success && data.data) {
+          setSettings({
+            emailEnabled: data.data.emailEnabled || false,
+            pushEnabled: data.data.pushEnabled || false,
+            inAppEnabled: data.data.inAppEnabled || false,
+            contentChangesEnabled: data.data.contentChangesEnabled || false,
+            assignmentsEnabled: data.data.assignmentsEnabled || false,
+            mentionsEnabled: data.data.mentionsEnabled || false,
+            statusChangesEnabled: data.data.statusChangesEnabled || false,
+            systemMessagesEnabled: data.data.systemMessagesEnabled || false
+          });
+          setInitialized(true);
         }
       } catch (error) {
         console.error('Error al cargar configuración de notificaciones:', error);
@@ -70,23 +71,21 @@ export default function NotificationSettings() {
     
     setLoading(true);
     try {
-      const response = await fetch('/api/notifications/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(settings)
-      });
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('@/lib/axios');
+      const api = (await import('@/lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post('/api/notifications/settings', settings);
 
-      if (response.ok) {
-        toast({
-          title: 'Configuración actualizada',
-          description: 'La configuración de notificaciones se ha actualizado correctamente',
-          variant: 'default'
-        });
-      } else {
-        throw new Error('Error al actualizar la configuración');
-      }
+      toast({
+        title: 'Configuración actualizada',
+        description: 'La configuración de notificaciones se ha actualizado correctamente',
+        variant: 'default'
+      });
     } catch (error) {
       toast({
         title: 'Error',
