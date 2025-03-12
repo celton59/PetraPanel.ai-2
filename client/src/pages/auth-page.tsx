@@ -42,8 +42,16 @@ export default function AuthPage() {
   const handleQuickLogin = async () => {
     setIsLoading(true);
     try {
-      console.log("Iniciando sesión con:", { username: "hola" });
-      await login({ username: "hola", password: "1234" });
+      // Limpiamos cualquier token CSRF previo para evitar problemas
+      localStorage.removeItem('csrfToken');
+      
+      console.log("Iniciando sesión rápida con usuario admin");
+      
+      // Añadimos un pequeño delay para evitar problemas de carrera con tokens
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Usamos contraseña "hola" para el usuario admin
+      await login({ username: "hola", password: "hola" });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
@@ -52,7 +60,7 @@ export default function AuthPage() {
       }, 500);
     } catch (error: any) {
       setIsLoading(false);
-      console.error("Error en inicio de sesión:", error);
+      console.error("Error en inicio de sesión rápida:", error);
       toast.error("Error de inicio de sesión", {
         description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
         position: "top-right",
@@ -65,7 +73,27 @@ export default function AuthPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await login({ username: data.username, password: data.password });
+      // Añadimos un timeout para evitar problemas con sesiones previas
+      localStorage.removeItem('csrfToken');
+      
+      // Agregamos validación extra para usuarios media_review
+      const isMediaReview = data.username.toLowerCase().includes('media') || 
+                           data.username.toLowerCase().includes('review');
+                           
+      // Si parece ser un usuario media_review, mostramos mensajes adicionales
+      if (isMediaReview) {
+        toast.info("Iniciando sesión como revisor", {
+          description: "El proceso puede tardar unos segundos, por favor espere...",
+          position: "top-right",
+          duration: 2000
+        });
+      }
+      
+      await login({ 
+        username: data.username, 
+        password: data.password,
+        rememberMe: data.rememberMe
+      });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {

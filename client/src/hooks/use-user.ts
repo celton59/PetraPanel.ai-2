@@ -77,10 +77,22 @@ async function fetchUser(): Promise<User | null> {
     const api = (await import('../lib/axios')).default;
     
     // Refrescar token CSRF para asegurar que está disponible
-    await refreshCSRFToken();
+    // Añadimos un pequeño retraso para asegurar que el token esté correctamente almacenado
+    await refreshCSRFToken(true);
     
-    // Intentamos obtener el usuario
-    const response = await api.get('/api/user');
+    // Breve pausa para evitar problemas de sincronización
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Obtenemos el token CSRF actualizado
+    const csrfToken = localStorage.getItem('csrfToken');
+    
+    // Intentamos obtener el usuario con token explícito
+    const response = await api.get('/api/user', {
+      headers: {
+        'X-CSRF-Token': csrfToken || '',
+        'Cache-Control': 'no-cache',
+      }
+    });
     console.log("CSRF Token obtenido correctamente");
     return response.data;
   } catch (error: any) {
@@ -99,9 +111,20 @@ async function fetchUser(): Promise<User | null> {
         const { refreshCSRFToken } = await import('../lib/axios');
         await refreshCSRFToken(true); // Forzar actualización
         
-        // Reintentamos la petición
+        // Breve pausa para evitar problemas de sincronización
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Obtenemos el token CSRF actualizado
+        const csrfToken = localStorage.getItem('csrfToken');
+        
+        // Reintentamos la petición con token explícito
         const api = (await import('../lib/axios')).default;
-        const retryResponse = await api.get('/api/user');
+        const retryResponse = await api.get('/api/user', {
+          headers: {
+            'X-CSRF-Token': csrfToken || '',
+            'Cache-Control': 'no-cache',
+          }
+        });
         return retryResponse.data;
       } catch (retryError) {
         console.error("Error en reintento de fetchUser:", retryError);
@@ -130,74 +153,76 @@ export function useUser() {
     mutationFn: async (userData: { username: string; password: string; rememberMe?: boolean }) => {
       console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
       
-      async function attemptLogin(forceNewToken = false) {
+      // Función mejorada para intentar login con manejo especial para roles problemáticos
+      async function attemptLogin(forceNewToken = false, attempt = 1): Promise<User> {
         try {
           // Importamos api y refreshCSRFToken
           const { refreshCSRFToken } = await import('../lib/axios');
           const api = (await import('../lib/axios')).default;
           
-          // Refrescar proactivamente el token CSRF
-          await refreshCSRFToken(forceNewToken);
+          // Refrescar proactivamente el token CSRF - forzamos en cada intento para estar seguros
+          await refreshCSRFToken(true);
+          
+          // Añadimos una pequeña pausa para asegurar que el token esté sincronizado
+          await new Promise(resolve => setTimeout(resolve, 100));
           
           // Obtener el token actual para enviarlo en la cabecera
-          const csrfToken = localStorage.getItem('csrfToken');
+          const csrfToken = localStorage.getItem('csrfToken') || '';
           
-          // Crear configuración con cabeceras explícitas para asegurar el envío del token
-          const config = {
-            headers: {
-              'X-CSRF-Token': csrfToken,
-              'Content-Type': 'application/json'
-            },
-            withCredentials: true
-          };
+          // Eliminamos cualquier caché de sesión previa que pueda estar interfiriendo
+          if (attempt > 1) {
+            localStorage.removeItem('csrfToken');
+            await refreshCSRFToken(true);
+            await new Promise(resolve => setTimeout(resolve, 150));
+            const newToken = localStorage.getItem('csrfToken') || '';
+            console.log(`Reintentando login [${attempt}] con nuevo token: ${newToken.substring(0, 8)}...`);
+          }
           
           // Realizar la petición con la configuración explícita
-          const response = await api.post('/api/login', userData, config);
+          const response = await api.post('/api/login', userData, {
+            headers: {
+              'X-CSRF-Token': csrfToken,
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            },
+            withCredentials: true
+          });
+          
           return response.data;
-        } catch (error) {
-          throw error;
+        } catch (error: any) {
+          console.error(`Error en intento #${attempt} de login:`, error.message);
+          
+          // Si hemos alcanzado el máximo de intentos, lanzamos el error
+          if (attempt >= 3) {
+            throw error;
+          }
+          
+          // Hacemos una pausa progresivamente más larga entre intentos
+          await new Promise(resolve => setTimeout(resolve, attempt * 200));
+          
+          // Reintentamos el login con un token fresco
+          return attemptLogin(true, attempt + 1);
         }
       }
       
       try {
-        // Primer intento
-        return await attemptLogin();
+        // Intento principal con reintentos automáticos
+        return await attemptLogin(true, 1);
       } catch (error: any) {
-        console.error("Error en primer intento de inicio de sesión:", error);
+        console.error("Error en todos los intentos de inicio de sesión:", error);
         
-        // Si hay error de CSRF, intentar de nuevo con token forzado
-        if (error.response?.status === 403 && 
-           (error.response?.data?.message?.includes('CSRF') || 
-            error.response?.data?.message?.includes('token'))) {
-          try {
-            console.log("Reintentando login con nuevo token CSRF...");
-            return await attemptLogin(true);
-          } catch (retryError: any) {
-            console.error("Error en segundo intento de inicio de sesión:", retryError);
-            
-            // Mensaje personalizado para el error final
-            if (retryError.response?.status === 401) {
-              throw new Error("Nombre de usuario o contraseña incorrectos");
-            } else if (retryError.response?.data?.message) {
-              throw new Error(retryError.response.data.message);
-            } else {
-              throw new Error("Error al iniciar sesión. Intente de nuevo.");
-            }
-          }
-        }
-        
-        // Para el error 401, dar un mensaje amigable
+        // Mensajes de error personalizados basados en el tipo de error
         if (error.response?.status === 401) {
           throw new Error("Nombre de usuario o contraseña incorrectos");
-        }
-        
-        // Extrae el mensaje de error de la respuesta de Axios
-        if (error.response?.data?.message) {
+        } else if (error.response?.status === 403) {
+          throw new Error("Error de validación de seguridad. Intente de nuevo.");
+        } else if (error.response?.data?.message) {
           throw new Error(error.response.data.message);
+        } else {
+          throw new Error("Error al iniciar sesión. Intente de nuevo.");
         }
-        
-        // Error genérico
-        throw new Error("Error al iniciar sesión. Intente de nuevo.");
       }
     },
     onSuccess: (data) => {
