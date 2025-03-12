@@ -34,6 +34,8 @@ import { ImprovedTrainingExamplesDialog } from "../../../../titulin/components/I
 import { TitleComparisonDialog } from "../../../../titulin/components/TitleComparisonDialog";
 
 
+import { useTitulinChannels } from "@/hooks/useTitulinChannels";
+
 export default function TitulinTab () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [newChannelUrl, setNewChannelUrl] = useState("");
@@ -46,20 +48,8 @@ export default function TitulinTab () {
   const [isCleaningOrphanedVideos, setIsCleaningOrphanedVideos] = useState(false);
   const queryClient = useQueryClient();
 
-  // Consulta para canales
-  const { data: channels = [], isLoading: isLoadingChannels } = useQuery<YoutubeChannel[]>({
-    queryKey: ["titulin-channels"],
-    queryFn: async () => {
-      try {
-        const response = await axios.get("/api/titulin/channels");
-        return Array.isArray(response.data) ? response.data : [];
-      } catch (error) {
-        console.error('Error fetching channels:', error);
-        toast.error("Error al cargar los canales");
-        return [];
-      }
-    },
-  });
+  // Consulta para canales usando el hook personalizado
+  const { channels, isLoading: isLoadingChannels } = useTitulinChannels();
   
   // Consulta para estadísticas
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
