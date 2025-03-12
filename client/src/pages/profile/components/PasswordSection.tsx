@@ -228,7 +228,6 @@ export function PasswordSection() {
                     <Progress 
                       value={passwordStrength.score} 
                       className="h-1.5" 
-                      indicatorClassName={getStrengthColor(passwordStrength.score)}
                     />
                     
                     {passwordStrength.feedback.length > 0 && (

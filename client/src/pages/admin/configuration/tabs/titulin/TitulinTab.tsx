@@ -278,7 +278,11 @@ export default function TitulinTab () {
         channelName: channel.name
       }))
       .filter(item => isValid(item.date))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+      .sort((a, b) => {
+        const dateA = a.date ? a.date.getTime() : 0;
+        const dateB = b.date ? b.date.getTime() : 0;
+        return dateB - dateA;
+      });
       
     return lastUpdateDates.length > 0 ? lastUpdateDates[0] : null;
   };
@@ -314,13 +318,13 @@ export default function TitulinTab () {
                   {activeChannels} activos
                 </p>
               </div>
-              {lastSync && (
+              {lastSync?.date && (
                 <div className="text-right">
                   <p className="text-sm font-medium">Última actualización</p>
                   <p className="text-sm text-muted-foreground">
                     {formatDistanceToNow(lastSync.date, { locale: es, addSuffix: true })}
                   </p>
-                  <p className="text-xs text-muted-foreground/70">{lastSync.channelName}</p>
+                  <p className="text-xs text-muted-foreground/70">{lastSync?.channelName}</p>
                 </div>
               )}
             </div>
@@ -432,7 +436,7 @@ export default function TitulinTab () {
                   <p className="font-medium">Última sincronización</p>
                   <div className="flex items-center">
                     <Badge variant={lastSync ? "default" : "secondary"}>
-                      {lastSync ? formatDistanceToNow(lastSync.date, { locale: es, addSuffix: true }) : "Nunca"}
+                      {lastSync?.date ? formatDistanceToNow(lastSync.date, { locale: es, addSuffix: true }) : "Nunca"}
                     </Badge>
                   </div>
                 </div>

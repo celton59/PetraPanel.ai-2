@@ -1,7 +1,7 @@
 import { Express, Request, Response, NextFunction } from 'express';
 import { getNotificationsService } from '../services/notifications';
 import { db } from '@db/index';
-import { notifications, notificationSettings } from '@db/schema';
+import { notifications, notificationSettings, User } from '@db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export function setupNotificationRoutes(app: Express, requireAuth: (req: Request, res: Response, next: NextFunction) => void) {
@@ -192,7 +192,7 @@ export function setupNotificationRoutes(app: Express, requireAuth: (req: Request
         return res.status(403).json({ success: false, message: 'Solo los administradores pueden enviar notificaciones a roles' });
       }
       
-      const role = req.params.role;
+      const role = req.params.role as User['role'];
       const { title, message, type, actionUrl, actionLabel } = req.body;
       
       if (!title || !message) {

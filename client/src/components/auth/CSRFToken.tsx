@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { refreshCsrfToken } from '@/lib/axios';
+import { refreshCSRFToken } from '@/lib/axios';
 
 /**
  * Componente que maneja la carga y actualización del token CSRF.
@@ -12,7 +12,7 @@ export function CSRFToken() {
     // Función para cargar el token CSRF al iniciar
     const loadCsrfToken = async () => {
       try {
-        await refreshCsrfToken();
+        await refreshCSRFToken();
         console.log('CSRF Token obtenido correctamente');
         setIsLoaded(true);
       } catch (error) {
@@ -27,7 +27,7 @@ export function CSRFToken() {
     // Programar una actualización periódica del token (cada 30 minutos)
     const intervalId = setInterval(async () => {
       try {
-        await refreshCsrfToken();
+        await refreshCSRFToken();
         console.log('CSRF Token actualizado');
       } catch (error) {
         console.error('Error al actualizar el token CSRF:', error);

@@ -50,7 +50,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
-const VISIBLE_STATES = {
+const VISIBLE_STATES: Record<User['role'], string[]> = {
   optimizer: [
     "pending",
     "in_progress",
@@ -207,8 +207,7 @@ export default function VideosPage() {
     // Asignar el video automáticamente al youtuber cuando está en estado 'upload_media' y no está asignado
     if (
       user?.role === 'youtuber' && 
-      video.status === 'upload_media' && 
-      (!video.youtuber || video.youtuber === user.id)
+      video.status === 'upload_media'
     ) {
       try {
         // Intentar asignar el video al youtuber
@@ -947,8 +946,7 @@ export default function VideosPage() {
         projectId={projectId}
         onProjectChange={setProjectId}
         showFilters={showFilters}
-        onToggleFilters={() => setShowFilters(!showFilters)}
-        visibleStates={user ? VISIBLE_STATES[user.role] : undefined}
+        visibleStates={user ? VISIBLE_STATES[user.role] : []}
       />
       
       {/* Vista principal */}

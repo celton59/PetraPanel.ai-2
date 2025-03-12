@@ -14,7 +14,6 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { VISIBLE_STATES } from "../lib/role-permissions";
 import { 
   generateS3Key, 
   initiateMultipartUpload as initiateS3Upload, 

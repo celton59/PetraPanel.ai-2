@@ -218,7 +218,7 @@ export function validateWithSchema<T>(schema: z.ZodType<T>, data: unknown): {
         success: false,
         error: {
           message: firstError.message,
-          path: firstError.path
+          path: firstError.path.map( e => e.toString() )
         }
       };
     }

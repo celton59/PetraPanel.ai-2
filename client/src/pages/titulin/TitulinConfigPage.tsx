@@ -136,7 +136,7 @@ export default function TitulinConfigPage() {
   const syncChannelMutation = useMutation({
     mutationFn: async (channelId: string) => {
       setSyncingChannel(channelId);
-      const response = await axios.post(`/api/titulin/channels/sync/${channelId}`);
+      const response = await axios.post(`/api/titulin/channels/${channelId}/sync`);
       return response.data;
     },
     onSuccess: (data) => {

@@ -738,16 +738,16 @@ export function registerRoutes(app: Express): Server {
         }
         
         // Arrays para almacenar los diferentes tipos de resultados
-        let dbUsers = [] as any[];
-        let dbVideos = [] as any[];
-        let dbProjects = [] as any[];
-        let dbYoutubeChannels = [] as any[];
+        let dbUsers: SearchResponseItem[] = []
+        let dbVideos: SearchResponseItem[] = []
+        let dbProjects: SearchResponseItem[] = []
+        let dbYoutubeChannels: SearchResponseItem[] = []
         
         // 1. Obtener usuarios de la base de datos
         try {
           const usersResult = await db.select().from(users).limit(20);
           
-          dbUsers = usersResult.map(user => ({
+          dbUsers = usersResult.map<SearchResponseItem>(user => ({
             id: user.id,
             title: user.fullName || user.username,
             subtitle: user.email || `@${user.username}`,
@@ -786,155 +786,15 @@ export function registerRoutes(app: Express): Server {
             url: `/videos/${video.id}`,
             thumbnail: video.thumbnailUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=video${video.id}`,
             status: video.status,
-            date: video.createdAt,
-            tags: video.tags || [],
+            date: video.createdAt ? video.createdAt.toISOString() : undefined,
+            tags: video.tags?.split(',') || [],
           }));
           
           console.log(`Encontrados ${dbVideos.length} videos en la base de datos`);
         } catch (error) {
           console.error('Error al obtener videos de la base de datos:', error);
         }
-        
-        // Mantener algunos resultados de ejemplo para compatibilidad
-        const results = [
-          // Videos
-          {
-            id: 1,
-            title: 'Cómo optimizar videos para YouTube',
-            subtitle: 'Tutorial SEO',
-            type: 'video',
-            url: '/videos/1',
-            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video1',
-            status: 'completed',
-            tags: ['tutorial', 'seo', 'youtube']
-          },
-          {
-            id: 2,
-            title: 'Los mejores plugins para WordPress 2025',
-            subtitle: 'Guía completa',
-            type: 'video',
-            url: '/videos/2',
-            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video2',
-            status: 'content_review',
-            tags: ['wordpress', 'plugins', 'web']
-          },
-          {
-            id: 3,
-            title: 'Entrevista con Aitor Menta',
-            subtitle: 'Especialista en SEO',
-            type: 'video',
-            url: '/videos/3',
-            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video3',
-            status: 'completed',
-            tags: ['entrevista', 'seo', 'marketing']
-          },
-          {
-            id: 4,
-            title: 'Análisis de redes sociales',
-            subtitle: 'Por Aitor Tilla',
-            type: 'video',
-            url: '/videos/4',
-            thumbnail: 'https://api.dicebear.com/7.x/shapes/svg?seed=video4',
-            status: 'media_review',
-            tags: ['redes', 'social', 'analisis']
-          },
-          // Proyectos
-          {
-            id: 1,
-            title: 'Marketing Digital',
-            type: 'project',
-            url: '/projects/1',
-            icon: '💼',
-          },
-          {
-            id: 2,
-            title: 'Tutoriales de código',
-            type: 'project',
-            url: '/projects/2',
-            icon: '💻',
-          },
-          {
-            id: 3,
-            title: 'Proyecto Aitor',
-            subtitle: 'Investigación de mercado',
-            type: 'project',
-            url: '/projects/3',
-            icon: '🔍',
-          },
-          // Usuarios
-          {
-            id: 1,
-            title: 'Ana González',
-            subtitle: 'Diseñadora UX',
-            type: 'user',
-            url: '/users/1',
-            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
-          },
-          {
-            id: 2,
-            title: 'Carlos Martínez',
-            subtitle: 'Editor de video',
-            type: 'user',
-            url: '/users/2',
-            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
-          },
-          {
-            id: 3,
-            title: 'Aitor García',
-            subtitle: 'Especialista en SEO',
-            type: 'user',
-            url: '/users/3',
-            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aitor',
-          },
-          {
-            id: 4,
-            title: 'Elena Aitor',
-            subtitle: 'Content Manager',
-            type: 'user',
-            url: '/users/4',
-            thumbnail: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
-          },
-          // Canales
-          {
-            id: 1,
-            title: 'TechTutorials',
-            subtitle: 'Canal YouTube',
-            type: 'channel',
-            url: '/titulin/channels/1',
-            icon: '📺',
-          },
-          {
-            id: 2,
-            title: 'AitorTech',
-            subtitle: 'Canal de tecnología',
-            type: 'channel',
-            url: '/titulin/channels/2',
-            icon: '📱',
-          },
-          // Configuración
-          {
-            id: 1,
-            title: 'Ajustes de perfil',
-            type: 'settings',
-            url: '/profile',
-            icon: '⚙️',
-          },
-          {
-            id: 2,
-            title: 'Configuración de notificaciones',
-            type: 'settings',
-            url: '/settings/notifications',
-            icon: '🔔',
-          },
-          {
-            id: 3,
-            title: 'Gestión de usuarios',
-            type: 'settings',
-            url: '/admin/users',
-            icon: '👥',
-          }
-        ];
-        
+               
         // 3. Obtener proyectos de la base de datos
         try {
           const projectsResult = await db.select().from(projects).limit(20);
@@ -973,39 +833,39 @@ export function registerRoutes(app: Express): Server {
         }
         
         // 5. Configuración y elementos estáticos
-        const settingsItems = [
+        const settingsItems: SearchResponseItem[] = [
           {
-            id: 'profile',
+            id: -1,
             title: 'Ajustes de perfil',
-            type: 'settings' as const,
+            type: 'settings',
             url: '/profile',
             icon: '⚙️',
           },
           {
-            id: 'notifications',
+            id: -1,
             title: 'Configuración de notificaciones',
-            type: 'settings' as const,
+            type: 'settings',
             url: '/settings/notifications',
             icon: '🔔',
           },
           {
-            id: 'users',
+            id: -1,
             title: 'Gestión de usuarios',
-            type: 'settings' as const,
+            type: 'settings',
             url: '/admin/users',
             icon: '👥',
           },
           {
-            id: 'search',
+            id: -1,
             title: 'Configuración de búsqueda',
-            type: 'settings' as const,
+            type: 'settings',
             url: '/settings/search',
             icon: '🔍',
           }
         ];
         
         // Combinamos todos los resultados con prioridad a los datos reales
-        const allResults = [
+        const allResults: SearchResponseItem[] = [
           ...dbUsers,           // Usuarios reales de la base de datos
           ...dbVideos,          // Videos reales de la base de datos
           ...dbProjects,        // Proyectos reales de la base de datos
@@ -1041,4 +901,17 @@ export function registerRoutes(app: Express): Server {
     console.error("Error setting up routes:", error);
     throw error;
   }
+}
+
+interface SearchResponseItem {
+  id: number;
+  title: string;
+  subtitle?: string;
+  type: 'user' | 'video' | 'project' | 'channel' | 'settings';
+  url: string;
+  thumbnail?: string;
+  status?: string;
+  date?: string;
+  tags?: string[];
+  icon?: string
 }
