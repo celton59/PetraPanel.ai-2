@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { useUser } from "@/hooks/use-user";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleUserRound, KeyRound, LogIn, Loader2, LayoutDashboard, Video, Camera } from "lucide-react";
+import { 
+  CircleUserRound, KeyRound, LogIn, Loader2, LayoutDashboard, 
+  Video, Camera, PenTool, ClipboardCheck, Upload, FileText
+} from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -43,6 +46,10 @@ export default function AuthPage() {
     { username: "hola", password: "1234", role: "admin", displayName: "Admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
     { username: "mediareviewer", password: "1234", role: "media_reviewer", displayName: "Media Reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
     { username: "youtuber", password: "1234", role: "youtuber", displayName: "Youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
+    { username: "optimizer", password: "1234", role: "optimizer", displayName: "Optimizer", icon: <PenTool className="h-4 w-4 mr-2" /> },
+    { username: "reviewer", password: "1234", role: "reviewer", displayName: "Reviewer", icon: <ClipboardCheck className="h-4 w-4 mr-2" /> },
+    { username: "contentreviewer", password: "1234", role: "content_reviewer", displayName: "Content Reviewer", icon: <FileText className="h-4 w-4 mr-2" /> },
+    { username: "uploader", password: "1234", role: "uploader", displayName: "Uploader", icon: <Upload className="h-4 w-4 mr-2" /> },
   ];
   
   // Helper de inicio de sesión rápido con credenciales predefinidas
@@ -129,7 +136,7 @@ export default function AuthPage() {
         {/* Botones de inicio rápido para pruebas con información de credenciales */}
         <div className="flex flex-col gap-3 mb-6">
           <p className="text-sm text-center text-muted-foreground mb-1">Cuentas de acceso rápido:</p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 justify-center">
             {predefinedCredentials.map((cred) => (
               <Button 
                 key={cred.username}

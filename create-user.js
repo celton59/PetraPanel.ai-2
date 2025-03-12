@@ -97,7 +97,11 @@ async function createUser() {
   const users = [
     { username: 'hola', password: '1234', role: 'admin', fullName: 'Administrador' },
     { username: 'mediareviewer', password: '1234', role: 'media_reviewer', fullName: 'Revisor de Medios' },
-    { username: 'youtuber', password: '1234', role: 'youtuber', fullName: 'Youtuber' }
+    { username: 'youtuber', password: '1234', role: 'youtuber', fullName: 'Youtuber' },
+    { username: 'optimizer', password: '1234', role: 'optimizer', fullName: 'Optimizador' },
+    { username: 'reviewer', password: '1234', role: 'reviewer', fullName: 'Revisor General' },
+    { username: 'contentreviewer', password: '1234', role: 'content_reviewer', fullName: 'Revisor de Contenido' },
+    { username: 'uploader', password: '1234', role: 'uploader', fullName: 'Subidor de Contenido' }
   ];
   
   console.log('Iniciando actualización de usuarios...');
