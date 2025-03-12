@@ -250,7 +250,7 @@ export default function VideosPage() {
     if (
       user?.role === 'youtuber' && 
       video.status === 'upload_media' && 
-      (!video.assignedToId || video.assignedToId === user.id)
+      (!video.assignedToId || (video.assignedToId && video.assignedToId === user.id))
     ) {
       try {
         // Intentar asignar el video al youtuber

@@ -23,14 +23,17 @@ export type ApiVideo = {
   contentReviewerUsername: User["username"];
   mediaReviewerName: User["fullName"] | null;
   mediaReviewerUsername: User["username"];
-  creatorName: User["fullName"] | null,
-  creatorUsername: User["username"],
-  optimizerName: User["fullName"] | null,
-  optimizerUsername: User["username"],
-  uploaderName: User["fullName"] | null,
-  uploaderUsername: User["username"],
-  deletedByName: User["fullName"] | null,
-  deletedByUsername: User["username"] | null
+  creatorName: User["fullName"] | null;
+  creatorUsername: User["username"];
+  optimizerName: User["fullName"] | null;
+  optimizerUsername: User["username"];
+  uploaderName: User["fullName"] | null;
+  uploaderUsername: User["username"];
+  deletedByName: User["fullName"] | null;
+  deletedByUsername: User["username"] | null;
+  // Propiedades adicionales para asignación
+  assignedToId?: number | null;
+  assignedToName?: string | null;
 }
 
 interface VideosResponse {
