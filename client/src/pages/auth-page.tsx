@@ -41,8 +41,8 @@ export default function AuthPage() {
   // Definimos credenciales predeterminadas para diferentes roles
   const predefinedCredentials = [
     { username: "hola", password: "1234", role: "admin", displayName: "Admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
-    { username: "mediareviewer", password: "Petra123!", role: "media_reviewer", displayName: "Media Reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
-    { username: "youtuber", password: "Petra123!", role: "youtuber", displayName: "Youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
+    { username: "mediareviewer", password: "1234", role: "media_reviewer", displayName: "Media Reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
+    { username: "youtuber", password: "1234", role: "youtuber", displayName: "Youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
   ];
   
   // Helper de inicio de sesión rápido con credenciales predefinidas
