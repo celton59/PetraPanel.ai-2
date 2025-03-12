@@ -7,7 +7,6 @@ import { ProjectsTab } from "./tabs/project/ProjectsTab";
 import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
 import { RatesTab } from "../accounting/RatesTab";
 import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
-import TitulinTab from "./tabs/titulin/TitulinTab";
 
 /**
  * Página de configuración del administrador que contiene diferentes pestañas
@@ -15,7 +14,7 @@ import TitulinTab from "./tabs/titulin/TitulinTab";
  */
 export default function ConfigurationPage() {
   const [activeTab, setActiveTab] = useState("usuarios");
-  
+
   return (
     <AdminLayout>
       <div className="w-full space-y-6">
@@ -25,7 +24,7 @@ export default function ConfigurationPage() {
             Gestiona la configuración global del sistema, usuarios, proyectos y flujos de trabajo.
           </p>
         </div>
-        
+
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
@@ -34,37 +33,32 @@ export default function ConfigurationPage() {
           <TabsList className="w-full justify-start h-12 mb-8">
             <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
             <TabsTrigger value="proyectos">Proyectos</TabsTrigger>
-            <TabsTrigger value="titulin">Titulín</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="workflow">Flujo de trabajo</TabsTrigger>
             <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
             <TabsTrigger value="finanzas">Configuración Financiera</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="usuarios" className="space-y-4">
             <UsersTab />
           </TabsContent>
-          
+
           <TabsContent value="proyectos" className="space-y-4">
             <ProjectsTab />
           </TabsContent>
 
-          <TabsContent value="titulin" className="space-y-4">
-            <TitulinTab />
-          </TabsContent>
-          
           <TabsContent value="roles" className="space-y-4">
             <RolesTab />
           </TabsContent>
-          
+
           <TabsContent value="workflow" className="space-y-4">
             <VideoFlowTab />
           </TabsContent>
-          
+
           <TabsContent value="tarifas" className="space-y-4">
             <RatesTab />
           </TabsContent>
-          
+
           <TabsContent value="finanzas" className="space-y-4">
             <FinanceConfigTab />
           </TabsContent>
