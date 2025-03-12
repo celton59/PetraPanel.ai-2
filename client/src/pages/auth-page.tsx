@@ -367,7 +367,7 @@ export default function AuthPage() {
           </div>
           
           <div className="bg-muted/40 p-4 rounded-xl border border-border/30 shadow-sm">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-items-center">
               {predefinedCredentials.map((cred) => (
                 <Button 
                   key={cred.username}
