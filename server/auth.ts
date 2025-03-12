@@ -22,8 +22,11 @@ declare global {
       csrfToken?: () => string;
       validatedData?: any;
     }
-    interface Session {
-      csrfToken?: string;
+    // Extender SessionData para agregar csrfToken
+    declare module 'express-session' {
+      interface SessionData {
+        csrfToken?: string;
+      }
     }
   }
 }

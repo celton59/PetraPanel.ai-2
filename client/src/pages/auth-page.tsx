@@ -42,11 +42,11 @@ export default function AuthPage() {
   const handleQuickLogin = async () => {
     setIsLoading(true);
     try {
-      // Utilizamos las credenciales del usuario mediareviewer (rol media_review)
-      console.log("Iniciando sesión con mediareviewer");
+      // Intentamos primero con el usuario admin por ser el más usado
+      console.log("Iniciando sesión con el usuario admin");
       await login({ 
-        username: "mediareviewer", 
-        password: "Petra123!" 
+        username: "hola", 
+        password: "hola" 
       });
       
       // Simular un pequeño retraso para una mejor experiencia
@@ -58,12 +58,12 @@ export default function AuthPage() {
       setIsLoading(false);
       console.error("Error en inicio de sesión:", error);
       
-      // Reintentar automáticamente con credenciales alternativas si falló el primer intento
+      // Reintentar automáticamente con credenciales de media_review si falló el primer intento
       try {
-        console.log("Reintentando con credenciales alternativas...");
+        console.log("Reintentando con usuario media_review...");
         await login({ 
-          username: "hola", 
-          password: "hola" 
+          username: "mediareviewer", 
+          password: "Petra123!" 
         });
         
         setTimeout(() => {

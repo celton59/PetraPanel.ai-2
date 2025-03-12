@@ -27,6 +27,12 @@ interface FailedAttempt {
 // En producción, esto debería estar en Redis o similar para manejar múltiples instancias
 const failedLoginAttempts = new Map<string, FailedAttempt>();
 
+// Limpiar todos los bloqueos (solo para desarrollo)
+if (process.env.NODE_ENV !== 'production') {
+  console.log("🔓 Limpiando todos los bloqueos de cuentas (modo desarrollo)");
+  failedLoginAttempts.clear();
+}
+
 /**
  * Verifica si una cuenta está bloqueada debido a múltiples intentos fallidos
  * @param identifier Identificador único del usuario (username o email)
