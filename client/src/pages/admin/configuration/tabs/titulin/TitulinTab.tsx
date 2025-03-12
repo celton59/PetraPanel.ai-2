@@ -29,7 +29,6 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { YoutubeChannel } from "@db/schema";
 import { ImprovedTrainingExamplesDialog } from "../../../../titulin/components/ImprovedTrainingExamplesDialog";
 import { TitleComparisonDialog } from "../../../../titulin/components/TitleComparisonDialog";
 
@@ -269,8 +268,8 @@ export default function TitulinTab () {
       }))
       .filter(item => isValid(item.date))
       .sort((a, b) => {
-        const dateA = a.date ? a.date.getTime() : 0;
-        const dateB = b.date ? b.date.getTime() : 0;
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
         return dateB - dateA;
       });
       
@@ -576,8 +575,7 @@ export default function TitulinTab () {
                           </TableCell>
                           <TableCell>{channel.videoCount || 0}</TableCell>
                           <TableCell>
-                            { typeof channel.lastVideoFetch }
-                            {/* {formatLastUpdate(channel.lastVideoFetch?.toDateString())} */}
+                            {formatLastUpdate(channel.lastVideoFetch)}
                           </TableCell>
                           <TableCell>
                             <Badge

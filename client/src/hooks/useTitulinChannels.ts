@@ -1,19 +1,16 @@
 
+import { YoutubeChannel } from "@db/schema";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { toast } from "sonner";
 
-export type YoutubeChannel = {
-  id: number;
-  channelId: string;
-  name: string;
-  active: boolean;
-  lastVideoFetch: Date | null;
-  videosCount: number;
-};
+
+export interface TitulinChannel extends Omit<YoutubeChannel, 'lastVideoFetch'> {
+  lastVideoFetch?: string
+}
 
 export function useTitulinChannels() {
-  const { data: channels = [], isLoading, isError, refetch } = useQuery<YoutubeChannel[]>({
+  const { data: channels = [], isLoading, isError, refetch } = useQuery<TitulinChannel[]>({
     queryKey: ["titulin-channels"],
     queryFn: async () => {
       try {
