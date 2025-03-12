@@ -46,8 +46,10 @@ export function VideoPaginationControls({
   // Solo muestra la paginación si hay más de una página o si se puede cambiar el número de elementos por página
   const showPagination = totalPages > 1 || setItemsPerPage;
   
-  // Si no hay necesidad de mostrar paginación, no renderizamos nada
-  if (!showPagination) return null;
+  // No mostrar la paginación en estos casos:
+  // 1. Si no hay páginas o solo hay una y no se puede cambiar el límite
+  // 2. Si el total de páginas es 0 (no hay videos)
+  if (!showPagination || totalPages <= 0) return null;
   
   // Asegurar que la página actual nunca sea mayor que el total de páginas
   // Esto previene errores cuando cambiamos el límite y no hay suficientes elementos

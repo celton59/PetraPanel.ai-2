@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema'
 import { toast } from "sonner";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useState } from "react";
 
 export type PaginationMetadata = {
@@ -55,6 +55,11 @@ export function useVideos() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+
+  // Efecto para reiniciar a página 1 cuando se cambia el límite
+  useEffect(() => {
+    setPage(1);
+  }, [limit]);
 
   const queryKey = ["/api/videos", page, limit]
 
@@ -529,11 +534,17 @@ export function useVideos() {
   });
 
   // Preparar datos de paginación por defecto si no están disponibles
-  const pagination: PaginationMetadata = videosData?.pagination || {
+  const pagination: PaginationMetadata = videosData?.pagination ? {
+    ...videosData.pagination,
+    // Nos aseguramos de que totalPages sea al menos 1 si hay videos, o 0 si no hay videos
+    totalPages: (videosData.videos && videosData.videos.length > 0) 
+      ? Math.max(1, videosData.pagination.totalPages) 
+      : 0
+  } : {
     page,
     limit,
-    totalVideos: videosData?.videos?.length || 0,
-    totalPages: 1,
+    totalVideos: (videosData?.videos && videosData.videos.length) || 0,
+    totalPages: (videosData?.videos && videosData.videos.length > 0) ? 1 : 0,
     hasNextPage: false,
     hasPrevPage: false
   };
