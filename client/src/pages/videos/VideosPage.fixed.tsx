@@ -1087,7 +1087,7 @@ export default function VideosPage() {
             {viewMode === "list" && getListView()}
             
             {/* Control de paginación */}
-            {pagination && (
+            {pagination && (filteredVideos.length > 0) && (
               <VideoPaginationControls
                 currentPage={page}
                 totalPages={pagination.totalPages || 1}

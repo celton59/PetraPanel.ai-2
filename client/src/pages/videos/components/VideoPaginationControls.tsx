@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Pagination,
   PaginationContent,
@@ -43,7 +43,19 @@ export function VideoPaginationControls({
   itemsPerPage = 10,
   setItemsPerPage
 }: VideoPaginationControlsProps) {
-  if (totalPages <= 1 && !setItemsPerPage) return null;
+  // Solo muestra la paginación si hay más de una página o si se puede cambiar el número de elementos por página
+  const showPagination = totalPages > 1 || setItemsPerPage;
+  
+  // Si no hay necesidad de mostrar paginación, no renderizamos nada
+  if (!showPagination) return null;
+  
+  // Asegurar que la página actual nunca sea mayor que el total de páginas
+  // Esto previene errores cuando cambiamos el límite y no hay suficientes elementos
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages, setCurrentPage]);
 
   // Función para generar los items de la paginación
   const generatePaginationItems = () => {
