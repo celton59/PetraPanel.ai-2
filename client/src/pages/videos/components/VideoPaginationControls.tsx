@@ -9,20 +9,41 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  ChevronRight,
+  ChevronsUpDown
+} from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface VideoPaginationControlsProps {
   currentPage: number;
   totalPages: number;
   setCurrentPage: (page: number) => void;
+  itemsPerPage?: number;
+  setItemsPerPage?: (limit: number) => void;
 }
 
 export function VideoPaginationControls({
   currentPage,
   totalPages,
-  setCurrentPage
+  setCurrentPage,
+  itemsPerPage = 10,
+  setItemsPerPage
 }: VideoPaginationControlsProps) {
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1 && !setItemsPerPage) return null;
 
   // Función para generar los items de la paginación
   const generatePaginationItems = () => {
@@ -108,7 +129,8 @@ export function VideoPaginationControls({
   };
 
   return (
-    <div className="flex justify-center mt-6 mb-10">
+    <div className="flex flex-col items-center mt-6 mb-10 space-y-4">
+      {/* Controles de paginación */}
       <Pagination>
         <PaginationContent>
           <PaginationItem>
@@ -132,6 +154,42 @@ export function VideoPaginationControls({
           </PaginationItem>
         </PaginationContent>
       </Pagination>
+      
+      {/* Selector de items por página */}
+      {setItemsPerPage && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Mostrar</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setItemsPerPage(parseInt(value));
+                    setCurrentPage(1); // Resetear a primera página al cambiar items por página
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue placeholder={itemsPerPage} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="30">30</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Videos por página</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <span>videos por página</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -1087,11 +1087,13 @@ export default function VideosPage() {
             {viewMode === "list" && getListView()}
             
             {/* Control de paginación */}
-            {pagination && pagination.totalPages > 1 && (
+            {pagination && (
               <VideoPaginationControls
                 currentPage={page}
-                totalPages={pagination.totalPages}
+                totalPages={pagination.totalPages || 1}
                 setCurrentPage={setPage}
+                itemsPerPage={limit}
+                setItemsPerPage={setLimit}
               />
             )}
           </>
