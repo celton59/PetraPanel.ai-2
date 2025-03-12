@@ -39,14 +39,30 @@ export default function AuthPage() {
   const { login } = useUser();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false); // No mostrar el diálogo de PIN al cargar
   const [pinValues, setPinValues] = useState(['', '', '', '']);
   const [pinError, setPinError] = useState('');
   const [showDevAccess, setShowDevAccess] = useState(false);
+  const [rememberAccess, setRememberAccess] = useState(false);
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   
   // PIN correcto para acceder a las cuentas de prueba
   const CORRECT_PIN = ['1', '2', '3', '4']; // PIN sencillo: 1234
+  
+  // Verificar si hay PIN guardado en localStorage al cargar el componente
+  useEffect(() => {
+    const hasAccessToken = localStorage.getItem('devAccessToken');
+    if (hasAccessToken === 'true') {
+      setShowDevAccess(true);
+    }
+  }, []);
+  
+  // Enfocar el primer campo del PIN cuando se carga la página
+  useEffect(() => {
+    if (showPinDialog) {
+      setTimeout(() => pinRefs[0].current?.focus(), 100);
+    }
+  }, [showPinDialog]);
 
   // Configurar el formulario con validación de Zod
   const form = useForm<LoginFormValues>({
@@ -112,6 +128,12 @@ export default function AuthPage() {
     if (JSON.stringify(currentPin) === JSON.stringify(CORRECT_PIN)) {
       setPinError('');
       setShowDevAccess(true);
+      
+      // Si se ha seleccionado recordar el acceso, guardamos en localStorage
+      if (rememberAccess) {
+        localStorage.setItem('devAccessToken', 'true');
+      }
+      
       setShowPinDialog(false);
       
       // Mostrar mensaje de éxito
@@ -202,7 +224,14 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
       {/* Diálogo para el PIN de acceso a cuentas de desarrollo */}
-      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+      <Dialog 
+        open={showPinDialog} 
+        onOpenChange={(open) => {
+          // El usuario siempre puede cerrar el diálogo
+          setShowPinDialog(open);
+        }}
+        modal={false} // El diálogo no bloquea la página
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center text-xl">
@@ -241,12 +270,29 @@ export default function AuthPage() {
               ))}
             </div>
             
-            <p className="text-center text-xs text-muted-foreground mt-2">
-              <span className="flex items-center justify-center">
+            <div className="text-center text-xs text-muted-foreground mt-2">
+              <div className="flex items-center justify-center">
                 <ShieldAlert className="w-3 h-3 mr-1" />
                 Este PIN protege el acceso a cuentas de prueba
-              </span>
-            </p>
+              </div>
+            </div>
+            
+            {/* Checkbox para recordar el acceso */}
+            <div className="flex items-center justify-center mt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="rememberPin"
+                  checked={rememberAccess}
+                  onCheckedChange={checked => setRememberAccess(checked === true)}
+                />
+                <label 
+                  htmlFor="rememberPin"
+                  className="text-sm font-medium leading-none cursor-pointer"
+                >
+                  Recordar mi acceso
+                </label>
+              </div>
+            </div>
           </div>
           
           <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
@@ -350,6 +396,14 @@ export default function AuthPage() {
             </div>
             <div className="mt-3 text-center text-xs text-muted-foreground">
               <span>Pasa el cursor sobre un rol para ver las credenciales</span>
+              {!showDevAccess && (
+                <button 
+                  onClick={showDevPinDialog}
+                  className="block mx-auto mt-2 text-primary hover:underline hover:text-primary/80 transition-colors"
+                >
+                  Ingresar PIN para desbloquear
+                </button>
+              )}
             </div>
           </div>
         </div>
