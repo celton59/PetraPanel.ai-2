@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SortingState } from "@tanstack/react-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import TitulinTab from "../admin/configuration/tabs/titulin/TitulinTab";
 
 function VideoOverviewTab({ children }: { children: React.ReactNode }) {
@@ -40,7 +41,7 @@ export default function TitulinPage() {
   const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   const [currentTab, setCurrentTab] = useState("overview");
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "publishedAt", desc: true } 
+    { id: "publishedAt", desc: true }
   ]);
 
   // Efecto para gestionar la búsqueda
@@ -58,11 +59,11 @@ export default function TitulinPage() {
   const queryClient = useQueryClient();
 
   // Consulta para obtener videos
-  const { 
-    data: videosData, 
-    isLoading, 
+  const {
+    data: videosData,
+    isLoading,
     isFetching,
-    refetch 
+    refetch
   } = useQuery<VideoResponse>({
     queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyEvergreen, onlyAnalyzed, currentTab],
     queryFn: async () => {
@@ -78,9 +79,9 @@ export default function TitulinPage() {
         page: currentPage,
         limit: pageSize
       };
-      
+
       console.log("Parámetros de búsqueda:", searchParams);
-      
+
       const response = await axios.get<VideoResponse>("/api/titulin/videos", {
         params: searchParams
       });
@@ -130,9 +131,9 @@ export default function TitulinPage() {
       const selectedChannel = channels.find(c => c.channelId === channelFilter);
       // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
       const lastFetch = selectedChannel?.lastVideoFetch || selectedChannel?.['last_video_fetch'];
-      
+
       if (!lastFetch) return "Sin datos de actualización";
-      
+
       try {
         const date = parseISO(lastFetch);
         return `Hace ${formatDistanceToNow(date, { locale: es })}`;
@@ -144,14 +145,14 @@ export default function TitulinPage() {
     const lastUpdate = channels.reduce((latest, channel) => {
       // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
       const lastFetch = channel.lastVideoFetch || channel['last_video_fetch'];
-      
+
       if (!lastFetch) return latest;
       if (!latest) return lastFetch;
       return lastFetch > latest ? lastFetch : latest;
     }, null as string | null);
 
     if (!lastUpdate) return "No hay datos";
-    
+
     try {
       const date = parseISO(lastUpdate);
       return `Hace ${formatDistanceToNow(date, { locale: es })}`;
@@ -181,17 +182,17 @@ export default function TitulinPage() {
     },
     onSuccess: (data) => {
       const exportVideos = data.videos || [];
-      
+
       if (!exportVideos.length) {
         toast.error("No hay videos para descargar");
         return;
       }
-      
+
       // Crear el contenido del CSV
       const titlesForCSV = exportVideos.map((video: TitulinVideo) => {
         // Obtener la fecha publicada con cualquiera de los dos formatos posibles
         const publishedDate = video.publishedAt || video['published_at'];
-        
+
         return {
           title: video.title,
           views: video.viewCount,
@@ -203,27 +204,27 @@ export default function TitulinPage() {
           url: `https://youtube.com/watch?v=${video.videoId}`
         };
       });
-      
+
       // Convertir a formato CSV
       const headers = Object.keys(titlesForCSV[0]).join(',');
-      const rows = titlesForCSV.map((obj: Record<string, any>) => 
-        Object.values(obj).map(value => 
+      const rows = titlesForCSV.map((obj: Record<string, any>) =>
+        Object.values(obj).map(value =>
           typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
         ).join(',')
       );
       const csv = [headers, ...rows].join('\n');
-      
+
       // Descargar como archivo
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
-      link.setAttribute('download', `youtube_videos_export_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute('download', `youtube_videos_export_${new Date().toISOString().slice(0, 10)}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success(`Se han exportado ${exportVideos.length} videos`);
     },
     onError: (error) => {
@@ -282,7 +283,7 @@ export default function TitulinPage() {
 
           <TabsContent value="overview" className="space-y-4">
             <VideoOverviewTab>
-              <VideoStats 
+              <VideoStats
                 totalVideos={totalVideos}
                 viewsCount={viewsCount}
                 likesCount={likesCount}
@@ -297,7 +298,7 @@ export default function TitulinPage() {
               >
                 <div className="flex flex-col gap-4 md:flex-row md:items-start">
                   <div className="relative flex-1 w-full">
-                    <SearchBar 
+                    <SearchBar
                       searchValue={searchValue}
                       setSearchValue={setSearchValue}
                       setTitleFilter={setTitleFilter}
@@ -325,8 +326,8 @@ export default function TitulinPage() {
                 {/* Pestañas para filtrar videos */}
                 <Card>
                   <CardContent className="p-0">
-                    <Tabs 
-                      defaultValue="todos" 
+                    <Tabs
+                      defaultValue="todos"
                       value={currentTab}
                       onValueChange={(value) => {
                         setCurrentTab(value);
@@ -353,7 +354,7 @@ export default function TitulinPage() {
                           </TabsTrigger>
                         </TabsList>
                       </div>
-                      
+
                       <TabsContent value="todos" className="m-0">
                         {isLoading ? (
                           <div className="text-center py-10">
@@ -373,7 +374,7 @@ export default function TitulinPage() {
                           </div>
                         )}
                       </TabsContent>
-                      
+
                       <TabsContent value="evergreen" className="m-0">
                         {isLoading ? (
                           <div className="text-center py-10">
@@ -393,7 +394,7 @@ export default function TitulinPage() {
                           </div>
                         )}
                       </TabsContent>
-                      
+
                       <TabsContent value="no-evergreen" className="m-0">
                         {isLoading ? (
                           <div className="text-center py-10">
@@ -413,7 +414,7 @@ export default function TitulinPage() {
                           </div>
                         )}
                       </TabsContent>
-                      
+
                       <TabsContent value="analizados" className="m-0">
                         {isLoading ? (
                           <div className="text-center py-10">
@@ -433,7 +434,7 @@ export default function TitulinPage() {
                           </div>
                         )}
                       </TabsContent>
-                      
+
                       <TabsContent value="no-analizados" className="m-0">
                         {isLoading ? (
                           <div className="text-center py-10">
@@ -468,7 +469,7 @@ export default function TitulinPage() {
                       <span>No hay videos que coincidan con los filtros</span>
                     )}
                   </div>
-                  
+
                   <PaginationControls
                     currentPage={currentPage}
                     totalPages={pagination.totalPages}
