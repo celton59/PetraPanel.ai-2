@@ -171,7 +171,7 @@ export function setupAuth(app: Express) {
         
         console.log("Authenticating user:", username);
         
-        // Buscar usuarios ignorando mayúsculas/minúsculas de manera más segura
+        // Seleccionar todos los campos pero manejamos posibles errores
         const usersResult = await db
           .select()
           .from(users);
@@ -242,6 +242,7 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       console.log("Deserializing user:", id);
+      // Seleccionar todos los campos
       const [user] = await db
         .select()
         .from(users)
