@@ -134,30 +134,43 @@ export default function AuthPage() {
         </div>
 
         {/* Botones de inicio rápido para pruebas con información de credenciales */}
-        <div className="flex flex-col gap-3 mb-6">
-          <p className="text-sm text-center text-muted-foreground mb-1">Cuentas de acceso rápido:</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 justify-center">
-            {predefinedCredentials.map((cred) => (
-              <Button 
-                key={cred.username}
-                variant="outline" 
-                onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
-                disabled={isLoading}
-                className="flex items-center gap-2 relative group"
-                size="sm"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  cred.icon
-                )}
-                {cred.displayName}
-                <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-popover text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
-                  <p><strong>Usuario:</strong> {cred.username}</p>
-                  <p><strong>Contraseña:</strong> {cred.password}</p>
-                </div>
-              </Button>
-            ))}
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="text-center">
+            <h3 className="text-base font-medium text-foreground mb-1">Acceso rápido por rol</h3>
+            <p className="text-xs text-muted-foreground">Selecciona un perfil para iniciar sesión automáticamente</p>
+          </div>
+          
+          <div className="bg-muted/40 p-4 rounded-xl border border-border/30 shadow-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {predefinedCredentials.map((cred) => (
+                <Button 
+                  key={cred.username}
+                  variant="outline" 
+                  onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
+                  disabled={isLoading}
+                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all"
+                  size="sm"
+                >
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary">
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      cred.icon
+                    )}
+                  </div>
+                  <span className="text-xs font-medium">{cred.displayName}</span>
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-popover text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
+                    <div className="font-medium mb-1 pb-1 border-b text-center text-sm">{cred.displayName}</div>
+                    <p className="mt-1"><strong>Usuario:</strong> {cred.username}</p>
+                    <p><strong>Contraseña:</strong> {cred.password}</p>
+                  </div>
+                </Button>
+              ))}
+            </div>
+            <div className="mt-3 text-center text-xs text-muted-foreground">
+              <span>Pasa el cursor sobre un rol para ver las credenciales</span>
+            </div>
           </div>
         </div>
 
