@@ -40,9 +40,9 @@ export default function AuthPage() {
 
   // Definimos credenciales predeterminadas para diferentes roles
   const predefinedCredentials = [
-    { username: "hola", password: "1234", role: "admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
-    { username: "mediareviewer", password: "Petra123!", role: "media_reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
-    { username: "youtuber", password: "Petra123!", role: "youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
+    { username: "hola", password: "1234", role: "admin", displayName: "Admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
+    { username: "mediareviewer", password: "Petra123!", role: "media_reviewer", displayName: "Media Reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
+    { username: "youtuber", password: "Petra123!", role: "youtuber", displayName: "Youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
   ];
   
   // Helper de inicio de sesión rápido con credenciales predefinidas
@@ -126,25 +126,32 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Botones de inicio rápido para pruebas */}
-        <div className="flex flex-col sm:flex-row gap-2 justify-center mb-4">
-          {predefinedCredentials.map((cred) => (
-            <Button 
-              key={cred.username}
-              variant="outline" 
-              onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-              size="sm"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                cred.icon
-              )}
-              {cred.role}
-            </Button>
-          ))}
+        {/* Botones de inicio rápido para pruebas con información de credenciales */}
+        <div className="flex flex-col gap-3 mb-6">
+          <p className="text-sm text-center text-muted-foreground mb-1">Cuentas de acceso rápido:</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            {predefinedCredentials.map((cred) => (
+              <Button 
+                key={cred.username}
+                variant="outline" 
+                onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
+                disabled={isLoading}
+                className="flex items-center gap-2 relative group"
+                size="sm"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  cred.icon
+                )}
+                {cred.displayName}
+                <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-popover text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
+                  <p><strong>Usuario:</strong> {cred.username}</p>
+                  <p><strong>Contraseña:</strong> {cred.password}</p>
+                </div>
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Auth Form Card */}
