@@ -6,12 +6,15 @@ import { ProjectSelector } from "./ProjectSelector";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { User } from "@db/schema";
+import { UserFormData } from "../UserSettingsForm";
 
 interface SecuritySectionProps {
   isEditing: boolean;
   selectedProjects: number[];
   setSelectedProjects: (projects: number[]) => void;
-  form: UseFormReturn<Partial<User>>;
+  form: UseFormReturn<any>;
+  formData: UserFormData;
+  setFormData: (data: Partial<UserFormData>) => void;
 }
 
 export function SecuritySection ({
@@ -19,6 +22,8 @@ export function SecuritySection ({
   selectedProjects,
   setSelectedProjects,
   form,
+  formData,
+  setFormData,
 }: SecuritySectionProps) {
   return (
     <Card className="p-6 space-y-6">
@@ -68,7 +73,7 @@ export function SecuritySection ({
             </FormLabel>
             <FormControl>
               <RoleSelector 
-                value={field.value ?? 'optimizer'}
+                value={field.value ?? "youtuber"}
                 onChange={(value: User['role']) => {
                   field.onChange(value);
                 }}

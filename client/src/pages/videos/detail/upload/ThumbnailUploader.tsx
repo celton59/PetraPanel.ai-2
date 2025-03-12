@@ -74,18 +74,26 @@ export function ThumbnailUploader({
     }
 
     try {
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al subir la miniatura');
-      }
-
-      const data = await response.json();
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../../../../lib/axios');
+      const api = (await import('../../../../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post(
+        uploadUrl,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      
+      // Procesar la respuesta
+      const data = response.data;
       if (data.success && data.url) {
         onUploadComplete(data.url);
         setSelectedFile(null);
@@ -98,8 +106,16 @@ export function ThumbnailUploader({
       } else {
         throw new Error('No se recibió la URL de la miniatura');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir la miniatura');
+    } catch (error: any) {
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        setError("Error de validación de seguridad. Intente de nuevo.");
+      } else {
+        setError(error.response?.data?.message || error.message || 'Error al subir la miniatura');
+      }
     } finally {
       setIsUploading(false);
     }

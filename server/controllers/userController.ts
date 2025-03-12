@@ -38,6 +38,7 @@ type CreateUserSchema = z.infer<typeof createUserSchema>;
 type UpdateUserSchema = z.infer<typeof updateUserSchema>;
 
 
+
 export async function createUser(
   req: Request,
   res: Response,

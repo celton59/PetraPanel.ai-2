@@ -45,6 +45,7 @@ interface VideosResponse {
   emptyTrash: ({projectId}: { projectId: number }) => Promise<any>;
   getTrashVideos: ({projectId}: { projectId: number }) => Promise<ApiVideo[]>;
   pagination: PaginationMetadata;
+assignVideoToYoutuber: ({videoId, projectId}: { videoId: number, projectId: number }) => Promise<any>;
 }
 
 export function useVideos() {
@@ -61,20 +62,21 @@ export function useVideos() {
   } = useQuery<VideosResponse>({
     queryKey,
     queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
 
-      const res = await fetch(`/api/videos?${params.toString()}`, {
-        credentials: "include"
-      });
-      
-      if (!res.ok) {
+      try {
+        // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
+        const api = (await import('../lib/axios')).default;
+        const response = await api.get(queryKey[0] as string);
+        return response.data;
+      } catch (error: any) {
+        console.error('Error al cargar los videos:', error);
+        // Mostramos el mensaje de error de la API si está disponible
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        // Error genérico
         throw new Error("Error al cargar los videos");
       }
-      
-      const data = await res.json();
-      return data;
     },
     retry: 1,
     refetchOnWindowFocus: false,
@@ -84,19 +86,31 @@ export function useVideos() {
 
   const createVideoMutation = useMutation({
     mutationFn: async (video: Pick<Video, "title" | "description" | "projectId">) => {
-      const res = await fetch(`/api/projects/${video.projectId}/videos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(video),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al crear el video");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.post(`/api/projects/${video.projectId}/videos`, video);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error creating video:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al crear el video");
       }
-
-      return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
@@ -106,27 +120,46 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudo crear el video",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo crear el video",
+        });
+      }
     },
   });
   
   const createBulkVideosMutation = useMutation({
     mutationFn: async ({ projectId, titles }: { projectId: number, titles: string[] }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos/bulk`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ titles }),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || "Error al crear los videos en masa");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.post(`/api/projects/${projectId}/videos/bulk`, { titles });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error creating videos in bulk:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al crear los videos en masa");
       }
-
-      return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
@@ -138,35 +171,50 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudieron crear los videos en masa",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudieron crear los videos en masa",
+        });
+      }
     },
   });
 
   const updateVideoMutation = useMutation({
-    mutationFn: async ({
-      videoId,
-      projectId,
-      updateRequest,
-    }: {
-      videoId: number;
-      projectId: number;
-      updateRequest: UpdateVideoData;
-    }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateRequest),
-        credentials: "include",
-      });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al actualizar el video");
+    mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
+
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      console.log('Datos de actualización:', updateRequest);
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}`, updateRequest);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
       }
-
-      return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
@@ -176,26 +224,48 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudo actualizar el video",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
     },
   });
 
   const deleteVideoMutation = useMutation({
 
     mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}${permanent ? '?permanent=true' : ''}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al eliminar el video");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.delete(`/api/projects/${projectId}/videos/${videoId}${permanent ? '?permanent=true' : ''}`);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error deleting video:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al eliminar el video");
       }
-
-      return res.json();
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey });
@@ -206,28 +276,50 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudo eliminar el video",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo eliminar el video",
+        });
+      }
     },
   });
 
 
   const bulkDeleteVideosMutation = useMutation({
     mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos${permanent ? '?permanent=true' : ''}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoIds }),
-        credentials: "include",
-      });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || "Error al eliminar los videos en masa");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.delete(`/api/projects/${projectId}/videos${permanent ? '?permanent=true' : ''}`, {
+          data: { videoIds } // Axios requiere que el body en DELETE esté en data
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error bulk deleting videos:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al eliminar los videos en masa");
       }
-
-      return res.json();
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey });
@@ -238,26 +330,48 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudieron eliminar los videos en masa",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudieron eliminar los videos en masa",
+        });
+      }
     },
   });
 
   // Nueva función para restaurar videos de la papelera
   const restoreVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
-      const res = await fetch(`/api/projects/${projectId}/videos/${videoId}/restore`, {
-        method: "POST",
-        credentials: "include",
-      });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al restaurar el video");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/restore`);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error restoring video:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al restaurar el video");
       }
-
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -266,26 +380,48 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudo restaurar el video",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo restaurar el video",
+        });
+      }
     },
   });
 
   // Nueva función para vaciar la papelera de un proyecto
   const emptyTrashMutation = useMutation({
     mutationFn: async ({projectId}: { projectId: number }) => {
-      const res = await fetch(`/api/projects/${projectId}/trash`, {
-        method: "DELETE",
-        credentials: "include",
-      });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al vaciar la papelera");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.delete(`/api/projects/${projectId}/trash`);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error emptying trash:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al vaciar la papelera");
       }
-
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -294,25 +430,95 @@ export function useVideos() {
       });
     },
     onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "No se pudo vaciar la papelera",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo vaciar la papelera",
+        });
+      }
     },
   });
 
   // Nueva función para obtener los videos en la papelera, memoizada para evitar recreación
   const getTrashVideos = useCallback(async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
-    const res = await fetch(`/api/projects/${projectId}/videos?trash=true`, {
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(errorText || "Error al obtener los videos de la papelera");
+    try {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const api = (await import('../lib/axios')).default;
+      
+      // Para operaciones de consulta no es necesario refrescar el token CSRF
+      // pero usamos nuestra instancia de axios configurada con withCredentials
+      const response = await api.get(`/api/projects/${projectId}/videos?trash=true`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error getting trash videos:", error);
+      
+      // Manejo de errores
+      throw new Error(error.response?.data?.message || error.message || "Error al obtener los videos de la papelera");
     }
-
-    return res.json();
   }, []);
+
+  // Función para asignar un video a un youtuber cuando lo visualiza
+  const assignVideoToYoutuberMutation = useMutation({
+    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/assign`);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error assigning video to youtuber:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Error cuando el video ya está asignado a otro youtuber
+        if (error.response?.status === 403 && error.response?.data?.message?.includes('asignado a otro youtuber')) {
+          throw new Error(error.response?.data?.message || "Este video ya está asignado a otro youtuber");
+        }
+        
+        // Otros errores
+        throw new Error(error.response?.data?.message || error.message || "Error al asignar el video");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      // No mostramos toast aquí para evitar notificaciones innecesarias al usuario
+    },
+    onError: (error: Error) => {
+      // Solo mostramos notificación si no es el caso de que ya está asignado al mismo youtuber
+      if (!error.message.includes('ya está asignado a este youtuber')) {
+        // Si es un error de CSRF, mostramos un mensaje más amigable
+        if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+          toast.error("Error de seguridad", {
+            description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+          });
+        } else if (error.message.includes('asignado a otro youtuber')) {
+          toast.error("Video no disponible", {
+            description: "Este video ya está siendo trabajado por otro youtuber",
+          });
+        } else {
+          toast.error("Error", {
+            description: error.message || "No se pudo asignar el video",
+          });
+        }
+      }
+    },
+  });
 
   return {
     videos: videosData?.videos || [],
@@ -326,5 +532,6 @@ export function useVideos() {
     restoreVideo: restoreVideoMutation.mutateAsync,
     emptyTrash: emptyTrashMutation.mutateAsync,
     getTrashVideos,
+    assignVideoToYoutuber: assignVideoToYoutuberMutation.mutateAsync,
   };
 }

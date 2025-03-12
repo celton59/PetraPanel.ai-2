@@ -60,21 +60,16 @@ export function PersonalInfoSection({ user, refetch }: PersonalInfoSectionProps)
   const onSubmit = async (data: ProfileFormValues) => {
     setIsUpdating(true);
     try {
-      const response = await fetch('/api/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-
-      // Asegurarse de restablecer el estado de carga incluso si hay un error de red
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al actualizar el perfil');
-      }
-
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('@/lib/axios');
+      const api = (await import('@/lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de una operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      const response = await api.post('/api/profile', data);
+      
       await refetch();
 
       toast("Perfil actualizado", {

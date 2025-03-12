@@ -12,13 +12,18 @@ interface ApiResponse<T> {
   data: T;
 }
 
+// Interfaz extendida para incluir projectIds en el usuario
+export interface UserWithProjects extends User {
+  projectIds?: number[];
+}
+
 export function useUsers(): {
   users: ApiUser[];
   isLoading: boolean;
   refetch: () => Promise<QueryObserverResult<ApiResponse<ApiUser[]>>>;
   deleteUser: (userId: number) => Promise<void>;
-  createUser: (user: User) => Promise<void>;
-  updateUser: ({userId, user}: { userId: number; user: Partial<User>}) => Promise<void>;
+  createUser: (user: UserWithProjects) => Promise<void>;
+  updateUser: ({userId, user}: { userId: number; user: Partial<UserWithProjects>}) => Promise<void>;
 } {
   
   const queryClient = useQueryClient();
@@ -27,13 +32,15 @@ export function useUsers(): {
   const { data: response, isLoading, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const res = await fetch(queryKey[0], {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Error al cargar los usuarios");
+      // Usamos axios para la consulta que se beneficia del manejo de credenciales
+      const api = (await import('../lib/axios')).default;
+      try {
+        const response = await api.get(queryKey[0]);
+        return response.data as ApiResponse<ApiUser[]>;
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        throw new Error(error.response?.data?.message || "Error al cargar los usuarios");
       }
-      return res.json() as Promise<ApiResponse<ApiUser[]>>;
     },
     retry: 1,
     refetchInterval: 30000,
@@ -44,17 +51,49 @@ export function useUsers(): {
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (user: User) => {
-      const res = await fetch(queryKey[0], {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user),
-      });
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.message ?? "Error al crear el usuario");
+    mutationFn: async (user: UserWithProjects) => {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Verificar campos obligatorios de forma detallada
+        const missingFields = [];
+        if (!user.username) missingFields.push("nombre de usuario");
+        if (!user.email) missingFields.push("correo electrónico");
+        if (!user.fullName) missingFields.push("nombre completo");
+        if (!user.password) missingFields.push("contraseña");
+        if (!user.role) missingFields.push("rol");
+        if (!user.projectIds || user.projectIds.length === 0) missingFields.push("proyectos asignados");
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Faltan campos obligatorios: ${missingFields.join(", ")}. Verifica que todos los campos marcados con * estén completos`);
+        }
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.post(queryKey[0], user);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error creating user:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Obtener mensaje de error de la respuesta
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        
+        // Otros errores
+        throw new Error(error.message || "Error al crear el usuario");
       }
     },
     onSuccess: () => {
@@ -64,23 +103,50 @@ export function useUsers(): {
       });
     },
     onError: (error: Error) => {
-      toast("Error", {
-        description: error.message || "No se pudo crear el usuario",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo crear el usuario",
+        });
+      }
     },
   })
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, user }: { userId: number; user: Partial<User> }) => {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user),
-      });
-      if (!res.ok) {
-        throw new Error("Error al actualizar el usuario");
+    mutationFn: async ({ userId, user }: { userId: number; user: Partial<UserWithProjects> }) => {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.put(`/api/users/${userId}`, user);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating user:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Obtener mensaje de error de la respuesta
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        
+        // Otros errores
+        throw new Error(error.message || "Error al actualizar el usuario");
       }
     },
     onSuccess: () => {
@@ -90,35 +156,69 @@ export function useUsers(): {
       });
     },
     onError: (error: Error) => {
-      toast("Error", {
-        description: error.message || "No se pudo actualizar el usuario",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el usuario",
+        });
+      }
     },
   })
     
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Error al eliminar el usuario");
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../lib/axios');
+      const api = (await import('../lib/axios')).default;
+      
+      try {
+        // Refrescar proactivamente el token CSRF antes de una operación importante
+        await refreshCSRFToken();
+        
+        // Usar nuestra instancia de axios configurada con manejo CSRF
+        const response = await api.delete(`/api/users/${userId}`);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error deleting user:", error);
+        
+        // Manejo mejorado de errores de CSRF
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        
+        // Obtener mensaje de error de la respuesta
+        if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        
+        // Otros errores
+        throw new Error(error.message || "Error al eliminar el usuario");
       }
-    
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Video eliminado", {
-        description: "El video se ha eliminado correctamente",
+      toast.success("Usuario eliminado", {
+        description: "El usuario ha sido eliminado correctamente",
       });
     },
     onError: (error: Error) => {
-      toast("Error", {
-        description: error.message || "No se pudo eliminar el video",
-      });
+      // Si es un error de CSRF, mostramos un mensaje más amigable
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo eliminar el usuario",
+        });
+      }
     },
   });
 

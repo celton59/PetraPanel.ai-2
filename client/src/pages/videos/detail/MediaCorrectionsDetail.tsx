@@ -49,18 +49,35 @@ export function MediaCorrectionsDetail({
     formData.append("file", file);
 
     try {
-      const response = await fetch(
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
+      const { refreshCSRFToken } = await import('../../../lib/axios');
+      const api = (await import('../../../lib/axios')).default;
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
+      await refreshCSRFToken();
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
+      await api.post(
         `/api/projects/${video.projectId}/videos/${video.id}/uploadThumbnail`,
-        { method: "POST", body: formData }
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `Error al subir el thumbnail`);
-      }
     } catch (error: any) {
       console.error(`Error uploading thumbnail:`, error);
-      throw new Error(error.message || `Error al subir la miniatura`);
+      
+      // Manejo mejorado de errores de CSRF
+      if (error.response?.status === 403 && 
+          (error.response?.data?.message?.includes('CSRF') || 
+           error.response?.data?.message?.includes('token') || 
+           error.response?.data?.message?.includes('Token'))) {
+        throw new Error("Error de validación de seguridad. Intente de nuevo.");
+      }
+      
+      throw new Error(error.response?.data?.message || error.message || `Error al subir la miniatura`);
     }
   }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import api from "../../../lib/axios";
 
 interface ProjectFilterProps {
   projectId: string;
@@ -12,12 +13,14 @@ export const ProjectFilter = ({ projectId, onProjectChange }: ProjectFilterProps
   const { data: projects } = useQuery({
     queryKey: ['/api/projects'],
     queryFn: async () => {
-      const response = await fetch('/api/projects', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Error fetching projects');
-      const result = await response.json();
-      return result.data;
+      try {
+        // Usamos la instancia de axios configurada con protección CSRF
+        const response = await api.get('/api/projects');
+        return response.data.data;
+      } catch (error: any) {
+        console.error("Error fetching projects:", error);
+        throw new Error(error.response?.data?.message || 'Error fetching projects');
+      }
     }
   });
 
