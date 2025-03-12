@@ -32,7 +32,7 @@ const updateUserSchema = z.object({
 type CreateUserSchema = z.infer<typeof createUserSchema>;
 type UpdateUserSchema = z.infer<typeof updateUserSchema>;
 
-// Usamos passwordUtils.hashPassword de auth.js
+// Usamos passwordUtils.hashPassword de auth.ts
 async function hashPassword(password: string) {
   return passwordUtils.hashPassword(password);
 }

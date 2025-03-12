@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { refreshCsrfToken } from '@/lib/axios';
+import { refreshCSRFToken as refreshCsrfToken } from '@/lib/axios';
 
 /**
  * Componente que maneja la carga y actualización del token CSRF.
