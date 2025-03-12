@@ -40,7 +40,7 @@ export default function AuthPage() {
 
   // Definimos credenciales predeterminadas para diferentes roles
   const predefinedCredentials = [
-    { username: "hola", password: "hola", role: "admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
+    { username: "hola", password: "1234", role: "admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
     { username: "mediareviewer", password: "Petra123!", role: "media_reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
     { username: "youtuber", password: "Petra123!", role: "youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
   ];
