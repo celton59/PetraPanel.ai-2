@@ -1,5 +1,4 @@
 import { toast } from "sonner";
-import axios from "@/lib/axios";
 
 /**
  * Interface para la respuesta de inicialización de carga multiparte
