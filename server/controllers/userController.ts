@@ -3,7 +3,7 @@ import { z } from "zod";
 import { users, projectAccess } from "@db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { db } from "@db";
-import { passwordUtils } from "../auth.js";
+import { passwordUtils } from "../auth";
 
 const createUserSchema = z.object({
   username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).max(30, { message: "El nombre de usuario debe tener como máximo 30 caracteres" }),
