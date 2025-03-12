@@ -47,7 +47,7 @@ export default function AuthPage() {
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   
   // PIN correcto para acceder a las cuentas de prueba
-  const CORRECT_PIN = ['1', '2', '3', '4']; // PIN sencillo: 1234
+  const CORRECT_PIN = ['5', '9', '5', '9']; // PIN sencillo: 5959
   
   // Verificar si hay PIN guardado en localStorage al cargar el componente
   useEffect(() => {
@@ -386,23 +386,29 @@ export default function AuthPage() {
                     )}
                   </div>
                   <span className="text-xs font-medium">{cred.displayName}</span>
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-popover text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
-                    <div className="font-medium mb-1 pb-1 border-b text-center text-sm">{cred.displayName}</div>
-                    <p className="mt-1"><strong>Usuario:</strong> {cred.username}</p>
-                    <p><strong>Contraseña:</strong> {cred.password}</p>
-                  </div>
+                  {showDevAccess && (
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-popover text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
+                      <div className="font-medium mb-1 pb-1 border-b text-center text-sm">{cred.displayName}</div>
+                      <p className="mt-1"><strong>Usuario:</strong> {cred.username}</p>
+                      <p><strong>Contraseña:</strong> {cred.password}</p>
+                    </div>
+                  )}
                 </Button>
               ))}
             </div>
             <div className="mt-3 text-center text-xs text-muted-foreground">
-              <span>Pasa el cursor sobre un rol para ver las credenciales</span>
-              {!showDevAccess && (
-                <button 
-                  onClick={showDevPinDialog}
-                  className="block mx-auto mt-2 text-primary hover:underline hover:text-primary/80 transition-colors"
-                >
-                  Ingresar PIN para desbloquear
-                </button>
+              {showDevAccess ? (
+                <span>Pasa el cursor sobre un rol para ver las credenciales</span>
+              ) : (
+                <>
+                  <span>Necesitas verificar el PIN para usar el acceso rápido</span>
+                  <button 
+                    onClick={showDevPinDialog}
+                    className="block mx-auto mt-2 text-primary hover:underline hover:text-primary/80 transition-colors"
+                  >
+                    Ingresar PIN para desbloquear
+                  </button>
+                </>
               )}
             </div>
           </div>
