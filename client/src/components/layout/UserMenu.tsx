@@ -98,7 +98,9 @@ export function UserMenu({ className }: UserMenuProps) {
                   <div className="flex items-start gap-3">
                     <Avatar className="h-9 w-9 border-2 border-primary/20">
                       <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ana" />
-                      <AvatarFallback>AC</AvatarFallback>
+                      <AvatarFallback>
+                        <img src="/default-avatar.svg" alt="" className="h-full w-full" />
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">
                       <div className="flex justify-between">
@@ -198,7 +200,7 @@ export function UserMenu({ className }: UserMenuProps) {
                 <Avatar className="h-8 w-8 border-2 border-background">
                   <AvatarImage src={user.avatarUrl || undefined} alt={user.username} />
                   <AvatarFallback>
-                    {user.username.charAt(0).toUpperCase()}
+                    <img src="/default-avatar.svg" alt="" className="h-full w-full" />
                   </AvatarFallback>
                 </Avatar>
                 
@@ -227,7 +229,7 @@ export function UserMenu({ className }: UserMenuProps) {
               <Avatar className="h-10 w-10">
                 <AvatarImage src={user.avatarUrl || undefined} alt={user.username} />
                 <AvatarFallback>
-                  {user.username.charAt(0).toUpperCase()}
+                  <img src="/default-avatar.svg" alt="" className="h-full w-full" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
