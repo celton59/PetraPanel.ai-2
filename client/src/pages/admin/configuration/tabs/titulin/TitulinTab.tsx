@@ -586,7 +586,8 @@ export default function TitulinTab () {
                           </TableCell>
                           <TableCell>{channel.videoCount || 0}</TableCell>
                           <TableCell>
-                            {formatLastUpdate(channel.lastVideoFetch?.toDateString())}
+                            { typeof channel.lastVideoFetch }
+                            {/* {formatLastUpdate(channel.lastVideoFetch?.toDateString())} */}
                           </TableCell>
                           <TableCell>
                             <Badge
