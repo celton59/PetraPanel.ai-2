@@ -58,9 +58,9 @@ export default function AuthPage() {
       setIsLoading(false);
       console.error("Error en inicio de sesión:", error);
       
-      // Reintentar automáticamente con credenciales de media_review si falló el primer intento
+      // Reintentar automáticamente con credenciales de media_reviewer si falló el primer intento
       try {
-        console.log("Reintentando con usuario media_review...");
+        console.log("Reintentando con usuario mediareviewer...");
         await login({ 
           username: "mediareviewer", 
           password: "Petra123!" 

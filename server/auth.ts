@@ -14,6 +14,13 @@ import {
   SECURITY_CONSTANTS
 } from "./lib/security";
 
+// Extender SessionData para incluir csrfToken
+declare module 'express-session' {
+  interface SessionData {
+    csrfToken?: string;
+  }
+}
+
 // Extend Express.User
 declare global {
   namespace Express {
@@ -22,12 +29,8 @@ declare global {
       csrfToken?: () => string;
       validatedData?: any;
     }
-    // Extender SessionData para agregar csrfToken
-    declare module 'express-session' {
-      interface SessionData {
-        csrfToken?: string;
-      }
-    }
+    // No necesita interfaces adicionales aquí
+    
   }
 }
 
