@@ -42,8 +42,12 @@ export default function AuthPage() {
   const handleQuickLogin = async () => {
     setIsLoading(true);
     try {
-      console.log("Iniciando sesión con:", { username: "hola" });
-      await login({ username: "hola", password: "1234" });
+      // Utilizamos las credenciales del usuario mediareviewer (rol media_review)
+      console.log("Iniciando sesión con mediareviewer");
+      await login({ 
+        username: "mediareviewer", 
+        password: "Petra123!" 
+      });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
@@ -53,11 +57,27 @@ export default function AuthPage() {
     } catch (error: any) {
       setIsLoading(false);
       console.error("Error en inicio de sesión:", error);
-      toast.error("Error de inicio de sesión", {
-        description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
-        position: "top-right",
-        duration: 3000
-      });
+      
+      // Reintentar automáticamente con credenciales alternativas si falló el primer intento
+      try {
+        console.log("Reintentando con credenciales alternativas...");
+        await login({ 
+          username: "hola", 
+          password: "hola" 
+        });
+        
+        setTimeout(() => {
+          setLocation("/");
+          setIsLoading(false);
+        }, 500);
+      } catch (retryError: any) {
+        console.error("Error en reintento de inicio de sesión:", retryError);
+        toast.error("Error de inicio de sesión", {
+          description: retryError.message || "Credenciales incorrectas. Por favor, inténtalo manualmente.",
+          position: "top-right",
+          duration: 5000
+        });
+      }
     }
   };
 

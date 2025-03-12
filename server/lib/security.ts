@@ -12,8 +12,8 @@ export const SECURITY_CONSTANTS = {
   SALT_LENGTH: 32,
   CSRF_TOKEN_LENGTH: 64,
   SESSION_EXPIRY: 30 * 24 * 60 * 60 * 1000, // 30 días
-  FAILED_ATTEMPTS_THRESHOLD: 5,
-  LOCKOUT_TIME: 15 * 60 * 1000, // 15 minutos
+  FAILED_ATTEMPTS_THRESHOLD: 10, // Aumentado para entorno de desarrollo
+  LOCKOUT_TIME: 5 * 60 * 1000, // Reducido a 5 minutos para facilitar las pruebas
 };
 
 // Mapa para seguir los intentos fallidos
@@ -152,16 +152,46 @@ export const securityUtils = {
    */
   comparePassword: async (suppliedPassword: string, storedPassword: string): Promise<boolean> => {
     try {
+      // Verificar que tenemos un formato válido de contraseña almacenada
+      if (!storedPassword || !storedPassword.includes(".")) {
+        console.error("Formato de contraseña almacenada inválido:", 
+                     storedPassword ? "Sin separador '.'" : "Contraseña vacía");
+        return false;
+      }
+      
       const [hashedPassword, salt] = storedPassword.split(".");
+      
+      // Verificaciones adicionales
+      if (!hashedPassword || !salt) {
+        console.error("Componentes de contraseña inválidos:", 
+                     !hashedPassword ? "Hash vacío" : "Salt vacío");
+        return false;
+      }
+      
+      // Modo diagnóstico para desarrollo
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Comparando contraseña: '${suppliedPassword}'`);
+        console.log(`Con hash almacenado: '${hashedPassword.substring(0, 10)}...' y salt: '${salt.substring(0, 10)}...'`);
+      }
+      
       const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
       const suppliedPasswordBuf = (await scryptAsync(
         suppliedPassword,
         salt,
         SECURITY_CONSTANTS.PASSWORD_HASH_LENGTH,
       )) as Buffer;
-      return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+      
+      // Comparación segura contra timing attacks
+      const isMatch = timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Resultado de la comparación: ${isMatch ? 'Coincide ✓' : 'No coincide ✗'}`);
+      }
+      
+      return isMatch;
     } catch (error) {
-      console.error("Error comparing passwords:", error);
+      console.error("Error técnico al comparar contraseñas:", error);
+      console.trace("Stack trace de error en comparación:");
       // Siempre devolvemos false en caso de error
       return false;
     }
