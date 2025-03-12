@@ -107,7 +107,10 @@ export default function VideosPage() {
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  
+  // Determinar si estamos en un dispositivo móvil para la vista inicial
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">(isMobile ? "list" : "table");
   
   // Estados para selección
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
@@ -135,6 +138,30 @@ export default function VideosPage() {
       window.history.replaceState({}, "", "/videos");
     }
   }, []);
+  
+  // Efecto para cambiar automáticamente a vista de lista en dispositivos móviles
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        const isMobileView = window.innerWidth < 768;
+        // Solo cambiar a lista si estamos en móvil y la vista actual es tabla
+        if (isMobileView && viewMode === "table") {
+          setViewMode("list");
+        }
+      }
+    };
+    
+    // Ejecutar al montar para asegurar la vista correcta
+    handleResize();
+    
+    // Agregar listener para cambios de tamaño
+    window.addEventListener('resize', handleResize);
+    
+    // Limpiar listener al desmontar
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [viewMode]);
 
   // Filtrar videos según criterios
   const filteredVideos = videos.filter((video) => {
