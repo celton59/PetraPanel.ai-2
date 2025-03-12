@@ -38,16 +38,19 @@ export default function AuthPage() {
     },
   });
 
-  // Helper de inicio de sesión rápido con credenciales predefinidas para pruebas
-  const handleQuickLogin = async () => {
+  // Definimos credenciales predeterminadas para diferentes roles
+  const predefinedCredentials = [
+    { username: "hola", password: "hola", role: "admin", icon: <LayoutDashboard className="h-4 w-4 mr-2" /> },
+    { username: "mediareviewer", password: "Petra123!", role: "media_reviewer", icon: <Camera className="h-4 w-4 mr-2" /> },
+    { username: "youtuber", password: "Petra123!", role: "youtuber", icon: <Video className="h-4 w-4 mr-2" /> },
+  ];
+  
+  // Helper de inicio de sesión rápido con credenciales predefinidas
+  const handleQuickLogin = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // Intentamos primero con el usuario admin por ser el más usado
-      console.log("Iniciando sesión con el usuario admin");
-      await login({ 
-        username: "hola", 
-        password: "hola" 
-      });
+      console.log(`Iniciando sesión con el usuario ${username}`);
+      await login({ username, password });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
@@ -56,28 +59,13 @@ export default function AuthPage() {
       }, 500);
     } catch (error: any) {
       setIsLoading(false);
-      console.error("Error en inicio de sesión:", error);
+      console.error(`Error en inicio de sesión con ${username}:`, error);
       
-      // Reintentar automáticamente con credenciales de media_reviewer si falló el primer intento
-      try {
-        console.log("Reintentando con usuario mediareviewer...");
-        await login({ 
-          username: "mediareviewer", 
-          password: "Petra123!" 
-        });
-        
-        setTimeout(() => {
-          setLocation("/");
-          setIsLoading(false);
-        }, 500);
-      } catch (retryError: any) {
-        console.error("Error en reintento de inicio de sesión:", retryError);
-        toast.error("Error de inicio de sesión", {
-          description: retryError.message || "Credenciales incorrectas. Por favor, inténtalo manualmente.",
-          position: "top-right",
-          duration: 5000
-        });
-      }
+      toast.error("Error de inicio de sesión", {
+        description: error.message || "Credenciales incorrectas. Por favor, inténtalo manualmente.",
+        position: "top-right",
+        duration: 5000
+      });
     }
   };
 
@@ -138,20 +126,26 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Botón de inicio rápido para pruebas */}
-        <Button 
-          variant="outline" 
-          onClick={handleQuickLogin}
-          disabled={isLoading}
-          className="w-full max-w-md mx-auto mb-4 flex items-center gap-2"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <LogIn className="h-4 w-4" />
-          )}
-          Inicio rápido para pruebas
-        </Button>
+        {/* Botones de inicio rápido para pruebas */}
+        <div className="flex flex-col sm:flex-row gap-2 justify-center mb-4">
+          {predefinedCredentials.map((cred) => (
+            <Button 
+              key={cred.username}
+              variant="outline" 
+              onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                cred.icon
+              )}
+              {cred.role}
+            </Button>
+          ))}
+        </div>
 
         {/* Auth Form Card */}
         <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
