@@ -35,7 +35,7 @@ interface ChangelogEntry {
 const versionHistory: ChangelogEntry[] = [
   {
     version: '2.6.0',
-    date: '08.03.2025',
+    date: '12.03.2025',
     changes: [
       { 
         type: 'new', 
