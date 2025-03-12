@@ -95,7 +95,7 @@ export function setupAuth(app: Express) {
     res.setHeader('X-CSRF-Token', req.session.csrfToken);
     
     // Añadir un método csrfToken a la solicitud
-    req.csrfToken = () => req.session.csrfToken;
+    req.csrfToken = () => req.session.csrfToken || "";
     
     // CSRF protection solo se aplica a métodos no seguros
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
