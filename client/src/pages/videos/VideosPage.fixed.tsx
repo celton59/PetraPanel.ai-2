@@ -1,5 +1,6 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
+import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -101,7 +102,20 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos, assignVideoToYoutuber } = useVideos();
+  // Utilizar el hook useVideos con soporte para paginación
+  const { 
+    videos, 
+    isLoading, 
+    deleteVideo, 
+    updateVideo, 
+    bulkDeleteVideos, 
+    assignVideoToYoutuber,
+    pagination,
+    page,
+    setPage,
+    limit,
+    setLimit
+  } = useVideos();
   
   // Estados para UI
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
