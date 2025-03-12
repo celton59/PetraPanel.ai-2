@@ -933,7 +933,7 @@ export default function VideosPage() {
         <div className="flex items-center space-x-2">
           <h1 className="text-2xl font-bold tracking-tight">Videos</h1>
           <div className="bg-muted px-2 py-1 rounded text-sm font-medium text-muted-foreground">
-            {filteredVideos?.length || 0} videos
+            {pagination.totalVideos || 0} videos
           </div>
         </div>
         
