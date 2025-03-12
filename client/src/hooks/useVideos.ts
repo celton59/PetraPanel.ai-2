@@ -66,7 +66,12 @@ export function useVideos() {
       try {
         // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
         const api = (await import('../lib/axios')).default;
-        const response = await api.get(queryKey[0] as string);
+        const response = await api.get(queryKey[0] as string, {
+          params: {
+            page,
+            limit
+          }
+        });
         return response.data;
       } catch (error: any) {
         console.error('Error al cargar los videos:', error);
@@ -520,10 +525,25 @@ export function useVideos() {
     },
   });
 
+  // Preparar datos de paginación por defecto si no están disponibles
+  const pagination: PaginationMetadata = videosData?.pagination || {
+    page,
+    limit,
+    totalVideos: videosData?.videos?.length || 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false
+  };
+
   return {
     videos: videosData?.videos || [],
     isLoading,
     isFetching,
+    pagination,
+    setPage,
+    setLimit,
+    page,
+    limit,
     createVideo: createVideoMutation.mutateAsync,
     createBulkVideos: createBulkVideosMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,
