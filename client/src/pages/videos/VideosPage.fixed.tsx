@@ -236,7 +236,7 @@ export default function VideosPage() {
     if (
       user?.role === 'youtuber' && 
       video.status === 'upload_media' && 
-      (!video.youtuber || video.youtuber === user.id)
+      (!video.assignedToId || video.assignedToId === user.id)
     ) {
       try {
         // Intentar asignar el video al youtuber
