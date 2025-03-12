@@ -48,9 +48,10 @@ export function UserMenu({ className }: UserMenuProps) {
           size="sm" 
           className="md:hidden h-9 px-3 rounded-md"
           onClick={() => {
-            // Usamos la misma función que el botón de escritorio
-            const { openSearch } = require('@/hooks/use-global-search').useGlobalSearch();
-            openSearch();
+            // Usamos la misma función que el botón de escritorio pero importada correctamente
+            const { useGlobalSearch } = require('@/hooks/use-global-search');
+            // Llamamos a openSearch directamente
+            useGlobalSearch().openSearch();
           }}
         >
           <Search className="h-5 w-5 mr-1" />
