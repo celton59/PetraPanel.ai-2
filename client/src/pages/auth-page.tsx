@@ -248,10 +248,20 @@ export default function AuthPage() {
 
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
-    // Iniciar estado de carga
-    setIsLoading(true);
+    // Verificar si ya hay un inicio de sesión en proceso para prevenir animaciones duplicadas
+    const isLoginInProgress = sessionStorage.getItem('loginInProgress') === 'true';
+    if (isLoginInProgress) {
+      console.log("Ya hay un inicio de sesión en progreso, evitando solicitud duplicada");
+      return;
+    }
     
     try {
+      // Marcar que hay un login en progreso
+      sessionStorage.setItem('loginInProgress', 'true');
+      
+      // Iniciar estado de carga
+      setIsLoading(true);
+      
       console.log(`Iniciando sesión con:`, { username: data.username });
       
       // Realizar el login
@@ -270,6 +280,9 @@ export default function AuthPage() {
         position: "top-right",
         duration: 3000
       });
+    } finally {
+      // Limpiar el marcador de login en progreso después de completar (éxito o error)
+      sessionStorage.removeItem('loginInProgress');
     }
   };
 
