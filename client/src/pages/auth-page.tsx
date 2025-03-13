@@ -182,13 +182,29 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       console.log(`Iniciando sesión con el usuario ${username}`);
+      
+      // Primero deshabilitar cualquier transición que pueda causar parpadeo
+      document.body.style.transition = 'none';
+      
       await login({ username, password });
       
-      // Simular un pequeño retraso para una mejor experiencia
-      setTimeout(() => {
-        setLocation("/");
-        setIsLoading(false);
-      }, 500);
+      // Usar un pequeño retraso para asegurar que la UI se actualice correctamente
+      await new Promise(resolve => {
+        // Esperar un frame para permitir que la UI se actualice
+        requestAnimationFrame(() => {
+          // Redireccionar sin delay adicional
+          setLocation("/");
+          
+          // Restaurar las transiciones después de la redirección
+          document.body.style.transition = '';
+          
+          // Asegurar que el estado de carga se desactive, aunque la página cambie
+          setTimeout(() => setIsLoading(false), 100);
+          
+          resolve(null);
+        });
+      });
+      
     } catch (error: any) {
       setIsLoading(false);
       console.error(`Error en inicio de sesión con ${username}:`, error);
@@ -205,13 +221,30 @@ export default function AuthPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
+      console.log(`Iniciando sesión con:`, { username: data.username });
+      
+      // Primero deshabilitar cualquier transición que pueda causar parpadeo
+      document.body.style.transition = 'none';
+      
+      // Realizar el login
       await login({ username: data.username, password: data.password });
       
-      // Simular un pequeño retraso para una mejor experiencia
-      setTimeout(() => {
-        setLocation("/");
-        setIsLoading(false);
-      }, 500);
+      // Usar un pequeño retraso para asegurar que la UI se actualice correctamente
+      await new Promise(resolve => {
+        // Esperar un frame para permitir que la UI se actualice
+        requestAnimationFrame(() => {
+          // Redireccionar de inmediato para evitar parpadeos
+          setLocation("/");
+          
+          // Restaurar las transiciones después de la redirección
+          document.body.style.transition = '';
+          
+          // Asegurar que el estado de carga se desactive, aunque la página cambie
+          setTimeout(() => setIsLoading(false), 100);
+          
+          resolve(null);
+        });
+      });
     } catch (error: any) {
       setIsLoading(false);
       toast.error("Error de inicio de sesión", {
