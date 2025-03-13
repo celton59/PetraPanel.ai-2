@@ -128,91 +128,115 @@ export function useUser() {
 
   const loginMutation = useMutation({
     mutationFn: async (userData: { username: string; password: string; rememberMe?: boolean }) => {
-      console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
+      // Verificar si ya hay un login en progreso para prevenir recargas múltiples
+      const isLoginInProgress = sessionStorage.getItem('loginInProgress') === 'true';
       
-      // Función para agregar pequeño retraso (ayuda con problemas de sincronización)
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-      
-      async function attemptLogin(forceNewToken = false, retryCount = 0) {
-        try {
-          // Pequeño retraso en reintentos para evitar condiciones de carrera
-          if (retryCount > 0) {
-            await delay(retryCount * 300); // Tiempo creciente por cada reintento
-          }
-          
-          // Importamos api y refreshCSRFToken
-          const { refreshCSRFToken } = await import('../lib/axios');
-          const api = (await import('../lib/axios')).default;
-          
-          // Refrescar proactivamente el token CSRF
-          await refreshCSRFToken(forceNewToken);
-          console.log("CSRF Token actualizado correctamente");
-          
-          // Obtener el token actual para enviarlo en la cabecera y como parámetro
-          const csrfToken = localStorage.getItem('csrfToken');
-          
-          // Añadir timestamp para evitar cachés
-          const timestamp = new Date().getTime();
-          
-          // Crear datos con CSRF adicional
-          const dataWithCSRF = {
-            ...userData,
-            csrfToken: csrfToken,
-            _timestamp: timestamp
-          };
-          
-          // Crear configuración con cabeceras explícitas para asegurar el envío del token
-          const config = {
-            headers: {
-              'X-CSRF-Token': csrfToken,
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            },
-            withCredentials: true
-          };
-          
-          // Realizar la petición con la configuración explícita
-          const response = await api.post('/api/login', dataWithCSRF, config);
-          return response.data;
-        } catch (error) {
-          throw error;
+      if (isLoginInProgress) {
+        console.log("Detectada solicitud de login duplicada, esperando...");
+        // Permitir solo completar la solicitud existente y evitar múltiples animaciones
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Si después de esperar todavía hay un login en progreso, chequeamos el estado actual
+        const currentUser = queryClient.getQueryData(['/api/user']);
+        if (currentUser) {
+          console.log("Usuario ya autenticado, evitando solicitud duplicada");
+          return currentUser;
         }
       }
       
+      // Marcar que hay un login en progreso
+      sessionStorage.setItem('loginInProgress', 'true');
+      
       try {
-        // Primer intento
-        return await attemptLogin(false, 0);
-      } catch (error: any) {
-        console.error("Error en primer intento de inicio de sesión:", error);
+        console.log("Iniciando sesión con:", { username: userData.username, rememberMe: userData.rememberMe });
         
-        // Intentar nuevamente con token forzado
-        try {
-          console.log("Reintentando login con token forzado...");
-          await delay(500); // Pequeño retraso antes del reintento
-          return await attemptLogin(true, 1);
-        } catch (retryError: any) {
-          console.error("Error en segundo intento de inicio de sesión:", retryError);
-          
-          // Último intento con otro enfoque
+        // Función para agregar pequeño retraso (ayuda con problemas de sincronización)
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        
+        async function attemptLogin(forceNewToken = false, retryCount = 0) {
           try {
-            console.log("Realizando intento final de login...");
-            await delay(1000); // Retraso mayor antes del intento final
-            return await attemptLogin(true, 2);
-          } catch (finalError: any) {
-            console.error("Error en intento final de inicio de sesión:", finalError);
+            // Pequeño retraso en reintentos para evitar condiciones de carrera
+            if (retryCount > 0) {
+              await delay(retryCount * 300); // Tiempo creciente por cada reintento
+            }
             
-            // Mensaje personalizado para el error final
-            if (finalError.response?.status === 401) {
-              throw new Error("Nombre de usuario o contraseña incorrectos");
-            } else if (finalError.response?.data?.message) {
-              throw new Error(finalError.response.data.message);
-            } else {
-              throw new Error("Error al iniciar sesión. Intente de nuevo.");
+            // Importamos api y refreshCSRFToken
+            const { refreshCSRFToken } = await import('../lib/axios');
+            const api = (await import('../lib/axios')).default;
+            
+            // Refrescar proactivamente el token CSRF
+            await refreshCSRFToken(forceNewToken);
+            console.log("CSRF Token actualizado correctamente");
+            
+            // Obtener el token actual para enviarlo en la cabecera y como parámetro
+            const csrfToken = localStorage.getItem('csrfToken');
+            
+            // Añadir timestamp para evitar cachés
+            const timestamp = new Date().getTime();
+            
+            // Crear datos con CSRF adicional
+            const dataWithCSRF = {
+              ...userData,
+              csrfToken: csrfToken,
+              _timestamp: timestamp
+            };
+            
+            // Crear configuración con cabeceras explícitas para asegurar el envío del token
+            const config = {
+              headers: {
+                'X-CSRF-Token': csrfToken,
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              },
+              withCredentials: true
+            };
+            
+            // Realizar la petición con la configuración explícita
+            const response = await api.post('/api/login', dataWithCSRF, config);
+            return response.data;
+          } catch (error) {
+            throw error;
+          }
+        }
+        
+        try {
+          // Primer intento
+          return await attemptLogin(false, 0);
+        } catch (error: any) {
+          console.error("Error en primer intento de inicio de sesión:", error);
+          
+          // Intentar nuevamente con token forzado
+          try {
+            console.log("Reintentando login con token forzado...");
+            await delay(500); // Pequeño retraso antes del reintento
+            return await attemptLogin(true, 1);
+          } catch (retryError: any) {
+            console.error("Error en segundo intento de inicio de sesión:", retryError);
+            
+            // Último intento con otro enfoque
+            try {
+              console.log("Realizando intento final de login...");
+              await delay(1000); // Retraso mayor antes del intento final
+              return await attemptLogin(true, 2);
+            } catch (finalError: any) {
+              console.error("Error en intento final de inicio de sesión:", finalError);
+              
+              // Mensaje personalizado para el error final
+              if (finalError.response?.status === 401) {
+                throw new Error("Nombre de usuario o contraseña incorrectos");
+              } else if (finalError.response?.data?.message) {
+                throw new Error(finalError.response.data.message);
+              } else {
+                throw new Error("Error al iniciar sesión. Intente de nuevo.");
+              }
             }
           }
         }
+      } finally {
+        // Limpiar el estado de login en progreso cuando se complete (éxito o error)
+        sessionStorage.removeItem('loginInProgress');
       }
     },
     onSuccess: (data) => {

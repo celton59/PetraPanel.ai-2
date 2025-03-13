@@ -206,7 +206,17 @@ export default function AuthPage() {
       return;
     }
     
+    // Verificar si ya hay un inicio de sesión en proceso para prevenir animaciones duplicadas
+    const isLoginInProgress = sessionStorage.getItem('loginInProgress') === 'true';
+    if (isLoginInProgress) {
+      console.log("Ya hay un inicio de sesión en progreso, evitando solicitud duplicada");
+      return;
+    }
+    
     try {
+      // Marcar que hay un login en progreso
+      sessionStorage.setItem('loginInProgress', 'true');
+      
       // Iniciar proceso de transición visual
       setIsLoading(true);
       
@@ -230,6 +240,9 @@ export default function AuthPage() {
         position: "top-right",
         duration: 5000
       });
+    } finally {
+      // Limpiar el marcador de login en progreso después de completar (éxito o error)
+      sessionStorage.removeItem('loginInProgress');
     }
   };
 
