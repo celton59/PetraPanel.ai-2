@@ -92,7 +92,10 @@ export function CompletedVideoDetail({ video }: CompletedVideoDetailProps) {
                         size="icon" 
                         variant="ghost" 
                         className="h-6 w-6" 
-                        onClick={() => copyToClipboard(video.optimizedTitle || "", "Título copiado")}
+                        onClick={() => {
+                          const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                          copyToClipboard(`${seriesPrefix}${video.optimizedTitle || ""}`, "Título copiado");
+                        }}
                       >
                         <Copy className="h-3.5 w-3.5" />
                         <span className="sr-only">Copiar título</span>

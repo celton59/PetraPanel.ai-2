@@ -1,5 +1,6 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
+import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -15,6 +16,7 @@ import {
   Image as ImageIcon,
   CheckSquare,
   Square,
+  Copy,
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -28,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,13 +103,29 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
-  const { videos, isLoading, deleteVideo, updateVideo, bulkDeleteVideos, assignVideoToYoutuber } = useVideos();
+  // Utilizar el hook useVideos con soporte para paginación
+  const { 
+    videos, 
+    isLoading, 
+    deleteVideo, 
+    updateVideo, 
+    bulkDeleteVideos, 
+    assignVideoToYoutuber,
+    pagination,
+    page,
+    setPage,
+    limit,
+    setLimit
+  } = useVideos();
   
   // Estados para UI
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">("table");
+  
+  // Determinar si estamos en un dispositivo móvil para la vista inicial
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [viewMode, setViewMode] = useState<"table" | "grid" | "list">(isMobile ? "list" : "table");
   
   // Estados para selección
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
@@ -134,6 +153,30 @@ export default function VideosPage() {
       window.history.replaceState({}, "", "/videos");
     }
   }, []);
+  
+  // Efecto para cambiar automáticamente a vista de lista en dispositivos móviles
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        const isMobileView = window.innerWidth < 768;
+        // Solo cambiar a lista si estamos en móvil y la vista actual es tabla
+        if (isMobileView && viewMode === "table") {
+          setViewMode("list");
+        }
+      }
+    };
+    
+    // Ejecutar al montar para asegurar la vista correcta
+    handleResize();
+    
+    // Agregar listener para cambios de tamaño
+    window.addEventListener('resize', handleResize);
+    
+    // Limpiar listener al desmontar
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [viewMode]);
 
   // Filtrar videos según criterios
   const filteredVideos = videos.filter((video) => {
@@ -174,9 +217,12 @@ export default function VideosPage() {
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center bg-background w-full">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando...</p>
+        <div className="flex flex-col items-center justify-center p-8">
+          <MascotLoader 
+            animation="wave" 
+            text="Cargando datos de usuario..." 
+            size="md"
+          />
         </div>
       </div>
     );
@@ -189,9 +235,12 @@ export default function VideosPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando videos...</p>
+        <div className="flex flex-col items-center justify-center">
+          <MascotLoader 
+            animation="thinking" 
+            text="Buscando tus videos..." 
+            size="lg"
+          />
         </div>
       </div>
     );
@@ -207,7 +256,8 @@ export default function VideosPage() {
     // Asignar el video automáticamente al youtuber cuando está en estado 'upload_media' y no está asignado
     if (
       user?.role === 'youtuber' && 
-      video.status === 'upload_media'
+      video.status === 'upload_media' && 
+      (!video.assignedToId || (video.assignedToId && video.assignedToId === user.id))
     ) {
       try {
         // Intentar asignar el video al youtuber
@@ -411,6 +461,18 @@ export default function VideosPage() {
   
   // Nota: Los atajos de teclado han sido desactivados para evitar problemas en macOS
 
+  // Función para copiar al portapapeles
+  function copyToClipboard(text: string, message: string) {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        toast.success(message);
+      },
+      () => {
+        toast.error("Error al copiar al portapapeles");
+      }
+    );
+  }
+
   function getTableView() {
     return (
       <div className="space-y-6">
@@ -482,15 +544,28 @@ export default function VideosPage() {
                     </TableCell>
                     {/* Serie */}
                     <TableCell className="font-medium text-center">
-                      {video.seriesNumber || "-"}
+                      <span>{video.seriesNumber || "-"}</span>
                     </TableCell>
                     {/* Título */}
                     <TableCell
                       className={cn("font-medium max-w-md", canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : "")}
                       onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
                     >
-                      <div className="space-y-1">
+                      <div className="flex items-center gap-2">
                         <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                            copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          <span className="sr-only">Copiar título</span>
+                        </Button>
                       </div>
                     </TableCell>
                     {/* Estado */}
@@ -623,9 +698,24 @@ export default function VideosPage() {
             
             {/* Content */}
             <div className="p-3">
-              <h3 className="font-medium text-sm line-clamp-2 mb-1">
-                {video.optimizedTitle || video.title}
-              </h3>
+              <div className="flex items-start gap-2">
+                <h3 className="font-medium text-sm line-clamp-2 mb-1 flex-1">
+                  {video.optimizedTitle || video.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                    copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  <span className="sr-only">Copiar título</span>
+                </Button>
+              </div>
               
               <div className="flex justify-between items-center mt-2">
                 <Badge
@@ -695,9 +785,24 @@ export default function VideosPage() {
             
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm line-clamp-1 mb-1">
-                {video.optimizedTitle || video.title}
-              </h3>
+              <div className="flex items-start gap-2">
+                <h3 className="font-medium text-sm line-clamp-1 mb-1 flex-1">
+                  {video.optimizedTitle || video.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                    copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  <span className="sr-only">Copiar título</span>
+                </Button>
+              </div>
               
               <div className="flex flex-wrap gap-2 items-center mt-1">
                 <Badge
@@ -835,7 +940,7 @@ export default function VideosPage() {
         <div className="flex items-center space-x-2">
           <h1 className="text-2xl font-bold tracking-tight">Videos</h1>
           <div className="bg-muted px-2 py-1 rounded text-sm font-medium text-muted-foreground">
-            {filteredVideos?.length || 0} videos
+            {pagination.totalVideos || 0} videos
           </div>
         </div>
         
@@ -987,6 +1092,17 @@ export default function VideosPage() {
             {viewMode === "table" && getTableView()}
             {viewMode === "grid" && getGridView()}
             {viewMode === "list" && getListView()}
+            
+            {/* Control de paginación */}
+            {pagination && filteredVideos.length > 0 && (
+              <VideoPaginationControls
+                currentPage={page}
+                totalPages={Math.max(1, pagination.totalPages || 0)}
+                setCurrentPage={setPage}
+                itemsPerPage={limit}
+                setItemsPerPage={setLimit}
+              />
+            )}
           </>
         )}
       

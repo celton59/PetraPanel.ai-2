@@ -95,7 +95,8 @@ export function OnlineUsersIndicator() {
           >
             <AvatarImage src={`/api/users/${user.userId}/avatar`} />
             <AvatarFallback className={getAvatarColor(user.userId)}>
-              {getUserInitial(user.username)}
+              {/* Siempre usamos la imagen predeterminada en vez de iniciales */}
+              <img src="/default-avatar.svg" alt="" className="h-full w-full" />
             </AvatarFallback>
           </Avatar>
         ))}
@@ -125,7 +126,8 @@ export function OnlineUsersIndicator() {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={`/api/users/${user.userId}/avatar`} />
                     <AvatarFallback className={getAvatarColor(user.userId)}>
-                      {getUserInitial(user.username)}
+                      {/* Siempre usamos la imagen predeterminada en vez de iniciales */}
+                      <img src="/default-avatar.svg" alt="" className="h-full w-full" />
                     </AvatarFallback>
                   </Avatar>
                   <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-background" />

@@ -24,6 +24,7 @@ import MediaReviewDetail from "./detail/MediaReviewDetail";
 import { MediaCorrectionsDetail } from "./detail/MediaCorrectionsDetail";
 import { CompletedVideoDetail } from "./detail/CompletedVideoDetail";
 import { ApiVideo } from "@/hooks/useVideos";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 
 const statusDescriptions: Record<VideoStatus, string> = {
   available: "Video recién creado, esperando asignación",
@@ -40,17 +41,16 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { user, isLoading: isUserLoading } = useUser();
   
-  // Si no hay video o usuario, mostrar estado de carga
+  // Si no hay video o usuario, mostrar estado de carga con mascota
   if (!video || !user || isUserLoading) {
     return (
       <DialogContent>
         <div className="flex items-center justify-center p-8">
-          <div className="text-center space-y-2">
-            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-sm text-muted-foreground">
-              {!video ? "Cargando datos del video..." : "Verificando permisos..."}
-            </p>
-          </div>
+          <MascotLoader 
+            animation="thinking" 
+            size="md" 
+            text={!video ? "Cargando datos del video..." : "Verificando permisos..."}
+          />
         </div>
       </DialogContent>
     );

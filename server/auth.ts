@@ -171,7 +171,7 @@ export function setupAuth(app: Express) {
         
         console.log("Authenticating user:", username);
         
-        // Buscar usuarios ignorando mayúsculas/minúsculas de manera más segura
+        // Seleccionar todos los campos pero manejamos posibles errores
         const usersResult = await db
           .select()
           .from(users);
@@ -242,6 +242,7 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       console.log("Deserializing user:", id);
+      // Seleccionar todos los campos
       const [user] = await db
         .select()
         .from(users)
@@ -260,11 +261,23 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
+  app.post("/api/login", passport.authenticate("local"), async (req, res) => {
     console.log("Login successful for user:", req.user?.username);
     const userToReturn = JSON.parse(JSON.stringify(req.user))
     delete userToReturn.password;
-    db.update(users).set({ lastLoginAt: new Date() })
+    
+    // Actualiza la fecha de último login si el usuario existe
+    if (req.user?.id) {
+      try {
+        await db.update(users)
+          .set({ lastLoginAt: new Date() })
+          .where(eq(users.id, req.user.id));
+      } catch (err) {
+        console.error("Error al actualizar último login:", err);
+        // Continuamos aunque falle esta actualización
+      }
+    }
+    
     res.json(userToReturn);
   });
 

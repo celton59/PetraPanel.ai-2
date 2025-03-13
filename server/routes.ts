@@ -84,6 +84,40 @@ export function registerRoutes(app: Express): Server {
     // Serve uploaded files
     app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+    // Ruta para obtener avatar de usuario por ID
+    app.get('/api/users/:id/avatar', async (req: Request, res: Response) => {
+      try {
+        const userId = parseInt(req.params.id);
+        
+        // Obtener URL del avatar del usuario
+        const userResult = await db
+          .select({ avatarUrl: users.avatarUrl })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        
+        if (!userResult || userResult.length === 0 || !userResult[0].avatarUrl) {
+          // Si no hay avatar, devolver el avatar por defecto
+          return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
+        }
+        
+        // Obtener la ruta completa del archivo
+        const avatarPath = path.join(process.cwd(), userResult[0].avatarUrl.substring(1));
+        
+        // Verificar si el archivo existe
+        if (!fs.existsSync(avatarPath)) {
+          return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
+        }
+        
+        // Enviar el archivo
+        res.sendFile(avatarPath);
+      } catch (error) {
+        console.error('Error al obtener avatar:', error);
+        // En caso de error, también servimos el avatar por defecto
+        return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
+      }
+    });
+
     // Register translator routes. Requiring authentication.
     app.use('/api/translator', requireAuth, translatorRouter);
 

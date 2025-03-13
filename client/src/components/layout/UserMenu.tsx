@@ -14,6 +14,7 @@ import { HelpButton } from "@/components/help/HelpButton"
 import { OnlineUsersIndicator } from "../users/OnlineUsersIndicator"
 import { useOnlineUsers } from "@/hooks/use-online-users"
 import { NotificationCenter } from "../notifications/NotificationCenter"
+import { useGlobalSearch } from "@/hooks/use-global-search"
 
 interface UserMenuProps {
   className?: string;
@@ -23,6 +24,7 @@ export function UserMenu({ className }: UserMenuProps) {
   const [, setLocation] = useLocation()
   const { user, logout } = useUser()
   const isMobile = useIsMobile()
+  const { openSearch } = useGlobalSearch()
   
   // Usar el hook real de usuarios en línea
   const { onlineUsers } = useOnlineUsers()
@@ -47,11 +49,7 @@ export function UserMenu({ className }: UserMenuProps) {
           variant="default" 
           size="sm" 
           className="md:hidden h-9 px-3 rounded-md"
-          onClick={() => {
-            // Usamos la misma función que el botón de escritorio
-            const { openSearch } = require('@/hooks/use-global-search').useGlobalSearch();
-            openSearch();
-          }}
+          onClick={openSearch} // Usamos la función que ya fue extraída del hook al inicio del componente
         >
           <Search className="h-5 w-5 mr-1" />
           <span className="text-sm font-medium">Buscar</span>
@@ -100,7 +98,9 @@ export function UserMenu({ className }: UserMenuProps) {
                   <div className="flex items-start gap-3">
                     <Avatar className="h-9 w-9 border-2 border-primary/20">
                       <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ana" />
-                      <AvatarFallback>AC</AvatarFallback>
+                      <AvatarFallback>
+                        <img src="/default-avatar.svg" alt="" className="h-full w-full" />
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">
                       <div className="flex justify-between">
@@ -200,7 +200,7 @@ export function UserMenu({ className }: UserMenuProps) {
                 <Avatar className="h-8 w-8 border-2 border-background">
                   <AvatarImage src={user.avatarUrl || undefined} alt={user.username} />
                   <AvatarFallback>
-                    {user.username.charAt(0).toUpperCase()}
+                    <img src="/default-avatar.svg" alt="" className="h-full w-full" />
                   </AvatarFallback>
                 </Avatar>
                 
@@ -229,7 +229,7 @@ export function UserMenu({ className }: UserMenuProps) {
               <Avatar className="h-10 w-10">
                 <AvatarImage src={user.avatarUrl || undefined} alt={user.username} />
                 <AvatarFallback>
-                  {user.username.charAt(0).toUpperCase()}
+                  <img src="/default-avatar.svg" alt="" className="h-full w-full" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">

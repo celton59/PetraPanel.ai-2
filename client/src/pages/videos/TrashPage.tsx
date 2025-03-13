@@ -4,6 +4,7 @@ import { useVideos, ApiVideo } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import {
   ArrowLeft,
   Loader2,
@@ -103,7 +104,8 @@ export default function TrashPage() {
   }, [trashVideos, searchTerm, statusFilter, retentionTime]);
 
   const filterVideos = () => {
-    let filtered = [...trashVideos];
+    // Asegurarse de que trashVideos es un array antes de desestructurarlo
+    let filtered = Array.isArray(trashVideos) ? [...trashVideos] : [];
 
     // Filtro por término de búsqueda
     if (searchTerm) {
@@ -279,17 +281,17 @@ export default function TrashPage() {
 
   // Toggle select all videos
   const toggleSelectAll = () => {
-    if (selectedVideos.length === filteredVideos.length) {
+    if (selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0)) {
       setSelectedVideos([]);
     } else {
-      setSelectedVideos(filteredVideos.map(video => video.id));
+      setSelectedVideos(Array.isArray(filteredVideos) ? filteredVideos.map(video => video.id) : []);
     }
   };
 
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <MascotLoader animation="thinking" size="lg" />
       </div>
     );
   }
@@ -309,13 +311,13 @@ export default function TrashPage() {
             </Link>
             <h1 className="text-2xl font-bold">Papelera de Reciclaje</h1>
             <Badge variant="outline" className="ml-2">
-              {filteredVideos.length} videos
+              {Array.isArray(filteredVideos) ? filteredVideos.length : 0} videos
             </Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Modo Selección */}
-            {user.role === "admin" && filteredVideos.length > 0 && (
+            {user.role === "admin" && (Array.isArray(filteredVideos) && filteredVideos.length > 0) && (
               <>
                 {selectMode ? (
                   <>
@@ -512,7 +514,7 @@ export default function TrashPage() {
             </Button>
             
             {/* Botón vaciar papelera */}
-            {user.role === "admin" && trashVideos.length > 0 && (
+            {user.role === "admin" && Array.isArray(trashVideos) && trashVideos.length > 0 && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -572,9 +574,9 @@ export default function TrashPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <MascotLoader animation="jump" size="lg" />
         </div>
-      ) : trashVideos.length === 0 ? (
+      ) : !Array.isArray(trashVideos) || trashVideos.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed h-64">
           <div className="rounded-full bg-muted p-3 mb-4">
             <Trash2 className="w-6 h-6 text-muted-foreground" />
@@ -603,10 +605,10 @@ export default function TrashPage() {
                       <TableHead className="w-[40px]">
                         <div className={cn(
                           "p-1.5 rounded-md transition-colors", 
-                          selectedVideos.length === filteredVideos.length && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
+                          selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
                         )}>
                           <Checkbox 
-                            checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
+                            checked={selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0}
                             onCheckedChange={toggleSelectAll}
                             className="h-4 w-4 border-2 transition-all duration-200"
                             aria-label="Seleccionar todos"
@@ -624,7 +626,7 @@ export default function TrashPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredVideos?.map((video) => (
+                  {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
                     <TableRow 
                       key={video.id} 
                       className="group video-card" 
@@ -730,7 +732,7 @@ export default function TrashPage() {
           
           {/* Vista de lista para móviles */}
           <div className="block md:hidden space-y-3">
-            {filteredVideos.map((video) => (
+            {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
               <div
                 key={video.id}
                 className="group video-card relative flex items-center border-l-4 border-red-500 border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"

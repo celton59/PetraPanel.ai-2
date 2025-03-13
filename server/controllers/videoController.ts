@@ -560,14 +560,75 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   
   try {
 
-    // Consulta para obtener el total de videos (para metadata de paginación)
-    const [countResult] = await db.select({
-      count: sql`count(*)`.mapWith(Number)
-    }).from(videos);
-    
-    
     // Verificar si queremos mostrar elementos de la papelera
     const showDeleted = req.query.trash === 'true';
+    
+    // Preparamos los filtros comunes tanto para el count como para la consulta principal
+    const commonFilters = and(
+      // Filtro de papelera - mostrar solo videos en papelera o no en papelera según el parámetro
+      showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
+
+      // Filtros segun rol
+      or(
+        req.user?.role === "optimizer"
+          ? eq(videos.status, "available")
+          : undefined,
+        req.user?.role === "optimizer"
+          ? eq(videos.status, "content_corrections")
+          : undefined,
+        req.user?.role === "optimizer"
+          ? eq(videos.optimizedBy, req.user!.id!)
+          : undefined,
+        req.user?.role === "optimizer"
+          ? isNull(videos.optimizedBy)
+          : undefined,
+        req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+          ? eq(videos.status, "content_review")
+          : undefined,
+        req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+          ? eq(videos.contentReviewedBy, req.user!.id!)
+          : undefined,
+        req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
+          ? isNull(videos.contentReviewedBy)
+          : undefined,
+        req.user?.role === "youtuber"
+          ? eq(videos.status, "upload_media")
+          : undefined,
+        req.user?.role === "youtuber"
+          ? eq(videos.status, "media_corrections")
+          : undefined,
+        req.user?.role === "youtuber"
+          ? eq(videos.contentUploadedBy, req.user!.id!)
+          : undefined,
+        req.user?.role === "youtuber"
+          ? isNull(videos.contentUploadedBy)
+          : undefined,
+        req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+          ? eq(videos.status, "media_review")
+          : undefined,
+        req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+          ? eq(videos.mediaReviewedBy, req.user!.id!)
+          : undefined,
+        req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
+          ? isNull(videos.mediaReviewedBy)
+          : undefined,
+      ),
+      
+      // Acceso a proyectos (para usuarios no administradores)
+      req.user?.role !== "admin"
+        ? eq(projectAccess.userId, req.user!.id!)
+        : undefined,
+    );
+    
+    // Consulta para obtener el total de videos (para metadata de paginación) con los mismos filtros
+    const countQuery = db.select({
+      count: sql`count(distinct ${videos.id})`.mapWith(Number)
+    })
+    .from(videos)
+    .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
+    .where(commonFilters);
+    
+    const [countResult] = await countQuery.execute();
 
     const query = db
       .selectDistinct({
@@ -605,63 +666,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .leftJoin(uploader, eq(videos.contentUploadedBy, uploader.id))
       .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
       .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
-      .where(
-        and(
-          // Filtro de papelera - mostrar solo videos en papelera o no en papelera según el parámetro
-          showDeleted ? eq(videos.isDeleted, true) : eq(videos.isDeleted, false),
-
-          // Filtros segun rol
-          or(
-            req.user?.role === "optimizer"
-              ? eq(videos.status, "available")
-              : undefined,
-            req.user?.role === "optimizer"
-              ? eq(videos.status, "content_corrections")
-              : undefined,
-            req.user?.role === "optimizer"
-              ? eq(videos.optimizedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "optimizer"
-              ? isNull(videos.optimizedBy)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? eq(videos.status, "content_review")
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? eq(videos.contentReviewedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "content_reviewer"
-              ? isNull(videos.contentReviewedBy)
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.status, "upload_media")
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.status, "media_corrections")
-              : undefined,
-            req.user?.role === "youtuber"
-              ? eq(videos.contentUploadedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "youtuber"
-              ? isNull(videos.contentUploadedBy)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? eq(videos.status, "media_review")
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? eq(videos.mediaReviewedBy, req.user!.id!)
-              : undefined,
-            req.user?.role === "reviewer" || req.user?.role === "media_reviewer"
-              ? isNull(videos.mediaReviewedBy)
-              : undefined,
-          ),
-          
-          // Acceso a proyectos (para usuarios no administradores)
-          req.user?.role !== "admin"
-            ? eq(projectAccess.userId, req.user!.id!)
-            : undefined,
-        ),
-      )
+      .where(commonFilters)
       .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
       .limit(limit)
       .offset(offset)

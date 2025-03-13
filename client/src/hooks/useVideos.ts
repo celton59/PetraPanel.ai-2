@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema'
 import { toast } from "sonner";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useState } from "react";
 
 export type PaginationMetadata = {
@@ -23,14 +23,17 @@ export type ApiVideo = {
   contentReviewerUsername: User["username"];
   mediaReviewerName: User["fullName"] | null;
   mediaReviewerUsername: User["username"];
-  creatorName: User["fullName"] | null,
-  creatorUsername: User["username"],
-  optimizerName: User["fullName"] | null,
-  optimizerUsername: User["username"],
-  uploaderName: User["fullName"] | null,
-  uploaderUsername: User["username"],
-  deletedByName: User["fullName"] | null,
-  deletedByUsername: User["username"] | null
+  creatorName: User["fullName"] | null;
+  creatorUsername: User["username"];
+  optimizerName: User["fullName"] | null;
+  optimizerUsername: User["username"];
+  uploaderName: User["fullName"] | null;
+  uploaderUsername: User["username"];
+  deletedByName: User["fullName"] | null;
+  deletedByUsername: User["username"] | null;
+  // Propiedades adicionales para asignación
+  assignedToId?: number | null;
+  assignedToName?: string | null;
 }
 
 interface VideosResponse {
@@ -53,6 +56,11 @@ export function useVideos() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  // Efecto para reiniciar a página 1 cuando se cambia el límite
+  useEffect(() => {
+    setPage(1);
+  }, [limit]);
+
   const queryKey = ["/api/videos", page, limit]
 
   const {
@@ -66,7 +74,12 @@ export function useVideos() {
       try {
         // Usamos axios para beneficiarnos del manejo de CSRF y credenciales
         const api = (await import('../lib/axios')).default;
-        const response = await api.get(queryKey[0] as string);
+        const response = await api.get(queryKey[0] as string, {
+          params: {
+            page,
+            limit
+          }
+        });
         return response.data;
       } catch (error: any) {
         console.error('Error al cargar los videos:', error);
@@ -520,10 +533,31 @@ export function useVideos() {
     },
   });
 
+  // Preparar datos de paginación por defecto si no están disponibles
+  const pagination: PaginationMetadata = videosData?.pagination ? {
+    ...videosData.pagination,
+    // Nos aseguramos de que totalPages sea al menos 1 si hay videos, o 0 si no hay videos
+    totalPages: (videosData.videos && videosData.videos.length > 0) 
+      ? Math.max(1, videosData.pagination.totalPages) 
+      : 0
+  } : {
+    page,
+    limit,
+    totalVideos: (videosData?.videos && videosData.videos.length) || 0,
+    totalPages: (videosData?.videos && videosData.videos.length > 0) ? 1 : 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  };
+
   return {
     videos: videosData?.videos || [],
     isLoading,
     isFetching,
+    pagination,
+    setPage,
+    setLimit,
+    page,
+    limit,
     createVideo: createVideoMutation.mutateAsync,
     createBulkVideos: createBulkVideosMutation.mutateAsync,
     updateVideo: updateVideoMutation.mutateAsync,

@@ -1,0 +1,192 @@
+Acciones rápidas
+Nuevo Video
+Crear y subir un nuevo video
+
+Optimizar SEO
+Mejorar el posicionamiento
+
+Gestionar Canal
+Administrar YouTube
+
+Sugerir Video
+Nueva idea de contenido
+
+Total Videos
+
+19
+0 pendientes
+
+Videos Completados
+
+5
+26% del total
+
+En Proceso
+
+0
+0 en producción
+
+Usuarios Activos
+
+0
+Últimos 7 días
+
+Actividad reciente
+Actividad Reciente
+Video "h" en estado available
+
+11/3/2025
+
+Video "1" en estado completed
+
+10/3/2025
+
+Video "1" en estado available
+
+10/3/2025
+
+Video "1" en estado available
+
+10/3/2025
+
+Video "1" en estado available
+
+10/3/2025
+
+Clima local
+Puerto de Sagunto
+18°C
+muy nublado
+51% humedad
+38 km/h
+Sensación térmica: 17°C
+Rendimiento
+Rendimiento
+Visualizaciones
++12%
+2.4k
+Tiempo Medio
+-8%
+4:35
+Engagement
++5%
+68%
+Métricas de videos
+Estado de Videos
+Disponibles
+13
+(68%)
+En Revisión
+1
+(5%)
+En Proceso
+0
+(0%)
+Completados
+5
+(26%)
+Total de videos
+19
+Equipo activo
+Equipo de Trabajo
+9 miembros / 1 en línea
+Buscar usuarios...
+Todos
+Admin
+Uploader
+Youtuber
+Optimizador
+Revisor
+AR
+Aitor Ruiz
+
+@hola3
+
+Admin
+Desconectado
+
+A
+Aitorin
+
+@hola
+
+Admin
+En línea
+
+UdP
+Usuario de Prueba
+
+@mediareviewer
+
+Rev. Media
+Desconectado
+
+UdP
+Usuario de Prueba
+
+@youtuber
+
+YouTuber
+Desconectado
+
+O
+Optimizador
+
+@optimizer
+
+Optimizador
+Desconectado
+
+RG
+Revisor General
+
+@reviewer
+
+Revisor
+Desconectado
+
+RdC
+Revisor de Contenido
+
+@contentreviewer
+
+Rev. Contenido
+Desconectado
+
+SdC
+Subidor de Contenido
+
+@uploader
+
+uploader
+Desconectado
+
+AR
+Aitor Ruiz
+
+@hola2
+
+YouTuber
+Desconectado
+
+PetraPanel v2.5.0 • Actualizado: 01.03.2025
+Inicio
+Videos
+Titulin
+5
+Alertas
+
+Menú
+
+PetraPanel v2.6.0 • Actualizado: 08.03.2025
+[plugin:runtime-error-plugin] require is not defined
+/home/runner/workspace/client/src/components/layout/UserMenu.tsx:52:41
+50 |            onClick={() => {
+51 |              // Usamos la misma función que el botón de escritorio pero importada correctamente
+52 |              const { useGlobalSearch } = require('@/hooks/use-global-search');
+   |                                          ^
+53 |              // Llamamos a openSearch directamente
+54 |              useGlobalSearch().openSearch();
+    at UserMenu.jsxDEV.children.jsxDEV.children.jsxDEV.onClick /home/runner/workspace/client/src/components/layout/UserMenu.tsx:52:41
+Click outside, press Esc key, or fix the code to dismiss.
+You can also disable this overlay by setting server.hmr.overlay to false in vite.config.js.

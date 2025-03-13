@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { refreshCSRFToken } from '@/lib/axios';
 
 /**
@@ -6,7 +6,6 @@ import { refreshCSRFToken } from '@/lib/axios';
  * Se debe incluir una vez en la aplicación, idealmente cerca de la raíz.
  */
 export function CSRFToken() {
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     // Función para cargar el token CSRF al iniciar
@@ -14,7 +13,6 @@ export function CSRFToken() {
       try {
         await refreshCSRFToken();
         console.log('CSRF Token obtenido correctamente');
-        setIsLoaded(true);
       } catch (error) {
         console.error('Error al cargar el token CSRF:', error);
         // Intentar de nuevo después de un retraso

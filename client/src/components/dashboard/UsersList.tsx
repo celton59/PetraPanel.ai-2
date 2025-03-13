@@ -6,6 +6,7 @@ import {
   Search, Loader2, ShieldCheck, Pencil, Shield,
   SquareUser, Wifi, WifiOff
 } from "lucide-react";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import { useState, useEffect } from "react";
 import { UserCard } from "./users/UserCard";
 import { UserDetails } from "./users/UserDetails";
@@ -97,8 +98,7 @@ export const UsersList = () => {
         </CardHeader>
         <CardContent className="p-8 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Cargando usuarios...</p>
+            <MascotLoader animation="wave" size="lg" text="Cargando usuarios..." />
           </div>
         </CardContent>
       </Card>

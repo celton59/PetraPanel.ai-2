@@ -108,6 +108,53 @@ export default {
           "50%": {
             opacity: "0.9"
           }
+        },
+        // Animaciones para la mascota
+        "mascot-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-15%)" }
+        },
+        "mascot-dance": {
+          "0%, 100%": { transform: "rotate(-5deg)" },
+          "25%": { transform: "rotate(0deg) scale(1.05)" },
+          "50%": { transform: "rotate(5deg)" },
+          "75%": { transform: "rotate(0deg) scale(0.95)" }
+        },
+        "mascot-jump": {
+          "0%, 100%": { transform: "translateY(0) scale(1)" },
+          "10%": { transform: "translateY(0) scale(0.9)" },
+          "30%": { transform: "translateY(-30%) scale(1.1)" },
+          "50%": { transform: "translateY(0) scale(1)" },
+          "57%": { transform: "translateY(-7%) scale(1.05)" },
+          "64%": { transform: "translateY(0) scale(1)" }
+        },
+        "mascot-spin": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" }
+        },
+        "mascot-wave": {
+          "0%": { transform: "rotate(0deg)" },
+          "15%": { transform: "rotate(-15deg)" },
+          "30%": { transform: "rotate(15deg)" },
+          "45%": { transform: "rotate(-15deg)" },
+          "60%": { transform: "rotate(15deg)" },
+          "75%": { transform: "rotate(-15deg)" },
+          "85%": { transform: "rotate(0deg)" }
+        },
+        "mascot-thinking": {
+          "0%": { transform: "translateX(0) rotate(0deg)" },
+          "25%": { transform: "translateX(-5%) rotate(-2deg)" },
+          "50%": { transform: "translateX(0) rotate(0deg)" },
+          "75%": { transform: "translateX(5%) rotate(2deg)" },
+          "100%": { transform: "translateX(0) rotate(0deg)" }
+        },
+        "mascot-eye-blink": {
+          "0%, 90%, 100%": { transform: "scaleY(1)" },
+          "95%": { transform: "scaleY(0.1)" }
+        },
+        "mascot-smile": {
+          "0%, 100%": { transform: "scaleX(1)" },
+          "50%": { transform: "scaleX(1.1)" }
         }
       },
       animation: {
@@ -118,7 +165,16 @@ export default {
         "gradient-xy": "gradient-xy 10s ease infinite",
         "shimmer": "shimmer 8s ease-in-out infinite",
         "pulse-slow": "pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "pulse-opacity": "pulse-opacity 3s ease-in-out infinite"
+        "pulse-opacity": "pulse-opacity 3s ease-in-out infinite",
+        // Animaciones de la mascota
+        "mascot-bounce": "mascot-bounce 2s ease-in-out infinite",
+        "mascot-dance": "mascot-dance 2s ease-in-out infinite",
+        "mascot-jump": "mascot-jump 3s ease-in-out infinite",
+        "mascot-spin": "mascot-spin 5s linear infinite",
+        "mascot-wave": "mascot-wave 2.5s ease-in-out infinite",
+        "mascot-thinking": "mascot-thinking 3s ease-in-out infinite",
+        "mascot-eye-blink": "mascot-eye-blink 3s ease-in-out infinite",
+        "mascot-smile": "mascot-smile 3s ease-in-out infinite"
       },
       boxShadow: {
         glow: "0 0 5px 1px rgba(255, 0, 0, 0.7)",

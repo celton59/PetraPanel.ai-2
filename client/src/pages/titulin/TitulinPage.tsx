@@ -7,6 +7,7 @@ import { VideoStats } from "./components/VideoStats";
 import { SearchBar } from "./components/SearchBar";
 import { TableActions } from "./components/TableActions";
 import { VideoTable } from "./components/VideoTable";
+import { MobileVideoList } from "./components/MobileVideoList";
 import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
 import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
@@ -42,6 +43,9 @@ export default function TitulinPage() {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "publishedAt", desc: true }
   ]);
+  
+  // Estado para detectar si estamos en un dispositivo móvil
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   // Efecto para gestionar la búsqueda
   useEffect(() => {
@@ -53,6 +57,21 @@ export default function TitulinPage() {
 
     return () => clearTimeout(timerId);
   }, [searchValue]);
+  
+  // Efecto para detectar cambios en el tamaño de la ventana
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Agregar listener para cambios de tamaño
+    window.addEventListener('resize', handleResize);
+    
+    // Limpiar listener al desmontar
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Obtener el queryClient para poder usarlo más tarde
   const queryClient = useQueryClient();

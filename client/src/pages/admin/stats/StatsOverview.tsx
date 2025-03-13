@@ -21,6 +21,7 @@ import {
   Zap, BarChart3, Activity, Award, Target,
   PieChart as PieChartIcon
 } from "lucide-react";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -132,8 +133,7 @@ export function StatsOverview({
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando estadísticas...</p>
+          <MascotLoader animation="spin" size="lg" text="Cargando estadísticas..." />
         </div>
       </div>
     );

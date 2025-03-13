@@ -11,7 +11,6 @@ import {
   Video, Camera, PenTool, ClipboardCheck, Upload, FileText,
   LockKeyhole, ShieldAlert, Eye, EyeOff, Unlock, X, Check
 } from "lucide-react";
-import { MascotLoader } from "@/components/ui/mascot-loader";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
@@ -47,32 +46,7 @@ export default function AuthPage() {
   const [showDevAccess, setShowDevAccess] = useState(false);
   const [rememberAccess, setRememberAccess] = useState(false);
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
-  const [showOverlay, setShowOverlay] = useState(false);
   
-  // Función reutilizable para manejar la transición después del login
-  const handleLoginTransition = () => {
-    // Iniciar transición
-    setShowOverlay(true);
-    setIsLoading(true);
-    
-    // Asegurar que la vista esté en la parte superior
-    window.scrollTo(0, 0);
-    
-    // Esperar un momento y navegar al dashboard
-    setTimeout(() => {
-      // Establecer indicador de login justo antes de la navegación
-      localStorage.setItem('fromLogin', 'true');
-      
-      // Navegar al dashboard
-      setLocation("/");
-      
-      // Limpiar estados después de un breve retraso para mantener la transición fluida
-      setTimeout(() => {
-        setShowOverlay(false);
-        setIsLoading(false);
-      }, 200);
-    }, 500);
-  };
   // PIN correcto para acceder a las cuentas de prueba
   const CORRECT_PIN = ['5', '9', '5', '9']; // PIN sencillo: 5959
   
@@ -197,8 +171,6 @@ export default function AuthPage() {
     setTimeout(() => pinRefs[0].current?.focus(), 100);
   };
   
-  // Este comentario reemplaza la declaración duplicada de showOverlay
-  
   // Helper de inicio de sesión rápido con credenciales predefinidas
   const handleQuickLogin = async (username: string, password: string) => {
     // Si no está desbloqueado el acceso a cuentas de prueba, mostrar el diálogo de PIN
@@ -207,33 +179,18 @@ export default function AuthPage() {
       return;
     }
     
-    // Verificar si ya hay un inicio de sesión en proceso para prevenir animaciones duplicadas
-    const isLoginInProgress = sessionStorage.getItem('loginInProgress') === 'true';
-    if (isLoginInProgress) {
-      console.log("Ya hay un inicio de sesión en progreso, evitando solicitud duplicada");
-      return;
-    }
-    
+    setIsLoading(true);
     try {
-      // Marcar que hay un login en progreso
-      sessionStorage.setItem('loginInProgress', 'true');
-      
-      // Iniciar proceso de transición visual
-      setIsLoading(true);
-      
       console.log(`Iniciando sesión con el usuario ${username}`);
-      
-      // Realizar la autenticación
       await login({ username, password });
       
-      // Realizar la transición al dashboard
-      handleLoginTransition();
-      
+      // Simular un pequeño retraso para una mejor experiencia
+      setTimeout(() => {
+        setLocation("/");
+        setIsLoading(false);
+      }, 500);
     } catch (error: any) {
-      // Quitar overlay y estado de carga
-      setShowOverlay(false);
       setIsLoading(false);
-      
       console.error(`Error en inicio de sesión con ${username}:`, error);
       
       toast.error("Error de inicio de sesión", {
@@ -241,69 +198,32 @@ export default function AuthPage() {
         position: "top-right",
         duration: 5000
       });
-    } finally {
-      // Limpiar el marcador de login en progreso después de completar (éxito o error)
-      sessionStorage.removeItem('loginInProgress');
     }
   };
 
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
-    // Verificar si ya hay un inicio de sesión en proceso para prevenir animaciones duplicadas
-    const isLoginInProgress = sessionStorage.getItem('loginInProgress') === 'true';
-    if (isLoginInProgress) {
-      console.log("Ya hay un inicio de sesión en progreso, evitando solicitud duplicada");
-      return;
-    }
-    
+    setIsLoading(true);
     try {
-      // Marcar que hay un login en progreso
-      sessionStorage.setItem('loginInProgress', 'true');
-      
-      // Iniciar estado de carga
-      setIsLoading(true);
-      
-      console.log(`Iniciando sesión con:`, { username: data.username });
-      
-      // Realizar el login
       await login({ username: data.username, password: data.password });
       
-      // Usar nuestra función reutilizable para la transición
-      handleLoginTransition();
-      
+      // Simular un pequeño retraso para una mejor experiencia
+      setTimeout(() => {
+        setLocation("/");
+        setIsLoading(false);
+      }, 500);
     } catch (error: any) {
-      // Quitar overlay y estado de carga
-      setShowOverlay(false);
       setIsLoading(false);
-      
       toast.error("Error de inicio de sesión", {
         description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
         position: "top-right",
         duration: 3000
       });
-    } finally {
-      // Limpiar el marcador de login en progreso después de completar (éxito o error)
-      sessionStorage.removeItem('loginInProgress');
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
-      {/* Overlay de transición */}
-      {showOverlay && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="w-16 h-16 relative">
-              <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping"></div>
-              <div className="absolute inset-[2px] rounded-full bg-primary/40 animate-pulse"></div>
-              <Video className="w-16 h-16 text-primary relative z-10" />
-            </div>
-            <div className="flex items-center gap-2">
-              <MascotLoader animation="jump" size="md" text="Accediendo..." />
-            </div>
-          </div>
-        </div>
-      )}
       {/* Diálogo para el PIN de acceso a cuentas de desarrollo */}
       <Dialog 
         open={showPinDialog} 
@@ -412,7 +332,7 @@ export default function AuthPage() {
       {/* Simple header accent line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-purple-500/80 to-pink-500/80"></div>
       
-      <div className="w-full max-w-lg space-y-8 relative z-10">
+      <div className="w-full max-w-lg space-y-8 relative z-10 animate-fade-in">
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
           {/* Logo/Brand */}
@@ -441,7 +361,7 @@ export default function AuthPage() {
         </div>
 
         {/* Auth Form Card - AHORA VA PRIMERO */}
-        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl">
+        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
             {/* Eliminamos el texto de "Acceso seguro" */}
           </CardHeader>
@@ -460,7 +380,7 @@ export default function AuthPage() {
                         <FormControl>
                           <Input
                             placeholder="Ingresa tu nombre de usuario"
-                            className="h-12 pl-10 focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="username"
                             {...field}
                           />
@@ -490,7 +410,7 @@ export default function AuthPage() {
                           <Input
                             type="password"
                             placeholder="Ingresa tu contraseña"
-                            className="h-12 pl-10 focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="current-password"
                             {...field}
                           />
@@ -534,8 +454,8 @@ export default function AuthPage() {
                 >
                   {isLoading ? (
                     <>
-                      <MascotLoader animation="thinking" size="sm" text="" />
-                      <span className="ml-2">Iniciando sesión...</span>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Iniciando sesión...
                     </>
                   ) : (
                     <>
@@ -577,7 +497,7 @@ export default function AuthPage() {
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
                     {isLoading ? (
-                      <MascotLoader animation="dance" size="sm" text="" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <>{cred.icon}</>
                     )}

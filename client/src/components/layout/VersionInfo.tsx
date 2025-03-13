@@ -34,12 +34,66 @@ interface ChangelogEntry {
 // Historial de versiones
 const versionHistory: ChangelogEntry[] = [
   {
+    version: '2.7.0',
+    date: '13.03.2025',
+    changes: [
+      { 
+        type: 'improved', 
+        description: 'Transición optimizada entre login y dashboard para una experiencia más fluida'
+      },
+      { 
+        type: 'improved', 
+        description: 'Prevención de solicitudes duplicadas durante el proceso de login'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Corregido el problema de animaciones múltiples durante el inicio de sesión'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Eliminadas las recargas innecesarias en campos de formulario de login'
+      },
+      { 
+        type: 'improved', 
+        description: 'Gestión de estados más eficiente durante la transición de autenticación'
+      },
+      { 
+        type: 'improved', 
+        description: 'Reducción de procesamiento en la interfaz de usuario durante el inicio de sesión'
+      }
+    ]
+  },
+  {
     version: '2.6.0',
-    date: '08.03.2025',
+    date: '12.03.2025',
     changes: [
       { 
         type: 'new', 
+        description: 'Sistema de visualización adaptativo en modo móvil optimizado para la pestaña "Evergreen"'
+      },
+      { 
+        type: 'new', 
+        description: 'Sistema de avatares unificado con SVG predeterminado para todos los usuarios'
+      },
+      { 
+        type: 'new', 
+        description: 'Nueva información de "última conexión" y seguimiento de actividad de usuarios'
+      },
+      { 
+        type: 'new', 
         description: 'Toasts mejorados: más compactos y menos intrusivos para una mejor experiencia de usuario'
+      },
+      { 
+        type: 'improved', 
+        description: 'Avatar predeterminado unificado en todos los indicadores de usuario para coherencia visual'
+      },
+      { 
+        type: 'improved', 
+        description: 'Formato de copia de video estandarizado con "S[número] - [título]" para todos los casos'
+      },
+      { 
+        type: 'improved', 
+        description: 'Experiencia táctil mejorada para todas las vistas de videos con controles accesibles'
       },
       { 
         type: 'improved', 
@@ -51,7 +105,15 @@ const versionHistory: ChangelogEntry[] = [
       },
       { 
         type: 'fixed', 
+        description: 'Corrección de la sincronización de estados de usuario en conexiones simultáneas'
+      },
+      { 
+        type: 'fixed', 
         description: 'Corrección del bug del ícono de carga persistente al cerrar el diálogo de detalles de video'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Solucionado problema con la columna "última conexión" en la base de datos'
       },
       { 
         type: 'improved', 

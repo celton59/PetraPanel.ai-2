@@ -3,10 +3,10 @@ import { z } from "zod";
 import { users, projectAccess } from "@db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { db } from "@db";
+import { passwordUtils } from "../auth";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import { type Express } from "express";
-import { passwordUtils } from "../auth.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -36,7 +36,6 @@ const updateUserSchema = z.object({
 
 type CreateUserSchema = z.infer<typeof createUserSchema>;
 type UpdateUserSchema = z.infer<typeof updateUserSchema>;
-
 
 
 export async function createUser(
