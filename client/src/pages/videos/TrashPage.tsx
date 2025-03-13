@@ -625,7 +625,7 @@ export default function TrashPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredVideos?.map((video) => (
+                  {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
                     <TableRow 
                       key={video.id} 
                       className="group video-card" 
@@ -731,7 +731,7 @@ export default function TrashPage() {
           
           {/* Vista de lista para móviles */}
           <div className="block md:hidden space-y-3">
-            {filteredVideos.map((video) => (
+            {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
               <div
                 key={video.id}
                 className="group video-card relative flex items-center border-l-4 border-red-500 border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
