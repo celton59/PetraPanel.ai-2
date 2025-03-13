@@ -4,12 +4,26 @@ import { useLocation } from "wouter"
 import { SearchButton, GlobalSearch } from "@/components/global-search"
 import { MobileNavBar } from "./MobileNavBar"
 import { VersionInfo } from "./VersionInfo"
+import { useEffect } from "react"
 
 interface LayoutProps {
   children: React.ReactNode
 }
 
 export function Layout({ children }: LayoutProps) {
+  // Verificar si venimos del login para restablecer posición de scroll
+  useEffect(() => {
+    const fromLogin = localStorage.getItem('fromLogin') === 'true';
+    
+    if (fromLogin) {
+      // Resetear scroll al inicio de la página
+      window.scrollTo(0, 0);
+      
+      // Eliminar la marca de "fromLogin" para futuras navegaciones
+      localStorage.removeItem('fromLogin');
+    }
+  }, []);
+  
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-background via-background to-background shadow-sm">

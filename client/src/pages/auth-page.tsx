@@ -182,6 +182,9 @@ export default function AuthPage() {
       return;
     }
     
+    // Asegurar que la vista esté en la parte superior
+    window.scrollTo(0, 0);
+    
     // Mostrar overlay de transición
     setShowOverlay(true);
     
@@ -194,16 +197,22 @@ export default function AuthPage() {
       // Realizar la autenticación
       await login({ username, password });
       
+      // Establecer el localStorage para indicar que venimos del login
+      localStorage.setItem('fromLogin', 'true');
+      
       // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
       setTimeout(() => {
+        // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
+        window.scrollTo(0, 0);
+        
         setLocation("/");
         
         // Mantener el overlay un poco más para asegurar la fluidez de la transición
         setTimeout(() => {
           setShowOverlay(false);
           setIsLoading(false);
-        }, 200);
-      }, 200);
+        }, 300);
+      }, 300);
       
     } catch (error: any) {
       // Quitar overlay y estado de carga
@@ -222,6 +231,9 @@ export default function AuthPage() {
 
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
+    // Asegurar que la vista esté en la parte superior
+    window.scrollTo(0, 0);
+    
     // Mostrar overlay de transición
     setShowOverlay(true);
     
@@ -234,16 +246,22 @@ export default function AuthPage() {
       // Realizar el login
       await login({ username: data.username, password: data.password });
       
+      // Establecer el localStorage para indicar que venimos del login
+      localStorage.setItem('fromLogin', 'true');
+      
       // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
       setTimeout(() => {
+        // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
+        window.scrollTo(0, 0);
+        
         setLocation("/");
         
         // Mantener el overlay un poco más para asegurar la fluidez de la transición
         setTimeout(() => {
           setShowOverlay(false);
           setIsLoading(false);
-        }, 200);
-      }, 200);
+        }, 300);
+      }, 300);
     } catch (error: any) {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
