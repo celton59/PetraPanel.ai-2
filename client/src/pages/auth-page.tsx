@@ -577,7 +577,7 @@ export default function AuthPage() {
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
                     {isLoading ? (
-                      <MascotLoader animation="bounce" size="sm" text="" />
+                      <MascotLoader animation="dance" size="sm" text="" />
                     ) : (
                       <>{cred.icon}</>
                     )}
