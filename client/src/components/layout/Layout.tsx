@@ -13,14 +13,21 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   // Verificar si venimos del login para restablecer posición de scroll
   useEffect(() => {
+    // Inmediatamente detectamos si venimos del login y limpiamos la bandera
     const fromLogin = localStorage.getItem('fromLogin') === 'true';
     
     if (fromLogin) {
-      // Resetear scroll al inicio de la página
-      window.scrollTo(0, 0);
-      
-      // Eliminar la marca de "fromLogin" para futuras navegaciones
+      // Eliminar la marca de "fromLogin" para evitar futuros efectos
       localStorage.removeItem('fromLogin');
+      
+      // Resetear scroll al inicio de la página después de un pequeño retraso
+      // para permitir que el componente se renderice completamente
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'auto'
+        });
+      }, 50);
     }
   }, []);
   

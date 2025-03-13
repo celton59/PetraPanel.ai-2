@@ -216,11 +216,9 @@ export function useUser() {
       }
     },
     onSuccess: (data) => {
-      // Actualizamos el estado de autenticación
+      // Actualizamos el estado de autenticación sin invalidar queries
+      // para evitar recargas innecesarias
       queryClient.setQueryData(['/api/user'], data);
-      
-      // Forzamos una recarga de queries que dependen del estado de autenticación
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     },
   });
 
