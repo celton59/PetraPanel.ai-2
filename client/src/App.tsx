@@ -18,9 +18,12 @@ import TitulinPage from "./pages/titulin/TitulinPage";
 import TitulinConfigPage from "./pages/titulin/TitulinConfigPage";
 import { CSRFToken } from "@/components/auth/CSRFToken";
 import { MascotLoader } from "@/components/ui/mascot-loader";
+import { EasterEggProvider } from "@/hooks/use-easter-eggs";
+import { EasterEggContainer } from "@/components/ui/easter-egg-container";
 
-// Importación de la página de demostración de mascota
+// Importación de las páginas de demostración
 import MascotDemo from "@/pages/mascot-demo";
+import EasterEggsDemo from "@/pages/easter-eggs-demo";
 
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
@@ -73,6 +76,7 @@ function Router() {
       <Route path="/configuracion/titulin" component={() => <ProtectedRoute component={TitulinConfigPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route path="/mascot-demo" component={() => <ProtectedRoute component={MascotDemo} />} />
+      <Route path="/easter-eggs-demo" component={() => <ProtectedRoute component={EasterEggsDemo} />} />
       
       {/* Rutas de administración - solo accesibles para administradores */}
       { user.role === 'admin' && (
@@ -93,31 +97,35 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <GuideProvider>
-        {/* Componente para gestionar el token CSRF */}
-        <CSRFToken />
-        <Toaster 
-          position="bottom-center"
-          expand={false}
-          closeButton={false}
-          richColors
-          duration={1500}
-          offset={16}
-          toastOptions={{
-            style: { 
-              fontSize: '0.85rem', 
-              padding: '6px 12px',
-              maxWidth: '320px'
-            },
-            className: 'compact-toast'
-          }}
-        />
-        <Router>
-          {/* <Switch>
-            <Route path="/*" component={Layout} />
-          </Switch> */}
-        </Router>
-      </GuideProvider>
+      <EasterEggProvider>
+        <GuideProvider>
+          {/* Componente para gestionar el token CSRF */}
+          <CSRFToken />
+          {/* Contenedor para easter eggs interactivos */}
+          <EasterEggContainer />
+          <Toaster 
+            position="bottom-center"
+            expand={false}
+            closeButton={false}
+            richColors
+            duration={1500}
+            offset={16}
+            toastOptions={{
+              style: { 
+                fontSize: '0.85rem', 
+                padding: '6px 12px',
+                maxWidth: '320px'
+              },
+              className: 'compact-toast'
+            }}
+          />
+          <Router>
+            {/* <Switch>
+              <Route path="/*" component={Layout} />
+            </Switch> */}
+          </Router>
+        </GuideProvider>
+      </EasterEggProvider>
     </QueryClientProvider>
   );
 }
