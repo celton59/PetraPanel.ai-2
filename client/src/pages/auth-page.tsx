@@ -200,20 +200,19 @@ export default function AuthPage() {
       // Establecer el localStorage para indicar que venimos del login
       localStorage.setItem('fromLogin', 'true');
       
-      // Navegar al dashboard después de un retraso para permitir que se muestre el overlay
+      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
       setTimeout(() => {
         // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
         window.scrollTo(0, 0);
         
         setLocation("/");
         
-        // Mantener el overlay más tiempo para asegurar la fluidez de la transición
-        // y dar tiempo para que se complete la animación
+        // Mantener el overlay un poco más para asegurar la fluidez de la transición
         setTimeout(() => {
           setShowOverlay(false);
           setIsLoading(false);
-        }, 800);
-      }, 500);
+        }, 300);
+      }, 300);
       
     } catch (error: any) {
       // Quitar overlay y estado de carga
@@ -250,20 +249,19 @@ export default function AuthPage() {
       // Establecer el localStorage para indicar que venimos del login
       localStorage.setItem('fromLogin', 'true');
       
-      // Navegar al dashboard después de un retraso para permitir que se muestre el overlay
+      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
       setTimeout(() => {
         // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
         window.scrollTo(0, 0);
         
         setLocation("/");
         
-        // Mantener el overlay más tiempo para asegurar la fluidez de la transición
-        // y dar tiempo para que se complete la animación
+        // Mantener el overlay un poco más para asegurar la fluidez de la transición
         setTimeout(() => {
           setShowOverlay(false);
           setIsLoading(false);
-        }, 800);
-      }, 500);
+        }, 300);
+      }, 300);
     } catch (error: any) {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
@@ -279,47 +277,18 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
-      {/* Overlay de transición mejorado */}
+      {/* Overlay de transición */}
       {showOverlay && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-1000" 
-          style={{
-            background: 'radial-gradient(circle at center, rgba(var(--background-rgb), 0.85) 0%, rgba(var(--background-rgb), 0.95) 100%)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          {/* Elementos decorativos flotantes */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Partículas decorativas */}
-            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full mix-blend-multiply filter blur-3xl animate-blob opacity-70"></div>
-            <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-purple-500/5 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 opacity-70"></div>
-            <div className="absolute bottom-1/4 right-1/3 w-60 h-60 bg-pink-500/5 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000 opacity-70"></div>
-          </div>
-          
-          <div className="flex flex-col items-center gap-8 z-10">
-            {/* Logo animado */}
-            <div className="w-24 h-24 relative">
-              <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping opacity-50"></div>
-              <div className="absolute inset-0 rounded-full bg-primary/5 animate-ping opacity-30 animation-delay-200"></div>
-              <div className="absolute inset-[6px] rounded-full bg-background/50 backdrop-blur-sm shadow-inner"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Video className="w-12 h-12 text-primary animate-pulse" />
-              </div>
-              
-              {/* Anillo giratorio */}
-              <div className="absolute inset-[-8px] rounded-full border-4 border-primary/10 border-t-primary/40 animate-spin-slow"></div>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-16 h-16 relative">
+              <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping"></div>
+              <div className="absolute inset-[2px] rounded-full bg-primary/40 animate-pulse"></div>
+              <Video className="w-16 h-16 text-primary relative z-10" />
             </div>
-            
-            {/* Mensaje de carga */}
-            <div className="bg-background/30 backdrop-blur-sm px-6 py-3 rounded-lg border border-border/30 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce"></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce animation-delay-100"></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce animation-delay-200"></div>
-                </div>
-                <span className="text-lg font-medium text-foreground">Iniciando sesión...</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-lg font-semibold">Accediendo...</span>
             </div>
           </div>
         </div>
