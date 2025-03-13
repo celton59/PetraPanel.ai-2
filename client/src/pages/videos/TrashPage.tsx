@@ -280,10 +280,10 @@ export default function TrashPage() {
 
   // Toggle select all videos
   const toggleSelectAll = () => {
-    if (selectedVideos.length === filteredVideos.length) {
+    if (selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0)) {
       setSelectedVideos([]);
     } else {
-      setSelectedVideos(filteredVideos.map(video => video.id));
+      setSelectedVideos(Array.isArray(filteredVideos) ? filteredVideos.map(video => video.id) : []);
     }
   };
 
@@ -310,13 +310,13 @@ export default function TrashPage() {
             </Link>
             <h1 className="text-2xl font-bold">Papelera de Reciclaje</h1>
             <Badge variant="outline" className="ml-2">
-              {filteredVideos.length} videos
+              {Array.isArray(filteredVideos) ? filteredVideos.length : 0} videos
             </Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Modo Selección */}
-            {user.role === "admin" && filteredVideos.length > 0 && (
+            {user.role === "admin" && (Array.isArray(filteredVideos) && filteredVideos.length > 0) && (
               <>
                 {selectMode ? (
                   <>
@@ -604,10 +604,10 @@ export default function TrashPage() {
                       <TableHead className="w-[40px]">
                         <div className={cn(
                           "p-1.5 rounded-md transition-colors", 
-                          selectedVideos.length === filteredVideos.length && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
+                          selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
                         )}>
                           <Checkbox 
-                            checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
+                            checked={selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0}
                             onCheckedChange={toggleSelectAll}
                             className="h-4 w-4 border-2 transition-all duration-200"
                             aria-label="Seleccionar todos"
