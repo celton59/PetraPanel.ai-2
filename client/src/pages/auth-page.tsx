@@ -11,6 +11,7 @@ import {
   Video, Camera, PenTool, ClipboardCheck, Upload, FileText,
   LockKeyhole, ShieldAlert, Eye, EyeOff, Unlock, X, Check
 } from "lucide-react";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
@@ -298,8 +299,7 @@ export default function AuthPage() {
               <Video className="w-16 h-16 text-primary relative z-10" />
             </div>
             <div className="flex items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="text-lg font-semibold">Accediendo...</span>
+              <MascotLoader animation="jump" size="md" text="Accediendo..." />
             </div>
           </div>
         </div>
@@ -534,8 +534,8 @@ export default function AuthPage() {
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Iniciando sesión...
+                      <MascotLoader animation="thinking" size="sm" text="" />
+                      <span className="ml-2">Iniciando sesión...</span>
                     </>
                   ) : (
                     <>
@@ -577,7 +577,7 @@ export default function AuthPage() {
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
                     {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <MascotLoader animation="bounce" size="sm" text="" />
                     ) : (
                       <>{cred.icon}</>
                     )}
