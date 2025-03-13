@@ -8,6 +8,7 @@ import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
 import { RatesTab } from "../accounting/RatesTab";
 import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
 import TitulinTab from "./tabs/titulin/TitulinTab";
+import { EasterEggsTab } from "./tabs/easter-eggs/EasterEggsTab";
 
 /**
  * Página de configuración del administrador que contiene diferentes pestañas
@@ -39,6 +40,7 @@ export default function ConfigurationPage() {
             <TabsTrigger value="workflow">Flujo de trabajo</TabsTrigger>
             <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
             <TabsTrigger value="finanzas">Configuración Financiera</TabsTrigger>
+            <TabsTrigger value="easter-eggs">Easter Eggs</TabsTrigger>
           </TabsList>
           
           <TabsContent value="usuarios" className="space-y-4">
@@ -67,6 +69,10 @@ export default function ConfigurationPage() {
           
           <TabsContent value="finanzas" className="space-y-4">
             <FinanceConfigTab />
+          </TabsContent>
+          
+          <TabsContent value="easter-eggs" className="space-y-4">
+            <EasterEggsTab />
           </TabsContent>
         </Tabs>
       </div>
