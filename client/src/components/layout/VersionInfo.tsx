@@ -34,6 +34,36 @@ interface ChangelogEntry {
 // Historial de versiones
 const versionHistory: ChangelogEntry[] = [
   {
+    version: '2.7.0',
+    date: '13.03.2025',
+    changes: [
+      { 
+        type: 'improved', 
+        description: 'Transición optimizada entre login y dashboard para una experiencia más fluida'
+      },
+      { 
+        type: 'improved', 
+        description: 'Prevención de solicitudes duplicadas durante el proceso de login'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Corregido el problema de animaciones múltiples durante el inicio de sesión'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Eliminadas las recargas innecesarias en campos de formulario de login'
+      },
+      { 
+        type: 'improved', 
+        description: 'Gestión de estados más eficiente durante la transición de autenticación'
+      },
+      { 
+        type: 'improved', 
+        description: 'Reducción de procesamiento en la interfaz de usuario durante el inicio de sesión'
+      }
+    ]
+  },
+  {
     version: '2.6.0',
     date: '12.03.2025',
     changes: [
