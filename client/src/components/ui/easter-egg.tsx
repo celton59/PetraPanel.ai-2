@@ -2,7 +2,16 @@ import { useState, useEffect, useRef, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import confetti from "canvas-confetti";
+// Importamos confetti de manera dinámica para evitar problemas en SSR o si el módulo no está disponible
+let confetti: any = null;
+try {
+  // Solo importamos en el cliente y si está disponible
+  if (typeof window !== 'undefined') {
+    confetti = require('canvas-confetti').default;
+  }
+} catch (error) {
+  console.warn('canvas-confetti no pudo ser cargado correctamente:', error);
+}
 
 // Tipos de easter eggs disponibles
 export type EasterEggType = 
@@ -69,34 +78,40 @@ export function EasterEgg({
   
   // Manejar la animación de confetti
   useEffect(() => {
-    if (isVisible && type === "confetti") {
-      const canvas = confettiCanvasRef.current;
-      if (canvas) {
-        const myConfetti = confetti.create(canvas, {
-          resize: true,
-          useWorker: true
-        });
-        
-        // Lanzar confetti al mostrar
-        myConfetti({
-          particleCount: 150,
-          spread: 120,
-          origin: { y: 0.6 }
-        });
-        
-        // Lanzar confetti cada segundo
-        const interval = setInterval(() => {
-          myConfetti({
-            particleCount: 50,
-            spread: 70,
-            origin: { y: 0.7, x: Math.random() }
+    if (isVisible && type === "confetti" && confetti) {
+      try {
+        const canvas = confettiCanvasRef.current;
+        if (canvas) {
+          const myConfetti = confetti.create(canvas, {
+            resize: true,
+            useWorker: true
           });
-        }, 1000);
-        
-        return () => {
-          clearInterval(interval);
-          myConfetti.reset();
-        };
+          
+          // Lanzar confetti al mostrar
+          myConfetti({
+            particleCount: 150,
+            spread: 120,
+            origin: { y: 0.6 }
+          });
+          
+          // Lanzar confetti cada segundo
+          const interval = setInterval(() => {
+            myConfetti({
+              particleCount: 50,
+              spread: 70,
+              origin: { y: 0.7, x: Math.random() }
+            });
+          }, 1000);
+          
+          return () => {
+            clearInterval(interval);
+            if (myConfetti && typeof myConfetti.reset === 'function') {
+              myConfetti.reset();
+            }
+          };
+        }
+      } catch (error) {
+        console.warn('Error al usar canvas-confetti:', error);
       }
     }
   }, [isVisible, type]);
@@ -129,15 +144,22 @@ export function EasterEgg({
       case "confetti":
         return (
           <div className="relative">
-            <canvas 
-              ref={confettiCanvasRef} 
-              className="absolute top-0 left-0 w-full h-full z-0"
-            />
-            {message && (
-              <div className="relative z-10 text-center py-4 px-6">
-                <p className="font-medium">{message}</p>
-              </div>
+            {confetti && (
+              <canvas 
+                ref={confettiCanvasRef} 
+                className="absolute top-0 left-0 w-full h-full z-0"
+              />
             )}
+            <div className="relative z-10 text-center py-4 px-6">
+              <p className="font-medium">{message || "¡Felicidades!"}</p>
+              {!confetti && (
+                <div className="flex justify-center mt-2 space-x-2">
+                  {["🎉", "🎊", "🎈"].map((emoji, index) => (
+                    <span key={index} className="text-2xl">{emoji}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       case "dance":
