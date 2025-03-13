@@ -360,61 +360,6 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Botones de inicio rápido para pruebas con información de credenciales */}
-        <div className="flex flex-col gap-4 mb-8">
-          <div className="text-center">
-            <h3 className="text-base font-medium text-foreground mb-1">Acceso rápido por rol</h3>
-            <p className="text-xs text-muted-foreground">Selecciona un perfil para iniciar sesión automáticamente</p>
-          </div>
-          
-          <div className="bg-muted/40 p-4 rounded-xl border border-border/30 shadow-sm">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-items-center">
-              {predefinedCredentials.map((cred) => (
-                <Button 
-                  key={cred.username}
-                  variant="outline" 
-                  onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
-                  disabled={isLoading}
-                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full"
-                  size="sm"
-                >
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <>{cred.icon}</>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium">{cred.displayName}</span>
-                  {showDevAccess && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-popover text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
-                      <div className="font-medium mb-1 pb-1 border-b text-center text-sm">{cred.displayName}</div>
-                      <p className="mt-1"><strong>Usuario:</strong> {cred.username}</p>
-                      <p><strong>Contraseña:</strong> {cred.password}</p>
-                    </div>
-                  )}
-                </Button>
-              ))}
-            </div>
-            <div className="mt-3 text-center text-xs text-muted-foreground">
-              {showDevAccess ? (
-                <span>Pasa el cursor sobre un rol para ver las credenciales</span>
-              ) : (
-                <>
-                  <span>Necesitas verificar el PIN para usar el acceso rápido</span>
-                  <button 
-                    onClick={showDevPinDialog}
-                    className="block mx-auto mt-2 text-primary hover:underline hover:text-primary/80 transition-colors"
-                  >
-                    Ingresar PIN para desbloquear
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Auth Form Card */}
         <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
@@ -530,6 +475,61 @@ export default function AuthPage() {
             </div>
           </CardFooter>
         </Card>
+
+        {/* Botones de inicio rápido para pruebas con información de credenciales */}
+        <div className="flex flex-col gap-4 mt-8 mb-8">
+          <div className="text-center">
+            <h3 className="text-base font-medium text-foreground mb-1">Acceso rápido por rol</h3>
+            <p className="text-xs text-muted-foreground">Selecciona un perfil para iniciar sesión automáticamente</p>
+          </div>
+          
+          <div className="bg-muted/40 p-4 rounded-xl border border-border/30 shadow-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-items-center">
+              {predefinedCredentials.map((cred) => (
+                <Button 
+                  key={cred.username}
+                  variant="outline" 
+                  onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
+                  disabled={isLoading}
+                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full"
+                  size="sm"
+                >
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
+                    {isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>{cred.icon}</>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium">{cred.displayName}</span>
+                  {showDevAccess && (
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-popover text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
+                      <div className="font-medium mb-1 pb-1 border-b text-center text-sm">{cred.displayName}</div>
+                      <p className="mt-1"><strong>Usuario:</strong> {cred.username}</p>
+                      <p><strong>Contraseña:</strong> {cred.password}</p>
+                    </div>
+                  )}
+                </Button>
+              ))}
+            </div>
+            <div className="mt-3 text-center text-xs text-muted-foreground">
+              {showDevAccess ? (
+                <span>Pasa el cursor sobre un rol para ver las credenciales</span>
+              ) : (
+                <>
+                  <span>Necesitas verificar el PIN para usar el acceso rápido</span>
+                  <button 
+                    onClick={showDevPinDialog}
+                    className="block mx-auto mt-2 text-primary hover:underline hover:text-primary/80 transition-colors"
+                  >
+                    Ingresar PIN para desbloquear
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Footer Text */}
         <p className="px-4 md:px-8 text-center text-xs md:text-sm text-muted-foreground">
