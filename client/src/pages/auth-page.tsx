@@ -200,19 +200,20 @@ export default function AuthPage() {
       // Establecer el localStorage para indicar que venimos del login
       localStorage.setItem('fromLogin', 'true');
       
-      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
+      // Navegar al dashboard después de un retraso para permitir que se muestre el overlay
       setTimeout(() => {
         // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
         window.scrollTo(0, 0);
         
         setLocation("/");
         
-        // Mantener el overlay un poco más para asegurar la fluidez de la transición
+        // Mantener el overlay más tiempo para asegurar la fluidez de la transición
+        // y dar tiempo para que se complete la animación
         setTimeout(() => {
           setShowOverlay(false);
           setIsLoading(false);
-        }, 300);
-      }, 300);
+        }, 800);
+      }, 500);
       
     } catch (error: any) {
       // Quitar overlay y estado de carga
@@ -249,19 +250,20 @@ export default function AuthPage() {
       // Establecer el localStorage para indicar que venimos del login
       localStorage.setItem('fromLogin', 'true');
       
-      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
+      // Navegar al dashboard después de un retraso para permitir que se muestre el overlay
       setTimeout(() => {
         // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
         window.scrollTo(0, 0);
         
         setLocation("/");
         
-        // Mantener el overlay un poco más para asegurar la fluidez de la transición
+        // Mantener el overlay más tiempo para asegurar la fluidez de la transición
+        // y dar tiempo para que se complete la animación
         setTimeout(() => {
           setShowOverlay(false);
           setIsLoading(false);
-        }, 300);
-      }, 300);
+        }, 800);
+      }, 500);
     } catch (error: any) {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
@@ -280,7 +282,7 @@ export default function AuthPage() {
       {/* Overlay de transición mejorado */}
       {showOverlay && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-500" 
+          className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-1000" 
           style={{
             background: 'radial-gradient(circle at center, rgba(var(--background-rgb), 0.85) 0%, rgba(var(--background-rgb), 0.95) 100%)',
             backdropFilter: 'blur(8px)',
