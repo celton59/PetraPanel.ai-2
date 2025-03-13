@@ -46,7 +46,32 @@ export default function AuthPage() {
   const [showDevAccess, setShowDevAccess] = useState(false);
   const [rememberAccess, setRememberAccess] = useState(false);
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const [showOverlay, setShowOverlay] = useState(false);
   
+  // Función reutilizable para manejar la transición después del login
+  const handleLoginTransition = () => {
+    // Iniciar transición
+    setShowOverlay(true);
+    setIsLoading(true);
+    
+    // Asegurar que la vista esté en la parte superior
+    window.scrollTo(0, 0);
+    
+    // Esperar un momento y navegar al dashboard
+    setTimeout(() => {
+      // Establecer indicador de login justo antes de la navegación
+      localStorage.setItem('fromLogin', 'true');
+      
+      // Navegar al dashboard
+      setLocation("/");
+      
+      // Limpiar estados después de un breve retraso para mantener la transición fluida
+      setTimeout(() => {
+        setShowOverlay(false);
+        setIsLoading(false);
+      }, 200);
+    }, 500);
+  };
   // PIN correcto para acceder a las cuentas de prueba
   const CORRECT_PIN = ['5', '9', '5', '9']; // PIN sencillo: 5959
   
@@ -171,8 +196,7 @@ export default function AuthPage() {
     setTimeout(() => pinRefs[0].current?.focus(), 100);
   };
   
-  // Elemento para cubrir la pantalla durante la transición
-  const [showOverlay, setShowOverlay] = useState(false);
+  // Este comentario reemplaza la declaración duplicada de showOverlay
   
   // Helper de inicio de sesión rápido con credenciales predefinidas
   const handleQuickLogin = async (username: string, password: string) => {
@@ -182,37 +206,17 @@ export default function AuthPage() {
       return;
     }
     
-    // Asegurar que la vista esté en la parte superior
-    window.scrollTo(0, 0);
-    
-    // Mostrar overlay de transición
-    setShowOverlay(true);
-    
-    // Iniciar carga
-    setIsLoading(true);
-    
     try {
+      // Iniciar proceso de transición visual
+      setIsLoading(true);
+      
       console.log(`Iniciando sesión con el usuario ${username}`);
       
       // Realizar la autenticación
       await login({ username, password });
       
-      // Establecer el localStorage para indicar que venimos del login
-      localStorage.setItem('fromLogin', 'true');
-      
-      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
-      setTimeout(() => {
-        // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
-        window.scrollTo(0, 0);
-        
-        setLocation("/");
-        
-        // Mantener el overlay un poco más para asegurar la fluidez de la transición
-        setTimeout(() => {
-          setShowOverlay(false);
-          setIsLoading(false);
-        }, 300);
-      }, 300);
+      // Realizar la transición al dashboard
+      handleLoginTransition();
       
     } catch (error: any) {
       // Quitar overlay y estado de carga
@@ -231,12 +235,6 @@ export default function AuthPage() {
 
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
-    // Asegurar que la vista esté en la parte superior
-    window.scrollTo(0, 0);
-    
-    // Mostrar overlay de transición
-    setShowOverlay(true);
-    
     // Iniciar estado de carga
     setIsLoading(true);
     
@@ -246,22 +244,9 @@ export default function AuthPage() {
       // Realizar el login
       await login({ username: data.username, password: data.password });
       
-      // Establecer el localStorage para indicar que venimos del login
-      localStorage.setItem('fromLogin', 'true');
+      // Usar nuestra función reutilizable para la transición
+      handleLoginTransition();
       
-      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
-      setTimeout(() => {
-        // Asegurar nuevamente que estamos en la parte superior antes de cambiar de ruta
-        window.scrollTo(0, 0);
-        
-        setLocation("/");
-        
-        // Mantener el overlay un poco más para asegurar la fluidez de la transición
-        setTimeout(() => {
-          setShowOverlay(false);
-          setIsLoading(false);
-        }, 300);
-      }, 300);
     } catch (error: any) {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
