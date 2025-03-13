@@ -1,400 +1,290 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef, ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { MascotLoader } from "@/components/ui/mascot-loader";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import confetti from "canvas-confetti";
 
-// Tipos de easter eggs disponibles 
+// Tipos de easter eggs disponibles
 export type EasterEggType = 
-  | "confetti"     // Explosión de confeti
-  | "dance"        // Mascota bailando
-  | "rainbow"      // Arcoiris de colores
-  | "rocket"       // Mascota despegando como cohete
-  | "secret"       // Mensaje secreto
-  | "celebration"; // Celebración especial (para hitos)
+  | "confetti" 
+  | "dance" 
+  | "rainbow" 
+  | "rocket" 
+  | "secret" 
+  | "celebration";
 
-interface EasterEggProps {
-  /**
-   * Tipo de easter egg a mostrar
-   */
+// Propiedades para el componente EasterEgg
+export interface EasterEggProps {
   type: EasterEggType;
-  
-  /**
-   * Código secreto para activar el easter egg (opcional)
-   * Si se proporciona, el easter egg solo se mostrará si el usuario
-   * introduce esta secuencia de teclas o hace un patrón específico
-   */
-  secretCode?: string;
-  
-  /**
-   * Mensaje a mostrar con el easter egg (opcional)
-   */
-  message?: string;
-  
-  /**
-   * Duración del easter egg en milisegundos
-   * @default 5000
-   */
-  duration?: number;
-  
-  /**
-   * Determina si el easter egg se muestra una sola vez por sesión/usuario
-   * @default false
-   */
-  showOnce?: boolean;
-  
-  /**
-   * Identificador único para el easter egg cuando se usa showOnce
-   */
   id?: string;
-  
-  /**
-   * Posición del easter egg en la pantalla
-   * @default "center"
-   */
+  showOnce?: boolean;
+  message?: string;
   position?: "top" | "center" | "bottom" | "random";
-  
-  /**
-   * Clase CSS personalizada
-   */
-  className?: string;
+  duration?: number;
+  isVisible: boolean;
+  onComplete: () => void;
 }
 
+/**
+ * Componente que muestra un easter egg animado
+ */
 export function EasterEgg({
-  type = "confetti",
-  secretCode,
-  message,
-  duration = 5000,
-  showOnce = false,
+  type,
   id,
+  showOnce = false,
+  message,
   position = "center",
-  className
+  duration = 5000,
+  isVisible,
+  onComplete
 }: EasterEggProps) {
-  const [visible, setVisible] = useState(false);
-  const [keySequence, setKeySequence] = useState<string>("");
-  const [seenEasterEggs, setSeenEasterEggs] = useLocalStorage<string[]>(
-    "petra-easter-eggs-seen",
-    []
-  );
-
-  // Verificar si este easter egg ya se ha visto (si showOnce es true)
+  const [closing, setClosing] = useState(false);
+  const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [seenEasterEggs, setSeenEasterEggs] = useLocalStorage<string[]>("seen-easter-eggs", []);
+  
+  // Determinar la posición del easter egg si es aleatoria
+  const [actualPosition, setActualPosition] = useState(position);
+  
   useEffect(() => {
-    if (!secretCode) {
-      // Si no hay código secreto, mostramos automáticamente
-      if (showOnce && id) {
-        if (!seenEasterEggs.includes(id)) {
-          setVisible(true);
-          setSeenEasterEggs([...seenEasterEggs, id]);
+    if (position === "random") {
+      const positions: ("top" | "center" | "bottom")[] = ["top", "center", "bottom"];
+      const randomIndex = Math.floor(Math.random() * positions.length);
+      setActualPosition(positions[randomIndex]);
+    } else {
+      setActualPosition(position);
+    }
+  }, [position]);
+  
+  // Registrar el easter egg como visto si tiene ID y showOnce
+  useEffect(() => {
+    if (isVisible && id && showOnce) {
+      setSeenEasterEggs((prev) => {
+        if (!prev.includes(id)) {
+          return [...prev, id];
         }
-      } else {
-        setVisible(true);
+        return prev;
+      });
+    }
+  }, [isVisible, id, showOnce, setSeenEasterEggs]);
+  
+  // Manejar la animación de confetti
+  useEffect(() => {
+    if (isVisible && type === "confetti") {
+      const canvas = confettiCanvasRef.current;
+      if (canvas) {
+        const myConfetti = confetti.create(canvas, {
+          resize: true,
+          useWorker: true
+        });
+        
+        // Lanzar confetti al mostrar
+        myConfetti({
+          particleCount: 150,
+          spread: 120,
+          origin: { y: 0.6 }
+        });
+        
+        // Lanzar confetti cada segundo
+        const interval = setInterval(() => {
+          myConfetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.7, x: Math.random() }
+          });
+        }, 1000);
+        
+        return () => {
+          clearInterval(interval);
+          myConfetti.reset();
+        };
       }
     }
-  }, [id, seenEasterEggs, setSeenEasterEggs, showOnce, secretCode]);
-
-  // Escuchar las teclas presionadas para detectar el código secreto
+  }, [isVisible, type]);
+  
+  // Manejar el cierre automático del easter egg
   useEffect(() => {
-    if (!secretCode) return;
+    let timer: NodeJS.Timeout;
     
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Actualizar la secuencia de teclas presionadas
-      const newSequence = keySequence + e.key;
-      
-      // Mantener solo los últimos N caracteres (donde N es la longitud del código secreto)
-      const relevantSequence = newSequence.slice(-secretCode.length);
-      setKeySequence(relevantSequence);
-      
-      // Verificar si la secuencia coincide con el código secreto
-      if (relevantSequence === secretCode) {
-        if (showOnce && id) {
-          if (!seenEasterEggs.includes(id)) {
-            setVisible(true);
-            setSeenEasterEggs([...seenEasterEggs, id]);
-          }
-        } else {
-          setVisible(true);
-        }
-      }
-    };
-    
-    window.addEventListener("keydown", handleKeyDown);
+    if (isVisible && !closing) {
+      timer = setTimeout(() => {
+        setClosing(true);
+        setTimeout(() => {
+          onComplete();
+          setClosing(false);
+        }, 500); // Tiempo para la animación de salida
+      }, duration);
+    }
     
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
     };
-  }, [keySequence, secretCode, id, seenEasterEggs, setSeenEasterEggs, showOnce]);
-
-  // Ocultar el easter egg después de la duración especificada
-  useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => {
-        setVisible(false);
-      }, duration);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [visible, duration]);
-
-  // Calcular la posición del easter egg
-  const getPositionClasses = () => {
-    switch (position) {
-      case "top":
-        return "top-10";
-      case "bottom":
-        return "bottom-10";
-      case "random":
-        const positions = ["top-10", "top-1/4", "top-1/3", "bottom-10", "bottom-1/4", "bottom-1/3"];
-        return positions[Math.floor(Math.random() * positions.length)];
-      case "center":
-      default:
-        return "top-1/2 -translate-y-1/2";
-    }
-  };
-
-  // Renderizado del contenido según el tipo de easter egg
-  const renderEasterEggContent = () => {
+  }, [isVisible, closing, duration, onComplete]);
+  
+  // No mostrar si no es visible
+  if (!isVisible) return null;
+  
+  // Obtener el contenido según el tipo de easter egg
+  const getEasterEggContent = (): ReactNode => {
     switch (type) {
       case "confetti":
         return (
           <div className="relative">
-            {/* Fondo de confeti */}
-            <div className="absolute inset-0 overflow-hidden">
-              {Array.from({ length: 50 }).map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute rounded-full w-2 h-2"
-                  style={{
-                    backgroundColor: [
-                      "#FF5733", "#33FF57", "#3357FF", "#F3FF33", 
-                      "#FF33F3", "#33FFF3", "#FF3333", "#33FF33"
-                    ][i % 8],
-                    left: `${Math.random() * 100}%`,
-                    top: 0,
-                  }}
-                  initial={{ top: "-10%" }}
-                  animate={{ 
-                    top: "110%", 
-                    x: Math.random() * 200 - 100,
-                    rotate: Math.random() * 360
-                  }}
-                  transition={{ 
-                    duration: 2 + Math.random() * 3,
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    delay: Math.random() * 2
-                  }}
-                />
-              ))}
-            </div>
-            
-            {/* Mascota celebrando */}
-            <div className="relative z-10">
-              <MascotLoader animation="dance" size="xl" text={message || "¡Sorpresa!"} />
-            </div>
+            <canvas 
+              ref={confettiCanvasRef} 
+              className="absolute top-0 left-0 w-full h-full z-0"
+            />
+            {message && (
+              <div className="relative z-10 text-center py-4 px-6">
+                <p className="font-medium">{message}</p>
+              </div>
+            )}
           </div>
         );
-        
       case "dance":
         return (
-          <div className="relative flex flex-col items-center">
-            <motion.div
-              animate={{ 
-                y: [0, -20, 0, -15, 0],
-                rotate: [0, 5, 0, -5, 0]
-              }}
-              transition={{ 
-                duration: 1.5, 
-                repeat: Infinity
-              }}
-            >
-              <MascotLoader animation="dance" size="xl" text={message || "¡A bailar!"} />
-            </motion.div>
-            
-            {/* Notas musicales flotando alrededor */}
-            {["♪", "♫", "♩", "♬", "♪", "♫"].map((note, i) => (
+          <div className="text-center py-4 px-6">
+            <div className="flex justify-center mb-3">
               <motion.div
-                key={i}
-                className="absolute text-primary text-2xl font-bold"
-                style={{
-                  left: `${20 + (i * 10)}%`,
-                  top: "30%"
+                animate={{
+                  y: [0, -10, 0, -5, 0],
+                  rotate: [0, 5, 0, -5, 0]
                 }}
-                initial={{ opacity: 0, y: 0 }}
-                animate={{ 
-                  opacity: [0, 1, 0],
-                  y: -50,
-                  x: (i % 2 === 0) ? 20 : -20
-                }}
-                transition={{ 
-                  duration: 2,
+                transition={{
+                  duration: 1,
                   repeat: Infinity,
-                  repeatType: "loop",
-                  delay: i * 0.3
+                  repeatType: "loop"
                 }}
+                className="text-4xl"
               >
-                {note}
+                💃
               </motion.div>
-            ))}
+            </div>
+            {message && <p className="font-medium">{message}</p>}
           </div>
         );
-        
       case "rainbow":
         return (
-          <div className="relative">
-            {/* Fondo de arcoiris */}
-            <motion.div 
-              className="absolute inset-0 rounded-xl overflow-hidden"
+          <div className="text-center py-4 px-6">
+            <div className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 animate-gradient-x font-bold text-lg mb-2">
+              {message || "¡Has descubierto un easter egg!"}
+            </div>
+            <motion.div
               animate={{
-                background: [
-                  "linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff)",
-                  "linear-gradient(to right, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000)",
-                  "linear-gradient(to right, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000, #ff7f00)",
-                  "linear-gradient(to right, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000, #ff7f00, #ffff00)",
-                  "linear-gradient(to right, #0000ff, #4b0082, #8b00ff, #ff0000, #ff7f00, #ffff00, #00ff00)",
-                  "linear-gradient(to right, #4b0082, #8b00ff, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff)",
-                  "linear-gradient(to right, #8b00ff, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082)",
-                ]
+                scale: [1, 1.1, 1],
               }}
-              transition={{ 
-                duration: 5,
+              transition={{
+                duration: 2,
                 repeat: Infinity,
                 repeatType: "loop"
               }}
+              className="text-3xl"
             >
-              <div className="w-full h-full bg-opacity-20 backdrop-blur-sm p-8 flex items-center justify-center">
-                <MascotLoader animation="jump" size="xl" text={message || "¡Colores!"} />
-              </div>
+              🌈
             </motion.div>
           </div>
         );
-        
       case "rocket":
         return (
-          <motion.div
-            className="relative"
-            initial={{ y: 0 }}
-            animate={{ y: [-20, -window.innerHeight] }}
-            transition={{ 
-              duration: 3,
-              ease: [0.33, 1, 0.68, 1]
-            }}
-          >
-            <div className="relative">
-              <MascotLoader animation="jump" size="xl" text={message || "¡Despegue!"} />
-              
-              {/* Fuego del cohete */}
-              <motion.div
-                className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 w-10 h-20"
-                style={{
-                  background: "linear-gradient(to top, #FF5733, #FFC300, transparent)",
-                  borderRadius: "0 0 50% 50%"
-                }}
-                animate={{ 
-                  height: [20, 30, 20],
-                  opacity: [1, 0.8, 1]
-                }}
-                transition={{ 
-                  duration: 0.5, 
-                  repeat: Infinity,
-                  repeatType: "mirror"
-                }}
-              />
-            </div>
-          </motion.div>
-        );
-        
-      case "secret":
-        return (
-          <motion.div
-            className="bg-black bg-opacity-80 p-6 rounded-xl max-w-md text-center"
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.5 }}
-          >
-            <MascotLoader animation="thinking" size="lg" text="" />
-            <h3 className="text-lg font-bold text-white mt-4">¡Mensaje Secreto Descubierto!</h3>
-            <p className="text-gray-200 mt-2">{message || "Has encontrado un mensaje oculto. ¡Felicidades!"}</p>
-            <div className="mt-4 text-sm text-gray-400">
-              Este es un easter egg secreto de PetraPanel
-            </div>
-          </motion.div>
-        );
-      
-      case "celebration":
-        return (
-          <div className="relative">
+          <div className="text-center py-4 px-6">
+            {message && <p className="font-medium mb-2">{message}</p>}
             <motion.div
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ y: 40 }}
+              animate={{ y: -40 }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                repeatType: "loop"
+              }}
+              className="text-3xl"
             >
-              {/* Fuegos artificiales */}
-              {Array.from({ length: 20 }).map((_, i) => {
-                const x = Math.random() * 100;
-                const y = 30 + Math.random() * 40;
-                const size = 5 + Math.random() * 15;
-                const color = [
-                  "#FF5733", "#33FF57", "#3357FF", "#F3FF33", 
-                  "#FF33F3", "#33FFF3", "#00FFFF", "#FF00FF"
-                ][i % 8];
-                
-                return (
-                  <motion.div 
-                    key={i}
-                    className="absolute rounded-full"
-                    style={{ 
-                      left: `${x}%`, 
-                      top: `${y}%`,
-                      width: size,
-                      height: size,
-                      backgroundColor: color
-                    }}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{
-                      scale: [0, 1.5, 0],
-                      opacity: [0, 1, 0],
-                      y: [0, Math.random() * -30]
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      delay: Math.random() * 2,
-                      repeat: Infinity,
-                      repeatDelay: Math.random() * 2 + 1
-                    }}
-                  />
-                );
-              })}
+              🚀
             </motion.div>
-            
-            <div className="relative z-10 bg-black bg-opacity-60 p-6 rounded-xl text-center">
-              <MascotLoader animation="dance" size="xl" text="" />
-              <h3 className="text-xl font-bold text-white mt-4">¡FELICIDADES!</h3>
-              <p className="text-gray-200 mt-2">{message || "¡Has alcanzado un hito importante!"}</p>
-            </div>
           </div>
         );
-        
+      case "secret":
+        return (
+          <div className="text-center py-4 px-6">
+            <div className="flex justify-center mb-2">
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 10, 0, -10, 0]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: "loop"
+                }}
+                className="text-3xl"
+              >
+                🔐
+              </motion.div>
+            </div>
+            <p className="font-medium">{message || "¡Has descubierto un código secreto!"}</p>
+          </div>
+        );
+      case "celebration":
+        return (
+          <div className="text-center py-4 px-6">
+            <div className="flex justify-center space-x-3 mb-3">
+              {["🎉", "🎊", "🎈"].map((emoji, index) => (
+                <motion.div
+                  key={index}
+                  animate={{
+                    y: [0, -15, 0],
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 15, 0, -15, 0]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: index * 0.2,
+                    repeat: Infinity,
+                    repeatType: "loop"
+                  }}
+                  className="text-3xl"
+                >
+                  {emoji}
+                </motion.div>
+              ))}
+            </div>
+            <p className="font-medium">{message || "¡Felicidades!"}</p>
+          </div>
+        );
       default:
-        return <MascotLoader animation="wave" size="lg" text={message || "¡Sorpresa!"} />;
+        return (
+          <div className="text-center py-4 px-6">
+            <p className="font-medium">{message || "¡Has descubierto un easter egg!"}</p>
+          </div>
+        );
     }
   };
-
+  
+  const positionClasses = {
+    top: "top-4",
+    center: "top-1/2 -translate-y-1/2",
+    bottom: "bottom-4"
+  };
+  
   return (
     <AnimatePresence>
-      {visible && (
+      {isVisible && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: -10 }}
+          transition={{ duration: 0.3 }}
           className={cn(
-            "fixed left-1/2 -translate-x-1/2 z-50 pointer-events-none",
-            getPositionClasses(),
-            className
+            "fixed left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full p-2",
+            positionClasses[actualPosition as keyof typeof positionClasses]
           )}
         >
-          {renderEasterEggContent()}
+          <div className={cn(
+            "rounded-lg shadow-lg overflow-hidden bg-white dark:bg-gray-800",
+            "border border-gray-200 dark:border-gray-700",
+            "transition-all transform"
+          )}>
+            {getEasterEggContent()}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
