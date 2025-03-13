@@ -171,6 +171,9 @@ export default function AuthPage() {
     setTimeout(() => pinRefs[0].current?.focus(), 100);
   };
   
+  // Elemento para cubrir la pantalla durante la transición
+  const [showOverlay, setShowOverlay] = useState(false);
+  
   // Helper de inicio de sesión rápido con credenciales predefinidas
   const handleQuickLogin = async (username: string, password: string) => {
     // Si no está desbloqueado el acceso a cuentas de prueba, mostrar el diálogo de PIN
@@ -179,34 +182,34 @@ export default function AuthPage() {
       return;
     }
     
+    // Mostrar overlay de transición
+    setShowOverlay(true);
+    
+    // Iniciar carga
     setIsLoading(true);
+    
     try {
       console.log(`Iniciando sesión con el usuario ${username}`);
       
-      // Primero deshabilitar cualquier transición que pueda causar parpadeo
-      document.body.style.transition = 'none';
-      
+      // Realizar la autenticación
       await login({ username, password });
       
-      // Usar un pequeño retraso para asegurar que la UI se actualice correctamente
-      await new Promise(resolve => {
-        // Esperar un frame para permitir que la UI se actualice
-        requestAnimationFrame(() => {
-          // Redireccionar sin delay adicional
-          setLocation("/");
-          
-          // Restaurar las transiciones después de la redirección
-          document.body.style.transition = '';
-          
-          // Asegurar que el estado de carga se desactive, aunque la página cambie
-          setTimeout(() => setIsLoading(false), 100);
-          
-          resolve(null);
-        });
-      });
+      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
+      setTimeout(() => {
+        setLocation("/");
+        
+        // Mantener el overlay un poco más para asegurar la fluidez de la transición
+        setTimeout(() => {
+          setShowOverlay(false);
+          setIsLoading(false);
+        }, 200);
+      }, 200);
       
     } catch (error: any) {
+      // Quitar overlay y estado de carga
+      setShowOverlay(false);
       setIsLoading(false);
+      
       console.error(`Error en inicio de sesión con ${username}:`, error);
       
       toast.error("Error de inicio de sesión", {
@@ -219,34 +222,33 @@ export default function AuthPage() {
 
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
+    // Mostrar overlay de transición
+    setShowOverlay(true);
+    
+    // Iniciar estado de carga
     setIsLoading(true);
+    
     try {
       console.log(`Iniciando sesión con:`, { username: data.username });
-      
-      // Primero deshabilitar cualquier transición que pueda causar parpadeo
-      document.body.style.transition = 'none';
       
       // Realizar el login
       await login({ username: data.username, password: data.password });
       
-      // Usar un pequeño retraso para asegurar que la UI se actualice correctamente
-      await new Promise(resolve => {
-        // Esperar un frame para permitir que la UI se actualice
-        requestAnimationFrame(() => {
-          // Redireccionar de inmediato para evitar parpadeos
-          setLocation("/");
-          
-          // Restaurar las transiciones después de la redirección
-          document.body.style.transition = '';
-          
-          // Asegurar que el estado de carga se desactive, aunque la página cambie
-          setTimeout(() => setIsLoading(false), 100);
-          
-          resolve(null);
-        });
-      });
+      // Navegar al dashboard después de un breve retraso para permitir que se muestre el overlay
+      setTimeout(() => {
+        setLocation("/");
+        
+        // Mantener el overlay un poco más para asegurar la fluidez de la transición
+        setTimeout(() => {
+          setShowOverlay(false);
+          setIsLoading(false);
+        }, 200);
+      }, 200);
     } catch (error: any) {
+      // Quitar overlay y estado de carga
+      setShowOverlay(false);
       setIsLoading(false);
+      
       toast.error("Error de inicio de sesión", {
         description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
         position: "top-right",
@@ -257,6 +259,22 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 bg-background overflow-hidden">
+      {/* Overlay de transición */}
+      {showOverlay && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-16 h-16 relative">
+              <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping"></div>
+              <div className="absolute inset-[2px] rounded-full bg-primary/40 animate-pulse"></div>
+              <Video className="w-16 h-16 text-primary relative z-10" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-lg font-semibold">Accediendo...</span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Diálogo para el PIN de acceso a cuentas de desarrollo */}
       <Dialog 
         open={showPinDialog} 
