@@ -4,6 +4,7 @@ import { useVideos, ApiVideo } from "@/hooks/useVideos";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import {
   ArrowLeft,
   Loader2,
@@ -289,7 +290,7 @@ export default function TrashPage() {
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <MascotLoader animation="thinking" size="lg" />
       </div>
     );
   }
@@ -572,7 +573,7 @@ export default function TrashPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <MascotLoader animation="jump" size="lg" />
         </div>
       ) : trashVideos.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed h-64">
