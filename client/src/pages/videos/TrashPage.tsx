@@ -104,7 +104,8 @@ export default function TrashPage() {
   }, [trashVideos, searchTerm, statusFilter, retentionTime]);
 
   const filterVideos = () => {
-    let filtered = [...trashVideos];
+    // Asegurarse de que trashVideos es un array antes de desestructurarlo
+    let filtered = Array.isArray(trashVideos) ? [...trashVideos] : [];
 
     // Filtro por término de búsqueda
     if (searchTerm) {
@@ -513,7 +514,7 @@ export default function TrashPage() {
             </Button>
             
             {/* Botón vaciar papelera */}
-            {user.role === "admin" && trashVideos.length > 0 && (
+            {user.role === "admin" && Array.isArray(trashVideos) && trashVideos.length > 0 && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -575,7 +576,7 @@ export default function TrashPage() {
         <div className="flex items-center justify-center h-64">
           <MascotLoader animation="jump" size="lg" />
         </div>
-      ) : trashVideos.length === 0 ? (
+      ) : !Array.isArray(trashVideos) || trashVideos.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed h-64">
           <div className="rounded-full bg-muted p-3 mb-4">
             <Trash2 className="w-6 h-6 text-muted-foreground" />
