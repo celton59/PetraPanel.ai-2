@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StatsOverview } from '@/components/dashboard/StatsOverview';
+import { StatsOverview } from './StatsOverview';
 import { PerformanceStats } from '@/components/dashboard/PerformanceStats';
 import { VideoStats } from '@/components/dashboard/VideoStats';
 import { UsersList } from '@/components/dashboard/UsersList';
@@ -9,7 +9,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, Download, FileDown, Users, Calendar, Filter } from "lucide-react";
+import { BarChart, FileDown, Users } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { MoneyIcon, TasksIcon, PendingIcon } from "@/components/CustomIcons";
 

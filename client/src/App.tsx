@@ -19,7 +19,7 @@ import { CSRFToken } from "@/components/auth/CSRFToken";
 
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
-import AdminStatsPage from "@/pages/admin/StatsPage";
+import AdminStatsPage from "@/pages/admin/stats/StatsPage";
 import AccountingPage from "@/pages/admin/accounting/AccountingPage";
 import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
 import NotificationsAdminPage from "@/pages/admin/notifications/NotificationsAdminPage";
