@@ -412,7 +412,7 @@ export default function AuthPage() {
       {/* Simple header accent line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-purple-500/80 to-pink-500/80"></div>
       
-      <div className="w-full max-w-lg space-y-8 relative z-10 animate-fade-in">
+      <div className="w-full max-w-lg space-y-8 relative z-10">
         {/* Header Section */}
         <div className="flex flex-col items-center space-y-6 text-center">
           {/* Logo/Brand */}
@@ -441,7 +441,7 @@ export default function AuthPage() {
         </div>
 
         {/* Auth Form Card - AHORA VA PRIMERO */}
-        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
+        <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl">
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
             {/* Eliminamos el texto de "Acceso seguro" */}
           </CardHeader>
@@ -460,7 +460,7 @@ export default function AuthPage() {
                         <FormControl>
                           <Input
                             placeholder="Ingresa tu nombre de usuario"
-                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10 focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="username"
                             {...field}
                           />
@@ -490,7 +490,7 @@ export default function AuthPage() {
                           <Input
                             type="password"
                             placeholder="Ingresa tu contraseña"
-                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10 focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="current-password"
                             {...field}
                           />
