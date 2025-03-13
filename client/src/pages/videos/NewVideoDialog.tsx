@@ -41,6 +41,7 @@ import {
   FileUp,
   AlertCircle
 } from "lucide-react";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -486,8 +487,8 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                         >
                           {isSubmitting ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Creando...
+                              <MascotLoader animation="thinking" size="sm" text="" />
+                              <span className="ml-2">Creando...</span>
                             </>
                           ) : (
                             <>
@@ -620,8 +621,8 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                       >
                         {isSubmitting ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Creando videos...
+                            <MascotLoader animation="wave" size="sm" text="" />
+                            <span className="ml-2">Creando videos...</span>
                           </>
                         ) : (
                           <>
