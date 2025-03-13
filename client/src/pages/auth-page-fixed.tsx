@@ -9,7 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   CircleUserRound, KeyRound, LogIn, Loader2, LayoutDashboard, 
   Video, Camera, PenTool, ClipboardCheck, Upload, FileText,
-  LockKeyhole, ShieldAlert, Eye, EyeOff, Unlock, X, Check
+  LockKeyhole, ShieldAlert, Eye, EyeOff, Unlock, X, Check,
+  Info
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -25,6 +26,8 @@ import {
   DialogTitle,
   DialogFooter
 } from "@/components/ui/dialog";
+import api, { refreshCSRFToken } from "../lib/axios";
+import { Badge } from "@/components/ui/badge";
 
 // Definir esquema de validación de Zod
 const loginSchema = z.object({
@@ -40,13 +43,16 @@ export default function AuthPage() {
   const { login } = useUser();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPinDialog, setShowPinDialog] = useState(false); // No mostrar el diálogo de PIN al cargar
+  const [showPinDialog, setShowPinDialog] = useState(false);
   const [pinValues, setPinValues] = useState(['', '', '', '']);
   const [pinError, setPinError] = useState('');
   const [showDevAccess, setShowDevAccess] = useState(false);
   const [rememberAccess, setRememberAccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // Para mostrar/ocultar contraseña
-  const [showForgotPassword, setShowForgotPassword] = useState(false);  // Diálogo de olvidé contraseña
+  const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [csrfStatus, setCsrfStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [appVersion, setAppVersion] = useState("v2.6.0");
+  const [appUpdateDate, setAppUpdateDate] = useState("12.03.2025");
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   
   // PIN correcto para acceder a las cuentas de prueba
@@ -58,6 +64,20 @@ export default function AuthPage() {
     if (hasAccessToken === 'true') {
       setShowDevAccess(true);
     }
+    
+    // Cargar token CSRF al iniciar
+    const loadCSRFToken = async () => {
+      setCsrfStatus('loading');
+      try {
+        await refreshCSRFToken(true);
+        setCsrfStatus('success');
+      } catch (error) {
+        console.error("Error al cargar token CSRF:", error);
+        setCsrfStatus('error');
+      }
+    };
+    
+    loadCSRFToken();
   }, []);
   
   // Enfocar el primer campo del PIN cuando se carga la página
@@ -181,6 +201,19 @@ export default function AuthPage() {
       return;
     }
     
+    // Asegurarse de tener un token CSRF fresco
+    try {
+      await refreshCSRFToken();
+    } catch (csrfError) {
+      console.error("Error al refrescar CSRF para login rápido:", csrfError);
+      toast.error("Error de seguridad", {
+        description: "No se pudo obtener un token de seguridad. Intente recargar la página.",
+        position: "top-right",
+        duration: 5000
+      });
+      return;
+    }
+    
     setIsLoading(true);
     try {
       console.log(`Iniciando sesión con el usuario ${username}`);
@@ -205,9 +238,22 @@ export default function AuthPage() {
 
   // Función de envío del formulario con manejo de estados
   const onSubmit = async (data: LoginFormValues) => {
+    // Asegurarse de tener un token CSRF fresco
+    try {
+      await refreshCSRFToken();
+    } catch (csrfError) {
+      console.error("Error al refrescar CSRF para login:", csrfError);
+      toast.error("Error de seguridad", {
+        description: "No se pudo obtener un token de seguridad. Intente recargar la página.",
+        position: "top-right",
+        duration: 5000
+      });
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      await login({ username: data.username, password: data.password });
+      await login({ username: data.username, password: data.password, rememberMe: data.rememberMe });
       
       // Simular un pequeño retraso para una mejor experiencia
       setTimeout(() => {
@@ -360,6 +406,26 @@ export default function AuthPage() {
               Inicia sesión para gestionar tu contenido multimedia
             </p>
           </div>
+          
+          {/* CSRF Status Indicator */}
+          <div className="flex items-center justify-center">
+            {csrfStatus === 'loading' ? (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Cargando...</span>
+              </Badge>
+            ) : csrfStatus === 'success' ? (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs bg-green-50 text-green-800 border-green-200">
+                <Check className="w-3 h-3" />
+                <span>Seguridad lista</span>
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs bg-red-50 text-red-800 border-red-200">
+                <X className="w-3 h-3" />
+                <span>Error de seguridad</span>
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Auth Form Card - PRIMERO */}
@@ -387,81 +453,83 @@ export default function AuthPage() {
                             {...field}
                           />
                         </FormControl>
-                        <CircleUserRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                        <CircleUserRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                       </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-sm font-medium">
-                          Contraseña
-                        </FormLabel>
-                        <span className="text-xs text-muted-foreground">
-                          ¿Olvidaste tu contraseña?
-                        </span>
-                      </div>
+                      <FormLabel className="text-sm font-medium">
+                        Contraseña
+                      </FormLabel>
                       <div className="relative">
                         <FormControl>
                           <Input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             placeholder="Ingresa tu contraseña"
-                            className="h-12 pl-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
+                            className="h-12 pl-10 pr-10 animate-pulse-border focus:ring-2 ring-primary/20 transition-all"
                             autoComplete="current-password"
                             {...field}
                           />
                         </FormControl>
-                        <KeyRound className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                       </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between">
                   <FormField
                     control={form.control}
                     name="rememberMe"
                     render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            id="rememberMe"
-                          />
-                        </FormControl>
-                        <label 
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="rememberMe" 
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                        <label
                           htmlFor="rememberMe"
                           className="text-sm font-medium leading-none cursor-pointer"
                         >
-                          Recordar mi sesión
+                          Recordarme
                         </label>
-                      </FormItem>
+                      </div>
                     )}
                   />
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
-                  disabled={isLoading}
-                >
+              
+                <Button disabled={isLoading} className="w-full h-12" type="submit">
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Iniciando sesión...
+                      Iniciando...
                     </>
                   ) : (
                     <>
-                      <LogIn className="mr-2 h-5 w-5" />
+                      <LogIn className="mr-2 h-4 w-4" />
                       Iniciar sesión
                     </>
                   )}
@@ -469,87 +537,41 @@ export default function AuthPage() {
               </form>
             </Form>
           </CardContent>
-          
-          <CardFooter className="px-8 md:px-10 flex flex-col space-y-4 pb-8">
-            <Separator className="my-2" />
-            <div className="text-center text-sm text-muted-foreground">
-              <span>¿No tienes cuenta? Contacta al administrador</span>
+          <CardFooter className="px-8 md:px-10 pt-0 pb-8 flex flex-col">
+            <div className="w-full">
+              <p className="text-xs text-muted-foreground mb-3 mt-4 text-center">
+                ACCESO RÁPIDO POR ROL
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {predefinedCredentials.map((cred, index) => (
+                  <Button
+                    key={cred.role}
+                    variant="outline"
+                    className="h-auto py-3 px-4 font-normal justify-start text-left text-xs relative"
+                    disabled={isLoading}
+                    onClick={() => handleQuickLogin(cred.username, cred.password)}
+                    style={{ animationDelay: `${0.2 + index * 0.1}s` }}
+                  >
+                    <div className="flex flex-col items-center w-full">
+                      {cred.icon}
+                      <span className="mt-2 text-xs font-medium">{cred.displayName}</span>
+                    </div>
+                    
+                    {index === 0 && !showDevAccess && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                    )}
+                  </Button>
+                ))}
+              </div>
             </div>
           </CardFooter>
         </Card>
-
-        {/* Botones de inicio rápido para pruebas - SEGUNDO */}
-        <div className="flex flex-col gap-4 mt-8 mb-8">
-          <div className="text-center">
-            <h3 className="text-base font-medium text-foreground mb-1">Acceso rápido por rol</h3>
-            <p className="text-xs text-muted-foreground">Selecciona un perfil para iniciar sesión automáticamente</p>
-          </div>
-          
-          <div className="bg-muted/40 p-4 rounded-xl border border-border/30 shadow-sm">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-items-center">
-              {predefinedCredentials.map((cred) => (
-                <Button 
-                  key={cred.username}
-                  variant="outline" 
-                  onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
-                  disabled={isLoading}
-                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full"
-                  size="sm"
-                >
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <>{cred.icon}</>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium">{cred.displayName}</span>
-                  {showDevAccess && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-3 bg-popover text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border">
-                      <div className="font-medium mb-1 pb-1 border-b text-center text-sm">{cred.displayName}</div>
-                      <p className="mt-1"><strong>Usuario:</strong> {cred.username}</p>
-                      <p><strong>Contraseña:</strong> {cred.password}</p>
-                    </div>
-                  )}
-                </Button>
-              ))}
-            </div>
-            <div className="mt-3 text-center text-xs text-muted-foreground">
-              {showDevAccess ? (
-                <span>Pasa el cursor sobre un rol para ver las credenciales</span>
-              ) : (
-                <>
-                  <span>Necesitas verificar el PIN para usar el acceso rápido</span>
-                  <button 
-                    onClick={showDevPinDialog}
-                    className="block mx-auto mt-2 text-primary hover:underline hover:text-primary/80 transition-colors"
-                  >
-                    Ingresar PIN para desbloquear
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+        
+        {/* App version and update date */}
+        <div className="flex items-center justify-center text-xs text-muted-foreground mt-4">
+          <Info className="w-3 h-3 mr-1" />
+          <span>PetraPanel {appVersion} | Actualizado: {appUpdateDate}</span>
         </div>
-
-        {/* Footer Text */}
-        <p className="px-4 md:px-8 text-center text-xs md:text-sm text-muted-foreground">
-          Al continuar, aceptas nuestros{" "}
-          <a
-            href="#"
-            className="underline underline-offset-4 hover:text-primary transition-colors"
-          >
-            Términos de servicio
-          </a>{" "}
-          y{" "}
-          <a
-            href="#"
-            className="underline underline-offset-4 hover:text-primary transition-colors"
-          >
-            Política de privacidad
-          </a>
-        </p>
       </div>
     </div>
   );
