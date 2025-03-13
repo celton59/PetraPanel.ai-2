@@ -45,8 +45,6 @@ export default function AuthPage() {
   const [pinError, setPinError] = useState('');
   const [showDevAccess, setShowDevAccess] = useState(false);
   const [rememberAccess, setRememberAccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // Para mostrar/ocultar contraseña
-  const [showForgotPassword, setShowForgotPassword] = useState(false);  // Diálogo de olvidé contraseña
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   
   // PIN correcto para acceder a las cuentas de prueba
@@ -362,7 +360,7 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Auth Form Card - PRIMERO */}
+        {/* Auth Form Card */}
         <Card className="border border-border/30 bg-card shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in rounded-xl" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="pb-0 pt-8 px-8 md:px-10">
             {/* Eliminamos el texto de "Acceso seguro" */}
@@ -478,7 +476,7 @@ export default function AuthPage() {
           </CardFooter>
         </Card>
 
-        {/* Botones de inicio rápido para pruebas - SEGUNDO */}
+        {/* Botones de inicio rápido para pruebas con información de credenciales */}
         <div className="flex flex-col gap-4 mt-8 mb-8">
           <div className="text-center">
             <h3 className="text-base font-medium text-foreground mb-1">Acceso rápido por rol</h3>

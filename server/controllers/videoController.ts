@@ -673,33 +673,11 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
 
     const result = await query.execute();
 
-    // Calcular metadata de paginación con mejor manejo de casos extremos
+    // Calcular metadata de paginación
     const totalVideos = countResult?.count || 0;
-    // Asegurar que si hay videos pero son menos que el límite, 
-    // todavía se muestre al menos una página
-    const totalPages = totalVideos > 0 
-      ? Math.max(1, Math.ceil(totalVideos / limit)) 
-      : 0;
+    const totalPages = Math.ceil(totalVideos / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
-
-    // Corrección: Si estamos en una página mayor al total de páginas, pero hay videos,
-    // redirigir a la última página disponible
-    if (page > totalPages && totalPages > 0) {
-      // En vez de redirigir, incluimos un flag para que el cliente sepa que debe cambiar de página
-      return res.status(200).json({
-        videos: result,
-        pagination: {
-          page: totalPages, // Enviamos la página correcta
-          limit,
-          totalVideos,
-          totalPages,
-          hasNextPage: false,
-          hasPrevPage: totalPages > 1,
-          shouldChangePage: true // Flag para indicar al cliente que cambie la página
-        }
-      });
-    }
 
     return res.status(200).json({
       videos: result,
