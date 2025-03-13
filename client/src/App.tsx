@@ -15,7 +15,6 @@ import { Toaster } from "sonner";
 import { PageGuide } from "@/components/help/PageGuide";
 import { GuideProvider } from "@/components/help/GuideContext";
 import TitulinPage from "./pages/titulin/TitulinPage";
-import TitulinConfigPage from "./pages/titulin/TitulinConfigPage";
 import { CSRFToken } from "@/components/auth/CSRFToken";
 import { MascotLoader } from "@/components/ui/mascot-loader";
 import { EasterEggProvider } from "@/hooks/use-easter-eggs";
@@ -73,7 +72,6 @@ function Router() {
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/videos/trash" component={() => <ProtectedRoute component={TrashPage} />} />
       <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
-      <Route path="/configuracion/titulin" component={() => <ProtectedRoute component={TitulinConfigPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route path="/mascot-demo" component={() => <ProtectedRoute component={MascotDemo} />} />
       <Route path="/easter-eggs-demo" component={() => <ProtectedRoute component={EasterEggsDemo} />} />

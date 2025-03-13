@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
-import { DataTable } from "../DataTable";
+import { DataTable } from "./DataTable";
 import { TitulinVideo } from "../types";
 
 interface VideoTableProps {

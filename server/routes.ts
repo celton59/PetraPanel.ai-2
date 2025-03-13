@@ -41,15 +41,8 @@ const avatarStorage = multer.diskStorage({
 
 const avatarUpload = multer({ 
   storage: avatarStorage,
-  limits: {
-    fileSize: 1024 * 1024 * 10,
-  }
+  limits: { fileSize: 1024 * 1024 * 10 }
 });
-
-
-async function hashPassword(password: string) {
-  return passwordUtils.hashPassword(password);
-}
 
 export function registerRoutes(app: Express): Server {
   try {

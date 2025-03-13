@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, getTableColumns } from "drizzle-orm";
-import { InsertProject, projects } from "@db/schema";
+import { eq, and } from "drizzle-orm";
+import { InsertProject, projectAccess, projects } from "@db/schema";
 import { db } from "@db";
 import { type Express } from "express";
 
@@ -61,17 +61,15 @@ async function getProjects(req: Request, res: Response): Promise<Response> {
     } else {
       // Regular users only see their assigned projects
       result = await db
-        .select({
-          ...getTableColumns(projects)
-        })
+        .select()
         .from(projects)
-        // .innerJoin(
-        //   projectAccess,
-        //   and(
-        //     eq(projectAccess.projectId, projects.id),
-        //     eq(projectAccess.userId, user.id)
-        //   )
-        // );
+        .innerJoin(
+          projectAccess,
+          and(
+            eq(projectAccess.projectId, projects.id),
+            eq(projectAccess.userId, user.id)
+          )
+        );
     }
 
     return res.status(200).json({
