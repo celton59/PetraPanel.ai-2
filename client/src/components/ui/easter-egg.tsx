@@ -1,7 +1,8 @@
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import confetti from "canvas-confetti";
 
 // Tipos de easter eggs disponibles
 export type EasterEggType = 
@@ -26,7 +27,6 @@ export interface EasterEggProps {
 
 /**
  * Componente que muestra un easter egg animado
- * Versión simplificada sin canvas-confetti para evitar errores
  */
 export function EasterEgg({
   type,
@@ -39,6 +39,7 @@ export function EasterEgg({
   onComplete
 }: EasterEggProps) {
   const [closing, setClosing] = useState(false);
+  const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
   const [seenEasterEggs, setSeenEasterEggs] = useLocalStorage<string[]>("seen-easter-eggs", []);
   
   // Determinar la posición del easter egg si es aleatoria
@@ -65,6 +66,40 @@ export function EasterEgg({
       });
     }
   }, [isVisible, id, showOnce, setSeenEasterEggs]);
+  
+  // Manejar la animación de confetti
+  useEffect(() => {
+    if (isVisible && type === "confetti") {
+      const canvas = confettiCanvasRef.current;
+      if (canvas) {
+        const myConfetti = confetti.create(canvas, {
+          resize: true,
+          useWorker: true
+        });
+        
+        // Lanzar confetti al mostrar
+        myConfetti({
+          particleCount: 150,
+          spread: 120,
+          origin: { y: 0.6 }
+        });
+        
+        // Lanzar confetti cada segundo
+        const interval = setInterval(() => {
+          myConfetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.7, x: Math.random() }
+          });
+        }, 1000);
+        
+        return () => {
+          clearInterval(interval);
+          myConfetti.reset();
+        };
+      }
+    }
+  }, [isVisible, type]);
   
   // Manejar el cierre automático del easter egg
   useEffect(() => {
@@ -93,13 +128,16 @@ export function EasterEgg({
     switch (type) {
       case "confetti":
         return (
-          <div className="text-center py-4 px-6">
-            <p className="font-medium">{message || "¡Felicidades!"}</p>
-            <div className="flex justify-center mt-2 space-x-2">
-              {["🎉", "🎊", "🎈"].map((emoji, index) => (
-                <span key={index} className="text-2xl">{emoji}</span>
-              ))}
-            </div>
+          <div className="relative">
+            <canvas 
+              ref={confettiCanvasRef} 
+              className="absolute top-0 left-0 w-full h-full z-0"
+            />
+            {message && (
+              <div className="relative z-10 text-center py-4 px-6">
+                <p className="font-medium">{message}</p>
+              </div>
+            )}
           </div>
         );
       case "dance":
