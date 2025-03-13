@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { MascotLoader } from "@/components/ui/mascot-loader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -216,9 +217,12 @@ export default function VideosPage() {
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center bg-background w-full">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando...</p>
+        <div className="flex flex-col items-center justify-center p-8">
+          <MascotLoader 
+            animation="wave" 
+            text="Cargando datos de usuario..." 
+            size="md"
+          />
         </div>
       </div>
     );
@@ -231,9 +235,12 @@ export default function VideosPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Cargando videos...</p>
+        <div className="flex flex-col items-center justify-center">
+          <MascotLoader 
+            animation="thinking" 
+            text="Buscando tus videos..." 
+            size="lg"
+          />
         </div>
       </div>
     );

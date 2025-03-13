@@ -17,6 +17,10 @@ import { GuideProvider } from "@/components/help/GuideContext";
 import TitulinPage from "./pages/titulin/TitulinPage";
 import TitulinConfigPage from "./pages/titulin/TitulinConfigPage";
 import { CSRFToken } from "@/components/auth/CSRFToken";
+import { MascotLoader } from "@/components/ui/mascot-loader";
+
+// Importación de la página de demostración de mascota
+import MascotDemo from "@/pages/mascot-demo";
 
 // Importar las nuevas páginas de administrador
 import AdminPage from "@/pages/admin/AdminPage";
@@ -41,7 +45,13 @@ function Router() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center">
+          <MascotLoader 
+            animation="dance" 
+            text="Cargando PetraPanel..." 
+            size="lg"
+          />
+        </div>
       </div>
     );
   }
@@ -62,6 +72,7 @@ function Router() {
       <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
       <Route path="/configuracion/titulin" component={() => <ProtectedRoute component={TitulinConfigPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
+      <Route path="/mascot-demo" component={() => <ProtectedRoute component={MascotDemo} />} />
       
       {/* Rutas de administración - solo accesibles para administradores */}
       { user.role === 'admin' && (
