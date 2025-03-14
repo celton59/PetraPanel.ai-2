@@ -266,17 +266,27 @@ export function setupAuth(app: Express) {
     const userToReturn = JSON.parse(JSON.stringify(req.user))
     delete userToReturn.password;
     
-    // Actualiza la fecha de último login si el usuario existe
+    // Comentamos completamente la actualización del último login para evitar errores
+    // La fecha de último login no es crítica para el funcionamiento del sistema
+    // TODO: Cuando se despliegue una nueva versión de la base de datos, volver a habilitar esta funcionalidad
+    
+    // Si necesitamos esta funcionalidad en el futuro, podemos descomentarla cuando
+    // se haya verificado que la columna existe en todos los entornos
+    /*
     if (req.user?.id) {
       try {
-        await db.update(users)
-          .set({ lastLoginAt: new Date() })
-          .where(eq(users.id, req.user.id));
+        await db.execute(`
+          UPDATE users 
+          SET last_login_at = NOW() 
+          WHERE id = $1
+        `, [req.user.id]);
+        
+        console.log("Último login actualizado correctamente para usuario:", req.user.username);
       } catch (err) {
         console.error("Error al actualizar último login:", err);
-        // Continuamos aunque falle esta actualización
       }
     }
+    */
     
     res.json(userToReturn);
   });
