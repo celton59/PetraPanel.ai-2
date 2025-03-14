@@ -267,6 +267,8 @@ export function setupAuth(app: Express) {
     delete userToReturn.password;
     
     // Actualiza la fecha de último login si el usuario existe
+    // Comentamos temporalmente mientras se actualiza la estructura de la base de datos
+    /*
     if (req.user?.id) {
       try {
         await db.update(users)
@@ -277,6 +279,7 @@ export function setupAuth(app: Express) {
         // Continuamos aunque falle esta actualización
       }
     }
+    */
     
     res.json(userToReturn);
   });
