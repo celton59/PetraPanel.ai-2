@@ -262,33 +262,49 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), async (req, res) => {
-    console.log("Login successful for user:", req.user?.username);
-    const userToReturn = JSON.parse(JSON.stringify(req.user))
-    delete userToReturn.password;
-    
-    // Comentamos completamente la actualización del último login para evitar errores
-    // La fecha de último login no es crítica para el funcionamiento del sistema
-    // TODO: Cuando se despliegue una nueva versión de la base de datos, volver a habilitar esta funcionalidad
-    
-    // Si necesitamos esta funcionalidad en el futuro, podemos descomentarla cuando
-    // se haya verificado que la columna existe en todos los entornos
-    /*
-    if (req.user?.id) {
-      try {
-        await db.execute(`
-          UPDATE users 
-          SET last_login_at = NOW() 
-          WHERE id = $1
-        `, [req.user.id]);
-        
-        console.log("Último login actualizado correctamente para usuario:", req.user.username);
-      } catch (err) {
-        console.error("Error al actualizar último login:", err);
+    try {
+      console.log("Login successful for user:", req.user?.username);
+      const userToReturn = JSON.parse(JSON.stringify(req.user))
+      delete userToReturn.password;
+      
+      // Intentamos actualizar last_login_at solo si la columna existe
+      // El script ensure_last_login_column.ts debería asegurarse de que existe
+      if (req.user?.id) {
+        try {
+          // Verificamos primero si la columna existe para evitar errores
+          const columnExists = await db.execute(`
+            SELECT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_name = 'users' AND column_name = 'last_login_at'
+            );
+          `);
+          
+          if (columnExists.rows?.[0]?.exists === true) {
+            // Si la columna existe, la actualizamos
+            await db.execute(`
+              UPDATE users 
+              SET last_login_at = NOW() 
+              WHERE id = $1
+            `, [req.user.id]);
+            
+            console.log("Último login actualizado correctamente para usuario:", req.user.username);
+          } else {
+            console.log("No se actualizó last_login_at porque la columna no existe");
+          }
+        } catch (err) {
+          console.error("Error al actualizar último login:", err);
+          // Continuamos de todas formas, ya que esto no es crítico
+        }
       }
+      
+      res.json(userToReturn);
+    } catch (error) {
+      console.error("Error en el proceso de login:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error interno del servidor" 
+      });
     }
-    */
-    
-    res.json(userToReturn);
   });
 
 

@@ -99,6 +99,17 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    // Verificar y crear la columna last_login_at si no existe
+    // Importamos el script como una medida de seguridad para asegurar que la columna existe
+    // antes de que se inicie el servidor o se procese cualquier solicitud de login
+    try {
+      const ensureLastLoginColumn = await import('./scripts/ensure_last_login_column');
+      console.log("Verificación de estructura de base de datos completada");
+    } catch (err) {
+      console.error("Error al verificar estructura de base de datos:", err);
+      // Continuamos de todas formas, ya que no es crítico
+    }
+    
     // Configurar autenticación
     console.log("Setting up authentication...");
     setupAuth(app);
