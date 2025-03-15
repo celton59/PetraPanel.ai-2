@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentIcon, MoneyIcon, TasksIcon, PendingIcon } from "@/components/CustomIcons";
 import StatsCard from "@/components/StatsCard";
-import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon, Bell } from "lucide-react";
+import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon, Bell, Link as LinkIcon } from "lucide-react";
 import ActionCard from '@/components/ActionCard';
 import { RolesTab } from './configuration/tabs/roles/RolesTab';
 import { UsersTab } from './configuration/tabs/users/UsersTab';
@@ -147,7 +147,7 @@ export default function AdminPage() {
               </Card>
             </div>
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
               <Link href="/admin/stats">
                 <ActionCard
                   icon={BarChart2}
@@ -173,6 +173,15 @@ export default function AdminPage() {
                   description="Gestiona y envía notificaciones a usuarios y grupos del sistema."
                   iconColor="text-amber-500"
                   iconBgColor="bg-amber-50 dark:bg-amber-900/20"
+                />
+              </Link>
+              <Link href="/admin/afiliados">
+                <ActionCard
+                  icon={LinkIcon}
+                  title="Empresas Afiliadas"
+                  description="Gestiona las empresas afiliadas y sus enlaces para videos."
+                  iconColor="text-indigo-500"
+                  iconBgColor="bg-indigo-50 dark:bg-indigo-900/20"
                 />
               </Link>
               <ActionCard
