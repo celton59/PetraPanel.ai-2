@@ -248,14 +248,13 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
       .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
       .returning();
       
-    // Si se actualizó el título, escanear para detectar afiliados
+    // Si se actualizó el título, escanear para detectar afiliados fuera de la transacción
     if (updates.title && result) {
       try {
-        // Escanear el título para detectar afiliados
+        console.log(`🔍 Escaneando video ${result.id} con título actualizado "${updates.title}" fuera de la transacción...`);
         await scanVideoForAffiliates(result.id, updates.title);
       } catch (affError) {
-        // Sólo registramos el error pero no interrumpimos el proceso
-        console.error("Error al escanear afiliados después de actualizar título:", affError);
+        console.error(`❌ Error al escanear afiliados para video ${result.id} después de actualizar título:`, affError);
       }
     }
 
@@ -903,20 +902,18 @@ async function createVideo(req: Request, res: Response): Promise<Response> {
       };
 
       const [video] = await tx.insert(videos).values(videoData).returning();
-      
-      // Escanear el título para detectar afiliados
-      if (video.title) {
-        try {
-          // Escanear el título para detectar afiliados
-          await scanVideoForAffiliates(video.id, video.title);
-        } catch (affError) {
-          // Sólo registramos el error pero no interrumpimos el proceso
-          console.error("Error al escanear afiliados:", affError);
-        }
-      }
-
       return [video];
     });
+
+    // Escanear el video para detectar afiliados fuera de la transacción
+    if (result && result.title) {
+      try {
+        console.log(`🔍 Escaneando video ${result.id} con título "${result.title}" fuera de la transacción...`);
+        await scanVideoForAffiliates(result.id, result.title);
+      } catch (affError) {
+        console.error(`❌ Error al escanear afiliados para video ${result.id}:`, affError);
+      }
+    }
 
     return res.json(result);
   } catch (error) {
@@ -1401,17 +1398,6 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
         
         const [newVideo] = await tx.insert(videos).values(videoData).returning();
         createdVideos.push(newVideo);
-        
-        // Escanear el título para detectar afiliados
-        if (newVideo.title) {
-          try {
-            // Escanear el título para detectar afiliados
-            await scanVideoForAffiliates(newVideo.id, newVideo.title);
-          } catch (affError) {
-            // Sólo registramos el error pero no interrumpimos el proceso
-            console.error("Error al escanear afiliados en video masivo:", affError);
-          }
-        }
       }
       
       // Update project's current number
