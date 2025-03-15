@@ -25,6 +25,8 @@ import { MediaCorrectionsDetail } from "./detail/MediaCorrectionsDetail";
 import { CompletedVideoDetail } from "./detail/CompletedVideoDetail";
 import { ApiVideo } from "@/hooks/useVideos";
 import { MascotLoader } from "@/components/ui/mascot-loader";
+import { AffiliatesBadgeContainer } from "@/components/video/AffiliateBadge";
+import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
 
 const statusDescriptions: Record<VideoStatus, string> = {
   available: "Video recién creado, esperando asignación",
@@ -40,6 +42,14 @@ const statusDescriptions: Record<VideoStatus, string> = {
 export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { user, isLoading: isUserLoading } = useUser();
+  
+  // Cargar información de afiliados para este video
+  const { 
+    affiliates, 
+    isLoading: isLoadingAffiliates,
+    pendingAffiliates,
+    updateAffiliateStatus
+  } = useVideoAffiliates(video?.id || null);
   
   // Si no hay video o usuario, mostrar estado de carga con mascota
   if (!video || !user || isUserLoading) {

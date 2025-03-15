@@ -337,7 +337,7 @@ async function notifyYoutuberAboutAffiliate(videoId: number, company: any): Prom
       where: eq(videos.id, videoId)
     });
     
-    if (!video || !video.assignedToUser) {
+    if (!video || !video.contentUploadedBy) {
       return;
     }
     
@@ -350,7 +350,7 @@ async function notifyYoutuberAboutAffiliate(videoId: number, company: any): Prom
     
     // Crear notificación
     await notificationsService.createNotification({
-      userId: video.assignedToUser,
+      userId: video.contentUploadedBy,
       title: 'Enlace de afiliado requerido',
       message: `El video "${video.title}" menciona a ${company.name}. Recuerda incluir el enlace de afiliado en la descripción y tarjetas del video.`,
       type: 'info',
