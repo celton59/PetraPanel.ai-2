@@ -1017,22 +1017,22 @@ export default function VideosPage() {
             </>
           )}
           
+          {/* Badge de límites de videos (antes de filtros) */}
+          {user?.role === "youtuber" && (
+            <VideoLimitsBadge />
+          )}
+          
           <Button
             size="sm"
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className="gap-1.5 mr-2"
+            className="gap-1.5 mx-2"
           >
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
           
-          {/* Badge de límites de videos */}
-          {user?.role === "youtuber" && (
-            <VideoLimitsBadge />
-          )}
-          
-          <Link href="/videos/trash" className="no-underline ml-2">
+          <Link href="/videos/trash" className="no-underline">
             <Button
               size="sm"
               variant="outline"

@@ -10,36 +10,24 @@ import { cn } from "@/lib/utils";
  * Diseñado para colocarse junto a los filtros
  */
 export function VideoLimitsBadge() {
-  const { videoLimits, isLoading, usagePercentage, isNearLimit, isAtLimit } = useVideoLimits();
+  const { videoLimits, isLoading } = useVideoLimits();
 
-  if (isLoading) {
-    return null;
-  }
-
-  // Determinar colores según el estado
-  const getBadgeStyle = () => {
-    if (isAtLimit) {
-      return "bg-red-100 text-red-800 hover:bg-red-200";
-    } else if (isNearLimit) {
-      return "bg-amber-100 text-amber-800 hover:bg-amber-200";
-    } else if (usagePercentage > 40) {
-      return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-    } else {
-      return "bg-emerald-100 text-emerald-800 hover:bg-emerald-200";
-    }
-  };
+  // Siempre mostrar el badge, incluso durante la carga,
+  // para evitar saltos en la interfaz
+  const count = isLoading ? 0 : videoLimits.currentCount;
+  const max = isLoading ? 30 : videoLimits.maxAllowed;
 
   return (
     <TooltipProvider>
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <Button
-            variant="outline" 
+            variant="ghost" 
             size="sm"
-            className={cn("gap-1.5 border-none font-medium", getBadgeStyle())}
+            className="gap-1.5 font-medium"
           >
             <Video className="h-3.5 w-3.5" />
-            <span>{videoLimits.currentCount}/{videoLimits.maxAllowed}</span>
+            <span>{count}/{max}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent className="p-3 max-w-xs">
@@ -48,13 +36,7 @@ export function VideoLimitsBadge() {
               Límite de videos asignados
             </p>
             <p className="text-xs text-muted-foreground">
-              Estás utilizando {videoLimits.currentCount} de tus {videoLimits.maxAllowed} videos disponibles
-              {isAtLimit 
-                ? ". Has alcanzado tu límite máximo."
-                : isNearLimit
-                  ? `. Estás cerca de tu límite (${usagePercentage}%).`
-                  : `.`
-              }
+              Estás utilizando {count} de tus {max} videos disponibles.
             </p>
           </div>
         </TooltipContent>

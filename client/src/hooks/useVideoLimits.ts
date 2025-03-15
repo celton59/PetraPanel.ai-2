@@ -15,7 +15,7 @@ export interface VideoLimitsData {
 export const useVideoLimits = () => {
   const { user } = useUser();
   
-  const { data, isLoading, error, refetch } = useQuery<VideoLimitsData>({
+  const { data, isLoading, error, refetch } = useQuery<{success: boolean, data: VideoLimitsData}>({
     queryKey: ["video-limits"],
     queryFn: async () => {
       const response = await axios.get("/api/youtuber/video-limits");
@@ -28,10 +28,10 @@ export const useVideoLimits = () => {
   });
 
   // Valores predeterminados en caso de no tener datos
-  const videoLimits: VideoLimitsData = data || {
+  const videoLimits: VideoLimitsData = data?.success ? data.data : {
     canTakeMore: true,
     currentCount: 0,
-    maxAllowed: 10
+    maxAllowed: 30
   };
 
   // Calcular el porcentaje de uso para la barra de progreso
