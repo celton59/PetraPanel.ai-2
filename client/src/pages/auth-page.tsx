@@ -41,6 +41,7 @@ export default function AuthPage() {
   const { login } = useUser();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState<string | null>(null);
   const [showPinDialog, setShowPinDialog] = useState(false); // No mostrar el diálogo de PIN al cargar
   const [pinValues, setPinValues] = useState(['', '', '', '']);
   const [pinError, setPinError] = useState('');
@@ -529,19 +530,19 @@ export default function AuthPage() {
                 <Button 
                   type="submit" 
                   size="lg" 
-                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
+                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <div className="flex items-center justify-center w-full">
+                    <span className="flex items-center justify-center w-full">
                       <MascotLoader animation="thinking" size="sm" text="" />
                       <span className="ml-2">Iniciando sesión...</span>
-                    </div>
+                    </span>
                   ) : (
-                    <>
+                    <span className="flex items-center justify-center w-full">
                       <LogIn className="mr-2 h-5 w-5" />
-                      Iniciar sesión
-                    </>
+                      <span>Iniciar sesión</span>
+                    </span>
                   )}
                 </Button>
               </form>
@@ -571,15 +572,13 @@ export default function AuthPage() {
                   variant="outline" 
                   onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
                   disabled={isLoading}
-                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full"
+                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full !p-0"
                   size="sm"
                 >
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
-                    {isLoading ? (
-                      <div className="flex items-center justify-center">
-                        <MascotLoader animation="dance" size="sm" text="" />
-                      </div>
+                    {isLoading && cred.username === pendingLogin ? (
+                      <MascotLoader animation="dance" size="sm" text="" />
                     ) : (
                       <>{cred.icon}</>
                     )}
