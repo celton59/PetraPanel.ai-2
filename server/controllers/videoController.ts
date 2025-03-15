@@ -891,6 +891,20 @@ async function createVideo(req: Request, res: Response): Promise<Response> {
       };
 
       const [video] = await tx.insert(videos).values(videoData).returning();
+      
+      // Escanear el título para detectar afiliados
+      if (video.title) {
+        try {
+          // Importamos la función desde affiliateController
+          const { scanVideoForAffiliates } = await import('../controllers/affiliateController');
+          
+          // Escanear el título para detectar afiliados
+          await scanVideoForAffiliates(video.id, video.title);
+        } catch (affError) {
+          // Sólo registramos el error pero no interrumpimos el proceso
+          console.error("Error al escanear afiliados:", affError);
+        }
+      }
 
       return [video];
     });
@@ -1378,6 +1392,20 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
         
         const [newVideo] = await tx.insert(videos).values(videoData).returning();
         createdVideos.push(newVideo);
+        
+        // Escanear el título para detectar afiliados
+        if (newVideo.title) {
+          try {
+            // Importamos la función desde affiliateController
+            const { scanVideoForAffiliates } = await import('../controllers/affiliateController');
+            
+            // Escanear el título para detectar afiliados
+            await scanVideoForAffiliates(newVideo.id, newVideo.title);
+          } catch (affError) {
+            // Sólo registramos el error pero no interrumpimos el proceso
+            console.error("Error al escanear afiliados en video masivo:", affError);
+          }
+        }
       }
       
       // Update project's current number
