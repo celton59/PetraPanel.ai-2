@@ -246,6 +246,20 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
       })
       .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
       .returning();
+      
+    // Si se actualizó el título, escanear para detectar afiliados
+    if (updates.title && result) {
+      try {
+        // Importamos la función desde affiliateController
+        const { scanVideoForAffiliates } = await import('../controllers/affiliateController');
+        
+        // Escanear el título para detectar afiliados
+        await scanVideoForAffiliates(result.id, updates.title);
+      } catch (affError) {
+        // Sólo registramos el error pero no interrumpimos el proceso
+        console.error("Error al escanear afiliados después de actualizar título:", affError);
+      }
+    }
 
     return res
       .status(200)
