@@ -1,6 +1,6 @@
 import { db } from "@db";
 import { videos, users } from "@db/schema";
-import { and, eq, not, or } from "drizzle-orm";
+import { and, eq, not, or, sql } from "drizzle-orm";
 
 /**
  * Cuenta el número de videos que un youtuber tiene asignados actualmente
@@ -10,8 +10,9 @@ import { and, eq, not, or } from "drizzle-orm";
  */
 export async function countAssignedVideos(userId: number): Promise<number> {
   try {
-    const result = await db
-      .select()
+    // Obtener todos los videos asignados al usuario en los estados relevantes
+    const assignedVideos = await db
+      .select({ id: videos.id })
       .from(videos)
       .where(
         and(
@@ -22,10 +23,10 @@ export async function countAssignedVideos(userId: number): Promise<number> {
           ),
           eq(videos.isDeleted, false)
         )
-      )
-      .count();
+      );
     
-    return parseInt(result[0]?.count as string || "0");
+    // Contar manualmente los resultados
+    return assignedVideos.length;
   } catch (error) {
     console.error("Error al contar videos asignados:", error);
     return 0;

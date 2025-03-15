@@ -197,12 +197,26 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
       updatedStatus = "content_corrections"; // Usamos content_corrections para indicar que está en progreso de optimización
     }
     
-    // Para los youtubers que empiezan a trabajar en un video, asignamos el video a ellos
+    // Para los youtubers que empiezan a trabajar en un video, verificamos el límite y luego asignamos
     if (req.user.role === "youtuber" && 
         currentVideo.status === "upload_media" && 
         !currentVideo.contentUploadedBy) {
-      // Si no está explícitamente en la actualización, lo asignamos al usuario actual
+      
+      // Verificar el límite solo si el youtuber intenta asignarse el video a sí mismo
       if (!updates.contentUploadedBy) {
+        // Verificar si el youtuber ha alcanzado su límite de videos
+        const { canTakeMore, currentCount, maxAllowed } = await canYoutuberTakeMoreVideos(req.user.id);
+        
+        if (!canTakeMore) {
+          return res.status(403).json({
+            success: false,
+            message: `Has alcanzado tu límite de ${maxAllowed} videos asignados simultáneamente`,
+            currentCount,
+            maxAllowed
+          });
+        }
+        
+        // Si no ha alcanzado el límite, asignamos el video al usuario actual
         updates.contentUploadedBy = req.user.id;
       }
     }
@@ -387,6 +401,18 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
       });
     }
     
+    // Verificar si el youtuber ha alcanzado su límite de videos
+    const { canTakeMore, currentCount, maxAllowed } = await canYoutuberTakeMoreVideos(req.user!.id);
+    
+    if (!canTakeMore) {
+      return res.status(403).json({
+        success: false,
+        message: `Has alcanzado tu límite de ${maxAllowed} videos asignados simultáneamente`,
+        currentCount,
+        maxAllowed
+      });
+    }
+    
     // Asignar el video al youtuber actual
     const [updatedVideo] = await db
       .update(videos)
@@ -409,7 +435,9 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
     return res.status(200).json({
       success: true,
       message: "Video asignado correctamente",
-      videoId
+      videoId,
+      currentCount: currentCount + 1, // Incrementar porque acabamos de asignar uno
+      maxAllowed
     });
     
   } catch (error: any) {
