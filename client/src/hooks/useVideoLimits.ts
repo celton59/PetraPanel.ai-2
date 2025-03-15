@@ -8,6 +8,11 @@ export interface VideoLimitsData {
   maxAllowed: number;
 }
 
+interface ApiResponse {
+  success: boolean;
+  data: VideoLimitsData;
+}
+
 /**
  * Hook para obtener y gestionar los límites de videos asignados a un usuario youtuber
  * @returns Datos relacionados con los límites de videos asignados
@@ -15,7 +20,7 @@ export interface VideoLimitsData {
 export const useVideoLimits = () => {
   const { user } = useUser();
   
-  const { data, isLoading, error, refetch } = useQuery<{success: boolean, data: VideoLimitsData}>({
+  const { data, isLoading, error, refetch } = useQuery<ApiResponse>({
     queryKey: ["video-limits"],
     queryFn: async () => {
       const response = await axios.get("/api/youtuber/video-limits");
