@@ -219,7 +219,8 @@ export default function AuthPage() {
       // Marcar que hay un login en progreso
       sessionStorage.setItem('loginInProgress', 'true');
       
-      // Iniciar proceso de transición visual
+      // Establecer el nombre de usuario del login pendiente y estado de carga
+      setPendingLogin(username);
       setIsLoading(true);
       
       console.log(`Iniciando sesión con el usuario ${username}`);
@@ -234,6 +235,7 @@ export default function AuthPage() {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
       setIsLoading(false);
+      setPendingLogin(null);
       
       console.error(`Error en inicio de sesión con ${username}:`, error);
       
@@ -261,7 +263,8 @@ export default function AuthPage() {
       // Marcar que hay un login en progreso
       sessionStorage.setItem('loginInProgress', 'true');
       
-      // Iniciar estado de carga
+      // Establecer el usuario de inicio de sesión pendiente y estado de carga
+      setPendingLogin(data.username);
       setIsLoading(true);
       
       console.log(`Iniciando sesión con:`, { username: data.username });
@@ -276,6 +279,7 @@ export default function AuthPage() {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
       setIsLoading(false);
+      setPendingLogin(null);
       
       toast.error("Error de inicio de sesión", {
         description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
