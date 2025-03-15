@@ -103,12 +103,12 @@ export function SecuritySection ({
                 <Input
                   type="number"
                   min={1}
-                  value={field.value || 3}
+                  value={field.value || 10}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormDescription className="text-xs">
-                Número máximo de videos que este youtuber puede tener asignados simultáneamente. El valor predeterminado es 3. No hay límite superior, puede asignar tantos videos como sea necesario.
+                Número máximo de videos que este youtuber puede tener asignados simultáneamente. El valor predeterminado es 10. No hay límite superior, puede asignar tantos videos como sea necesario.
               </FormDescription>
               <FormMessage />
             </FormItem>

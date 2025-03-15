@@ -58,7 +58,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       bio: user?.bio ? user.bio : undefined,
       role: user?.role ?? "youtuber",
       password: "",
-      maxAssignedVideos: user?.maxAssignedVideos ?? 3,
+      maxAssignedVideos: user?.maxAssignedVideos ?? 10,
     },
     resolver: async (values) => {
       const errors: Record<string, { type: string; message: string }> = {};
@@ -179,7 +179,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       
       // Solo incluir maxAssignedVideos si el rol es youtuber
       if (formDataToSubmit.role === "youtuber") {
-        userData.maxAssignedVideos = formDataToSubmit.maxAssignedVideos || 3;
+        userData.maxAssignedVideos = formDataToSubmit.maxAssignedVideos || 10;
       }
 
       // Solo incluir la contraseña si está presente y no está vacía
