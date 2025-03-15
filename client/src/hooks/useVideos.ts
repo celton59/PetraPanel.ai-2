@@ -510,6 +510,8 @@ export function useVideos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      // Invalida también la consulta de límites de videos para actualizar el contador
+      queryClient.invalidateQueries({ queryKey: ["video-limits"] });
       // No mostramos toast aquí para evitar notificaciones innecesarias al usuario
     },
     onError: (error: Error) => {
