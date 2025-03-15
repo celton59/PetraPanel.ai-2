@@ -24,6 +24,7 @@ import { setUpProfileRoutes } from "./controllers/profileController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
 import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
+import { setupAffiliateRoutes } from "./controllers/affiliateController";
 
 
 const avatarStorage = multer.diskStorage({
@@ -149,6 +150,9 @@ export function registerRoutes(app: Express): Server {
     
     // Comparación de títulos
     setupTitleComparisonRoutes(app, requireAuth)
+    
+    // Sistema de afiliados
+    setupAffiliateRoutes(app, requireAuth)
 
     // Users routes
     setUpUserRoutes(requireAuth, app)
