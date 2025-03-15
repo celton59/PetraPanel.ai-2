@@ -540,8 +540,8 @@ export default function AuthPage() {
                   <span className="flex items-center justify-center w-full">
                     {isLoading ? (
                       <>
-                        <MascotLoader animation="thinking" size="sm" text="" className="flex-shrink-0" />
-                        <span className="ml-2">Iniciando sesión...</span>
+                        <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin mr-2"></div>
+                        <span>Iniciando sesión...</span>
                       </>
                     ) : (
                       <>
@@ -585,7 +585,7 @@ export default function AuthPage() {
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
                     <div className="flex items-center justify-center w-full h-full">
                       {isLoading && cred.username === pendingLogin ? (
-                        <MascotLoader animation="dance" size="sm" text="" className="flex-shrink-0" />
+                        <div className="w-5 h-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
                       ) : (
                         <span className="flex-shrink-0">{cred.icon}</span>
                       )}
