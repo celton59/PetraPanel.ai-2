@@ -96,18 +96,28 @@ export function registerRoutes(app: Express): Server {
           .where(eq(users.id, userId))
           .limit(1);
         
+        const defaultAvatarPath = path.join(process.cwd(), 'client', 'public', 'default-avatar.svg');
+        
+        // Si no hay resultados o no hay avatarUrl
         if (!userResult || userResult.length === 0 || !userResult[0].avatarUrl) {
-          // Si no hay avatar, devolver el avatar por defecto
-          return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
+          console.log(`Avatar no encontrado para usuario ID: ${userId}, usando avatar por defecto`);
+          return res.sendFile(defaultAvatarPath);
         }
         
         // Obtener la ruta completa del archivo
-        const avatarPath = path.join(process.cwd(), userResult[0].avatarUrl.substring(1));
+        const avatarUrl = userResult[0].avatarUrl;
+        // Asegurarse de que la ruta comienza con /
+        const normalizedUrl = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
+        const avatarPath = path.join(process.cwd(), normalizedUrl.substring(1));
         
         // Verificar si el archivo existe
         if (!fs.existsSync(avatarPath)) {
-          return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
+          console.log(`Archivo de avatar no encontrado en disco: ${avatarPath}, usando avatar por defecto`);
+          return res.sendFile(defaultAvatarPath);
         }
+        
+        // Añadir caché para mejorar rendimiento
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 horas
         
         // Enviar el archivo
         res.sendFile(avatarPath);
