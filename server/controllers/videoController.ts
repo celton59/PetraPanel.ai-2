@@ -24,6 +24,7 @@ import {
   getSignedUrl
 } from "../services/s3"
 import { canYoutuberTakeMoreVideos } from "../utils/youtuber-utils";
+import { scanVideoForAffiliates } from "../controllers/affiliateController";
 
 // Cliente S3 para métodos antiguos
 import { type Express } from "express";
@@ -250,9 +251,6 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
     // Si se actualizó el título, escanear para detectar afiliados
     if (updates.title && result) {
       try {
-        // Importamos la función desde affiliateController
-        const { scanVideoForAffiliates } = await import('../controllers/affiliateController');
-        
         // Escanear el título para detectar afiliados
         await scanVideoForAffiliates(result.id, updates.title);
       } catch (affError) {
@@ -909,9 +907,6 @@ async function createVideo(req: Request, res: Response): Promise<Response> {
       // Escanear el título para detectar afiliados
       if (video.title) {
         try {
-          // Importamos la función desde affiliateController
-          const { scanVideoForAffiliates } = await import('../controllers/affiliateController');
-          
           // Escanear el título para detectar afiliados
           await scanVideoForAffiliates(video.id, video.title);
         } catch (affError) {
@@ -1410,9 +1405,6 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
         // Escanear el título para detectar afiliados
         if (newVideo.title) {
           try {
-            // Importamos la función desde affiliateController
-            const { scanVideoForAffiliates } = await import('../controllers/affiliateController');
-            
             // Escanear el título para detectar afiliados
             await scanVideoForAffiliates(newVideo.id, newVideo.title);
           } catch (affError) {
