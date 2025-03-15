@@ -537,17 +537,19 @@ export default function AuthPage() {
                   className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center w-full">
-                      <MascotLoader animation="thinking" size="sm" text="" />
-                      <span className="ml-2">Iniciando sesión...</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center w-full">
-                      <LogIn className="mr-2 h-5 w-5" />
-                      <span>Iniciar sesión</span>
-                    </span>
-                  )}
+                  <span className="flex items-center justify-center w-full">
+                    {isLoading ? (
+                      <>
+                        <MascotLoader animation="thinking" size="sm" text="" className="flex-shrink-0" />
+                        <span className="ml-2">Iniciando sesión...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="mr-2 h-5 w-5 flex-shrink-0" />
+                        <span>Iniciar sesión</span>
+                      </>
+                    )}
+                  </span>
                 </Button>
               </form>
             </Form>
@@ -581,11 +583,13 @@ export default function AuthPage() {
                 >
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
-                    {isLoading && cred.username === pendingLogin ? (
-                      <MascotLoader animation="dance" size="sm" text="" />
-                    ) : (
-                      <>{cred.icon}</>
-                    )}
+                    <div className="flex items-center justify-center w-full h-full">
+                      {isLoading && cred.username === pendingLogin ? (
+                        <MascotLoader animation="dance" size="sm" text="" className="flex-shrink-0" />
+                      ) : (
+                        <span className="flex-shrink-0">{cred.icon}</span>
+                      )}
+                    </div>
                   </div>
                   <span className="text-xs font-medium">{cred.displayName}</span>
                   {showDevAccess && (
