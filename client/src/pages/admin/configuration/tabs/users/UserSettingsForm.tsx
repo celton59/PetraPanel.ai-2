@@ -28,6 +28,7 @@ export interface UserFormData {
   bio: string | null | undefined;
   role?: string | undefined;
   password: string | undefined;
+  maxAssignedVideos?: number | null | undefined;
 }
 
 interface UserSettingsFormProps {
@@ -57,7 +58,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
       bio: user?.bio ? user.bio : undefined,
       role: user?.role ?? "youtuber",
       password: "",
-
+      maxAssignedVideos: user?.maxAssignedVideos ?? 3,
     },
     resolver: async (values) => {
       const errors: Record<string, { type: string; message: string }> = {};
@@ -175,6 +176,11 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
         role: formDataToSubmit.role || "youtuber",
         projectIds: selectedProjects,
       };
+      
+      // Solo incluir maxAssignedVideos si el rol es youtuber
+      if (formDataToSubmit.role === "youtuber") {
+        userData.maxAssignedVideos = formDataToSubmit.maxAssignedVideos || 3;
+      }
 
       // Solo incluir la contraseña si está presente y no está vacía
       if (formDataToSubmit.password && formDataToSubmit.password.trim() !== '') {
@@ -264,6 +270,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                   email: form.watch("email"),
                   phone: form.watch("phone"),
                   bio: form.watch("bio"),
+                  maxAssignedVideos: form.watch("maxAssignedVideos"),
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {
