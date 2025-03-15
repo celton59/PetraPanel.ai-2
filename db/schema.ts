@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   role: text("role", { enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"] }).notNull(),
   avatarUrl: text("avatar_url"),
+  maxAssignedVideos: integer("max_assigned_videos").default(3), // Número máximo de videos que puede tener asignados simultáneamente, por defecto 3
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
