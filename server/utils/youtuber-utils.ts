@@ -25,7 +25,8 @@ export async function countAssignedVideos(userId: number): Promise<number> {
         )
       );
     
-    // Contar manualmente los resultados
+    // Contar manualmente los resultados y loguear para depuración
+    console.log(`Videos asignados al usuario ${userId}:`, assignedVideos.length);
     return assignedVideos.length;
   } catch (error) {
     console.error("Error al contar videos asignados:", error);

@@ -404,6 +404,8 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
     // Verificar si el youtuber ha alcanzado su límite de videos
     const { canTakeMore, currentCount, maxAllowed } = await canYoutuberTakeMoreVideos(req.user!.id);
     
+    console.log(`Usuario ${req.user!.id} - Límite de videos:`, { canTakeMore, currentCount, maxAllowed });
+    
     if (!canTakeMore) {
       return res.status(403).json({
         success: false,
