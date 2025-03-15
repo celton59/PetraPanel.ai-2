@@ -233,14 +233,26 @@ async function updateAffiliateInclusion(req: Request, res: Response) {
  */
 export async function scanVideoForAffiliates(videoId: number, title: string): Promise<boolean> {
   try {
+    console.log(`🔍 INICIANDO ESCANEO DE AFILIADOS para video ${videoId} con título "${title}"`);
+    
+    // Verificar parámetros de entrada
+    if (!videoId || !title) {
+      console.error(`❌ Error en parámetros de scanVideoForAffiliates - videoId: ${videoId}, title: ${title || 'vacío'}`);
+      return false;
+    }
+    
     // Obtener todas las empresas activas
     const activeCompanies = await db.query.affiliateCompanies.findMany({
       where: eq(affiliateCompanies.active, true)
     });
     
-    let matchesFound = false;
+    console.log(`📋 Empresas activas encontradas: ${activeCompanies.length}`);
+    if (activeCompanies.length === 0) {
+      console.log('⚠️ No hay empresas afiliadas activas para verificar');
+      return false;
+    }
     
-    console.log(`Escaneando video ${videoId} con título "${title}" para detectar afiliados...`);
+    let matchesFound = false;
     
     // Analizar el título para cada empresa
     for (const company of activeCompanies) {
@@ -255,10 +267,13 @@ export async function scanVideoForAffiliates(videoId: number, title: string): Pr
         titleLower.includes(keyword.toLowerCase())
       ) || false;
       
-      console.log(`Verificando empresa ${company.name}: nameMatch=${nameMatch}, keywordMatch=${keywordMatch}`);
+      console.log(`🔍 Verificando empresa "${company.name}": nameMatch=${nameMatch}, keywordMatch=${keywordMatch}`);
+      console.log(`   Keywords: ${JSON.stringify(company.keywords)}`);
       
       // Si hay coincidencia, registrar
       if (nameMatch || keywordMatch) {
+        console.log(`✅ COINCIDENCIA ENCONTRADA para empresa "${company.name}" en video ${videoId}`);
+        
         // Verificar si ya existe un registro para esta combinación de video y empresa
         const existingMatch = await db.query.videoAffiliateMatches.findFirst({
           where: and(
@@ -267,14 +282,20 @@ export async function scanVideoForAffiliates(videoId: number, title: string): Pr
           )
         });
         
-        if (!existingMatch) {
+        if (existingMatch) {
+          console.log(`ℹ️ Ya existe un registro para esta combinación video-empresa`);
+        } else {
+          console.log(`➕ Creando nuevo registro de coincidencia para video ${videoId} y empresa ${company.id}`);
+          
           // Crear un nuevo registro
-          await db.insert(videoAffiliateMatches).values({
+          const [newMatch] = await db.insert(videoAffiliateMatches).values({
             video_id: videoId,
             company_id: company.id,
             notified: false,
             included_by_youtuber: false
-          });
+          }).returning();
+          
+          console.log(`✅ Nuevo registro creado con ID: ${newMatch?.id || 'error'}`);
           
           matchesFound = true;
           
@@ -284,9 +305,10 @@ export async function scanVideoForAffiliates(videoId: number, title: string): Pr
       }
     }
     
+    console.log(`🏁 FINALIZADO escaneo de afiliados para video ${videoId}: matchesFound=${matchesFound}`);
     return matchesFound;
   } catch (error) {
-    console.error('Error al escanear video para afiliados:', error);
+    console.error('❌ ERROR CRÍTICO al escanear video para afiliados:', error);
     return false;
   }
 }
