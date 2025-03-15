@@ -19,6 +19,7 @@ const createUserSchema = z.object({
   phone: z.string().min(9, { message: "El número de teléfono debe tener al menos 9 caracteres" }).optional(),
   bio: z.string().min(3, { message: "La biografía debe tener al menos 3 caracteres" }).max(30, { message: "La biografía debe tener como máximo 30 caracteres" }).optional(),
   projectIds: z.array(z.number()).min(1, { message: "Debe tener al menos un proyecto asociado" }),
+  videoLimit: z.number().int().positive().optional().describe("Límite máximo de videos que el usuario puede crear"),
 });
 
 const updateUserSchema = z.object({
