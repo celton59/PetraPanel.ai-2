@@ -270,7 +270,7 @@ export function UserSettingsForm({ user, onClose }: UserSettingsFormProps) {
                   email: form.watch("email"),
                   phone: form.watch("phone"),
                   bio: form.watch("bio"),
-                  maxAssignedVideos: form.watch("maxAssignedVideos"),
+                  maxAssignedVideos: form.watch("maxAssignedVideos") ? Number(form.watch("maxAssignedVideos")) : undefined,
                 }}
                 setFormData={(data) => {
                   Object.entries(data).forEach(([key, value]) => {

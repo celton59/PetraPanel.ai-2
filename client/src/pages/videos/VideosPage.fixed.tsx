@@ -4,6 +4,7 @@ import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+import { VideoLimitsWidget } from "@/components/video/VideoLimitsWidget";
 import {
   Eye,
   Trash2,
@@ -1053,6 +1054,13 @@ export default function VideosPage() {
         showFilters={showFilters}
         visibleStates={user ? VISIBLE_STATES[user.role] : []}
       />
+      
+      {/* Widget de límites de videos para youtubers */}
+      {user?.role === "youtuber" && (
+        <div className="mb-6">
+          <VideoLimitsWidget />
+        </div>
+      )}
       
       {/* Vista principal */}
       <div className="flex justify-end mb-2 space-x-1">
