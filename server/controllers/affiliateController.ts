@@ -166,10 +166,16 @@ async function getVideoAffiliateMatches(req: Request, res: Response) {
       }
     });
     
-    return res.json(matches);
+    return res.json({
+      success: true,
+      data: matches
+    });
   } catch (error) {
     console.error('Error al obtener coincidencias de afiliados:', error);
-    return res.status(500).json({ error: 'Error al obtener coincidencias de afiliados' });
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener coincidencias de afiliados' 
+    });
   }
 }
 
@@ -195,13 +201,22 @@ async function updateAffiliateInclusion(req: Request, res: Response) {
       .returning();
     
     if (!updatedMatch) {
-      return res.status(404).json({ error: 'Coincidencia no encontrada' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Coincidencia no encontrada'
+      });
     }
     
-    return res.json(updatedMatch);
+    return res.json({
+      success: true,
+      data: updatedMatch
+    });
   } catch (error) {
     console.error('Error al actualizar inclusión de afiliado:', error);
-    return res.status(500).json({ error: 'Error al actualizar inclusión de afiliado' });
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al actualizar inclusión de afiliado'
+    });
   }
 }
 

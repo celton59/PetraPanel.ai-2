@@ -155,6 +155,20 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
                 </span>
               )}
             </h2>
+            
+            {/* Badge de afiliados */}
+            {!isLoadingAffiliates && affiliates && affiliates.length > 0 && (
+              <div className="mt-1 mb-1">
+                <AffiliatesBadgeContainer 
+                  affiliates={affiliates.map(a => ({
+                    id: a.id,
+                    companyName: a.company.name,
+                    isIncluded: a.included_by_youtuber
+                  }))}
+                />
+              </div>
+            )}
+            
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {video.creatorName && `Creado por: ${video.creatorName}`}
             </p>

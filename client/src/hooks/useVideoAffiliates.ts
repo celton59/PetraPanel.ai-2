@@ -3,12 +3,15 @@ import axios from '@/lib/axios';
 
 interface VideoAffiliate {
   id: number;
-  videoId: number;
-  companyId: number;
-  companyName: string;
-  isIncluded: boolean;
-  createdAt: string;
-  updatedAt: string | null;
+  video_id: number;
+  company_id: number;
+  company: {
+    name: string;
+    logo_url?: string | null;
+  };
+  included_by_youtuber: boolean;
+  created_at: string;
+  updated_at: string | null;
 }
 
 /**
@@ -34,8 +37,8 @@ export function useVideoAffiliates(videoId: number | null) {
   // Mutación para actualizar el estado de inclusión de un enlace de afiliado
   const updateAffiliateMutation = useMutation({
     mutationFn: async ({ affiliateId, isIncluded }: { affiliateId: number; isIncluded: boolean }) => {
-      const response = await axios.post(`/api/affiliates/matches/${affiliateId}`, {
-        isIncluded
+      const response = await axios.put(`/api/affiliates/matches/${affiliateId}/inclusion`, {
+        included: isIncluded
       });
       return response.data;
     },
@@ -50,7 +53,7 @@ export function useVideoAffiliates(videoId: number | null) {
   };
   
   // Conteo rápido para UI
-  const pendingAffiliates = affiliates.filter(a => !a.isIncluded).length;
+  const pendingAffiliates = affiliates.filter(a => !a.included_by_youtuber).length;
   const hasAffiliates = affiliates.length > 0;
   
   return {
