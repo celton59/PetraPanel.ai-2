@@ -1423,6 +1423,19 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
       return createdVideos;
     });
 
+    // Escanear todos los videos creados para detectar afiliados
+    console.log(`🔍 Escaneando ${results.length} videos para detectar afiliados después de la creación masiva...`);
+    for (const video of results) {
+      if (video.title) {
+        try {
+          console.log(`🔍 Escaneando video ${video.id} con título "${video.title}" fuera de la transacción...`);
+          await scanVideoForAffiliates(video.id, video.title);
+        } catch (affError) {
+          console.error(`❌ Error al escanear afiliados para video ${video.id}:`, affError);
+        }
+      }
+    }
+    
     return res.status(201).json({
       success: true,
       message: `${results.length} videos creados correctamente`,
