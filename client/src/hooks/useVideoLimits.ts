@@ -1,30 +1,57 @@
-import { useQuery } from '@tanstack/react-query';
-import axios from '../lib/axios';
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { useUser } from "./use-user";
 
-export interface VideoLimits {
+export interface VideoLimitsData {
   canTakeMore: boolean;
   currentCount: number;
   maxAllowed: number;
 }
 
 /**
- * Hook para obtener información sobre los límites de videos asignados al youtuber
- * @returns Objeto con límites de videos, estado de carga y error
+ * Hook para obtener y gestionar los límites de videos asignados a un usuario youtuber
+ * @returns Datos relacionados con los límites de videos asignados
  */
-export function useVideoLimits() {
-  return useQuery<VideoLimits>({
-    queryKey: ['/api/youtuber/video-limits'],
+export const useVideoLimits = () => {
+  const { user } = useUser();
+  
+  const { data, isLoading, error, refetch } = useQuery<VideoLimitsData>({
+    queryKey: ["video-limits"],
     queryFn: async () => {
-      const response = await axios.get('/api/youtuber/video-limits');
-      return response.data.data;
+      const response = await axios.get("/api/youtuber/video-limits");
+      return response.data;
     },
-    // Solo intentar obtener datos si hay un usuario autenticado
-    enabled: true,
-    // No actualizar automáticamente
-    refetchOnWindowFocus: false,
-    // Cachear los resultados por 5 minutos
-    staleTime: 1000 * 60 * 5,
-    // En caso de error, no hacer retry automático
-    retry: false,
+    enabled: !!user && user.role === "youtuber",
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+    retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
-}
+
+  // Valores predeterminados en caso de no tener datos
+  const videoLimits: VideoLimitsData = data || {
+    canTakeMore: true,
+    currentCount: 0,
+    maxAllowed: 10
+  };
+
+  // Calcular el porcentaje de uso para la barra de progreso
+  const usagePercentage = videoLimits 
+    ? Math.min(Math.round((videoLimits.currentCount / videoLimits.maxAllowed) * 100), 100)
+    : 0;
+
+  // Determinar si está cerca del límite (>75%)
+  const isNearLimit = usagePercentage > 75;
+  
+  // Determinar si ha alcanzado el límite
+  const isAtLimit = !videoLimits.canTakeMore;
+
+  return {
+    videoLimits,
+    isLoading,
+    error,
+    refetch,
+    usagePercentage,
+    isNearLimit,
+    isAtLimit
+  };
+};
