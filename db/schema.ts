@@ -15,7 +15,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
-  videoLimit: integer("video_limit"), // Límite máximo de videos que el usuario puede crear
 });
 
 export type User = typeof users.$inferSelect;
