@@ -318,3 +318,33 @@ export const trainingTitleExamples = pgTable("training_title_examples", {
   embedding: vector("embedding", { dimensions: 1536 }).notNull(),
 })
 
+// Tabla para almacenar empresas con enlaces de afiliación
+export const affiliateCompanies = pgTable("affiliate_companies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  logo_url: text("logo_url"),
+  affiliate_url: text("affiliate_url").notNull(),
+  keywords: text("keywords").array(),  // Palabras clave adicionales para detectar menciones
+  active: boolean("active").default(true),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+});
+
+// Tabla para registrar detecciones de afiliados en videos
+export const videoAffiliateMatches = pgTable("video_affiliate_matches", {
+  id: serial("id").primaryKey(),
+  video_id: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
+  company_id: integer("company_id").notNull().references(() => affiliateCompanies.id, { onDelete: "cascade" }),
+  notified: boolean("notified").default(false),
+  included_by_youtuber: boolean("included_by_youtuber").default(false),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+});
+
+// Tipos para empresas afiliadas y coincidencias de afiliados
+export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
+export type InsertAffiliateCompany = typeof affiliateCompanies.$inferInsert;
+export type VideoAffiliateMatch = typeof videoAffiliateMatches.$inferSelect;
+export type InsertVideoAffiliateMatch = typeof videoAffiliateMatches.$inferInsert;
+
