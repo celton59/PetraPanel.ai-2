@@ -15,6 +15,7 @@ import express from "express";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
+import { canYoutuberTakeMoreVideos } from "./utils/youtuber-utils";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
 import { setUpUserRoutes } from "./controllers/userController.js";
@@ -730,6 +731,33 @@ export function registerRoutes(app: Express): Server {
         res.status(500).json({
           success: false,
           message: "Error al obtener estadísticas del usuario"
+        });
+      }
+    });
+
+    // Ruta para obtener información sobre el límite de videos para youtuber
+    app.get("/api/youtuber/video-limits", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario tenga rol youtuber
+        if (req.user?.role !== "youtuber") {
+          return res.status(403).json({
+            success: false,
+            message: "Esta información solo está disponible para usuarios con rol youtuber"
+          });
+        }
+
+        const userId = req.user.id as number;
+        const limits = await canYoutuberTakeMoreVideos(userId);
+        
+        res.json({
+          success: true,
+          data: limits
+        });
+      } catch (error) {
+        console.error("Error obteniendo límites de videos:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener información de límites de videos"
         });
       }
     });

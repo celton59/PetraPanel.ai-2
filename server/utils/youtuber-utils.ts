@@ -59,7 +59,7 @@ export async function canYoutuberTakeMoreVideos(userId: number): Promise<{
     
     // Obtener el número actual de videos asignados
     const currentCount = await countAssignedVideos(userId);
-    const maxAllowed = user.maxVideos || 3; // Usar valor predeterminado 3 si no está definido
+    const maxAllowed = user.maxVideos || 10; // Usar valor predeterminado 10 si no está definido
     
     return {
       canTakeMore: currentCount < maxAllowed,
