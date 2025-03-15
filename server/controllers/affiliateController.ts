@@ -159,12 +159,43 @@ async function getVideoAffiliateMatches(req: Request, res: Response) {
   try {
     const { videoId } = req.params;
     
-    const matches = await db.query.videoAffiliateMatches.findMany({
-      where: eq(videoAffiliateMatches.video_id, parseInt(videoId)),
-      with: {
-        company: true
+    // Usar SQL directo para evitar problemas con las relaciones
+    const result = await db.execute(`
+      SELECT 
+        m.id, 
+        m.video_id, 
+        m.company_id, 
+        m.notified, 
+        m.included_by_youtuber, 
+        m.created_at, 
+        m.updated_at,
+        c.name as company_name,
+        c.description as company_description,
+        c.logo_url as company_logo_url,
+        c.affiliate_url as company_affiliate_url,
+        c.active as company_active
+      FROM video_affiliate_matches m
+      JOIN affiliate_companies c ON m.company_id = c.id
+      WHERE m.video_id = $1
+    `, [parseInt(videoId)]);
+    
+    const matches = result.rows.map(row => ({
+      id: row.id,
+      video_id: row.video_id,
+      company_id: row.company_id,
+      notified: row.notified,
+      included_by_youtuber: row.included_by_youtuber,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      company: {
+        id: row.company_id,
+        name: row.company_name,
+        description: row.company_description,
+        logo_url: row.company_logo_url,
+        affiliate_url: row.company_affiliate_url,
+        active: row.company_active
       }
-    });
+    }));
     
     return res.json({
       success: true,

@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -340,7 +341,29 @@ export const videoAffiliateMatches = pgTable("video_affiliate_matches", {
   included_by_youtuber: boolean("included_by_youtuber").default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    videoIdx: index("video_affiliate_matches_video_id_idx").on(table.video_id),
+    companyIdx: index("video_affiliate_matches_company_id_idx").on(table.company_id),
+  };
 });
+
+// Definición de relaciones para videoAffiliateMatches
+export const videoAffiliateMatchRelations = relations(videoAffiliateMatches, ({ one }) => ({
+  video: one(videos, {
+    fields: [videoAffiliateMatches.video_id],
+    references: [videos.id],
+  }),
+  company: one(affiliateCompanies, {
+    fields: [videoAffiliateMatches.company_id],
+    references: [affiliateCompanies.id],
+  }),
+}));
+
+// Definición de relaciones para affiliateCompanies
+export const affiliateCompanyRelations = relations(affiliateCompanies, ({ many }) => ({
+  matches: many(videoAffiliateMatches),
+}));
 
 // Tipos para empresas afiliadas y coincidencias de afiliados
 export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
