@@ -28,7 +28,7 @@ export interface UserFormData {
   bio: string | null | undefined;
   role?: string | undefined;
   password: string | undefined;
-  maxAssignedVideos?: number | null | undefined;
+  maxAssignedVideos?: number;
 }
 
 interface UserSettingsFormProps {

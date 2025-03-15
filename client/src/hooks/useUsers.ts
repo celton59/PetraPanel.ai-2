@@ -15,7 +15,6 @@ interface ApiResponse<T> {
 // Interfaz extendida para incluir projectIds en el usuario
 export interface UserWithProjects extends User {
   projectIds?: number[];
-  maxAssignedVideos?: number;
 }
 
 export function useUsers(): {
