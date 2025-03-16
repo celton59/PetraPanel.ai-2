@@ -17,7 +17,6 @@ import { useUser } from "@/hooks/use-user";
 import { UpdateVideoData, ApiVideo } from "@/hooks/useVideos";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AffiliatesBadgeContainer } from "@/components/video/AffiliateBadge";
 
 interface ContentReviewDetailProps {
   video: ApiVideo;
@@ -77,10 +76,7 @@ export function ContentReviewDetail({
                 </div>
                 
                 <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[60px] text-sm text-gray-700 dark:text-gray-300 shadow-sm">
-                  <div className="flex flex-col gap-2">
-                    <span>{video.title}</span>
-                    <AffiliatesBadgeContainer videoId={video.id} title={video.title} />
-                  </div>
+                  {video.title}
                 </div>
               </div>
               
@@ -99,13 +95,10 @@ export function ContentReviewDetail({
                 </div>
                 
                 <div className="rounded-md border border-purple-200 dark:border-purple-800/50 bg-white/30 dark:bg-gray-900/30 p-3 min-h-[60px] text-sm text-purple-700 dark:text-purple-300 shadow-sm">
-                  <div className="flex flex-col gap-2">
-                    <span>{video.optimizedTitle}</span>
-                    <AffiliatesBadgeContainer videoId={video.id} title={video.optimizedTitle || ''} />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
-                      Optimizado por: {video.optimizerUsername}
-                    </p>
-                  </div>
+                  {video.optimizedTitle}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
+                    Optimizado por: {video.optimizerUsername}
+                  </p>
                 </div>
               </div>
             </div>

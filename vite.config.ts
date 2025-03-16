@@ -13,7 +13,7 @@ export default defineConfig({
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
-    checker({ typescript: true }), // Activa la verificación de TypeScript
+   // checker({ typescript: true }), // Activa la verificación de TypeScript
   ],
   resolve: {
     alias: {

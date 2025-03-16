@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertCircle } from 'lucide-react';
-import api from '@/lib/axios';
 
 interface AffiliateBadgeProps {
   companyName: string;
@@ -45,54 +44,17 @@ export function AffiliateBadge({ companyName, isIncluded = false }: AffiliateBad
 
 /**
  * Contenedor para múltiples badges de afiliados
- * Puede recibir directamente los afiliados o buscarlos por videoId y título
  */
 interface AffiliatesBadgeContainerProps {
-  affiliates?: Array<{
+  affiliates: Array<{
     id: number;
     companyName: string;
     isIncluded: boolean;
   }>;
-  videoId?: number;
-  title?: string;
   className?: string;
 }
 
-export function AffiliatesBadgeContainer({ affiliates: initialAffiliates, videoId, title, className = '' }: AffiliatesBadgeContainerProps) {
-  const [affiliates, setAffiliates] = useState(initialAffiliates || []);
-  const [loading, setLoading] = useState(false);
-  
-  useEffect(() => {
-    // Si ya tenemos afiliados o no tenemos videoId, no hacemos nada
-    if (initialAffiliates || !videoId) return;
-    
-    const fetchAffiliates = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get(`/api/affiliates/videos/${videoId}/matches`);
-        
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          const formattedAffiliates = response.data.data.map((aff: any) => ({
-            id: aff.id,
-            companyName: aff.company.name,
-            isIncluded: aff.included_by_youtuber
-          }));
-          setAffiliates(formattedAffiliates);
-        }
-      } catch (error) {
-        console.error("Error fetching affiliates:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchAffiliates();
-  }, [videoId, initialAffiliates]);
-  
-  if (loading) {
-    return <div className="text-xs text-gray-400">Cargando afiliados...</div>;
-  }
-  
+export function AffiliatesBadgeContainer({ affiliates, className = '' }: AffiliatesBadgeContainerProps) {
   if (!affiliates || affiliates.length === 0) return null;
   
   return (
