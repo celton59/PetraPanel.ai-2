@@ -49,7 +49,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
     isLoading: isLoadingAffiliates,
     pendingAffiliates,
     updateAffiliateStatus
-  } = useVideoAffiliates(video?.id || null);
+  } = useVideoAffiliates(video?.id);
   
   // Si no hay video o usuario, mostrar estado de carga con mascota
   if (!video || !user || isUserLoading) {
@@ -162,8 +162,8 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
                 <AffiliatesBadgeContainer 
                   affiliates={affiliates.map(a => ({
                     id: a.id,
-                    companyName: a.company.name,
-                    isIncluded: a.included_by_youtuber
+                    companyName: a.companyName,
+                    isIncluded: a.includedByYoutuber
                   }))}
                 />
               </div>
