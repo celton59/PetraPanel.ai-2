@@ -3,6 +3,7 @@ import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { VideoBadges } from "@/components/video/VideoBadges";
+import { VideoAffiliates } from "@/components/video/VideoAffiliates";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 // Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
@@ -585,6 +586,10 @@ export default function VideosPage() {
                     {/* Contributors */}
                     <TableCell>
                       <VideoBadges video={video} compact={true} />
+                    </TableCell>
+                    {/* Afiliados (nueva celda independiente) */}
+                    <TableCell>
+                      <VideoAffiliates video={video} compact={true} showHeader={false} />
                     </TableCell>
                     {/* Updated */}
                     <TableCell className="text-muted-foreground text-sm">
