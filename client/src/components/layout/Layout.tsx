@@ -1,10 +1,10 @@
 import { Sidebar } from "./Sidebar"
 import { UserMenu } from "./UserMenu"
-import { useLocation } from "wouter"
-import { SearchButton, GlobalSearch } from "@/components/global-search"
 import { MobileNavBar } from "./MobileNavBar"
 import { VersionInfo } from "./VersionInfo"
 import { useEffect } from "react"
+import { SearchButton } from "../global-search/SearchButton"
+import { GlobalSearch } from "../global-search/GlobalSearch"
 
 interface LayoutProps {
   children: React.ReactNode

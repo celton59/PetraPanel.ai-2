@@ -1,18 +1,18 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, BarChart, RotateCw, Filter } from "lucide-react";
-import { Channel } from "../types";
+import { Download, Loader2, RotateCw, Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { TitulinChannel } from "@/hooks/useTitulin";
 
 interface TableActionsProps {
   channelFilter: string;
   setChannelFilter: (value: string) => void;
   setCurrentPage: (page: number) => void;
-  channels: Channel[] | undefined;
+  channels: TitulinChannel[] | undefined;
   handleDownloadCSV: () => void;
   isDownloading: boolean;
   onlyEvergreen?: boolean;
