@@ -25,6 +25,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { useUser } from "@/hooks/use-user";
+import { AffiliateManager } from "@/components/video/AffiliateManager";
 
 interface OptimizeContentDetailProps {
   video: Video;
@@ -338,6 +339,13 @@ export function OptimizeContentDetail({
               )}
             </Button>
           </form>
+
+          {/* Administrador de Enlaces de Afiliados */}
+          {user?.role === 'youtuber' && (
+            <div className="mt-6">
+              <AffiliateManager videoId={video.id} videoTitle={video.title} />
+            </div>
+          )}
         </CardContent>
       </Card>
     </ScrollArea>

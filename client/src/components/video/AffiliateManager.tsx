@@ -17,10 +17,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AffiliateManagerProps {
   videoId: number;
+  videoTitle?: string;
   className?: string;
 }
 
-export function AffiliateManager({ videoId, className = '' }: AffiliateManagerProps) {
+export function AffiliateManager({ videoId, videoTitle, className = '' }: AffiliateManagerProps) {
   const { 
     affiliates, 
     isLoading, 

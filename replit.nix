@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.jq
     pkgs.awscli2
     pkgs.wget
     pkgs.sox
