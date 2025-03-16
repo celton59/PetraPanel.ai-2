@@ -313,9 +313,9 @@ export function VideoTable({
   };
 
   return (
-    <div className="border">
+    <div>
       {handleDownloadCSV && (
-        <div className="flex justify-end p-4 border-b">
+        <div className="flex justify-end p-4">
           <Button
             variant="outline"
             onClick={handleDownloadCSV}
