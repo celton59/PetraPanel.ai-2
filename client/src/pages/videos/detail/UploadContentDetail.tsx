@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "@/hooks/use-user";
 import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
+import { AffiliateManager } from "@/components/video/AffiliateManager";
 
 // Estado inicial de progreso vacío
 const emptyProgressState: UploadProgressState = {
@@ -286,6 +287,13 @@ export function UploadContentDetail({
             video={video}
           />
         </div>
+
+        {/* Componente de gestión de afiliados */}
+        {video && video.id && (
+          <div className="mt-4">
+            <AffiliateManager videoId={video.id} className="overflow-hidden" />
+          </div>
+        )}
       </div>
     </ScrollArea>
   );

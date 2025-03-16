@@ -1,67 +1,90 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+
+interface AffiliateCompany {
+  id: number;
+  name: string;
+  website: string;
+  logo_url: string | null;
+  is_active: boolean;
+}
 
 interface VideoAffiliate {
   id: number;
   video_id: number;
   company_id: number;
-  company: {
-    name: string;
-    logo_url?: string | null;
-  };
+  company?: AffiliateCompany;
   included_by_youtuber: boolean;
+  isIncluded: boolean; // Alias para una API más amigable
   created_at: string;
-  updated_at: string | null;
+  updated_at: string;
 }
 
 /**
- * Hook para gestionar los afiliados detectados en un video
+ * Hook para gestionar los enlaces de afiliados de un video
  * @param videoId ID del video
  */
-export function useVideoAffiliates(videoId: number | null) {
+export function useVideoAffiliates(videoId: number) {
   const queryClient = useQueryClient();
   
-  const getAffiliates = async (): Promise<VideoAffiliate[]> => {
-    if (!videoId) return [];
-    
-    const response = await axios.get(`/api/affiliates/videos/${videoId}/matches`);
-    return response.data.data || [];
-  };
-  
-  const { data: affiliates = [], isLoading, error } = useQuery({
-    queryKey: ['videoAffiliates', videoId],
-    queryFn: getAffiliates,
-    enabled: !!videoId,
+  // Obtener los afiliados detectados para el video
+  const { 
+    data: affiliates = [],
+    isLoading,
+    isError,
+    error
+  } = useQuery<VideoAffiliate[]>({
+    queryKey: ['video-affiliates', videoId],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`/api/affiliates/videos/${videoId}/matches`);
+        const data = response.data.data || [];
+        
+        // Transformar los datos para una API más amigable
+        return data.map((affiliate: any) => ({
+          ...affiliate,
+          isIncluded: affiliate.included_by_youtuber
+        }));
+      } catch (error) {
+        console.error('Error al cargar afiliados:', error);
+        return [];
+      }
+    },
+    enabled: !!videoId
   });
-  
-  // Mutación para actualizar el estado de inclusión de un enlace de afiliado
+
+  // Mutación para actualizar la inclusión de un afiliado
   const updateAffiliateMutation = useMutation({
-    mutationFn: async ({ affiliateId, isIncluded }: { affiliateId: number; isIncluded: boolean }) => {
-      const response = await axios.put(`/api/affiliates/matches/${affiliateId}/inclusion`, {
-        included: isIncluded
+    mutationFn: async ({ 
+      affiliateId, 
+      included 
+    }: { 
+      affiliateId: number; 
+      included: boolean 
+    }) => {
+      const response = await axios.post(`/api/affiliates/matches/${affiliateId}/inclusion`, {
+        included
       });
-      return response.data;
+      return response.data.data;
     },
     onSuccess: () => {
-      // Invalidar la consulta para refrescar los datos
-      queryClient.invalidateQueries({ queryKey: ['videoAffiliates', videoId] });
+      // Invalidar la consulta para recargar los datos
+      queryClient.invalidateQueries({ queryKey: ['video-affiliates', videoId] });
     }
   });
-  
-  const updateAffiliateStatus = (affiliateId: number, isIncluded: boolean) => {
-    return updateAffiliateMutation.mutate({ affiliateId, isIncluded });
+
+  // Función para actualizar el estado de inclusión
+  const updateAffiliateInclusion = async (affiliateId: number, included: boolean) => {
+    return updateAffiliateMutation.mutateAsync({ affiliateId, included });
   };
-  
-  // Conteo rápido para UI
-  const pendingAffiliates = affiliates.filter(a => !a.included_by_youtuber).length;
-  const hasAffiliates = affiliates.length > 0;
-  
+
   return {
     affiliates,
     isLoading,
+    isError,
     error,
-    updateAffiliateStatus,
-    pendingAffiliates,
-    hasAffiliates
+    updateAffiliateInclusion,
+    isUpdating: updateAffiliateMutation.isPending
   };
 }

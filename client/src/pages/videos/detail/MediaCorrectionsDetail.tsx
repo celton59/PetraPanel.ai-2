@@ -16,6 +16,7 @@ import { CorrectionUploadFields } from "./CorrectionUploadFields";
 import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
 import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
 import { motion, AnimatePresence } from "framer-motion";
+import { AffiliateManager } from "@/components/video/AffiliateManager";
 
 // Estado inicial de progreso vacío
 const emptyProgressState: UploadProgressState = {
@@ -319,6 +320,18 @@ export function MediaCorrectionsDetail({
             needsThumbnailCorrection={Boolean(video.mediaThumbnailNeedsCorrection)}
           />
         </motion.div>
+
+        {/* Componente de gestión de afiliados */}
+        {video && video.id && (
+          <motion.div 
+            className="mt-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <AffiliateManager videoId={video.id} className="overflow-hidden" />
+          </motion.div>
+        )}
       </div>
     </ScrollArea>
   );
