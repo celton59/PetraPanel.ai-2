@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AffiliateManagerProps {
   videoId: number;
@@ -114,26 +113,18 @@ export function AffiliateManager({ videoId, className = '' }: AffiliateManagerPr
             </CardDescription>
           </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={() => refreshAffiliates()}
-                  disabled={isLoading || isUpdating}
-                >
-                  <RefreshCw 
-                    className={`h-4 w-4 ${(isLoading || isUpdating) ? 'animate-spin' : ''}`} 
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Actualizar estado de afiliados</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 px-2 py-1 text-xs" 
+            onClick={() => refreshAffiliates()}
+            disabled={isLoading || isUpdating}
+          >
+            <RefreshCw 
+              className={`h-3 w-3 mr-1 ${(isLoading || isUpdating) ? 'animate-spin' : ''}`} 
+            />
+            Actualizar
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
