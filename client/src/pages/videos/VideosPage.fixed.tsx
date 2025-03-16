@@ -584,7 +584,7 @@ export default function VideosPage() {
                     </TableCell>
                     {/* Contributors */}
                     <TableCell>
-                      <VideoBadges video={video} compact={true} />
+                      <UserBadges video={video} compact={true} />
                     </TableCell>
                     {/* Updated */}
                     <TableCell className="text-muted-foreground text-sm">
@@ -734,7 +734,7 @@ export default function VideosPage() {
                 </div>
               </div>
               
-              <VideoBadges video={video} compact={true} />
+              <UserBadges video={video} compact={true} />
             </div>
           </div>
         ))}
@@ -821,7 +821,7 @@ export default function VideosPage() {
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
                 </div>
                 
-                <VideoBadges video={video} compact={true} />
+                <UserBadges video={video} compact={true} />
               </div>
             </div>
             
