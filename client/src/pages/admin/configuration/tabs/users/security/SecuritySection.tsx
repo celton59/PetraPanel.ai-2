@@ -25,6 +25,10 @@ export function SecuritySection ({
   formData,
   setFormData,
 }: SecuritySectionProps) {
+  // Monitorear el rol seleccionado para mostrar opciones adicionales
+  const selectedRole = form.watch("role");
+  const isYoutuber = selectedRole === "youtuber";
+
   return (
     <Card className="p-6 space-y-6">
       <div className="space-y-2">
@@ -83,6 +87,34 @@ export function SecuritySection ({
           </FormItem>
         )}
       />
+      
+      {/* Mostrar el campo de límite de videos solo para youtubers */}
+      {isYoutuber && (
+        <FormField
+          control={form.control}
+          name="maxAssignedVideos"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center space-x-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <span>Límite de videos asignados</span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={1}
+                  value={field.value || 10}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormDescription className="text-xs">
+                Número máximo de videos que este youtuber puede tener asignados simultáneamente. El valor predeterminado es 10. No hay límite superior, puede asignar tantos videos como sea necesario.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
 
       <div className="space-y-3">
         <FormLabel className="flex items-center space-x-2">

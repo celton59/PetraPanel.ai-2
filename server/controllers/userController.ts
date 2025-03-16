@@ -19,6 +19,7 @@ const createUserSchema = z.object({
   phone: z.string().min(9, { message: "El número de teléfono debe tener al menos 9 caracteres" }).optional(),
   bio: z.string().min(3, { message: "La biografía debe tener al menos 3 caracteres" }).max(30, { message: "La biografía debe tener como máximo 30 caracteres" }).optional(),
   projectIds: z.array(z.number()).min(1, { message: "Debe tener al menos un proyecto asociado" }),
+  maxAssignedVideos: z.number().min(1, { message: "El límite debe ser como mínimo 1" }).optional(),
 });
 
 const updateUserSchema = z.object({
@@ -32,6 +33,7 @@ const updateUserSchema = z.object({
   role: z
     .enum(["admin", "reviewer", "optimizer", "youtuber", "content_reviewer", "media_reviewer"], { message: "El rol debe ser uno de los valores permitidos" })
     .optional(),
+  maxAssignedVideos: z.number().min(1, { message: "El límite debe ser como mínimo 1" }).optional(),
 });
 
 type CreateUserSchema = z.infer<typeof createUserSchema>;
@@ -70,6 +72,7 @@ export async function createUser(
       bio,
       role,
       projectIds,
+      maxAssignedVideos,
     } = body;
     console.log("Creando nuevo usuario con datos:", body);
 
@@ -107,6 +110,7 @@ export async function createUser(
           updatedAt: new Date(),
           phone,
           role,
+          ...(role === "youtuber" && maxAssignedVideos !== undefined ? { maxAssignedVideos } : {}),
         })
         .returning();
 
@@ -190,6 +194,7 @@ export async function updateUser(
       password,
       email,
       role,
+      maxAssignedVideos,
     } = body;
     console.log("Actualizando usuario:", { id, projectIds });
 
@@ -219,6 +224,7 @@ export async function updateUser(
           bio,
           role,
           ...(hashedPassword && { password: hashedPassword }),
+          ...(role === "youtuber" && maxAssignedVideos !== undefined ? { maxAssignedVideos } : {}),
           updatedAt: new Date(),
         })
         .where(eq(users.id, parseInt(id)))
@@ -295,6 +301,7 @@ export async function getUsers(req: Request, res: Response): Promise<Response> {
         bio: users.bio,
         role: users.role,
         avatarUrl: users.avatarUrl,
+        maxAssignedVideos: users.maxAssignedVideos,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })

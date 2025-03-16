@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -12,6 +13,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   role: text("role", { enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"] }).notNull(),
   avatarUrl: text("avatar_url"),
+  maxAssignedVideos: integer("max_assigned_videos").default(10), // Número máximo de videos que puede tener asignados simultáneamente, por defecto 10
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
@@ -316,4 +318,56 @@ export const trainingTitleExamples = pgTable("training_title_examples", {
   category: text("category").notNull(),
   embedding: vector("embedding", { dimensions: 1536 }).notNull(),
 })
+
+// Tabla para almacenar empresas con enlaces de afiliación
+export const affiliateCompanies = pgTable("affiliate_companies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  logo_url: text("logo_url"),
+  affiliate_url: text("affiliate_url").notNull(),
+  keywords: text("keywords").array(),  // Palabras clave adicionales para detectar menciones
+  active: boolean("active").default(true),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+});
+
+// Tabla para registrar detecciones de afiliados en videos
+export const videoAffiliateMatches = pgTable("video_affiliate_matches", {
+  id: serial("id").primaryKey(),
+  video_id: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
+  company_id: integer("company_id").notNull().references(() => affiliateCompanies.id, { onDelete: "cascade" }),
+  notified: boolean("notified").default(false),
+  included_by_youtuber: boolean("included_by_youtuber").default(false),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    videoIdx: index("video_affiliate_matches_video_id_idx").on(table.video_id),
+    companyIdx: index("video_affiliate_matches_company_id_idx").on(table.company_id),
+  };
+});
+
+// Definición de relaciones para videoAffiliateMatches
+export const videoAffiliateMatchRelations = relations(videoAffiliateMatches, ({ one }) => ({
+  video: one(videos, {
+    fields: [videoAffiliateMatches.video_id],
+    references: [videos.id],
+  }),
+  company: one(affiliateCompanies, {
+    fields: [videoAffiliateMatches.company_id],
+    references: [affiliateCompanies.id],
+  }),
+}));
+
+// Definición de relaciones para affiliateCompanies
+export const affiliateCompanyRelations = relations(affiliateCompanies, ({ many }) => ({
+  matches: many(videoAffiliateMatches),
+}));
+
+// Tipos para empresas afiliadas y coincidencias de afiliados
+export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
+export type InsertAffiliateCompany = typeof affiliateCompanies.$inferInsert;
+export type VideoAffiliateMatch = typeof videoAffiliateMatches.$inferSelect;
+export type InsertVideoAffiliateMatch = typeof videoAffiliateMatches.$inferInsert;
 

@@ -262,23 +262,32 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), async (req, res) => {
-    console.log("Login successful for user:", req.user?.username);
-    const userToReturn = JSON.parse(JSON.stringify(req.user))
-    delete userToReturn.password;
-    
-    // Actualiza la fecha de último login si el usuario existe
-    if (req.user?.id) {
-      try {
-        await db.update(users)
+    try {
+      console.log("Login successful for user:", req.user?.username);
+      const userToReturn = JSON.parse(JSON.stringify(req.user))
+      delete userToReturn.password;
+      
+      if (req.user?.id) {
+        try {          
+
+          await db.update(users)
           .set({ lastLoginAt: new Date() })
-          .where(eq(users.id, req.user.id));
-      } catch (err) {
-        console.error("Error al actualizar último login:", err);
-        // Continuamos aunque falle esta actualización
+          .where(eq(users.id, req.user.id))
+          
+        } catch (err) {
+          console.error("Error al actualizar último login:", err);
+          // Continuamos de todas formas, ya que esto no es crítico
+        }
       }
+      
+      res.json(userToReturn);
+    } catch (error) {
+      console.error("Error en el proceso de login:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error interno del servidor" 
+      });
     }
-    
-    res.json(userToReturn);
   });
 
 

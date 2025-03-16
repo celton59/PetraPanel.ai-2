@@ -9,6 +9,7 @@ import { RatesTab } from "../accounting/RatesTab";
 import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
 import TitulinTab from "./tabs/titulin/TitulinTab";
 import { EasterEggsTab } from "./tabs/easter-eggs/EasterEggsTab";
+import ConfiguracionAfiliados from "@/pages/administracion/ConfiguracionAfiliados";
 
 /**
  * Página de configuración del administrador que contiene diferentes pestañas
@@ -32,7 +33,7 @@ export default function ConfigurationPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="w-full justify-start h-12 mb-8">
+          <TabsList className="w-full justify-start h-12 mb-8 flex-wrap">
             <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
             <TabsTrigger value="proyectos">Proyectos</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -40,6 +41,7 @@ export default function ConfigurationPage() {
             <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
             <TabsTrigger value="finanzas">Configuración Financiera</TabsTrigger>
             <TabsTrigger value="titulin">Titulín</TabsTrigger>
+            <TabsTrigger value="afiliados">Afiliados</TabsTrigger>
             <TabsTrigger value="easter-eggs">Easter Eggs</TabsTrigger>
           </TabsList>
 
@@ -73,6 +75,10 @@ export default function ConfigurationPage() {
           
           <TabsContent value="easter-eggs" className="space-y-4">
             <EasterEggsTab />
+          </TabsContent>
+          
+          <TabsContent value="afiliados" className="space-y-4">
+            <ConfiguracionAfiliados />
           </TabsContent>
         </Tabs>
       </div>

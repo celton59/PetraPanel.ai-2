@@ -41,6 +41,7 @@ export default function AuthPage() {
   const { login } = useUser();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState<string | null>(null);
   const [showPinDialog, setShowPinDialog] = useState(false); // No mostrar el diálogo de PIN al cargar
   const [pinValues, setPinValues] = useState(['', '', '', '']);
   const [pinError, setPinError] = useState('');
@@ -218,7 +219,8 @@ export default function AuthPage() {
       // Marcar que hay un login en progreso
       sessionStorage.setItem('loginInProgress', 'true');
       
-      // Iniciar proceso de transición visual
+      // Establecer el nombre de usuario del login pendiente y estado de carga
+      setPendingLogin(username);
       setIsLoading(true);
       
       console.log(`Iniciando sesión con el usuario ${username}`);
@@ -233,6 +235,7 @@ export default function AuthPage() {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
       setIsLoading(false);
+      setPendingLogin(null);
       
       console.error(`Error en inicio de sesión con ${username}:`, error);
       
@@ -260,7 +263,8 @@ export default function AuthPage() {
       // Marcar que hay un login en progreso
       sessionStorage.setItem('loginInProgress', 'true');
       
-      // Iniciar estado de carga
+      // Establecer el usuario de inicio de sesión pendiente y estado de carga
+      setPendingLogin(data.username);
       setIsLoading(true);
       
       console.log(`Iniciando sesión con:`, { username: data.username });
@@ -275,6 +279,7 @@ export default function AuthPage() {
       // Quitar overlay y estado de carga
       setShowOverlay(false);
       setIsLoading(false);
+      setPendingLogin(null);
       
       toast.error("Error de inicio de sesión", {
         description: error.message || "Credenciales incorrectas. Por favor, inténtalo de nuevo.",
@@ -529,20 +534,22 @@ export default function AuthPage() {
                 <Button 
                   type="submit" 
                   size="lg" 
-                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
+                  className="w-full h-12 text-base mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <MascotLoader animation="thinking" size="sm" text="" />
-                      <span className="ml-2">Iniciando sesión...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-5 w-5" />
-                      Iniciar sesión
-                    </>
-                  )}
+                  <span className="flex items-center justify-center w-full">
+                    {isLoading ? (
+                      <>
+                        <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin mr-2"></div>
+                        <span>Iniciando sesión...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="mr-2 h-5 w-5 flex-shrink-0" />
+                        <span>Iniciar sesión</span>
+                      </>
+                    )}
+                  </span>
                 </Button>
               </form>
             </Form>
@@ -571,16 +578,18 @@ export default function AuthPage() {
                   variant="outline" 
                   onClick={(e) => { e.preventDefault(); handleQuickLogin(cred.username, cred.password); }}
                   disabled={isLoading}
-                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full"
+                  className="flex flex-col items-center justify-center h-20 relative group bg-card hover:bg-accent/10 transition-all w-full !p-0"
                   size="sm"
                 >
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 mb-2 text-primary mx-auto">
-                    {isLoading ? (
-                      <MascotLoader animation="dance" size="sm" text="" />
-                    ) : (
-                      <>{cred.icon}</>
-                    )}
+                    <div className="flex items-center justify-center w-full h-full">
+                      {isLoading && cred.username === pendingLogin ? (
+                        <div className="w-5 h-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
+                      ) : (
+                        <span className="flex-shrink-0">{cred.icon}</span>
+                      )}
+                    </div>
                   </div>
                   <span className="text-xs font-medium">{cred.displayName}</span>
                   {showDevAccess && (

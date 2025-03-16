@@ -4,6 +4,8 @@ import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { UserBadges } from "@/components/video/UserBadges";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+// Importamos el nuevo badge para límites de videos
+import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
 import {
   Eye,
   Trash2,
@@ -1015,11 +1017,16 @@ export default function VideosPage() {
             </>
           )}
           
+          {/* Badge de límites de videos (antes de filtros) */}
+          {user?.role === "youtuber" && (
+            <VideoLimitsBadge />
+          )}
+          
           <Button
             size="sm"
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className="gap-1.5 mr-2"
+            className="gap-1.5 mx-2"
           >
             <Filter className="h-4 w-4" />
             Filtros

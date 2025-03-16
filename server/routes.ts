@@ -1,20 +1,18 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, passwordUtils } from "./auth.js";
+import { setupAuth } from "./auth.js";
 import { db } from "@db";
 import { 
   users, videos, actionRates, userActions, payments, projects, youtube_channels
 } from "@db/schema"; 
 import { eq, count, sql, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
-import multer from "multer";
 import path from "path";
-import sharp from "sharp";
-import fs from "fs";
 import express from "express";
 // import { BackupService } from "./services/backup";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
+import { canYoutuberTakeMoreVideos } from "./utils/youtuber-utils";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
 import { setUpUserRoutes } from "./controllers/userController.js";
@@ -23,8 +21,7 @@ import { setUpProfileRoutes } from "./controllers/profileController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
 import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
-
-
+import { setupAffiliateRoutes } from "./controllers/affiliateController";
 
 
 export function registerRoutes(app: Express): Server {
@@ -87,6 +84,9 @@ export function registerRoutes(app: Express): Server {
     
     // Comparación de títulos
     setupTitleComparisonRoutes(app, requireAuth)
+    
+    // Sistema de afiliados
+    setupAffiliateRoutes(app, requireAuth)
 
     // Users routes
     setUpUserRoutes(requireAuth, app)
@@ -514,6 +514,33 @@ export function registerRoutes(app: Express): Server {
       }
     });
  
+    // Ruta para obtener información sobre el límite de videos para youtuber
+    app.get("/api/youtuber/video-limits", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario tenga rol youtuber
+        if (req.user?.role !== "youtuber") {
+          return res.status(403).json({
+            success: false,
+            message: "Esta información solo está disponible para usuarios con rol youtuber"
+          });
+        }
+
+        const userId = req.user.id as number;
+        const limits = await canYoutuberTakeMoreVideos(userId);
+        
+        res.json({
+          success: true,
+          data: limits
+        });
+      } catch (error) {
+        console.error("Error obteniendo límites de videos:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener información de límites de videos"
+        });
+      }
+    });
+
     // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
     app.get("/api/online-users", requireAuth, async (req: Request, res: Response) => {
       try {
