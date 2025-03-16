@@ -113,18 +113,13 @@ export function AffiliateStatusIndicator({
   return (
     <div 
       className={cn(
-        "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
-        isCompact 
-          ? "text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30" 
-          : "text-sm bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 px-2 py-1"
+        "flex items-center gap-1 text-amber-600 dark:text-amber-500",
+        isCompact ? "text-xs" : "text-sm"
       )}
     >
       <AlertCircle className={isCompact ? "w-3 h-3" : "w-4 h-4"} />
       {!isCompact && (
         <span>{pendingCount} afiliado{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}</span>
-      )}
-      {isCompact && pendingCount > 0 && (
-        <span className="font-medium">{pendingCount}</span>
       )}
     </div>
   );

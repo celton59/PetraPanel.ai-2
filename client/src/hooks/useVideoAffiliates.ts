@@ -86,7 +86,7 @@ export function useVideoAffiliates(videoId: number) {
   // Función para recargar manualmente los datos
   const refreshAffiliates = useCallback(() => {
     return refetch();
-  }, [refetch, videoId]);
+  }, [refetch]);
   
   // Calcular el número de afiliados pendientes
   const pendingAffiliates = affiliates.filter(a => !a.isIncluded).length;
