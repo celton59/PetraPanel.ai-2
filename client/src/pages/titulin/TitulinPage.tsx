@@ -7,7 +7,6 @@ import { VideoStats } from "./components/VideoStats";
 import { SearchBar } from "./components/SearchBar";
 import { TableActions } from "./components/TableActions";
 import { VideoTable } from "./components/VideoTable";
-import { MobileVideoList } from "./components/MobileVideoList";
 import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
 import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";

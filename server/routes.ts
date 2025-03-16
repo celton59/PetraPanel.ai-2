@@ -9,7 +9,6 @@ import { count, eq, sql, countDistinct } from "drizzle-orm";
 import path from "path";
 import express from "express";
 // import { BackupService } from "./services/backup";
-import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
 import { canYoutuberTakeMoreVideos } from "./utils/youtuber-utils";

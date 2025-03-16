@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   XCircle,
   Zap,
-  Search
+  Search,
+  BarChart2
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -41,31 +42,12 @@ export default function TitulinConfiguration () {
   const [showTitleComparison, setShowTitleComparison] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isCleaningOrphanedVideos, setIsCleaningOrphanedVideos] = useState(false);
   const queryClient = useQueryClient();
+  const [titleComparisonOpen, setTitleComparisonOpen] = useState(false);
 
   // Consulta para canales usando el hook personalizado
   const { channels, isLoading: isLoadingChannels } = useTitulinChannels();
   
-  // Consulta para estadísticas
-  const { data: statsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ["titulin-stats"],
-    queryFn: async () => {
-      try {
-        const response = await axios.get("/api/stats/overall");
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-        return {
-          total_videos: 0,
-          total_optimizations: 0,
-          total_uploads: 0,
-          titulin_analyzed: 0,
-          titulin_evergreen: 0
-        };
-      }
-    },
-  });
   
   // Consulta para estadísticas de canales y videos analizados de Titulin
   const { data: titulinStats, isLoading: isLoadingTitulinStats } = useQuery({
@@ -203,10 +185,7 @@ export default function TitulinConfiguration () {
     onError: (error) => {
       console.error("Error limpiando videos huérfanos:", error);
       toast.error("No se pudieron limpiar los videos huérfanos");
-    },
-    onSettled: () => {
-      setIsCleaningOrphanedVideos(false);
-    },
+    }
   });
 
   const handleAddChannel = async () => {
@@ -231,11 +210,10 @@ export default function TitulinConfiguration () {
   };
   
   const cleanupOrphanedVideos = () => {
-    setIsCleaningOrphanedVideos(true);
     cleanupOrphanedVideosMutation.mutate();
   };
 
-  const isLoading = isLoadingChannels || isLoadingStats || isLoadingTitulinStats;
+  const isLoading = isLoadingChannels || isLoadingTitulinStats;
   
   if (isLoading) {
     return (
@@ -766,15 +744,37 @@ export default function TitulinConfiguration () {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Mantenimiento de Datos</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                Comparación de títulos
+              </CardTitle>
+              <CardDescription>
+                Compara títulos con los existentes para evitar repeticiones
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => setTitleComparisonOpen(true)}
+                className="w-full"
+              >
+                Abrir comparador
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                  Mantenimiento de Datos
+              </CardTitle>
               <CardDescription>Herramientas para mantener la integridad de los datos</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="border rounded-lg p-4 bg-muted/50">
                   <div className="flex flex-col space-y-2 mb-4">
-                    <h3 className="text-sm font-semibold flex items-center">
-                      <Database className="h-4 w-4 mr-2 text-primary" />
+                    <h3 className="text-sm font-semibold">
                       Limpieza de Videos Huérfanos
                     </h3>
                     <p className="text-xs text-muted-foreground">
@@ -810,6 +810,7 @@ export default function TitulinConfiguration () {
               </div>
             </CardContent>
           </Card>
+          
         </TabsContent>
       </Tabs>
       
@@ -825,6 +826,12 @@ export default function TitulinConfiguration () {
         onOpenChange={setShowTitleComparison}
         initialChannelId={selectedChannelId}
       />
+
+      <TitleComparisonDialog 
+        open={titleComparisonOpen} 
+        onOpenChange={setTitleComparisonOpen}
+      />
+      
     </div>
   );
 };
