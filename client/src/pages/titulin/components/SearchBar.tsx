@@ -48,28 +48,28 @@ export function SearchBar({
   };
 
   return (
-    <div className="flex w-full gap-3">
-      <div className="relative flex-grow">
+    <div className="w-full relative">
+      <div className="relative flex items-center w-full">
         <Input
-          placeholder="Buscar videos..."
+          placeholder="Buscar videos por título..."
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pl-12 h-11 text-base rounded-md"
+          className="w-full pl-10 pr-10 h-11 text-base bg-background"
           disabled={isFetching}
         />
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+
         {inputValue && (
           <button 
             onClick={handleClear}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-foreground"
+            type="button"
           >
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
-      
     </div>
   );
 }
