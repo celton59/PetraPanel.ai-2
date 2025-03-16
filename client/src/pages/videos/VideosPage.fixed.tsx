@@ -2,7 +2,7 @@ import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
-import { UserBadges } from "@/components/video/UserBadges";
+import { VideoBadges } from "@/components/video/VideoBadges";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 // Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
