@@ -3,9 +3,9 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
 import { 
-  users, videos, actionRates, userActions, payments, projects, youtube_channels
+  users, videos, projects, youtube_channels
 } from "@db/schema"; 
-import { eq, count, sql, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
+import { count, eq, sql, countDistinct } from "drizzle-orm";
 import path from "path";
 import express from "express";
 // import { BackupService } from "./services/backup";
@@ -167,7 +167,13 @@ export function registerRoutes(app: Express): Server {
     // Stats routes
     app.get("/api/stats/overall", requireAuth, async (req: Request, res: Response) => {
       try {
-        const stats = await StatsService.getOverallStats();
+        const stats = (await db
+          .select({
+            test: countDistinct(videos.id),
+            total_optimizations: count(videos.optimizedTitle),
+            total_uploads: count(videos.videoUrl),
+          })
+          .from(videos))[0];
         res.json({
           success: true,
           data: stats
