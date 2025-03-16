@@ -71,6 +71,7 @@ export default function TitulinPage() {
       // Obtener lastVideoFetch con cualquiera de los dos formatos posibles
       const lastFetch = channel.lastVideoFetch
       
+
       if (!lastFetch) return latest;
       if (!latest) return lastFetch;
       return lastFetch > latest ? lastFetch : latest;
@@ -135,8 +136,9 @@ export default function TitulinPage() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="space-y-4"
               >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start">
-                  <div className="relative flex-1 w-full">
+                {/* Modificado el layout para mejor distribución del espacio */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  <div className="lg:col-span-8">
                     <SearchBar
                       searchValue={searchValue}
                       setSearchValue={setSearchValue}
@@ -145,21 +147,22 @@ export default function TitulinPage() {
                       isFetching={isFetchingVideos}
                     />
                   </div>
-
-                  <TableActions
-                    channelFilter={channelFilter}
-                    setChannelFilter={setChannelFilter}
-                    setCurrentPage={setCurrentPage}
-                    channels={channels}
-                    handleDownloadCSV={handleDownloadCSV}
-                    isDownloading={isDownloading}
-                    onlyEvergreen={onlyEvergreen}
-                    setOnlyEvergreen={setOnlyEvergreen}
-                    onlyAnalyzed={onlyAnalyzed}
-                    setOnlyAnalyzed={setOnlyAnalyzed}
-                    refreshData={refreshData}
-                    isRefreshing={isFetchingVideos}
-                  />
+                  <div className="lg:col-span-4">
+                    <TableActions
+                      channelFilter={channelFilter}
+                      setChannelFilter={setChannelFilter}
+                      setCurrentPage={setCurrentPage}
+                      channels={channels}
+                      handleDownloadCSV={handleDownloadCSV}
+                      isDownloading={isDownloading}
+                      onlyEvergreen={onlyEvergreen}
+                      setOnlyEvergreen={setOnlyEvergreen}
+                      onlyAnalyzed={onlyAnalyzed}
+                      setOnlyAnalyzed={setOnlyAnalyzed}
+                      refreshData={refreshData}
+                      isRefreshing={isFetchingVideos}
+                    />
+                  </div>
                 </div>
 
                 {isLoading ? (
