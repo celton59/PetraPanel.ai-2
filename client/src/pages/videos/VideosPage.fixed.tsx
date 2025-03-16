@@ -507,6 +507,7 @@ export default function VideosPage() {
                   <TableHead className="">Título</TableHead>
                   <TableHead className="">Estado</TableHead>
                   <TableHead className="">Colaboradores</TableHead>
+                  <TableHead className="">Afiliados</TableHead>
                   <TableHead className="">Actualización</TableHead>
                   <TableHead className=" text-right">Acciones</TableHead>
                 </TableRow>
@@ -739,9 +740,14 @@ export default function VideosPage() {
                 </div>
               </div>
               
-              {/* Las badges de afiliados y usuarios con margin mejorado */}
+              {/* Colaboradores */}
               <div className="mt-3 mb-1">
                 <VideoBadges video={video} compact={true} />
+              </div>
+              
+              {/* Afiliados (separados de los colaboradores) */}
+              <div className="mt-2">
+                <VideoAffiliates video={video} compact={true} className="mt-1" />
               </div>
             </div>
           </div>
@@ -830,9 +836,14 @@ export default function VideosPage() {
                 </div>
               </div>
               
-              {/* Separamos los badges de afiliados para darles más visibilidad */}
+              {/* Colaboradores */}
               <div className="mt-2">
                 <VideoBadges video={video} compact={true} />
+              </div>
+              
+              {/* Afiliados (completamente separados) */}
+              <div className="mt-2">
+                <VideoAffiliates video={video} compact={true} className="mt-0.5" />
               </div>
             </div>
             
