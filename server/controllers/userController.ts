@@ -101,7 +101,7 @@ export async function createUser(
       const [user] = await tx
         .insert(users)
         .values({
-          username,
+          username: username.toLowerCase(), // Ensure username is lowercase for successful authentication
           password: hashedPassword,
           email,
           fullName,
@@ -218,7 +218,7 @@ export async function updateUser(
         .update(users)
         .set({
           fullName,
-          username,
+          username: username?.toLowerCase(), // Ensure is lowercase for successful login
           email,
           phone,
           bio,
