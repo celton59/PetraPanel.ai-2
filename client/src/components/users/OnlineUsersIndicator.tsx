@@ -62,11 +62,6 @@ export function OnlineUsersIndicator() {
     }
   }
 
-  // Obtener inicial del nombre de usuario
-  function getUserInitial(username: string): string {
-    return username.charAt(0).toUpperCase();
-  }
-
   function getAvatarColor(userId: number): string {
     // Colores de avatar basados en el ID de usuario
     const colors = [
@@ -93,7 +88,7 @@ export function OnlineUsersIndicator() {
             key={user.userId}
             className="h-6 w-6 border border-background"
           >
-            <AvatarImage src={`/api/users/${user.userId}/avatar`} />
+            <AvatarImage src={user.avatarUrl} />
             <AvatarFallback className={getAvatarColor(user.userId)}>
               {/* Siempre usamos la imagen predeterminada en vez de iniciales */}
               <img src="/default-avatar.svg" alt="" className="h-full w-full" />
@@ -124,7 +119,7 @@ export function OnlineUsersIndicator() {
               <div key={user.userId} className="flex items-center gap-3">
                 <span className="relative">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={`/api/users/${user.userId}/avatar`} />
+                    <AvatarImage src={user.avatarUrl} />
                     <AvatarFallback className={getAvatarColor(user.userId)}>
                       {/* Siempre usamos la imagen predeterminada en vez de iniciales */}
                       <img src="/default-avatar.svg" alt="" className="h-full w-full" />

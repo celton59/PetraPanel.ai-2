@@ -15,37 +15,6 @@ export class StatsService {
     return stats;
   }
 
-  static async getOptimizationStats() {
-    const stats = await db
-      .select({
-        userId: videos.optimizedBy,
-        username: users.username,
-        fullName: users.fullName,
-        optimizations: count(),
-      })
-      .from(videos)
-      .innerJoin(users, eq(users.id, videos.optimizedBy))
-      .where(sql`${videos.optimizedTitle} is not null`)
-      .groupBy(videos.optimizedBy, users.username, users.fullName);
-
-    return stats;
-  }
-
-  static async getUploadStats() {
-    const stats = await db
-      .select({
-        userId: videos.contentUploadedBy,
-        username: users.username,
-        fullName: users.fullName,
-        uploads: count(),
-      })
-      .from(videos)
-      .innerJoin(users, eq(users.id, videos.contentUploadedBy))
-      .where(sql`${videos.videoUrl} is not null`)
-      .groupBy(videos.contentUploadedBy, users.username, users.fullName);
-
-    return stats;
-  }
 
   static async getOverallStats() {
     const stats = await db

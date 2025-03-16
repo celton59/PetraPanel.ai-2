@@ -35,7 +35,7 @@ export function AvatarUpload({
       formData.append('avatar', file);
 
       // Usar nuestra instancia de axios configurada con manejo CSRF
-      const response = await api.post('/api/upload-avatar', formData, {
+      await api.post('/api/profile/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

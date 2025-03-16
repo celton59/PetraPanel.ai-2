@@ -20,7 +20,7 @@ interface ClientConnection {
 export class OnlineUsersService {
   private wss: InstanceType<typeof WebSocketServer>;
   private clients: Map<WebSocket, ClientConnection> = new Map();
-  private activeUsers: Map<number, { lastActivity: number; username: string; }> = new Map();
+  private activeUsers: Map<number, { lastActivity: number; username: string; avatarUrl: string | null; }> = new Map();
   private heartbeatInterval: NodeJS.Timeout;
   
   constructor(server: HttpServer) {
@@ -83,7 +83,8 @@ export class OnlineUsersService {
             
             this.activeUsers.set(userId, {
               lastActivity: Date.now(),
-              username: data.username
+              username: data.username,
+              avatarUrl: data.avatarUrl
             });
             
             log(`Usuario conectado: ${data.username} (${data.userId})`, 'ws');
@@ -229,7 +230,8 @@ export class OnlineUsersService {
     return Array.from(this.activeUsers.entries()).map(([userId, data]) => ({
       userId,
       username: data.username,
-      lastActivity: data.lastActivity
+      lastActivity: data.lastActivity,
+      avatarUrl: data.avatarUrl
     }));
   }
   
@@ -245,10 +247,10 @@ export class OnlineUsersService {
    * Útil para actualizar estado de usuario sin WebSocket
    * Optimizado para evitar actualizaciones excesivas
    */
-  public registerUserActivity(userId?: number, userName?: string) {
-    if (!userId || !userName) return;
+  public registerUserActivity(user: Express.User | null) {
+    if (!user) return;
     
-    const existingUser = this.activeUsers.get(userId);
+    const existingUser = this.activeUsers.get(user.id);
     const now = Date.now();
     
     if (existingUser) {
@@ -260,9 +262,10 @@ export class OnlineUsersService {
       }
     } else {
       // Nuevo usuario, agregarlo al mapa
-      this.activeUsers.set(userId, {
+      this.activeUsers.set(user.id, {
         lastActivity: Date.now(),
-        username: userName
+        username: user.username,
+        avatarUrl: user.avatarUrl
       })
       // Difundir cuando hay un nuevo usuario activo
       this.broadcastActiveUsers();

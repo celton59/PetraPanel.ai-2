@@ -25,24 +25,7 @@ import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 
 
-const avatarStorage = multer.diskStorage({
-  destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
 
-const avatarUpload = multer({ 
-  storage: avatarStorage,
-  limits: { fileSize: 1024 * 1024 * 10 }
-});
 
 export function registerRoutes(app: Express): Server {
   try {
@@ -84,40 +67,6 @@ export function registerRoutes(app: Express): Server {
     // Serve uploaded files
     app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-    // Ruta para obtener avatar de usuario por ID
-    app.get('/api/users/:id/avatar', async (req: Request, res: Response) => {
-      try {
-        const userId = parseInt(req.params.id);
-        
-        // Obtener URL del avatar del usuario
-        const userResult = await db
-          .select({ avatarUrl: users.avatarUrl })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-        
-        if (!userResult || userResult.length === 0 || !userResult[0].avatarUrl) {
-          // Si no hay avatar, devolver el avatar por defecto
-          return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
-        }
-        
-        // Obtener la ruta completa del archivo
-        const avatarPath = path.join(process.cwd(), userResult[0].avatarUrl.substring(1));
-        
-        // Verificar si el archivo existe
-        if (!fs.existsSync(avatarPath)) {
-          return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
-        }
-        
-        // Enviar el archivo
-        res.sendFile(avatarPath);
-      } catch (error) {
-        console.error('Error al obtener avatar:', error);
-        // En caso de error, también servimos el avatar por defecto
-        return res.sendFile(path.join(process.cwd(), 'client', 'public', 'default-avatar.svg'));
-      }
-    });
-
     // Register translator routes. Requiring authentication.
     app.use('/api/translator', requireAuth, translatorRouter);
 
@@ -144,53 +93,6 @@ export function registerRoutes(app: Express): Server {
 
     // Profile routes
     setUpProfileRoutes(requireAuth, app)
-
-    // Avatar upload route
-    app.post("/api/upload-avatar", requireAuth, avatarUpload.single('avatar'), async (req: Request, res: Response) => {
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({
-          success: false,
-          message: "No se subió ningún archivo"
-        });
-      }
-
-      try {
-        const processedImagePath = file.path.replace(path.extname(file.path), '_processed.jpg');
-        await sharp(file.path)
-          .resize(256, 256)
-          .jpeg({ quality: 90 })
-          .toFile(processedImagePath);
-
-        fs.unlinkSync(file.path);
-
-        const avatarUrl = `/uploads/avatars/${path.basename(processedImagePath)}`;
-        const result = await db
-          .update(users)
-          .set({ avatarUrl })
-          .where(eq(users.id, req.user!.id as number))
-          .returning();
-
-        if (!result || result.length === 0) {
-          throw new Error("Error al actualizar la URL del avatar");
-        }
-
-        res.json({
-          success: true,
-          data: { avatarUrl },
-          message: "Avatar actualizado correctamente"
-        });
-      } catch (error) {
-        console.error("Error processing avatar:", error);
-        if (file) {
-          fs.unlinkSync(file.path);
-        }
-        res.status(500).json({
-          success: false,
-          message: "Error al procesar el avatar"
-        });
-      }
-    });
 
     // Initialize backup service
     // const backupService = new BackupService();
@@ -277,33 +179,6 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-
-    app.get("/api/stats/optimizations", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const stats = await StatsService.getOptimizationStats();
-        res.json(stats);
-      } catch (error) {
-        console.error("Error fetching optimization stats:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener las estadísticas de optimización"
-        });
-      }
-    });
-
-    app.get("/api/stats/uploads", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const stats = await StatsService.getUploadStats();
-        res.json(stats);
-      } catch (error) {
-        console.error("Error fetching upload stats:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener las estadísticas de subidas"
-        });
-      }
-    });
-
     // Rutas para el sistema de contabilidad
     
     // Obtener todas las tarifas por acción
@@ -436,75 +311,6 @@ export function registerRoutes(app: Express): Server {
         res.status(500).json({
           success: false,
           message: "Error al eliminar la tarifa"
-        });
-      }
-    });
-
-    // Registrar acción
-    app.post("/api/accounting/actions", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const { userId, actionType, videoId, projectId } = req.body;
-
-        // Validar datos
-        if (!userId || !actionType) {
-          return res.status(400).json({
-            success: false,
-            message: "Los campos userId y actionType son obligatorios"
-          });
-        }
-
-        // Obtener información del usuario
-        const userInfo = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-
-        if (!userInfo.length) {
-          return res.status(404).json({
-            success: false,
-            message: "Usuario no encontrado"
-          });
-        }
-
-        // Obtener tarifa aplicable
-        const rate = await db
-          .select()
-          .from(actionRates)
-          .where(
-            and(
-              eq(actionRates.actionType, actionType),
-              eq(actionRates.roleId, userInfo[0].role),
-              projectId ? eq(actionRates.projectId, projectId) : isNull(actionRates.projectId),
-              eq(actionRates.isActive, true)
-            )
-          )
-          .limit(1);
-
-        // Registrar la acción
-        const action = await db
-          .insert(userActions)
-          .values({
-            userId,
-            actionType,
-            videoId: videoId || null,
-            projectId: projectId || null,
-            rateApplied: rate.length > 0 ? rate[0].rate : null,
-            isPaid: false,
-            createdAt: new Date()
-          })
-          .returning();
-
-        res.json({
-          success: true,
-          data: action[0],
-          message: "Acción registrada correctamente"
-        });
-      } catch (error) {
-        console.error("Error registering action:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al registrar la acción"
         });
       }
     });
@@ -707,23 +513,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-    
-    app.get("/api/stats/user/:userId", requireAuth, async (req: Request, res: Response) => {
-      try {
-        const stats = await StatsService.getUserStats(parseInt(req.params.userId));
-        res.json({
-          success: true,
-          data: stats
-        });
-      } catch (error) {
-        console.error("Error fetching user stats:", error);
-        res.status(500).json({
-          success: false,
-          message: "Error al obtener estadísticas del usuario"
-        });
-      }
-    });
-
+ 
     // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
     app.get("/api/online-users", requireAuth, async (req: Request, res: Response) => {
       try {
@@ -737,7 +527,7 @@ export function registerRoutes(app: Express): Server {
 
         // Registra la actividad del usuario actual mediante REST
         if (req.user) {
-          onlineUsersService.registerUserActivity(req.user.id, req.user.username);
+          onlineUsersService.registerUserActivity(req.user);
         }
 
         const activeUsers = onlineUsersService.getActiveUsers();

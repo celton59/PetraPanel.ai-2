@@ -7,6 +7,7 @@ export interface OnlineUser {
   userId: number;
   username: string;
   lastActivity: number;
+  avatarUrl?: string
 }
 
 /**

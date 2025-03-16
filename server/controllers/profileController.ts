@@ -1,22 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
-import { z } from "zod";
-import { users, projectAccess } from "@db/schema";
-import { eq, getTableColumns } from "drizzle-orm";
+import { users } from "@db/schema";
+import { eq } from "drizzle-orm";
 import { db } from "@db";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 import { type Express } from "express";
 import { changePasswordSchema, updateProfileSchema, validateBody } from "server/services/validation";
 import { passwordUtils } from "server/auth";
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
+import sharp from "sharp";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 
 export async function getProfile(
   req: Request,
@@ -180,6 +172,71 @@ export async function updateProfile(
   }
 }
 
+const avatarStorage = multer.diskStorage({
+  destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
+    const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const avatarUpload = multer({ 
+  storage: avatarStorage,
+  limits: { fileSize: 1024 * 1024 * 10 }
+});
+
+export async function addAvatar (req: Request, res: Response): Promise<Response> {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No se subió ningún archivo"
+      });
+    }
+
+    try {
+      const processedImagePath = file.path.replace(path.extname(file.path), '_processed.jpg');
+      await sharp(file.path)
+        .resize(256, 256)
+        .jpeg({ quality: 90 })
+        .toFile(processedImagePath);
+
+      fs.unlinkSync(file.path);
+
+      const avatarUrl = `/uploads/avatars/${path.basename(processedImagePath)}`;
+      const result = await db
+        .update(users)
+        .set({ avatarUrl })
+        .where(eq(users.id, req.user!.id as number))
+        .returning();
+
+      if (!result || result.length === 0) {
+        throw new Error("Error al actualizar la URL del avatar");
+      }
+
+      return res.json({
+        success: true,
+        data: { avatarUrl },
+        message: "Avatar actualizado correctamente"
+      });
+    } catch (error) {
+      console.error("Error processing avatar:", error);
+      if (file) {
+        fs.unlinkSync(file.path);
+      }
+      return res.status(500).json({
+        success: false,
+        message: "Error al procesar el avatar"
+      });
+    }
+  }
+
 export function setUpProfileRoutes(
   requireAuth: (
     req: Request,
@@ -193,4 +250,6 @@ export function setUpProfileRoutes(
   app.post( "/api/profile/password", requireAuth, validateBody(changePasswordSchema), changePassword);
 
   app.put("/api/profile", requireAuth, validateBody(updateProfileSchema), updateProfile );
+
+  app.post('/api/profile/avatar', requireAuth, avatarUpload.single('avatar'), addAvatar)
 }
