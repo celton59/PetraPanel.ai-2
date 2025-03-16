@@ -154,13 +154,6 @@ export const actionRates = pgTable("action_rates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export type ActionRate = typeof actionRates.$inferSelect;
-export type InsertActionRate = typeof actionRates.$inferInsert;
-
-
-export const insertActionRateSchema = createInsertSchema(actionRates);
-export const selectActionRateSchema = createSelectSchema(actionRates);
-
 export const youtube_videos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
   youtubeId: text("youtube_id").notNull().unique(),
@@ -189,7 +182,6 @@ export const youtube_videos = pgTable("youtube_videos", {
 
 export type YoutubeVideo = typeof youtube_videos.$inferSelect
 export type InsertYoutubeVideo = typeof youtube_videos.$inferInsert
-
 // Tabla para registrar las acciones realizadas por los usuarios
 export const userActions = pgTable("user_actions", {
   id: serial("id").primaryKey(),
@@ -216,12 +208,6 @@ export const userActions = pgTable("user_actions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export type UserAction = typeof userActions.$inferSelect;
-export type InsertUserAction = typeof userActions.$inferInsert;
-
-export const insertUserActionSchema = createInsertSchema(userActions);
-export const selectUserActionSchema = createSelectSchema(userActions);
-
 // Tabla para registrar los pagos a los usuarios
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
@@ -235,8 +221,20 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export type ActionRate = typeof actionRates.$inferSelect;
+export type InsertActionRate = typeof actionRates.$inferInsert;
+
+export type UserAction = typeof userActions.$inferSelect;
+export type InsertUserAction = typeof userActions.$inferInsert;
+
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = typeof payments.$inferInsert;
+
+export const insertActionRateSchema = createInsertSchema(actionRates);
+export const selectActionRateSchema = createSelectSchema(actionRates);
+
+export const insertUserActionSchema = createInsertSchema(userActions);
+export const selectUserActionSchema = createSelectSchema(userActions);
 
 export const insertPaymentSchema = createInsertSchema(payments);
 export const selectPaymentSchema = createSelectSchema(payments);
@@ -262,12 +260,6 @@ export const notifications = pgTable("notifications", {
   createdBy: integer("created_by").references(() => users.id)
 });
 
-export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = typeof notifications.$inferInsert;
-
-export const insertNotificationSchema = createInsertSchema(notifications);
-export const selectNotificationSchema = createSelectSchema(notifications);
-
 // Tabla para configuración de notificaciones por usuario
 export const notificationSettings = pgTable("notification_settings", {
   id: serial("id").primaryKey(),
@@ -286,14 +278,21 @@ export const notificationSettings = pgTable("notification_settings", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
 export type NotificationSetting = typeof notificationSettings.$inferSelect;
 export type InsertNotificationSetting = typeof notificationSettings.$inferInsert;
+
+export const insertNotificationSchema = createInsertSchema(notifications);
+export const selectNotificationSchema = createSelectSchema(notifications);
 
 export const insertNotificationSettingSchema = createInsertSchema(notificationSettings);
 export const selectNotificationSettingSchema = createSelectSchema(notificationSettings);
 
 
 // Tabla para title embeddings
+
 export const titleEmbeddings = pgTable("title_embeddings", {
   id: serial("id").primaryKey(),
   videoId: integer("video_id").notNull(),
@@ -305,6 +304,7 @@ export const titleEmbeddings = pgTable("title_embeddings", {
 })
 
 // Tabla training title examples 
+
 export const trainingTitleExamples = pgTable("training_title_examples", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -332,9 +332,6 @@ export const affiliateCompanies = pgTable("affiliate_companies", {
   updated_at: timestamp("updated_at").defaultNow(),
 });
 
-export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
-export type InsertAffiliateCompany = typeof affiliateCompanies.$inferInsert;
-
 // Tabla para registrar detecciones de afiliados en videos
 export const videoAffiliateMatches = pgTable("video_affiliate_matches", {
   id: serial("id").primaryKey(),
@@ -351,8 +348,6 @@ export const videoAffiliateMatches = pgTable("video_affiliate_matches", {
   };
 });
 
-export type VideoAffiliateMatch = typeof videoAffiliateMatches.$inferSelect;
-
 // Definición de relaciones para videoAffiliateMatches
 export const videoAffiliateMatchRelations = relations(videoAffiliateMatches, ({ one }) => ({
   video: one(videos, {
@@ -365,15 +360,14 @@ export const videoAffiliateMatchRelations = relations(videoAffiliateMatches, ({ 
   }),
 }));
 
-export type InsertVideoAffiliateMatch = typeof videoAffiliateMatches.$inferInsert;
-
 // Definición de relaciones para affiliateCompanies
 export const affiliateCompanyRelations = relations(affiliateCompanies, ({ many }) => ({
   matches: many(videoAffiliateMatches),
 }));
 
-
-
-
-
+// Tipos para empresas afiliadas y coincidencias de afiliados
+export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
+export type InsertAffiliateCompany = typeof affiliateCompanies.$inferInsert;
+export type VideoAffiliateMatch = typeof videoAffiliateMatches.$inferSelect;
+export type InsertVideoAffiliateMatch = typeof videoAffiliateMatches.$inferInsert;
 

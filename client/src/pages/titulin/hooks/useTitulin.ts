@@ -4,32 +4,13 @@ import axios from "axios";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { YoutubeVideo, YoutubeChannel } from "@db/schema";
-
-export interface TitulinVideoResponse {
-  videos: YoutubeVideo[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }
-}
-
-export interface TitulinChannel extends Omit<YoutubeChannel, 'lastVideoFetch'> {
-  lastVideoFetch?: string
-}
-
-export interface TitulinVideo extends Omit<YoutubeVideo, 'publishedAt'> {
-  publishedAt?: string
-}
+import { TitulinVideo, Channel, VideoResponse } from "../types";
 
 export function useTitulin() {
+  const queryClient = useQueryClient();
   const [titleFilter, setTitleFilter] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
-  const [onlyEvergreen, setOnlyEvergreen] = useState(false);
-  const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   
   // Estados para paginación y búsqueda
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,22 +49,20 @@ export function useTitulin() {
   }, [searchValue, titleFilter, setTitleFilter]);
 
   // Obtener videos
-  const { data: videosData, isLoading, isFetching: isFetchingVideos, refetch: refetchVideos } = useQuery<TitulinVideoResponse>({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyEvergreen, onlyAnalyzed],
+  const { data: videosData, isLoading, isFetching } = useQuery<VideoResponse>({
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
     queryFn: async () => {
       // Parámetros de búsqueda simplificados
       const searchParams = {
         ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
         ...(titleFilter ? { title: titleFilter } : {}),
-        ...(onlyEvergreen ? { isEvergreen: true } : {}),
-        ...(onlyAnalyzed ? { analyzed: true } : {}),
         page: currentPage,
         limit: pageSize
       };
       
       console.log("Parámetros de búsqueda:", searchParams);
       
-      const response = await axios.get<TitulinVideoResponse>("/api/titulin/videos", {
+      const response = await axios.get<VideoResponse>("/api/titulin/videos", {
         params: searchParams
       });
       return response.data;
@@ -94,11 +73,11 @@ export function useTitulin() {
   });
   
   // Extraer videos y datos de paginación
-  const videos: TitulinVideo[] = videosData?.videos as unknown as TitulinVideo[] || [];
+  const videos = videosData?.videos || [];
   const pagination = videosData?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
 
   // Obtener canales
-  const { data: channels } = useQuery<TitulinChannel[]>({
+  const { data: channels } = useQuery<Channel[]>({
     queryKey: ["youtube-channels"],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/channels");
@@ -148,7 +127,7 @@ export function useTitulin() {
 
     if (channelFilter !== "all") {
       const selectedChannel = channels.find(c => c.channelId === channelFilter);
-      return selectedChannel?.lastVideoFetch ? formatLastUpdate(selectedChannel.lastVideoFetch) : "Canal no encontrado";
+      return selectedChannel ? formatLastUpdate(selectedChannel.lastVideoFetch) : "Canal no encontrado";
     }
 
     const lastUpdate = channels.reduce((latest, channel) => {
@@ -193,11 +172,11 @@ export function useTitulin() {
         title: video.title,
         views: video.viewCount,
         likes: video.likeCount,
-        published: video.publishedAt ? formatDate(video.publishedAt) : undefined,
+        published: formatDate(video.publishedAt),
         channel: getChannelName(video.channelId),
         duration: video.duration,
-        isEvergreen: video.analyzed && video.analysisData ? (video.isEvergreen ? "Sí" : "No") : "No analizado",
-        url: `https://youtube.com/watch?v=${video.youtubeId}`
+        isEvergreen: video.analyzed && video.analysisData ? (video.analysisData.isEvergreen ? "Sí" : "No") : "No analizado",
+        url: `https://youtube.com/watch?v=${video.videoId}`
       }));
       
       // Convertir a formato CSV
@@ -232,6 +211,9 @@ export function useTitulin() {
     }
   });
 
+  const handleDownloadCSV = () => {
+    downloadCSVMutation.mutate();
+  };
 
   // Limpia el filtro de búsqueda
   const handleClearSearch = () => {
@@ -256,11 +238,8 @@ export function useTitulin() {
     viewsCount,
     likesCount,
     isLoading,
-    isFetchingVideos,
+    isFetching,
     isDownloading: downloadCSVMutation.isPending,
-    onlyEvergreen,
-    onlyAnalyzed,
-    refetchVideos,
 
     // Actions
     setTitleFilter,
@@ -269,11 +248,9 @@ export function useTitulin() {
     setCurrentPage,
     setPageSize,
     setSearchValue,
-    handleDownloadCSV: () => { downloadCSVMutation.mutate() },
+    handleDownloadCSV,
     handleClearSearch,
     getLastUpdateInfo,
-    getChannelName,
-    setOnlyEvergreen,
-    setOnlyAnalyzed
+    getChannelName
   };
 }

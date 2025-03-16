@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useVideoAffiliates } from '@/hooks/useVideoAffiliates';
 import { AffiliatesBadgeContainer } from './AffiliateBadge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import { ShieldCheck, AlertCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AffiliateManagerProps {
   videoId: number;
@@ -18,11 +17,7 @@ export function AffiliateManager({ videoId, className = '' }: AffiliateManagerPr
   const { 
     affiliates, 
     isLoading, 
-    updateAffiliateInclusion,
-    refreshAffiliates,
-    isUpdating,
-    hasAffiliates,
-    pendingAffiliates
+    updateAffiliateInclusion 
   } = useVideoAffiliates(videoId);
   
   // Estado local para evitar retrasos en la UI durante actualizaciones
@@ -61,12 +56,12 @@ export function AffiliateManager({ videoId, className = '' }: AffiliateManagerPr
   };
 
   // Si no hay afiliados detectados, no mostrar nada
-  if (!isLoading && !hasAffiliates) {
+  if (!isLoading && affiliates.length === 0) {
     return null;
   }
 
   // UI para el estado de carga
-  if (isLoading && !hasAffiliates) {
+  if (isLoading) {
     return (
       <Card className={`w-full ${className}`}>
         <CardHeader className="pb-2">
@@ -97,44 +92,19 @@ export function AffiliateManager({ videoId, className = '' }: AffiliateManagerPr
   return (
     <Card className={`w-full ${className}`}>
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-sm flex items-center gap-2">
-              {allIncluded ? (
-                <ShieldCheck className="w-4 h-4 text-green-500" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-amber-500" />
-              )}
-              Enlaces de afiliados
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {allIncluded 
-                ? 'Todos los enlaces de afiliados han sido incluidos' 
-                : `Se requieren ${pendingAffiliates} enlace${pendingAffiliates !== 1 ? 's' : ''} de afiliado${pendingAffiliates !== 1 ? 's' : ''}`}
-            </CardDescription>
-          </div>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={() => refreshAffiliates()}
-                  disabled={isLoading || isUpdating}
-                >
-                  <RefreshCw 
-                    className={`h-4 w-4 ${(isLoading || isUpdating) ? 'animate-spin' : ''}`} 
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Actualizar estado de afiliados</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <CardTitle className="text-sm flex items-center gap-2">
+          {allIncluded ? (
+            <ShieldCheck className="w-4 h-4 text-green-500" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-amber-500" />
+          )}
+          Enlaces de afiliados
+        </CardTitle>
+        <CardDescription className="text-xs">
+          {allIncluded 
+            ? 'Todos los enlaces de afiliados han sido incluidos' 
+            : 'Se requieren enlaces de afiliados para este video'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

@@ -6,10 +6,10 @@ import { es } from "date-fns/locale";
 import { ColumnDef, SortingState } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle, Download } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "./DataTable";
-import { TitulinVideo } from "@/hooks/useTitulin";
+import { TitulinVideo } from "../types";
 
 interface VideoTableProps {
   videos: TitulinVideo[];
@@ -18,8 +18,6 @@ interface VideoTableProps {
   getChannelName: (channelId: string) => string;
   isLoading?: boolean;
   onSortingChange?: (sorting: SortingState) => void;
-  handleDownloadCSV?: () => void;
-  isDownloading?: boolean;
 }
 
 export function VideoTable({ 
@@ -28,17 +26,16 @@ export function VideoTable({
   setAnalysisVideo, 
   getChannelName,
   isLoading = false,
-  onSortingChange,
-  handleDownloadCSV,
-  isDownloading = false
+  onSortingChange
 }: VideoTableProps) {
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "publishedAt", desc: true } 
+    { id: "publishedAt", desc: true } // Ordenación por defecto: videos más recientes primero
   ]);
 
-  const formatDate = (dateString?: string) => {
+  // Formatear fecha ISO a una fecha legible
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
     try {
       const date = parseISO(dateString);
@@ -50,6 +47,7 @@ export function VideoTable({
     }
   };
 
+  // Formatear duración de video en formato ISO a HH:MM:SS
   const formatDuration = (duration: string | null) => {
     if (!duration) return "-";
 
@@ -75,6 +73,7 @@ export function VideoTable({
     }
   };
 
+  // Mutación para analizar si un video es evergreen
   const analyzeEvergeenMutation = useMutation({
     mutationFn: async (videoId: number) => {
       const response = await axios.post(`/api/titulin/videos/${videoId}/analyze`);
@@ -94,6 +93,7 @@ export function VideoTable({
     }
   });
 
+  // Definir las columnas para la tabla
   useEffect(() => {
     setColumns([
       {
@@ -162,17 +162,22 @@ export function VideoTable({
         id: "publishedAt",
         header: "Publicado",
         accessorFn: (row) => {
-          return row.publishedAt || null;
+          // Intentar obtener el valor, ya sea como publishedAt o published_at
+          return row.publishedAt || row['published_at'] || null;
         },
         sortingFn: (rowA, rowB) => {
-          const aValue = rowA.original.publishedAt
-          const bValue = rowB.original.publishedAt          
+          // Acceder directamente al valor original para la comparación
+          const aValue = rowA.original.publishedAt || rowA.original['published_at'];
+          const bValue = rowB.original.publishedAt || rowB.original['published_at'];
+          
+          // Convertir a fechas para comparar
           const aTime = aValue ? new Date(aValue).getTime() : 0;
-          const bTime = bValue ? new Date(bValue).getTime() : 0;          
+          const bTime = bValue ? new Date(bValue).getTime() : 0;
+          
           return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
         },
         cell: ({ row }) => {
-          const dateValue = row.original.publishedAt
+          const dateValue = row.original.publishedAt || row.original['published_at'];
           return <span>{formatDate(dateValue)}</span>;
         },
       },
@@ -180,6 +185,7 @@ export function VideoTable({
         accessorKey: "duration",
         header: "Duración",
         sortingFn: (rowA, rowB) => {
+          // Convertir duración a segundos para comparar
           const getDurationInSeconds = (duration: string | null) => {
             if (!duration) return 0;
             const hours = parseInt(duration.match(/(\d+)H/)?.[1] || '0');
@@ -187,6 +193,7 @@ export function VideoTable({
             const seconds = parseInt(duration.match(/(\d+)S/)?.[1] || '0');
             return hours * 3600 + minutes * 60 + seconds;
           };
+          
           const aValue = getDurationInSeconds(rowA.original.duration);
           const bValue = getDurationInSeconds(rowB.original.duration);
           return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
@@ -213,16 +220,23 @@ export function VideoTable({
         accessorKey: "analysisData",
         header: "Evergreen",
         sortingFn: (rowA, rowB) => {
+          // Si no está analizado, va al final
           if (!rowA.original.analyzed && !rowB.original.analyzed) return 0;
           if (!rowA.original.analyzed) return 1;
           if (!rowB.original.analyzed) return -1;
+          
+          // Si no hay datos de análisis, va después de los analizados
           if (!rowA.original.analysisData && !rowB.original.analysisData) return 0;
           if (!rowA.original.analysisData) return 1;
           if (!rowB.original.analysisData) return -1;
-          if (rowA.original.isEvergreen !== rowB.original.isEvergreen) {
-            return rowA.original.isEvergreen ? -1 : 1;
+          
+          // Primero compara si es evergreen (true primero)
+          if (rowA.original.analysisData.isEvergreen !== rowB.original.analysisData.isEvergreen) {
+            return rowA.original.analysisData.isEvergreen ? -1 : 1;
           }
-          return parseFloat(rowB.original.evergreenConfidence ?? '0') - parseFloat(rowA.original.evergreenConfidence ?? '0');
+          
+          // Si ambos tienen el mismo estado evergreen, compara por confianza
+          return rowB.original.analysisData.confidence - rowA.original.analysisData.confidence;
         },
         cell: ({ row }) => {
           const video = row.original;
@@ -247,6 +261,8 @@ export function VideoTable({
           }
 
           if (!video.analysisData) {
+            // El video está analizado pero no tenemos los datos de análisis
+            // Esto puede ocurrir con la versión actual del esquema de base de datos
             return (
               <div className="space-y-1">
                 <Badge variant="outline" className="text-muted-foreground">
@@ -261,11 +277,11 @@ export function VideoTable({
 
           return (
             <div className="space-y-1">
-              <Badge variant={video.isEvergreen ? "default" : "secondary"}>
-                {video.isEvergreen ? "Evergreen" : "No Evergreen"}
+              <Badge variant={video.analysisData.isEvergreen ? "default" : "secondary"}>
+                {video.analysisData.isEvergreen ? "Evergreen" : "No Evergreen"}
               </Badge>
               <div className="text-xs text-muted-foreground">
-                {Math.round(parseFloat(video.evergreenConfidence ?? '0') * 100)}% confianza
+                {Math.round(video.analysisData.confidence * 100)}% confianza
               </div>
             </div>
           );
@@ -294,7 +310,7 @@ export function VideoTable({
                 size="sm"
                 onClick={() => setSelectedVideo(video)}
                 className="w-full"
-                disabled={Boolean(video.sentToOptimize)}
+                disabled={video.sentToOptimize}
               >
                 {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
               </Button>
@@ -305,6 +321,7 @@ export function VideoTable({
     ]);
   }, [analyzeEvergeenMutation.isPending, getChannelName, setSelectedVideo, setAnalysisVideo]);
 
+  // Manejar cambio de ordenación
   const handleSortingChange = (newSorting: SortingState) => {
     setSorting(newSorting);
     if (onSortingChange) {
@@ -313,34 +330,14 @@ export function VideoTable({
   };
 
   return (
-    <div>
-      {handleDownloadCSV && (
-        <div className="flex justify-end p-4">
-          <Button
-            variant="outline"
-            onClick={handleDownloadCSV}
-            disabled={isDownloading}
-            className="h-9"
-            aria-label="Descargar CSV"
-          >
-            {isDownloading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            <span>Exportar videos</span>
-          </Button>
-        </div>
-      )}
-      <div className="rounded-md">
-        <DataTable 
-          columns={columns} 
-          data={videos} 
-          initialSorting={sorting}
-          onSortingChange={handleSortingChange}
-          isLoading={isLoading}
-        />
-      </div>
+    <div className="rounded-md border">
+      <DataTable 
+        columns={columns} 
+        data={videos} 
+        initialSorting={sorting}
+        onSortingChange={handleSortingChange}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
