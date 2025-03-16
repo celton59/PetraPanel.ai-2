@@ -71,14 +71,14 @@ function Router() {
       <Route path="/profile" component={() => <ProtectedRoute component={ProfilePage} />} />
       <Route path="/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/videos/trash" component={() => <ProtectedRoute component={TrashPage} />} />
-      <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route path="/mascot-demo" component={() => <ProtectedRoute component={MascotDemo} />} />
       <Route path="/easter-eggs-demo" component={() => <ProtectedRoute component={EasterEggsDemo} />} />
-      
-      {/* Rutas de administración - solo accesibles para administradores */}
+
+      {/* Rutas protegidas de administración - solo accesibles para administradores */}
       { user.role === 'admin' && (
         <>
+          <Route path="/titulin" component={() => <ProtectedRoute component={TitulinPage} />} />
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
           <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
           <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
@@ -87,7 +87,7 @@ function Router() {
           <Route path="/admin/afiliados" component={() => <ProtectedRoute component={ConfiguracionAfiliados} />} />
         </>
       )}
-      
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -118,11 +118,7 @@ function App() {
               className: 'compact-toast'
             }}
           />
-          <Router>
-            {/* <Switch>
-              <Route path="/*" component={Layout} />
-            </Switch> */}
-          </Router>
+          <Router />
         </GuideProvider>
       </EasterEggProvider>
     </QueryClientProvider>

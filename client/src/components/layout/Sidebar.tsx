@@ -18,7 +18,10 @@ export function Sidebar({ className }: SidebarProps) {
   const menuItems = [
     { icon: Home, label: "Dashboard", path: "/", tooltip: "Panel principal" },
     { icon: Video, label: "Videos", path: "/videos", tooltip: "Gestión de videos" },
-    { icon: Leaf, label: "Titulin", path: "/titulin", tooltip: "Análisis de contenido" },
+    // Solo mostrar Titulin si es admin
+    ...(isAdmin ? [
+      { icon: Leaf, label: "Titulin", path: "/titulin", tooltip: "Análisis de contenido" }
+    ] : []),
     { icon: Languages, label: "Traductor", path: "/traductor", tooltip: "Traductor de videos" },
     ...(isAdmin ? [
       { icon: Shield, label: "Administración", path: "/admin", tooltip: "Panel de administración" }
