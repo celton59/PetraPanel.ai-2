@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, RotateCw, Filter } from "lucide-react";
+import { Loader2, RotateCw, Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,6 @@ interface TableActionsProps {
   setChannelFilter: (value: string) => void;
   setCurrentPage: (page: number) => void;
   channels: TitulinChannel[] | undefined;
-  handleDownloadCSV: () => void;
-  isDownloading: boolean;
   onlyEvergreen?: boolean;
   setOnlyEvergreen?: (value: boolean) => void;
   onlyAnalyzed?: boolean;
@@ -28,8 +26,6 @@ export function TableActions({
   setChannelFilter,
   setCurrentPage,
   channels,
-  handleDownloadCSV,
-  isDownloading,
   onlyEvergreen = false,
   setOnlyEvergreen,
   onlyAnalyzed = false,
@@ -91,7 +87,7 @@ export function TableActions({
             <PopoverContent className="w-64">
               <div className="space-y-4">
                 <h4 className="font-medium text-sm">Filtros adicionales</h4>
-                
+
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="only-evergreen" 
@@ -104,7 +100,7 @@ export function TableActions({
                   />
                   <Label htmlFor="only-evergreen">Solo Evergreen</Label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="only-analyzed" 
@@ -138,23 +134,8 @@ export function TableActions({
             <span className="hidden sm:inline">Actualizar</span>
           </Button>
         )}
-
-        <Button
-          variant="outline"
-          onClick={handleDownloadCSV}
-          disabled={isDownloading}
-          className="h-10 ml-auto"
-          aria-label="Descargar CSV"
-        >
-          {isDownloading ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Download className="h-4 w-4 mr-2" />
-          )}
-          <span className="hidden sm:inline">Exportar</span>
-        </Button>
       </div>
-      
+
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
           <span>Filtros activos:</span>

@@ -30,8 +30,7 @@ export default function TitulinPage() {
   const { channels, setTitleFilter, channelFilter, setChannelFilter,
         onlyEvergreen, onlyAnalyzed, setOnlyAnalyzed, setOnlyEvergreen, totalVideos, pagination,
          viewsCount, likesCount, isDownloading, handleDownloadCSV, videos, refetchVideos, isLoading, isFetchingVideos
-        } = useTitulin()
-  
+        } = useTitulin()  
 
   // Efecto para gestionar la búsqueda
   useEffect(() => {
@@ -153,8 +152,6 @@ export default function TitulinPage() {
                       setChannelFilter={setChannelFilter}
                       setCurrentPage={setCurrentPage}
                       channels={channels}
-                      handleDownloadCSV={handleDownloadCSV}
-                      isDownloading={isDownloading}
                       onlyEvergreen={onlyEvergreen}
                       setOnlyEvergreen={setOnlyEvergreen}
                       onlyAnalyzed={onlyAnalyzed}
@@ -178,6 +175,8 @@ export default function TitulinPage() {
                       setAnalysisVideo={setAnalysisVideoSelected}
                       getChannelName={getChannelName}
                       isLoading={isFetchingVideos}
+                      handleDownloadCSV={handleDownloadCSV}
+                      isDownloading={isDownloading}
                     />
                   </div>
                 )}
