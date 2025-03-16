@@ -313,7 +313,7 @@ export function VideoTable({
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="border">
       {handleDownloadCSV && (
         <div className="flex justify-end p-4 border-b">
           <Button
@@ -332,13 +332,15 @@ export function VideoTable({
           </Button>
         </div>
       )}
-      <DataTable 
-        columns={columns} 
-        data={videos} 
-        initialSorting={sorting}
-        onSortingChange={handleSortingChange}
-        isLoading={isLoading}
-      />
+      <div className="rounded-md">
+        <DataTable 
+          columns={columns} 
+          data={videos} 
+          initialSorting={sorting}
+          onSortingChange={handleSortingChange}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   );
 }
