@@ -734,7 +734,10 @@ export default function VideosPage() {
                 </div>
               </div>
               
-              <VideoBadges video={video} compact={true} />
+              {/* Las badges de afiliados y usuarios con margin mejorado */}
+              <div className="mt-3 mb-1">
+                <VideoBadges video={video} compact={true} />
+              </div>
             </div>
           </div>
         ))}
@@ -820,7 +823,10 @@ export default function VideosPage() {
                 <div className="text-xs text-muted-foreground">
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
                 </div>
-                
+              </div>
+              
+              {/* Separamos los badges de afiliados para darles más visibilidad */}
+              <div className="mt-2">
                 <VideoBadges video={video} compact={true} />
               </div>
             </div>

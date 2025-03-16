@@ -36,7 +36,9 @@ export function VideoBadges({ video, compact = false }: VideoBadgesProps) {
       const formattedAffiliates = affiliateData.map((affiliate: any) => ({
         id: affiliate.id,
         companyName: affiliate.company?.name || 'Desconocido',
-        isIncluded: affiliate.included_by_youtuber || false
+        isIncluded: affiliate.included_by_youtuber || false,
+        companyLogo: affiliate.company?.logo_url,
+        companyUrl: affiliate.company?.affiliate_url
       }));
       
       setAffiliates(formattedAffiliates);
