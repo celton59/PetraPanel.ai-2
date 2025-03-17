@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { VideoBadges } from "@/components/video/VideoBadges";
 import { VideoAffiliates } from "@/components/video/VideoAffiliates";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
+import { AffiliateIcon } from "@/components/video/AffiliateIcon";
 // Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
 import {
@@ -505,6 +507,7 @@ export default function VideosPage() {
                   <TableHead className="">Miniatura</TableHead>
                   <TableHead className="">Serie</TableHead>
                   <TableHead className="">Título</TableHead>
+                  <TableHead className="w-[30px]">Afil.</TableHead>
                   <TableHead className="">Estado</TableHead>
                   <TableHead className="">Colaboradores</TableHead>
                   <TableHead className="">Actualización</TableHead>
@@ -554,28 +557,26 @@ export default function VideosPage() {
                       className={cn("font-medium max-w-md", canSeeVideoDetails(video) ? "cursor-pointer hover:text-primary" : "")}
                       onClick={() => canSeeVideoDetails(video) && handleVideoClick(video)}
                     >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
-                              copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                            <span className="sr-only">Copiar título</span>
-                          </Button>
-                        </div>
-                        {/* Afiliados integrados con el título */}
-                        <div className="-mt-0.5">
-                          <VideoAffiliates video={video} compact={true} showHeader={false} /> 
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                            copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                          <span className="sr-only">Copiar título</span>
+                        </Button>
                       </div>
+                    </TableCell>
+                    {/* Columna de afiliados */}
+                    <TableCell className="text-center">
+                      <AffiliateIcon video={video} />
                     </TableCell>
                     {/* Estado */}
                     <TableCell>
