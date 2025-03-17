@@ -80,6 +80,9 @@ export const useVideoLimits = (userId?: number) => {
   // Cache para los límites mensuales específicos
   const monthlyLimitsCache = new Map<number, { data: any[], timestamp: number }>();
   
+  // Variable para evitar múltiples peticiones simultáneas al mismo recurso
+  const pendingRequests = new Map<string, Promise<any>>();
+  
   // Nueva función para establecer un límite mensual específico
   const setMonthlyLimit = async (params: {
     userId: number;
@@ -108,43 +111,63 @@ export const useVideoLimits = (userId?: number) => {
   };
   
   // Función para obtener todos los límites mensuales específicos de un usuario
-  // Con caché para reducir peticiones a la API
+  // Con caché para reducir peticiones a la API y control de peticiones simultáneas
   const getAllMonthlyLimits = async (userId: number) => {
-    try {
-      // Verificar caché para reducir llamadas a la API
-      const cachedData = monthlyLimitsCache.get(userId);
-      const now = Date.now();
-      
-      // Usar caché si existe y tiene menos de 30 segundos
-      if (cachedData && (now - cachedData.timestamp < 30000)) {
-        console.log('Usando caché para límites mensuales');
-        return {
-          success: true,
-          data: cachedData.data
-        };
-      }
-      
-      const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);
-      console.log('Respuesta de límites mensuales:', response.data);
-      
-      // Guardar en caché
-      monthlyLimitsCache.set(userId, {
-        data: response.data,
-        timestamp: now
-      });
-      
+    // Verificar caché para reducir llamadas a la API
+    const cachedData = monthlyLimitsCache.get(userId);
+    const now = Date.now();
+    
+    // Usar caché si existe y tiene menos de 2 minutos (aumentamos el tiempo de caché)
+    if (cachedData && (now - cachedData.timestamp < 120000)) {
+      console.log('Usando caché para límites mensuales');
       return {
         success: true,
-        data: response.data
-      };
-    } catch (error: any) {
-      console.error('Error al obtener límites mensuales:', error);
-      return {
-        success: false,
-        message: error?.response?.data?.message || 'Error al obtener límites mensuales',
-        data: []
+        data: cachedData.data
       };
     }
+    
+    // Clave única para esta petición
+    const requestKey = `monthly-limits-${userId}`;
+    
+    // Si ya hay una petición en curso para este usuario, reutilizarla
+    if (pendingRequests.has(requestKey)) {
+      console.log(`Reutilizando petición pendiente para ${userId}`);
+      return pendingRequests.get(requestKey);
+    }
+    
+    // Crear una nueva petición y almacenarla
+    const fetchPromise = (async () => {
+      try {
+        console.log(`Obteniendo límites para usuario ${userId} desde la API`);
+        const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);
+        
+        // Guardar en caché
+        monthlyLimitsCache.set(userId, {
+          data: response.data,
+          timestamp: now
+        });
+        
+        return {
+          success: true,
+          data: response.data
+        };
+      } catch (error: any) {
+        console.error('Error al obtener límites mensuales:', error);
+        return {
+          success: false,
+          message: error?.response?.data?.message || 'Error al obtener límites mensuales',
+          data: []
+        };
+      } finally {
+        // Eliminar la petición pendiente cuando termine
+        pendingRequests.delete(requestKey);
+      }
+    })();
+    
+    // Guardar la promesa para que otras peticiones puedan reutilizarla
+    pendingRequests.set(requestKey, fetchPromise);
+    
+    return fetchPromise;
   };
 
   return {

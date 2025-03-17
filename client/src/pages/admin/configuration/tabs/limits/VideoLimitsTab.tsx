@@ -554,13 +554,19 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
 
   // Cargar los límites mensuales específicos existentes
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchMonthlyLimits = async () => {
+      if (!userId) return;
+      
       setIsLoading(true);
       try {
         const result = await getAllMonthlyLimits(userId);
+        
+        // Solo actualizamos el estado si el componente sigue montado
+        if (!isMounted) return;
+        
         if (result.success && result.data) {
-          console.log('Datos de límites mensuales recibidos:', result.data);
-          
           // Determinar el formato de los datos recibidos
           if (Array.isArray(result.data)) {
             // Si ya es un array, usarlo directamente
@@ -581,6 +587,9 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
           });
         }
       } catch (error) {
+        // Solo mostramos el error si el componente sigue montado
+        if (!isMounted) return;
+        
         console.error('Error al cargar límites mensuales:', error);
         toast({
           title: "Error",
@@ -588,13 +597,19 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
           variant: "destructive"
         });
       } finally {
-        setIsLoading(false);
+        // Solo actualizamos el estado si el componente sigue montado
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    if (userId) {
-      fetchMonthlyLimits();
-    }
+    fetchMonthlyLimits();
+    
+    // Cleanup function para evitar actualizar el estado si el componente se desmonta
+    return () => {
+      isMounted = false;
+    };
   }, [userId, getAllMonthlyLimits, toast]);
 
   // Manejar la creación de un nuevo límite mensual
