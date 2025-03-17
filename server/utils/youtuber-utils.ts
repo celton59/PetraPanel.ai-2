@@ -182,6 +182,8 @@ export async function getYoutuberVideoLimits(userId: number): Promise<{
     // Obtener el usuario para verificar sus límites
     const [user] = await db
       .select({
+        id: users.id,
+        role: users.role,
         maxAssignedVideos: users.maxAssignedVideos,
         maxMonthlyVideos: users.maxMonthlyVideos
       })
@@ -193,9 +195,13 @@ export async function getYoutuberVideoLimits(userId: number): Promise<{
       throw new Error("Usuario no encontrado");
     }
     
-    // Contar videos asignados y mensuales
-    const currentAssignedCount = await countAssignedVideos(userId);
-    const currentMonthCount = await countMonthlyVideos(userId);
+    // Si el usuario no es youtuber, devolvemos valores predeterminados para límites
+    // pero mantenemos los valores configurados en la base de datos (para admins que configuran límites)
+    const isYoutuber = user.role === 'youtuber';
+    
+    // Contar videos asignados y mensuales solo si es youtuber
+    const currentAssignedCount = isYoutuber ? await countAssignedVideos(userId) : 0;
+    const currentMonthCount = isYoutuber ? await countMonthlyVideos(userId) : 0;
     
     // Obtener límites (con valores predeterminados si no están definidos)
     const maxAssignedAllowed = user.maxAssignedVideos || 10; 

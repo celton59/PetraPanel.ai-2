@@ -517,30 +517,53 @@ export function registerRoutes(app: Express): Server {
     // Ruta para obtener información sobre el límite de videos para youtuber
     app.get("/api/youtuber/video-limits", requireAuth, async (req: Request, res: Response) => {
       try {
-        // Verificar que el usuario tenga rol youtuber
-        if (req.user?.role !== "youtuber") {
-          return res.status(403).json({
+        if (!req.user) {
+          return res.status(401).json({
             success: false,
-            message: "Esta información solo está disponible para usuarios con rol youtuber"
+            message: "No autorizado"
           });
         }
-
-        const userId = req.user.id as number;
+        
+        // Permitir consultas con userId cuando el usuario es admin o está consultando sus propios datos
+        let userId: number;
+        
+        if (req.query.userId) {
+          // Si se proporciona un userId en la consulta, verificar que el usuario sea admin
+          if (req.user.role === 'admin') {
+            userId = Number(req.query.userId);
+          } else if (req.user.id === Number(req.query.userId)) {
+            // O que esté consultando sus propios datos
+            userId = req.user.id;
+          } else {
+            return res.status(403).json({
+              success: false,
+              message: "No tienes permisos para consultar datos de otros usuarios"
+            });
+          }
+        } else {
+          // Si no se proporciona userId, usar el ID del usuario autenticado
+          userId = req.user.id as number;
+          
+          // Si no es youtuber y no proporcionó un ID específico, error
+          if (req.user.role !== 'youtuber' && req.user.role !== 'admin') {
+            return res.status(403).json({
+              success: false,
+              message: "Esta información solo está disponible para usuarios con rol youtuber o admin"
+            });
+          }
+        }
+        
         // Usar la nueva función que incluye tanto los límites de asignación como los mensuales
         const allLimits = await getYoutuberVideoLimits(userId);
         
+        // Respuesta simplificada para que sea más fácil de usar en el frontend
         res.json({
-          success: true,
-          data: {
-            // Mantenemos la estructura anterior para compatibilidad
-            canTakeMore: allLimits.canTakeMoreVideos,
-            currentCount: allLimits.currentAssignedCount,
-            maxAllowed: allLimits.maxAssignedAllowed,
-            // Añadimos la información de límites mensuales
-            monthlyLimit: allLimits.monthlyLimit,
-            currentMonthCount: allLimits.currentMonthCount,
-            reachedMonthlyLimit: allLimits.reachedMonthlyLimit
-          }
+          currentAssignedCount: allLimits.currentAssignedCount,
+          maxAssignedAllowed: allLimits.maxAssignedAllowed,
+          currentMonthlyCount: allLimits.currentMonthCount,
+          monthlyLimit: allLimits.monthlyLimit,
+          canTakeMore: allLimits.canTakeMoreVideos,
+          reachedMonthlyLimit: allLimits.reachedMonthlyLimit
         });
       } catch (error) {
         console.error("Error obteniendo límites de videos:", error);

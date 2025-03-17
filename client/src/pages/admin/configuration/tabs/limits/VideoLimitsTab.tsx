@@ -57,29 +57,7 @@ export function VideoLimitsTab() {
   const [selectedUser, setSelectedUser] = useState<UserWithLimits | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Datos de usuarios de fallback para desarrollo (solo se usan si la API falla)
-  const fallbackUsers: UserWithLimits[] = [
-    {
-      id: 1,
-      username: "youtuber1",
-      fullName: "Youtuber Uno",
-      role: "youtuber",
-      maxAssignedVideos: 10,
-      maxMonthlyVideos: 50,
-      currentMonthVideos: 12,
-      currentAssignedVideos: 3
-    },
-    {
-      id: 2,
-      username: "youtuber2",
-      fullName: "Youtuber Dos",
-      role: "youtuber",
-      maxAssignedVideos: 15,
-      maxMonthlyVideos: 60,
-      currentMonthVideos: 25,
-      currentAssignedVideos: 5
-    }
-  ];
+
 
   // Inicializar formulario
   const form = useForm<LimitsFormValues>({
@@ -107,8 +85,8 @@ export function VideoLimitsTab() {
                 username: user.username,
                 fullName: user.fullName,
                 role: user.role,
-                maxAssignedVideos: user.maxAssignedVideos || 10,
-                maxMonthlyVideos: user.maxMonthlyVideos || 50,
+                maxAssignedVideos: user.maxAssignedVideos || limitsResponse.data.maxAssignedAllowed || 10,
+                maxMonthlyVideos: user.maxMonthlyVideos || limitsResponse.data.monthlyLimit || 50,
                 currentMonthVideos: limitsResponse.data.currentMonthlyCount,
                 currentAssignedVideos: limitsResponse.data.currentAssignedCount
               };
@@ -133,12 +111,10 @@ export function VideoLimitsTab() {
       } catch (error) {
         console.error("Error fetching users:", error);
         toast({
-          title: "Usando datos de prueba",
-          description: "Cargando datos de ejemplo para demostración",
+          title: "Error",
+          description: "No se pudieron cargar los usuarios. Por favor, inicia sesión nuevamente.",
+          variant: "destructive",
         });
-        // Usar datos de fallback si hay error
-        setUsers(fallbackUsers);
-        setFilteredUsers(fallbackUsers);
       } finally {
         setIsLoading(false);
       }
