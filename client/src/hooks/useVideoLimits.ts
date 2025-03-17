@@ -3,9 +3,15 @@ import axios from "axios";
 import { useUser } from "./use-user";
 
 export interface VideoLimitsData {
+  // Límites de asignación concurrente
   canTakeMore: boolean;
   currentCount: number;
   maxAllowed: number;
+  
+  // Límites mensuales
+  monthlyLimit: number;
+  currentMonthCount: number;
+  reachedMonthlyLimit: boolean;
 }
 
 interface ApiResponse {
@@ -34,29 +40,51 @@ export const useVideoLimits = () => {
 
   // Valores predeterminados en caso de no tener datos
   const videoLimits: VideoLimitsData = data?.success ? data.data : {
+    // Valores predeterminados para límites concurrentes
     canTakeMore: true,
     currentCount: 0,
-    maxAllowed: 30
+    maxAllowed: 10,
+    
+    // Valores predeterminados para límites mensuales
+    monthlyLimit: 50,
+    currentMonthCount: 0,
+    reachedMonthlyLimit: false
   };
 
-  // Calcular el porcentaje de uso para la barra de progreso
+  // Calcular el porcentaje de uso concurrente para la barra de progreso
   const usagePercentage = videoLimits 
     ? Math.min(Math.round((videoLimits.currentCount / videoLimits.maxAllowed) * 100), 100)
     : 0;
 
-  // Determinar si está cerca del límite (>75%)
+  // Calcular el porcentaje de uso mensual para la barra de progreso
+  const monthlyUsagePercentage = videoLimits 
+    ? Math.min(Math.round((videoLimits.currentMonthCount / videoLimits.monthlyLimit) * 100), 100)
+    : 0;
+
+  // Determinar si está cerca del límite concurrente (>75%)
   const isNearLimit = usagePercentage > 75;
   
-  // Determinar si ha alcanzado el límite
+  // Determinar si está cerca del límite mensual (>75%)
+  const isNearMonthlyLimit = monthlyUsagePercentage > 75;
+  
+  // Determinar si ha alcanzado el límite de asignación concurrente
   const isAtLimit = !videoLimits.canTakeMore;
+  
+  // Determinar si ha alcanzado el límite mensual
+  const isAtMonthlyLimit = videoLimits.reachedMonthlyLimit;
 
   return {
     videoLimits,
     isLoading,
     error,
     refetch,
+    // Información de límites concurrentes
     usagePercentage,
     isNearLimit,
-    isAtLimit
+    isAtLimit,
+    // Información de límites mensuales
+    monthlyUsagePercentage,
+    isNearMonthlyLimit,
+    isAtMonthlyLimit
   };
 };
