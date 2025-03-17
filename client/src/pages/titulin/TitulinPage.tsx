@@ -1,8 +1,7 @@
 import { Youtube } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { VideoStats } from "./components/VideoStats";
 import { SearchBar } from "./components/SearchBar";
 import { TableActions } from "./components/TableActions";
@@ -11,12 +10,10 @@ import { PaginationControls } from "./components/PaginationControls";
 import { SendToOptimizeDialog } from "./components/SendToOptimizeDialog";
 import { VideoAnalysisDialog } from "./components/VideoAnalysisDialog";
 import { TitleComparisonDialog } from "./configuration/TitleComparisonDialog";
-import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
+import { parseISO, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { SortingState } from "@tanstack/react-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import TitulinConfiguration from "./configuration/TitulinConfiguration";
 import { TitulinVideo, useTitulin } from "@/hooks/useTitulin";
 
@@ -30,52 +27,15 @@ export default function TitulinPage() {
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
   const [analysisVideo, setAnalysisVideo] = useState<TitulinVideo | null>(null);
   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [onlyEvergreen, setOnlyEvergreen] = useState(false);
-  const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   const [currentTab, setCurrentTab] = useState("overview");
 
-  const { setTitleFilter, channelFilter, setChannelFilter, videos,
-    channels, refetch, pagination, totalVideos, viewsCount, likesCount,
-    handleDownloadCSV, isDownloading, isFetching, isLoading } = useTitulin()
-
-
-  // Efecto para gestionar la búsqueda
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      setTitleFilter(searchValue.trim());
-      setCurrentPage(1);
-    }, 300);
-
-    return () => clearTimeout(timerId);
-  }, [searchValue]);
+  const { setTitleFilter, channelFilter, setChannelFilter, videos, onlyAnalyzed, setOnlyAnalyzed,
+    channels, refetch, pagination, totalVideos, viewsCount, likesCount, onlyEvergreen, setOnlyEvergreen,
+    handleDownloadCSV, isDownloading, isFetching, isLoading, pageSize, currentPage, setCurrentPage } = useTitulin()
 
   // Obtener el queryClient para poder usarlo más tarde
   const queryClient = useQueryClient();
-
-  // Obtener estadísticas
-  const { data: statsData } = useQuery({
-    queryKey: ["youtube-videos-stats"],
-    queryFn: async () => {
-      const response = await axios.get("/api/titulin/videos/stats");
-      return response.data;
-    },
-  });
-
-  // Función para formatear fechas
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "-";
-    try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return "-";
-      return format(date, "PPp", { locale: es });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "-";
-    }
-  };
 
   // Obtener la información de la última actualización
   const getLastUpdateInfo = () => {
@@ -189,6 +149,8 @@ export default function TitulinPage() {
                       setOnlyAnalyzed={setOnlyAnalyzed}
                       refreshData={refreshData}
                       isRefreshing={isRefreshing}
+                      handleDownloadCSV={handleDownloadCSV}
+                      isDownloading={isDownloading}
                     />
                   </div>
                 </div>
@@ -206,8 +168,6 @@ export default function TitulinPage() {
                       setAnalysisVideo={setAnalysisVideo}
                       getChannelName={getChannelName}
                       isLoading={isFetching}
-                      handleDownloadCSV={handleDownloadCSV}
-                      isDownloading={isDownloading}
                     />
                     <div className="flex justify-between items-center mt-4 px-2">
                       <div className="text-sm text-muted-foreground">

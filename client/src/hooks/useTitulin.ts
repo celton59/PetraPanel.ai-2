@@ -5,6 +5,7 @@ import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { YoutubeChannel, YoutubeVideo } from "@db/schema";
+import { on } from "events";
 
 export interface TitulinVideo extends Omit<YoutubeVideo, 'publishedAt'> {
   publishedAt?: string
@@ -69,7 +70,7 @@ export function useTitulin() {
 
   // Obtener videos
   const { data: videosData, isLoading, isFetching, refetch: refetchVideos } = useQuery<VideoResponse>({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
+    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyAnalyzed, onlyEvergreen],
     queryFn: async () => {
       // Parámetros de búsqueda simplificados
       const searchParams = {

@@ -1,18 +1,18 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, BarChart, RotateCw, Filter } from "lucide-react";
-import { Channel } from "../types";
+import { Download, Loader2, RotateCw, Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { TitulinChannel } from "@/hooks/useTitulin";
 
 interface TableActionsProps {
   channelFilter: string;
   setChannelFilter: (value: string) => void;
   setCurrentPage: (page: number) => void;
-  channels: Channel[] | undefined;
+  channels: TitulinChannel[] | undefined;
   handleDownloadCSV: () => void;
   isDownloading: boolean;
   onlyEvergreen?: boolean;
@@ -40,7 +40,8 @@ export function TableActions({
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   // Actualizar los filtros activos cuando cambian
-  const updateActiveFilters = () => {
+
+  useEffect(() => {
     const filters = [];
     if (channelFilter !== 'all') {
       const channelName = channels?.find(c => c.channelId === channelFilter)?.name || "Canal seleccionado";
@@ -49,7 +50,7 @@ export function TableActions({
     if (onlyEvergreen) filters.push("Solo Evergreen");
     if (onlyAnalyzed) filters.push("Solo Analizados");
     setActiveFilters(filters);
-  };
+  }, [channelFilter, onlyEvergreen, onlyAnalyzed])
 
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -59,7 +60,6 @@ export function TableActions({
           onValueChange={(value) => {
             setChannelFilter(value);
             setCurrentPage(1);
-            updateActiveFilters();
           }}
         >
           <SelectTrigger className="h-10 min-w-[180px] max-w-[220px]">
@@ -99,7 +99,6 @@ export function TableActions({
                     onCheckedChange={(checked) => {
                       setOnlyEvergreen(checked);
                       setCurrentPage(1);
-                      updateActiveFilters();
                     }}
                   />
                   <Label htmlFor="only-evergreen">Solo Evergreen</Label>
@@ -112,7 +111,6 @@ export function TableActions({
                     onCheckedChange={(checked) => {
                       setOnlyAnalyzed(checked);
                       setCurrentPage(1);
-                      updateActiveFilters();
                     }}
                   />
                   <Label htmlFor="only-analyzed">Solo Analizados</Label>
