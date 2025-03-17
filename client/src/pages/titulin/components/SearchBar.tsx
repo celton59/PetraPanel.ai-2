@@ -23,16 +23,13 @@ export function SearchBar({
     setInputValue(searchValue);
   }, [searchValue]);
 
-  const handleSearch = () => {
-    const trimmedValue = inputValue.trim();
-    setSearchValue(trimmedValue);
-    setTitleFilter(trimmedValue);
-    setCurrentPage(1);
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleSearch();
+      const trimmedValue = inputValue.trim();
+      setSearchValue(trimmedValue);
+      setTitleFilter(trimmedValue);
+      setCurrentPage(1);
     }
   };
 

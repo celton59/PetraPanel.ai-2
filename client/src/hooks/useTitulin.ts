@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { YoutubeChannel, YoutubeVideo } from "@db/schema";
-import { on } from "events";
 
 export interface TitulinVideo extends Omit<YoutubeVideo, 'publishedAt'> {
   publishedAt?: string
@@ -36,37 +35,6 @@ export function useTitulin() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [searchValue, setSearchValue] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Efecto para manejar el debounce y la búsqueda
-  useEffect(() => {
-    // Limpiar cualquier timeout previo
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    const trimmedValue = searchValue.trim();
-    
-    // Si hay un cambio en el texto de búsqueda
-    if (trimmedValue !== titleFilter) {
-      setIsSearching(true);
-      
-      // Debounce para la búsqueda
-      searchTimeoutRef.current = setTimeout(() => {
-        setTitleFilter(trimmedValue);
-        setCurrentPage(1);
-        setIsSearching(false);
-      }, 300);
-    }
-    
-    // Limpiar timeout al desmontar
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchValue, titleFilter, setTitleFilter]);
 
   // Obtener videos
   const { data: videosData, isLoading, isFetching, refetch: refetchVideos } = useQuery<VideoResponse>({
@@ -252,7 +220,6 @@ export function useTitulin() {
     currentPage,
     pageSize,
     searchValue,
-    isSearching,
     videos,
     channels,
     pagination,
