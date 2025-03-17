@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from 'lucide-react';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { Search, Save, User, CalendarClock } from 'lucide-react';
 import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Tipo para el usuario con sus límites
 interface UserWithLimits {
@@ -34,6 +37,13 @@ interface UserWithLimits {
   currentAssignedVideos: number;
 }
 
+// Interfaz para el formulario de límites
+interface LimitsFormValues {
+  userId: string;
+  maxMonthlyVideos: number;
+  maxAssignedVideos: number;
+}
+
 /**
  * Pestaña de configuración de límites de videos
  * Permite configurar límites mensuales individuales para cada youtuber
@@ -41,10 +51,20 @@ interface UserWithLimits {
 export function VideoLimitsTab() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<UserWithLimits[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserWithLimits[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedUser, setSelectedUser] = useState<UserWithLimits | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Inicializar formulario
+  const form = useForm<LimitsFormValues>({
+    defaultValues: {
+      userId: "",
+      maxMonthlyVideos: 50,
+      maxAssignedVideos: 10
+    }
+  });
 
   // Cargar usuarios y sus límites
   useEffect(() => {
@@ -118,51 +138,222 @@ export function VideoLimitsTab() {
   }, [searchTerm, users]);
 
   // Actualizar límite individual de un usuario
-  const updateUserLimit = async (userId: number, field: string, value: number) => {
+  const handleSubmit = async (data: LimitsFormValues) => {
+    if (!data.userId) {
+      toast({
+        title: "Error",
+        description: "Debes seleccionar un usuario",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
+      const userId = Number(data.userId);
       await axios.post(`/api/users/${userId}`, {
-        [field]: value
+        maxMonthlyVideos: data.maxMonthlyVideos,
+        maxAssignedVideos: data.maxAssignedVideos
       });
       
       // Actualizar el estado local
-      setUsers(users.map(user => 
+      const updatedUsers = users.map(user => 
         user.id === userId 
-          ? { ...user, [field]: value }
+          ? { 
+              ...user, 
+              maxMonthlyVideos: data.maxMonthlyVideos,
+              maxAssignedVideos: data.maxAssignedVideos
+            }
           : user
-      ));
+      );
+      
+      setUsers(updatedUsers);
+      setFilteredUsers(updatedUsers);
       
       toast({
-        title: "Límite actualizado",
-        description: `Límite actualizado correctamente para el usuario`,
+        title: "Límites actualizados",
+        description: `Límites actualizados correctamente para el usuario`,
       });
     } catch (error) {
-      console.error("Error updating user limit:", error);
+      console.error("Error updating user limits:", error);
       toast({
         title: "Error",
-        description: "No se pudo actualizar el límite del usuario",
+        description: "No se pudieron actualizar los límites del usuario",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Manejar cuando se selecciona un usuario
   const handleUserSelect = (userId: string) => {
-    setSelectedUserId(userId);
+    const user = users.find(u => u.id.toString() === userId);
+    if (user) {
+      setSelectedUser(user);
+      form.setValue("userId", userId);
+      form.setValue("maxMonthlyVideos", user.maxMonthlyVideos);
+      form.setValue("maxAssignedVideos", user.maxAssignedVideos);
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Límites de Videos por Usuario</CardTitle>
-        <CardDescription>
-          Configura los límites mensuales de videos para cada youtuber individualmente
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end">
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium">Buscar usuario</label>
-            <div className="relative">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Configuración de Límites de Videos</CardTitle>
+          <CardDescription>
+            Configura los límites mensuales y concurrentes de videos para youtubers
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <FormField
+                    control={form.control}
+                    name="userId"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel>Usuario</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            handleUserSelect(value);
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="min-w-[220px]">
+                              <SelectValue placeholder="Seleccionar usuario" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {users.map((user) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.fullName} ({user.username})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Selecciona el youtuber al que quieres configurar los límites
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {selectedUser && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="h-5 w-5" />
+                      <span className="font-medium">{selectedUser.fullName}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="block">Usuario: {selectedUser.username}</span>
+                          <span className="block">Rol: {selectedUser.role}</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span>Videos usando: </span>
+                            <span className="font-medium">{selectedUser.currentAssignedVideos}</span>
+                            <span> de </span>
+                            <span className="font-medium">{selectedUser.maxAssignedVideos}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span>Videos este mes: </span>
+                            <span className="font-medium">{selectedUser.currentMonthVideos}</span>
+                            <span> de </span>
+                            <span className="font-medium">{selectedUser.maxMonthlyVideos}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="maxMonthlyVideos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Límite mensual de videos</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center space-x-2">
+                          <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min={1}
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Número máximo de videos que puede completar el youtuber durante un mes
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="maxAssignedVideos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Límite concurrente de videos</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center space-x-2">
+                          <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="number"
+                            min={1}
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Número máximo de videos que el youtuber puede tener asignados simultáneamente
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Button 
+                type="submit"
+                disabled={isSubmitting || !form.getValues().userId}
+                className="w-full md:w-auto"
+              >
+                {isSubmitting ? "Guardando..." : "Guardar límites"}
+                <Save className="ml-2 h-4 w-4" />
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Resumen de Límites Actuales</CardTitle>
+          <CardDescription>
+            Vista general de los límites de videos de todos los youtubers
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex mb-4">
+            <div className="relative w-full md:w-80">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nombre o usuario"
@@ -172,100 +363,65 @@ export function VideoLimitsTab() {
               />
             </div>
           </div>
-          
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium">Seleccionar usuario</label>
-            <Select 
-              value={selectedUserId} 
-              onValueChange={handleUserSelect}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar usuario" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.fullName} ({user.username})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        {/* Tabla de usuarios y sus límites */}
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Nombre completo</TableHead>
-                  <TableHead className="text-center">Límite concurrente</TableHead>
-                  <TableHead className="text-center">En uso</TableHead>
-                  <TableHead className="text-center">Límite mensual</TableHead>
-                  <TableHead className="text-center">Usados este mes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow 
-                    key={user.id} 
-                    className={selectedUserId === user.id.toString() ? "bg-muted/50" : ""}
-                  >
-                    <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell>{user.fullName}</TableCell>
-                    <TableCell className="text-center">
-                      <Input
-                        type="number"
-                        min={1}
-                        className="w-16 mx-auto text-center"
-                        value={user.maxAssignedVideos}
-                        onChange={(e) => {
-                          const newValue = Number(e.target.value);
-                          setUsers(users.map(u => 
-                            u.id === user.id 
-                              ? { ...u, maxAssignedVideos: newValue }
-                              : u
-                          ));
-                        }}
-                        onBlur={(e) => updateUserLimit(user.id, "maxAssignedVideos", Number(e.target.value))}
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">{user.currentAssignedVideos}</TableCell>
-                    <TableCell className="text-center">
-                      <Input
-                        type="number"
-                        min={1}
-                        className="w-16 mx-auto text-center"
-                        value={user.maxMonthlyVideos}
-                        onChange={(e) => {
-                          const newValue = Number(e.target.value);
-                          setUsers(users.map(u => 
-                            u.id === user.id 
-                              ? { ...u, maxMonthlyVideos: newValue }
-                              : u
-                          ));
-                        }}
-                        onBlur={(e) => updateUserLimit(user.id, "maxMonthlyVideos", Number(e.target.value))}
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">{user.currentMonthVideos}</TableCell>
+          {/* Tabla de usuarios y sus límites */}
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                No se encontraron usuarios con el término de búsqueda.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Nombre completo</TableHead>
+                    <TableHead className="text-center">Límite concurrente</TableHead>
+                    <TableHead className="text-center">En uso</TableHead>
+                    <TableHead className="text-center">Límite mensual</TableHead>
+                    <TableHead className="text-center">Usados este mes</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow 
+                      key={user.id} 
+                      className={selectedUser?.id === user.id ? "bg-muted/50" : ""}
+                    >
+                      <TableCell className="font-medium">{user.username}</TableCell>
+                      <TableCell>{user.fullName}</TableCell>
+                      <TableCell className="text-center">{user.maxAssignedVideos}</TableCell>
+                      <TableCell className="text-center">{user.currentAssignedVideos}</TableCell>
+                      <TableCell className="text-center">{user.maxMonthlyVideos}</TableCell>
+                      <TableCell className="text-center">{user.currentMonthVideos}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleUserSelect(user.id.toString())}
+                        >
+                          Editar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
