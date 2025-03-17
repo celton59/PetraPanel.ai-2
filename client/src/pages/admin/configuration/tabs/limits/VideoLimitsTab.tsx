@@ -73,9 +73,8 @@ export function VideoLimitsTab() {
         setIsLoading(true);
         const response = await axios.get('/api/users');
         
-        // Obtener límites actuales para cada usuario
+        // Obtener límites actuales para todos los usuarios (no filtrar por rol en el backend)
         const usersWithLimitsPromises = response.data
-          .filter((user: any) => user.role === 'youtuber')
           .map(async (user: any) => {
             try {
               const limitsResponse = await axios.get(`/api/youtuber/video-limits?userId=${user.id}`);
@@ -231,10 +230,12 @@ export function VideoLimitsTab() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {users.map((user) => (
-                              <SelectItem key={user.id} value={user.id.toString()}>
-                                {user.fullName} ({user.username})
-                              </SelectItem>
+                            {users
+                              .filter(user => user.role === 'youtuber')
+                              .map((user) => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.fullName} ({user.username})
+                                </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -394,7 +395,9 @@ export function VideoLimitsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
+                  {filteredUsers
+                    .filter(user => user.role === 'youtuber')
+                    .map((user) => (
                     <TableRow 
                       key={user.id} 
                       className={selectedUser?.id === user.id ? "bg-muted/50" : ""}
