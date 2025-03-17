@@ -768,7 +768,10 @@ export default function VideosPage() {
                 <VideoBadges video={video} compact={true} />
               </div>
               
-              {/* Los afiliados ahora se integran directamente con el título */}
+              {/* Afiliados con tooltip */}
+              <div className="mt-2 flex justify-center">
+                <AffiliateIconsColumn video={video} />
+              </div>
             </div>
           </div>
         ))}
@@ -867,7 +870,10 @@ export default function VideosPage() {
                 <VideoBadges video={video} compact={true} />
               </div>
               
-              {/* Los afiliados ahora se integran directamente con el título */}
+              {/* Afiliados con tooltip */}
+              <div className="mt-2 flex">
+                <AffiliateIconsColumn video={video} />
+              </div>
             </div>
             
             {/* Actions */}

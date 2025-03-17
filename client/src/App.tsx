@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import NotFound from "@/pages/not-found";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth-page";
+import Login from "@/pages/Login";
 import ProfilePage from "@/pages/profile/ProfilePage";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
@@ -59,9 +60,14 @@ function Router() {
     );
   }
 
-  // If no user, show AuthPage regardless of route
+  // If no user, show Login page or allow specific routes
   if (!user) {
-    return <AuthPage />;
+    return (
+      <Switch>
+        <Route path="/login" component={Login} />
+        <Route path="*" component={Login} />
+      </Switch>
+    );
   }
 
   // Authenticated user
