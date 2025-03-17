@@ -1,152 +1,173 @@
 import React, { useState, useEffect } from 'react';
-import { useVideoAffiliates } from '@/hooks/useVideoAffiliates';
-import { AffiliatesBadgeContainer } from './AffiliateBadge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { ShieldCheck, AlertCircle } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Label } from '@/components/ui/label';
+import { AffiliateBadge } from './AffiliateBadge';
+import { ApiVideo } from '@/hooks/useVideos';
+import axios from 'axios';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface AffiliateManagerProps {
-  videoId: number;
+  video: ApiVideo;
   className?: string;
 }
 
-export function AffiliateManager({ videoId, className = '' }: AffiliateManagerProps) {
-  const { 
-    affiliates, 
-    isLoading, 
-    updateAffiliateInclusion 
-  } = useVideoAffiliates(videoId);
-  
-  // Estado local para evitar retrasos en la UI durante actualizaciones
-  const [includedAffiliates, setIncludedAffiliates] = useState<Record<number, boolean>>({});
+interface AffiliateMatch {
+  id: number;
+  companyName: string;
+  companyLogo?: string | null;
+  companyUrl?: string | null;
+  isIncluded: boolean;
+}
 
-  // Inicializar estado local desde los datos cargados
+export function AffiliateManager({ video, className }: AffiliateManagerProps) {
+  const [affiliates, setAffiliates] = useState<AffiliateMatch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
   useEffect(() => {
-    if (affiliates.length > 0) {
-      const initialState: Record<number, boolean> = {};
-      affiliates.forEach(affiliate => {
-        initialState[affiliate.id] = affiliate.isIncluded;
-      });
-      setIncludedAffiliates(initialState);
+    // Solo cargar afiliados si tenemos un videoId
+    if (video?.id) {
+      fetchAffiliates();
     }
-  }, [affiliates]);
+  }, [video?.id]);
 
-  // Manejar cambio en el estado de inclusión de un afiliado
-  const handleAffiliateToggle = async (affiliateId: number, included: boolean) => {
-    // Actualizar UI inmediatamente para mejor experiencia
-    setIncludedAffiliates(prev => ({
-      ...prev,
-      [affiliateId]: included
-    }));
+  const fetchAffiliates = async () => {
+    if (!video?.id) return;
     
-    // Actualizar en el servidor
+    setIsLoading(true);
     try {
-      await updateAffiliateInclusion(affiliateId, included);
-    } catch (error) {
-      // Si hay error, revertir el cambio en UI
-      console.error('Error al actualizar estado de afiliado:', error);
-      setIncludedAffiliates(prev => ({
-        ...prev,
-        [affiliateId]: !included
+      const response = await axios.get(`/api/affiliates/videos/${video.id}/matches`);
+      const affiliateData = response.data.data || [];
+      
+      // Transformar los datos al formato que esperan nuestros componentes
+      const formattedAffiliates = affiliateData.map((affiliate: any) => ({
+        id: affiliate.id,
+        companyName: affiliate.company?.name || 'Desconocido',
+        companyLogo: affiliate.company?.logo_url,
+        companyUrl: affiliate.company?.affiliate_url,
+        isIncluded: affiliate.included_by_youtuber || false
       }));
+      
+      setAffiliates(formattedAffiliates);
+    } catch (error) {
+      console.error('Error al cargar afiliados:', error);
+      setAffiliates([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Si no hay afiliados detectados, no mostrar nada
+  const handleToggleAffiliateInclusion = async (matchId: number, included: boolean) => {
+    setUpdatingId(matchId);
+    
+    try {
+      const response = await axios.put(`/api/affiliates/matches/${matchId}/inclusion`, {
+        included
+      });
+      
+      if (response.data.success) {
+        // Actualizar el estado localmente
+        setAffiliates(prevAffiliates => 
+          prevAffiliates.map(affiliate => 
+            affiliate.id === matchId 
+              ? { ...affiliate, isIncluded: included } 
+              : affiliate
+          )
+        );
+        
+        toast.success(`Enlace de afiliado ${included ? 'marcado como incluido' : 'marcado como no incluido'}`);
+      } else {
+        throw new Error('Error al actualizar el estado del afiliado');
+      }
+    } catch (error) {
+      console.error('Error al actualizar estado de afiliado:', error);
+      toast.error('No se pudo actualizar el estado del afiliado');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Si no hay afiliados, no mostrar nada
   if (!isLoading && affiliates.length === 0) {
     return null;
   }
 
-  // UI para el estado de carga
-  if (isLoading) {
-    return (
-      <Card className={`w-full ${className}`}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4" />
-            Enlaces de afiliados
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground animate-pulse">
-            Buscando afiliados...
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Formatear los datos para los badges
-  const formattedAffiliates = affiliates.map(affiliate => ({
-    id: affiliate.id,
-    companyName: affiliate.company?.name || 'Desconocido',
-    isIncluded: includedAffiliates[affiliate.id] || false
-  }));
-
-  // Verificar si todos los afiliados han sido incluidos
-  const allIncluded = affiliates.every(affiliate => includedAffiliates[affiliate.id]);
-
   return (
-    <Card className={`w-full ${className}`}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          {allIncluded ? (
-            <ShieldCheck className="w-4 h-4 text-green-500" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-amber-500" />
-          )}
-          Enlaces de afiliados
-        </CardTitle>
-        <CardDescription className="text-xs">
-          {allIncluded 
-            ? 'Todos los enlaces de afiliados han sido incluidos' 
-            : 'Se requieren enlaces de afiliados para este video'}
+    <Card className={cn("relative overflow-hidden", className)}>
+      {/* Barra de acento superior */}
+      <div className="h-1 w-full bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 absolute top-0 left-0"></div>
+      
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-semibold">Enlaces de Afiliados</CardTitle>
+        <CardDescription>
+          Verifica que todos los enlaces de afiliados requeridos estén incluidos en la descripción
         </CardDescription>
       </CardHeader>
+      
       <CardContent>
-        <div className="space-y-4">
-          <AffiliatesBadgeContainer 
-            affiliates={formattedAffiliates} 
-            className="mb-4" 
-          />
-          
-          <div className="space-y-2">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-6">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
             {affiliates.map(affiliate => (
-              <div key={affiliate.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Switch 
-                    id={`affiliate-${affiliate.id}`}
-                    checked={includedAffiliates[affiliate.id] || false}
-                    onCheckedChange={(checked) => handleAffiliateToggle(affiliate.id, checked)}
-                  />
-                  <Label 
-                    htmlFor={`affiliate-${affiliate.id}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {affiliate.company?.name || 'Empresa desconocida'}
-                  </Label>
+              <div key={affiliate.id} className="flex items-center justify-between gap-2 p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {affiliate.companyLogo && (
+                    <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                      <img 
+                        src={affiliate.companyLogo} 
+                        alt={affiliate.companyName} 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="space-y-1 min-w-0">
+                    <div className="font-medium text-sm line-clamp-1">{affiliate.companyName}</div>
+                    {affiliate.companyUrl && (
+                      <div className="text-xs text-muted-foreground line-clamp-1">
+                        <a 
+                          href={affiliate.companyUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:underline"
+                        >
+                          {affiliate.companyUrl}
+                        </a>
+                      </div>
+                    )}
+                    
+                    <AffiliateBadge 
+                      companyName={affiliate.companyName} 
+                      isIncluded={affiliate.isIncluded}
+                    />
+                  </div>
                 </div>
                 
-                <AnimatePresence>
-                  {includedAffiliates[affiliate.id] && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="text-xs text-green-500 font-medium flex items-center gap-1"
-                    >
-                      <ShieldCheck className="w-3 h-3" />
-                      Incluido
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id={`affiliate-${affiliate.id}`}
+                    checked={affiliate.isIncluded}
+                    onCheckedChange={(checked) => handleToggleAffiliateInclusion(affiliate.id, checked)}
+                    disabled={updatingId === affiliate.id}
+                  />
+                  <Label htmlFor={`affiliate-${affiliate.id}`} className="cursor-pointer">
+                    {updatingId === affiliate.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      affiliate.isIncluded ? 'Incluido' : 'No incluido'
+                    )}
+                  </Label>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

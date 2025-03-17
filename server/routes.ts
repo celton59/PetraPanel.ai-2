@@ -3,15 +3,16 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
 import { 
-  users, videos, projects, youtube_channels
+  users, videos, actionRates, userActions, payments, projects, youtube_channels
 } from "@db/schema"; 
-import { count, eq, sql, countDistinct } from "drizzle-orm";
+import { eq, count, sql, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import path from "path";
 import express from "express";
 // import { BackupService } from "./services/backup";
+import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
-import { canYoutuberTakeMoreVideos } from "./utils/youtuber-utils";
+import { canYoutuberTakeMoreVideos, getYoutuberVideoLimits, setMonthlyLimit, getAllMonthlyLimits } from "./utils/youtuber-utils";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
 import { setUpUserRoutes } from "./controllers/userController.js";
@@ -21,7 +22,6 @@ import { setupNotificationRoutes } from "./routes/notifications";
 import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 import { setupAffiliateRoutes } from "./controllers/affiliateController";
-import { setUpAccoutingRoutes } from "./controllers/accountingController.js";
 
 
 export function registerRoutes(app: Express): Server {
@@ -166,13 +166,7 @@ export function registerRoutes(app: Express): Server {
     // Stats routes
     app.get("/api/stats/overall", requireAuth, async (req: Request, res: Response) => {
       try {
-        const stats = (await db
-          .select({
-            test: countDistinct(videos.id),
-            total_optimizations: count(videos.optimizedTitle),
-            total_uploads: count(videos.videoUrl),
-          })
-          .from(videos))[0];
+        const stats = await StatsService.getOverallStats();
         res.json({
           success: true,
           data: stats
@@ -187,26 +181,395 @@ export function registerRoutes(app: Express): Server {
     });
     // Rutas para el sistema de contabilidad
     
-    setUpAccoutingRoutes(requireAuth, app)
+    // Obtener todas las tarifas por acción
+    app.get("/api/accounting/rates", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const rates = await db
+          .select()
+          .from(actionRates)
+          .orderBy(asc(actionRates.actionType), asc(actionRates.roleId));
+
+        res.json({
+          success: true,
+          data: rates
+        });
+      } catch (error) {
+        console.error("Error fetching action rates:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener las tarifas"
+        });
+      }
+    });
+
+    // Crear/Actualizar tarifa
+    app.post("/api/accounting/rates", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para realizar esta acción"
+          });
+        }
+
+        const { actionType, roleId, rate, projectId } = req.body;
+
+        // Validar datos
+        if (!actionType || !roleId || rate === undefined) {
+          return res.status(400).json({
+            success: false,
+            message: "Los campos actionType, roleId y rate son obligatorios"
+          });
+        }
+
+        // Verificar si ya existe una tarifa para esta acción y rol
+        const existingRate = await db
+          .select()
+          .from(actionRates)
+          .where(
+            and(
+              eq(actionRates.actionType, actionType),
+              eq(actionRates.roleId, roleId),
+              projectId ? eq(actionRates.projectId, projectId) : isNull(actionRates.projectId)
+            )
+          )
+          .limit(1);
+
+        let result;
+        if (existingRate.length > 0) {
+          // Actualizar tarifa existente
+          result = await db
+            .update(actionRates)
+            .set({
+              rate,
+              updatedAt: new Date()
+            })
+            .where(eq(actionRates.id, existingRate[0].id))
+            .returning();
+        } else {
+          // Crear nueva tarifa
+          result = await db
+            .insert(actionRates)
+            .values({
+              actionType,
+              roleId,
+              rate,
+              projectId: projectId || null,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            })
+            .returning();
+        }
+
+        res.json({
+          success: true,
+          data: result[0],
+          message: existingRate.length > 0 ? "Tarifa actualizada correctamente" : "Tarifa creada correctamente"
+        });
+      } catch (error) {
+        console.error("Error creating/updating action rate:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al crear/actualizar la tarifa"
+        });
+      }
+    });
+
+    // Eliminar tarifa
+    app.delete("/api/accounting/rates/:id", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para realizar esta acción"
+          });
+        }
+
+        const rateId = parseInt(req.params.id);
+
+        await db
+          .delete(actionRates)
+          .where(eq(actionRates.id, rateId));
+
+        res.json({
+          success: true,
+          message: "Tarifa eliminada correctamente"
+        });
+      } catch (error) {
+        console.error("Error deleting action rate:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al eliminar la tarifa"
+        });
+      }
+    });
+
+    // Obtener acciones pendientes de pago
+    app.get("/api/accounting/pending-payments", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const pendingActions = await db
+          .select({
+            userId: userActions.userId,
+            username: users.username,
+            fullName: users.fullName,
+            totalAmount: sql<string>`SUM(${userActions.rateApplied})`,
+            actionsCount: count()
+          })
+          .from(userActions)
+          .innerJoin(users, eq(users.id, userActions.userId))
+          .where(
+            and(
+              eq(userActions.isPaid, false),
+              isNotNull(userActions.rateApplied)
+            )
+          )
+          .groupBy(userActions.userId, users.username, users.fullName);
+
+        res.json({
+          success: true,
+          data: pendingActions
+        });
+      } catch (error) {
+        console.error("Error fetching pending payments:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener pagos pendientes"
+        });
+      }
+    });
+
+    // Obtener detalle de acciones por usuario
+    app.get("/api/accounting/user-actions/:userId", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador o el propio usuario
+        if (req.user?.role !== "admin" && req.user?.id !== parseInt(req.params.userId)) {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const userId = parseInt(req.params.userId);
+        const { paid } = req.query;
+
+        let query = db
+          .select({
+            id: userActions.id,
+            actionType: userActions.actionType,
+            videoId: userActions.videoId,
+            projectId: userActions.projectId,
+            projectName: projects.name,
+            rate: userActions.rateApplied,
+            isPaid: userActions.isPaid,
+            createdAt: userActions.createdAt,
+            paymentDate: userActions.paymentDate,
+            paymentReference: userActions.paymentReference
+          })
+          .from(userActions)
+          .leftJoin(projects, eq(projects.id, userActions.projectId))
+          .where(and(
+            eq(userActions.userId, userId),
+            // Filtrar por estado de pago si se especifica
+            paid !== undefined ? eq(userActions.isPaid, paid === "true") : undefined
+          ))
+          // Ordenar por fecha (más reciente primero)
+          .orderBy(desc(userActions.createdAt)); 
+
+
+        const actions = await query;
+
+        res.json({
+          success: true,
+          data: actions
+        });
+      } catch (error) {
+        console.error("Error fetching user actions:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener acciones del usuario"
+        });
+      }
+    });
+
+    // Registrar pago
+    app.post("/api/accounting/payments", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para realizar esta acción"
+          });
+        }
+
+        const { userId, amount, reference, notes, actionIds } = req.body;
+
+        if (!userId || !amount || !actionIds || !Array.isArray(actionIds)) {
+          return res.status(400).json({
+            success: false,
+            message: "Los campos userId, amount y actionIds son obligatorios"
+          });
+        }
+
+        // Registrar el pago
+        const payment = await db
+          .insert(payments)
+          .values({
+            userId,
+            amount,
+            paymentDate: new Date(),
+            reference: reference || null,
+            notes: notes || null,
+            createdAt: new Date()
+          })
+          .returning();
+
+        // Actualizar acciones como pagadas
+        if (actionIds && actionIds.length > 0) {
+          await db
+            .update(userActions)
+            .set({
+              isPaid: true,
+              paymentDate: new Date(),
+              paymentReference: payment[0].id.toString()
+            })
+            .where(
+              and(
+                eq(userActions.userId, userId),
+                eq(userActions.isPaid, false),
+                sql`${userActions.id} = ANY(ARRAY[${actionIds.join(',')}]::int[])`
+              )
+            );
+        }
+
+        res.json({
+          success: true,
+          data: payment[0],
+          message: "Pago registrado correctamente"
+        });
+      } catch (error) {
+        console.error("Error registering payment:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al registrar el pago"
+        });
+      }
+    });
+
+    // Historial de pagos
+    app.get("/api/accounting/payments-history", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario sea administrador
+        if (req.user?.role !== "admin") {
+          return res.status(403).json({
+            success: false,
+            message: "No tiene permisos para acceder a esta información"
+          });
+        }
+
+        const paymentsHistory = await db
+          .select({
+            id: payments.id,
+            userId: payments.userId,
+            username: users.username,
+            fullName: users.fullName,
+            amount: payments.amount,
+            paymentDate: payments.paymentDate,
+            reference: payments.reference,
+            notes: payments.notes
+          })
+          .from(payments)
+          .innerJoin(users, eq(users.id, payments.userId))
+          .orderBy(desc(payments.paymentDate));
+
+        res.json({
+          success: true,
+          data: paymentsHistory
+        });
+      } catch (error) {
+        console.error("Error fetching payments history:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener historial de pagos"
+        });
+      }
+    });
  
     // Ruta para obtener información sobre el límite de videos para youtuber
     app.get("/api/youtuber/video-limits", requireAuth, async (req: Request, res: Response) => {
       try {
-        // Verificar que el usuario tenga rol youtuber
-        if (req.user?.role !== "youtuber") {
-          return res.status(403).json({
-            success: false,
-            message: "Esta información solo está disponible para usuarios con rol youtuber"
+        if (!req.user) {
+          return res.status(401).json({
+            message: "No autenticado"
           });
         }
-
-        const userId = req.user.id as number;
-        const limits = await canYoutuberTakeMoreVideos(userId);
         
-        res.json({
-          success: true,
-          data: limits
-        });
+        // Permitir consultas con userId cuando el usuario es admin o está consultando sus propios datos
+        let userId: number;
+        
+        if (req.query.userId) {
+          // Si se proporciona un userId en la consulta, verificar que el usuario sea admin
+          if (req.user.role === 'admin') {
+            userId = Number(req.query.userId);
+          } else if (req.user.id === Number(req.query.userId)) {
+            // O que esté consultando sus propios datos
+            userId = req.user.id;
+          } else {
+            return res.status(403).json({
+              message: "No tienes permisos para consultar datos de otros usuarios"
+            });
+          }
+        } else {
+          // Si no se proporciona userId, usar el ID del usuario autenticado
+          userId = req.user.id as number;
+          
+          // Si no es youtuber y no proporcionó un ID específico, error
+          if (req.user.role !== 'youtuber' && req.user.role !== 'admin') {
+            return res.status(403).json({
+              message: "Esta información solo está disponible para usuarios con rol youtuber o admin"
+            });
+          }
+        }
+        
+        console.log(`Consultando límites para usuario ID: ${userId}, por usuario ${req.user.username} (${req.user.role})`);
+        
+        // Usar la nueva función que incluye tanto los límites de asignación como los mensuales
+        const allLimits = await getYoutuberVideoLimits(userId);
+        
+        // Respuesta completa para incluir información de límites específicos por mes
+        const responseData = {
+          currentAssignedCount: allLimits.currentAssignedCount,
+          maxAssignedAllowed: allLimits.maxAssignedAllowed,
+          currentMonthlyCount: allLimits.currentMonthCount,
+          monthlyLimit: allLimits.monthlyLimit,
+          canTakeMore: allLimits.canTakeMoreVideos,
+          reachedMonthlyLimit: allLimits.reachedMonthlyLimit,
+          // Nueva información para gestión de límites específicos
+          specificMonthlyLimit: allLimits.specificMonthlyLimit || false,
+          monthlyLimits: allLimits.monthlyLimits || []
+        };
+        
+        console.log("Enviando respuesta:", JSON.stringify(responseData));
+        res.json(responseData);
       } catch (error) {
         console.error("Error obteniendo límites de videos:", error);
         res.status(500).json({
@@ -216,6 +579,97 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
+    // Endpoint para establecer límite mensual específico para un youtuber
+    app.post("/api/youtuber/monthly-limit", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar que el usuario es administrador
+        if (req.user?.role !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            message: "Solo los administradores pueden establecer límites mensuales específicos"
+          });
+        }
+        
+        // Validar datos requeridos
+        const { userId, year, month, maxVideos } = req.body;
+        
+        if (!userId || !maxVideos || maxVideos < 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Datos incompletos o inválidos. Se requiere userId y maxVideos"
+          });
+        }
+        
+        // Valores por defecto para año y mes (mes actual si no se especifican)
+        const targetYear = year || new Date().getFullYear();
+        const targetMonth = month || (new Date().getMonth() + 1);
+        
+        console.log(`Estableciendo límite mensual para usuario ${userId}: ${maxVideos} videos para ${targetMonth}/${targetYear}`);
+        
+        // Establecer el límite mensual
+        const result = await setMonthlyLimit(
+          userId,
+          maxVideos,
+          targetYear,
+          targetMonth,
+          req.user.id // ID del administrador que establece el límite
+        );
+        
+        if (result) {
+          res.json({
+            success: true,
+            message: `Límite mensual establecido correctamente: ${maxVideos} videos para ${targetMonth}/${targetYear}`
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: "Error al establecer límite mensual"
+          });
+        }
+      } catch (error) {
+        console.error("Error estableciendo límite mensual:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al establecer límite mensual específico"
+        });
+      }
+    });
+    
+    // Endpoint para obtener todos los límites mensuales específicos de un youtuber
+    app.get("/api/youtuber/monthly-limits/:userId", requireAuth, async (req: Request, res: Response) => {
+      try {
+        // Verificar permisos: solo el propio usuario (youtuber) o administradores pueden consultar
+        const userId = parseInt(req.params.userId);
+        
+        if (!userId) {
+          return res.status(400).json({
+            success: false,
+            message: "ID de usuario no especificado"
+          });
+        }
+        
+        if (req.user?.id !== userId && req.user?.role !== 'admin') {
+          return res.status(403).json({
+            success: false,
+            message: "No tienes permiso para consultar los límites de este usuario"
+          });
+        }
+        
+        const limits = await getAllMonthlyLimits(userId);
+        
+        res.json({
+          success: true,
+          data: limits
+        });
+      } catch (error) {
+        console.error("Error obteniendo límites mensuales:", error);
+        res.status(500).json({
+          success: false,
+          message: "Error al obtener límites mensuales específicos"
+        });
+      }
+    });
+    
     // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
     app.get("/api/online-users", requireAuth, async (req: Request, res: Response) => {
       try {

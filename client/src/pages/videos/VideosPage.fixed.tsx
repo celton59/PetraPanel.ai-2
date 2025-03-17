@@ -3,7 +3,10 @@ import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { VideoBadges } from "@/components/video/VideoBadges";
+import { VideoAffiliates } from "@/components/video/VideoAffiliates";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
+import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
+import { AffiliateIcon } from "@/components/video/AffiliateIcon";
 // Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
 import {
@@ -504,6 +507,7 @@ export default function VideosPage() {
                   <TableHead className="">Miniatura</TableHead>
                   <TableHead className="">Serie</TableHead>
                   <TableHead className="">Título</TableHead>
+                  <TableHead className="w-[30px]">Afil.</TableHead>
                   <TableHead className="">Estado</TableHead>
                   <TableHead className="">Colaboradores</TableHead>
                   <TableHead className="">Actualización</TableHead>
@@ -570,6 +574,10 @@ export default function VideosPage() {
                         </Button>
                       </div>
                     </TableCell>
+                    {/* Columna de afiliados */}
+                    <TableCell className="text-center">
+                      <AffiliateIcon video={video} />
+                    </TableCell>
                     {/* Estado */}
                     <TableCell>
                       <Badge
@@ -586,6 +594,7 @@ export default function VideosPage() {
                     <TableCell>
                       <VideoBadges video={video} compact={true} />
                     </TableCell>
+                    {/* La celda de afiliados se ha integrado con el título para una presentación más elegante */}
                     {/* Updated */}
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDate(video.updatedAt, false)}
@@ -700,23 +709,28 @@ export default function VideosPage() {
             
             {/* Content */}
             <div className="p-3">
-              <div className="flex items-start gap-2">
-                <h3 className="font-medium text-sm line-clamp-2 mb-1 flex-1">
-                  {video.optimizedTitle || video.title}
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
-                    copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
-                  }}
-                >
-                  <Copy className="h-3 w-3" />
-                  <span className="sr-only">Copiar título</span>
-                </Button>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-start gap-2">
+                  <h3 className="font-medium text-sm line-clamp-2 mb-1 flex-1">
+                    {video.optimizedTitle || video.title}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <AffiliateIcon video={video} className="mt-[2px]" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                        copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span className="sr-only">Copiar título</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
               
               <div className="flex justify-between items-center mt-2">
@@ -734,7 +748,12 @@ export default function VideosPage() {
                 </div>
               </div>
               
-              <VideoBadges video={video} compact={true} />
+              {/* Colaboradores */}
+              <div className="mt-3 mb-1">
+                <VideoBadges video={video} compact={true} />
+              </div>
+              
+              {/* Los afiliados ahora se integran directamente con el título */}
             </div>
           </div>
         ))}
@@ -787,23 +806,28 @@ export default function VideosPage() {
             
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-2">
-                <h3 className="font-medium text-sm line-clamp-1 mb-1 flex-1">
-                  {video.optimizedTitle || video.title}
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
-                    copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
-                  }}
-                >
-                  <Copy className="h-3 w-3" />
-                  <span className="sr-only">Copiar título</span>
-                </Button>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-start gap-2">
+                  <h3 className="font-medium text-sm line-clamp-1 mb-1 flex-1">
+                    {video.optimizedTitle || video.title}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <AffiliateIcon video={video} className="mt-[2px]" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                        copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span className="sr-only">Copiar título</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
               
               <div className="flex flex-wrap gap-2 items-center mt-1">
@@ -820,9 +844,14 @@ export default function VideosPage() {
                 <div className="text-xs text-muted-foreground">
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
                 </div>
-                
+              </div>
+              
+              {/* Colaboradores */}
+              <div className="mt-2">
                 <VideoBadges video={video} compact={true} />
               </div>
+              
+              {/* Los afiliados ahora se integran directamente con el título */}
             </div>
             
             {/* Actions */}

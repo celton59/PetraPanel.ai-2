@@ -5,8 +5,10 @@ import { UsersTab } from "./tabs/users/UsersTab";
 import { RolesTab } from "./tabs/roles/RolesTab";
 import { ProjectsTab } from "./tabs/project/ProjectsTab";
 import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
+import { VideoLimitsTab } from "./tabs/limits/VideoLimitsTab";
 import { RatesTab } from "../accounting/RatesTab";
 import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
+import TitulinTab from "./tabs/titulin/TitulinTab";
 import { EasterEggsTab } from "./tabs/easter-eggs/EasterEggsTab";
 import ConfiguracionAfiliados from "@/pages/administracion/ConfiguracionAfiliados";
 
@@ -37,8 +39,10 @@ export default function ConfigurationPage() {
             <TabsTrigger value="proyectos">Proyectos</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="workflow">Flujo de trabajo</TabsTrigger>
+            <TabsTrigger value="limites">Límites de Videos</TabsTrigger>
             <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
             <TabsTrigger value="finanzas">Configuración Financiera</TabsTrigger>
+            <TabsTrigger value="titulin">Titulín</TabsTrigger>
             <TabsTrigger value="afiliados">Afiliados</TabsTrigger>
             <TabsTrigger value="easter-eggs">Easter Eggs</TabsTrigger>
           </TabsList>
@@ -59,13 +63,21 @@ export default function ConfigurationPage() {
             <VideoFlowTab />
           </TabsContent>
 
+          <TabsContent value="limites" className="space-y-4">
+            <VideoLimitsTab />
+          </TabsContent>
+
           <TabsContent value="tarifas" className="space-y-4">
             <RatesTab />
           </TabsContent>
 
           <TabsContent value="finanzas" className="space-y-4">
             <FinanceConfigTab />
-          </TabsContent>        
+          </TabsContent>
+          
+          <TabsContent value="titulin" className="space-y-4">
+            <TitulinTab />
+          </TabsContent>
           
           <TabsContent value="easter-eggs" className="space-y-4">
             <EasterEggsTab />

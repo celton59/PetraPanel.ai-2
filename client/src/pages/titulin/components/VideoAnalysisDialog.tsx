@@ -10,11 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { type TitulinVideo } from '../types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { TitulinVideo } from '@/hooks/useTitulin';
+import { Info, AlertCircle, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface VideoAnalysisDialogProps {
   video: TitulinVideo | null;

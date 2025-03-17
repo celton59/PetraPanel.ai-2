@@ -14,17 +14,23 @@ import {
   TrendingUp,
   PlayCircle,
   MonitorPlay,
-  Sparkles
+  Sparkles,
+  Calendar,
+  CalendarCheck,
+  Star,
+  ListTodo
 } from "lucide-react";
 import { useVideoLimits } from "@/hooks/useVideoLimits";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
  * Componente mejorado que muestra el límite de videos asignados para usuarios youtuber
  * Incluye visualización gráfica moderna, animaciones y mensajes contextuales
+ * Ahora con soporte para información de límites mensuales
  */
 export function VideoLimitsWidget() {
   const [expanded, setExpanded] = useState(false);
@@ -34,8 +40,15 @@ export function VideoLimitsWidget() {
     isLoading, 
     usagePercentage, 
     isNearLimit, 
-    isAtLimit 
+    isAtLimit,
+    // Nuevos datos para límites mensuales
+    monthlyUsagePercentage,
+    isNearMonthlyLimit,
+    isAtMonthlyLimit
   } = useVideoLimits();
+  
+  // Verificar si hay un límite mensual específico para este mes
+  const hasSpecificLimit = !isLoading && videoLimits.specificMonthlyLimit === true;
 
   // Trigger animation when component mounts
   useEffect(() => {
@@ -130,8 +143,8 @@ export function VideoLimitsWidget() {
 
   // Función para renderizar los círculos que representan videos
   const renderVideoCircles = () => {
-    const totalCircles = videoLimits.maxAllowed;
-    const filledCircles = videoLimits.currentCount;
+    const totalCircles = videoLimits.maxAssignedAllowed;
+    const filledCircles = videoLimits.currentAssignedCount;
     
     return (
       <div className="flex flex-wrap gap-1.5 mt-3 mb-1">
@@ -170,6 +183,18 @@ export function VideoLimitsWidget() {
     );
   };
 
+  // Determinar tema para límites mensuales
+  let monthlyTheme;
+  if (isAtMonthlyLimit) {
+    monthlyTheme = theme.critical;
+  } else if (isNearMonthlyLimit) {
+    monthlyTheme = theme.high;
+  } else if (monthlyUsagePercentage > 40) {
+    monthlyTheme = theme.medium;
+  } else {
+    monthlyTheme = theme.low;
+  }
+
   return (
     <motion.div
       initial={{ y: 10, opacity: 0 }}
@@ -189,7 +214,7 @@ export function VideoLimitsWidget() {
                   <Video className={`h-5 w-5 ${currentTheme.textColor}`} />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold">Límite de videos asignados</h3>
+                  <h3 className="text-base font-semibold">Límites de videos</h3>
                   <p className="text-xs text-muted-foreground">Gestión de capacidad de trabajo</p>
                 </div>
                 <TooltipProvider>
@@ -199,70 +224,193 @@ export function VideoLimitsWidget() {
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs">
                       <p className="text-xs">
-                        Este indicador muestra los videos asignados actualmente vs. tu límite personalizado.
-                        Solo se contabilizan los videos en proceso, no los completados.
+                        Este panel muestra tus límites de videos asignados actualmente y 
+                        videos completados este mes según tus límites personalizados.
                       </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
               
-              {/* Main content */}
-              <div className="space-y-4">
-                {/* Numerical indicator */}
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline">
-                    <motion.span 
-                      className={`text-3xl font-bold ${currentTheme.textColor}`}
-                      key={videoLimits.currentCount}
-                      initial={{ y: -10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      {videoLimits.currentCount}
-                    </motion.span>
-                    <span className="text-sm text-muted-foreground mx-1.5 font-medium">de</span>
-                    <span className="text-xl font-medium text-muted-foreground">
-                      {videoLimits.maxAllowed}
-                    </span>
+              {/* Tabs para alternar entre límites concurrentes y mensuales */}
+              <Tabs defaultValue="concurrentes" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="concurrentes" className="text-xs">
+                    <Video className="w-3.5 h-3.5 mr-1.5" />
+                    Asignados
+                  </TabsTrigger>
+                  <TabsTrigger value="mensuales" className="text-xs">
+                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                    Mensuales
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Tab de límites concurrentes */}
+                <TabsContent value="concurrentes" className="space-y-4 mt-2">
+                  {/* Numerical indicator */}
+                  <div className="flex items-baseline justify-between">
+                    <div className="flex items-baseline">
+                      <motion.span 
+                        className={`text-3xl font-bold ${currentTheme.textColor}`}
+                        key={videoLimits.currentAssignedCount}
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        {videoLimits.currentAssignedCount}
+                      </motion.span>
+                      <span className="text-sm text-muted-foreground mx-1.5 font-medium">de</span>
+                      <span className="text-xl font-medium text-muted-foreground">
+                        {videoLimits.maxAssignedAllowed}
+                      </span>
+                    </div>
+                    
+                    <div className={`px-2.5 py-1 rounded-md ${currentTheme.bgColor} flex items-center gap-1.5`}>
+                      {currentTheme.statusIcon}
+                      <span className={`text-xs font-medium ${currentTheme.textColor}`}>
+                        {isAtLimit 
+                          ? "En límite" 
+                          : isNearLimit 
+                            ? "Casi lleno" 
+                            : usagePercentage > 40 
+                              ? "Moderado" 
+                              : "Disponible"}
+                      </span>
+                    </div>
                   </div>
                   
-                  <div className={`px-2.5 py-1 rounded-md ${currentTheme.bgColor} flex items-center gap-1.5`}>
-                    {currentTheme.statusIcon}
-                    <span className={`text-xs font-medium ${currentTheme.textColor}`}>
-                      {isAtLimit 
-                        ? "En límite" 
-                        : isNearLimit 
-                          ? "Casi lleno" 
-                          : usagePercentage > 40 
-                            ? "Moderado" 
-                            : "Disponible"}
-                    </span>
+                  {/* Progress bar with custom marker */}
+                  <div className="relative w-full">
+                    <Progress 
+                      value={usagePercentage} 
+                      className={`h-2.5 ${currentTheme.progressColor}`} 
+                    />
+                    <motion.div 
+                      className={`absolute top-0 h-2.5 w-1.5 bg-white border-l border-r ${currentTheme.borderColor}`}
+                      style={{ left: `${Math.min(usagePercentage, 98)}%` }}
+                      initial={{ height: "0.4rem" }}
+                      animate={{ height: "0.7rem", top: "-0.1rem" }}
+                      transition={{ 
+                        repeat: Infinity, 
+                        repeatType: "reverse", 
+                        duration: 1.5 
+                      }}
+                    />
                   </div>
-                </div>
-                
-                {/* Progress bar with custom marker */}
-                <div className="relative w-full">
-                  <Progress 
-                    value={usagePercentage} 
-                    className={`h-2.5 ${currentTheme.progressColor}`} 
-                  />
-                  <motion.div 
-                    className={`absolute top-0 h-2.5 w-1.5 bg-white border-l border-r ${currentTheme.borderColor}`}
-                    style={{ left: `${Math.min(usagePercentage, 98)}%` }}
-                    initial={{ height: "0.4rem" }}
-                    animate={{ height: "0.7rem", top: "-0.1rem" }}
-                    transition={{ 
-                      repeat: Infinity, 
-                      repeatType: "reverse", 
-                      duration: 1.5 
-                    }}
-                  />
-                </div>
-                
-                {/* Visual representation */}
-                {renderVideoCircles()}
-              </div>
+                  
+                  {/* Visual representation */}
+                  {renderVideoCircles()}
+                </TabsContent>
+
+                {/* Tab de límites mensuales */}
+                <TabsContent value="mensuales" className="space-y-4 mt-2">
+                  {/* Numerical indicator para límites mensuales */}
+                  <div className="flex items-baseline justify-between">
+                    <div className="flex items-baseline">
+                      <motion.span 
+                        className={`text-3xl font-bold ${monthlyTheme.textColor}`}
+                        key={videoLimits.currentMonthlyCount}
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        {videoLimits.currentMonthlyCount}
+                      </motion.span>
+                      <span className="text-sm text-muted-foreground mx-1.5 font-medium">de</span>
+                      <span className="text-xl font-medium text-muted-foreground">
+                        {videoLimits.monthlyLimit}
+                      </span>
+                    </div>
+                    
+                    <div className={`px-2.5 py-1 rounded-md ${monthlyTheme.bgColor} flex items-center gap-1.5`}>
+                      {monthlyTheme.statusIcon}
+                      <span className={`text-xs font-medium ${monthlyTheme.textColor}`}>
+                        {isAtMonthlyLimit 
+                          ? "Límite alcanzado" 
+                          : isNearMonthlyLimit 
+                            ? "Casi completo" 
+                            : monthlyUsagePercentage > 40 
+                              ? "Progresando" 
+                              : "Iniciando mes"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Progress bar para límites mensuales */}
+                  <div className="relative w-full">
+                    <Progress 
+                      value={monthlyUsagePercentage} 
+                      className={`h-2.5 ${monthlyTheme.progressColor}`} 
+                    />
+                    <motion.div 
+                      className={`absolute top-0 h-2.5 w-1.5 bg-white border-l border-r ${monthlyTheme.borderColor}`}
+                      style={{ left: `${Math.min(monthlyUsagePercentage, 98)}%` }}
+                      initial={{ height: "0.4rem" }}
+                      animate={{ height: "0.7rem", top: "-0.1rem" }}
+                      transition={{ 
+                        repeat: Infinity, 
+                        repeatType: "reverse", 
+                        duration: 1.5 
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Información de límite mensual */}
+                  <div className={cn(
+                    "p-3 rounded-md border text-sm",
+                    hasSpecificLimit 
+                      ? "bg-amber-50 border-amber-100" 
+                      : "bg-gray-50 border-gray-100"
+                  )}>
+                    <div className="flex items-center gap-2 text-gray-700">
+                      {hasSpecificLimit ? (
+                        <>
+                          <CalendarCheck className="h-4 w-4 text-amber-600" />
+                          <span className="font-medium flex items-center gap-1.5">
+                            Videos completados este mes
+                            <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                              <Star className="h-2.5 w-2.5" />
+                              Límite específico
+                            </span>
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="h-4 w-4" />
+                          <span className="font-medium">Videos completados este mes</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    {hasSpecificLimit && (
+                      <div className="flex items-center gap-1.5 mt-2 text-[11px] text-amber-700 bg-amber-100/50 px-2 py-1 rounded">
+                        <ListTodo className="h-3 w-3" />
+                        Tienes un límite mensual personalizado para este mes
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {isAtMonthlyLimit 
+                        ? `Has alcanzado tu límite mensual de ${videoLimits.monthlyLimit} videos. El contador se reiniciará el primer día del próximo mes.`
+                        : `Has completado ${videoLimits.currentMonthlyCount} videos este mes de un total de ${videoLimits.monthlyLimit} permitidos.`}
+                    </p>
+                    <p className="text-xs mt-1 text-gray-500">
+                      {isAtMonthlyLimit
+                        ? "Podrás continuar trabajando en videos ya asignados pero no podrás tomar nuevos hasta el próximo mes."
+                        : `Puedes completar ${videoLimits.monthlyLimit - videoLimits.currentMonthlyCount} videos más este mes.`}
+                    </p>
+                    
+                    {hasSpecificLimit && (
+                      <div className="mt-2 pt-2 border-t border-amber-200/50">
+                        <p className="text-xs text-amber-700">
+                          <Info className="h-3 w-3 inline mr-1" />
+                          Tu supervisor ha establecido un límite personalizado para este mes específico.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
             
             <Button
@@ -286,31 +434,56 @@ export function VideoLimitsWidget() {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
               >
-                <div className={`mt-5 p-4 rounded-lg ${currentTheme.bgColor} flex items-start`}>
-                  {currentTheme.icon}
+                <div className="mt-5 p-4 rounded-lg bg-blue-50 flex items-start">
+                  <Info className="h-5 w-5 text-blue-500" />
                   <div className="ml-3">
-                    <p className={`text-sm ${currentTheme.textColor} font-medium`}>
-                      {isAtLimit 
-                        ? "Has alcanzado tu límite máximo de videos" 
-                        : isNearLimit 
-                          ? "Estás acercándote al límite de tu capacidad" 
-                          : usagePercentage > 40
-                            ? "Tienes una carga de trabajo moderada"
-                            : "Tienes buena capacidad para nuevos videos"}
+                    <p className="text-sm text-blue-600 font-medium">
+                      Tu sistema de límites de videos
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      {isAtLimit 
-                        ? "Para tomar nuevos videos, primero debes completar algunos de los que ya tienes asignados. Esto garantiza un flujo de trabajo equilibrado y de alta calidad." 
-                        : isNearLimit 
-                          ? `Puedes tomar ${videoLimits.maxAllowed - videoLimits.currentCount} videos más. Considera finalizar algunos de tus videos actuales antes de aceptar demasiados nuevos.` 
-                          : usagePercentage > 40
-                            ? `Estás utilizando el ${usagePercentage}% de tu capacidad. Aún puedes tomar ${videoLimits.maxAllowed - videoLimits.currentCount} videos adicionales sin sobrecargarte.`
-                            : `¡Excelente! Tienes disponible el ${100 - usagePercentage}% de tu capacidad, equivalente a ${videoLimits.maxAllowed - videoLimits.currentCount} videos adicionales que puedes asumir.`}
+                      Trabajas con dos tipos de límites para garantizar calidad y balance:
                     </p>
+                    <ul className="mt-2 text-sm space-y-2">
+                      <li className="flex gap-2">
+                        <Video className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <span>
+                          <strong className="text-gray-700">Límite de asignación:</strong> Máximo {videoLimits.maxAssignedAllowed} videos asignados a la vez. 
+                          Esto evita sobrecarga de trabajo y garantiza que puedas enfocarte.
+                        </span>
+                      </li>
+                      <li className="flex gap-2">
+                        {hasSpecificLimit ? (
+                          <CalendarCheck className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Calendar className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        )}
+                        <span>
+                          <strong className="text-gray-700 flex items-center gap-1.5">
+                            Límite mensual:
+                            {hasSpecificLimit && (
+                              <span className="bg-amber-100 text-amber-800 text-[10px] px-1 py-0.5 rounded-full flex items-center gap-0.5">
+                                <Star className="h-2 w-2" />
+                                Específico
+                              </span>
+                            )}
+                          </strong> 
+                          <span className="block mt-0.5">
+                            Máximo {videoLimits.monthlyLimit} videos completados por mes.
+                            Diseñado para mantener un ritmo saludable y sostenible.
+                          </span>
+                          {hasSpecificLimit && (
+                            <span className="block mt-1 text-xs text-amber-700">
+                              <Info className="h-3 w-3 inline mr-1" />
+                              Tu supervisor ha configurado un límite personalizado para este mes.
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    </ul>
                     <div className="mt-3 text-xs text-muted-foreground border-t border-muted/20 pt-2">
                       <span className="block">
-                        Tu límite personal es de <span className="font-medium">{videoLimits.maxAllowed} videos</span>. 
-                        Este límite está personalizado según tu capacidad y rendimiento.
+                        Estos límites están personalizados según tu capacidad y rendimiento. Si necesitas ajustarlos, 
+                        contacta a tu supervisor.
                       </span>
                     </div>
                   </div>

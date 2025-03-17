@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ProjectDropdown } from "./ProjectDropdown";
-import { TitulinVideo } from "@/hooks/useTitulin";
+import { TitulinVideo } from "../types";
 
 interface SendToOptimizeDialogProps {
   video: TitulinVideo;

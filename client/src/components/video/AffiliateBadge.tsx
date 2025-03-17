@@ -1,126 +1,112 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertCircle } from 'lucide-react';
 
 interface AffiliateBadgeProps {
   companyName: string;
-  isIncluded: boolean;
-  className?: string;
+  isIncluded?: boolean;
+  companyLogo?: string | null;
+  companyUrl?: string | null;
 }
 
 /**
- * Componente para mostrar un badge de empresa afiliada con su estado
+ * Badge que muestra información sobre un enlace de afiliado requerido
+ * Si el enlace ya está incluido, se muestra en verde
+ * Si no está incluido, se muestra en rojo con un icono de alerta
  */
-export function AffiliateBadge({ 
-  companyName, 
-  isIncluded, 
-  className = '' 
-}: AffiliateBadgeProps) {
+export function AffiliateBadge({ companyName, isIncluded = false, companyLogo, companyUrl }: AffiliateBadgeProps) {
   return (
-    <Badge 
-      variant={isIncluded ? "secondary" : "outline"} 
-      className={cn(
-        "gap-1 items-center flex py-1", 
-        isIncluded ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 border border-green-200 dark:border-green-800" : 
-                    "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-200 dark:border-amber-800",
-        className
-      )}
-    >
-      {isIncluded ? (
-        <ShieldCheck className="h-3 w-3" />
-      ) : (
-        <AlertCircle className="h-3 w-3" />
-      )}
-      <span className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]">
-        {companyName}
-      </span>
-    </Badge>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge 
+            variant={isIncluded ? "outline" : "destructive"}
+            className={`flex items-center gap-1 text-xs font-medium ${
+              isIncluded 
+                ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800' 
+                : 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800'
+            }`}
+          >
+            {/* Imagen del logo, si está disponible */}
+            {companyLogo && (
+              <img 
+                src={companyLogo} 
+                alt={`Logo de ${companyName}`} 
+                className="w-3.5 h-3.5 object-contain mr-0.5" 
+              />
+            )}
+            
+            {/* Icono de alerta sólo si no está incluido y no hay logo */}
+            {!isIncluded && !companyLogo && <AlertCircle className="w-3 h-3" />}
+            
+            <span>{isIncluded ? 'Afiliado: ' : 'Requiere: '}{companyName}</span>
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <div className="flex flex-col gap-2">
+            <p>
+              {isIncluded 
+                ? `Enlace de afiliado para ${companyName} incluido correctamente.` 
+                : `Se requiere incluir un enlace de afiliado para ${companyName}.`}
+            </p>
+            
+            {companyUrl && (
+              <p className="text-xs text-muted-foreground">
+                URL: {companyUrl}
+              </p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
-interface AffiliateInfo {
-  id: number;
-  companyName: string;
-  isIncluded: boolean;
-}
-
-interface AffiliatesBadgeContainerProps {
-  affiliates: AffiliateInfo[];
-  className?: string;
-  limit?: number;
-}
-
 /**
- * Contenedor para mostrar múltiples badges de afiliados con límite opcional
+ * Contenedor para múltiples badges de afiliados
  */
-export function AffiliatesBadgeContainer({ 
-  affiliates, 
-  className = '',
-  limit = 3
-}: AffiliatesBadgeContainerProps) {
-  if (!affiliates || affiliates.length === 0) {
-    return null;
-  }
+interface AffiliatesBadgeContainerProps {
+  affiliates: Array<{
+    id: number;
+    companyName: string;
+    isIncluded: boolean;
+    companyLogo?: string | null;
+    companyUrl?: string | null;
+  }>;
+  className?: string;
+}
+
+export function AffiliatesBadgeContainer({ affiliates, className = '' }: AffiliatesBadgeContainerProps) {
+  if (!affiliates || affiliates.length === 0) return null;
   
-  // Obtener el total de afiliados incluidos y pendientes
-  const includedCount = affiliates.filter(a => a.isIncluded).length;
-  const pendingCount = affiliates.length - includedCount;
-  
-  // Determinar si mostrar el badge de contador
-  const showCounter = affiliates.length > limit;
-  
-  // Limitar la cantidad de badges a mostrar
-  const visibleAffiliates = showCounter ? affiliates.slice(0, limit) : affiliates;
-  
-  // Número de badges adicionales que no se muestran
-  const hiddenCount = affiliates.length - visibleAffiliates.length;
+  // Filtramos para mostrar primero los no incluidos (que requieren acción)
+  const pendingAffiliates = affiliates.filter(a => !a.isIncluded);
+  const includedAffiliates = affiliates.filter(a => a.isIncluded);
   
   return (
-    <div className={`flex flex-wrap gap-1.5 ${className}`}>
-      {visibleAffiliates.map(affiliate => (
-        <AffiliateBadge
+    <div className={`flex flex-wrap gap-2 my-1.5 ${className}`}>
+      {/* Mostramos primero los pendientes */}
+      {pendingAffiliates.map(affiliate => (
+        <AffiliateBadge 
           key={affiliate.id}
           companyName={affiliate.companyName}
           isIncluded={affiliate.isIncluded}
+          companyLogo={affiliate.companyLogo}
+          companyUrl={affiliate.companyUrl}
         />
       ))}
       
-      {showCounter && (
-        <Badge 
-          variant="outline" 
-          className="bg-gray-50 text-gray-600 dark:bg-gray-900 dark:text-gray-400 border-gray-200 dark:border-gray-800"
-        >
-          +{hiddenCount} más
-        </Badge>
-      )}
-    </div>
-  );
-}
-
-/**
- * Componente para mostrar un indicador compacto del estado de afiliados
- */
-export function AffiliateStatusIndicator({ 
-  pendingCount, 
-  isCompact = false 
-}: { 
-  pendingCount: number, 
-  isCompact?: boolean 
-}) {
-  if (pendingCount === 0) return null;
-  
-  return (
-    <div 
-      className={cn(
-        "flex items-center gap-1 text-amber-600 dark:text-amber-500",
-        isCompact ? "text-xs" : "text-sm"
-      )}
-    >
-      <AlertCircle className={isCompact ? "w-3 h-3" : "w-4 h-4"} />
-      {!isCompact && (
-        <span>{pendingCount} afiliado{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}</span>
-      )}
+      {/* Luego los ya incluidos */}
+      {includedAffiliates.map(affiliate => (
+        <AffiliateBadge 
+          key={affiliate.id}
+          companyName={affiliate.companyName}
+          isIncluded={affiliate.isIncluded}
+          companyLogo={affiliate.companyLogo}
+          companyUrl={affiliate.companyUrl}
+        />
+      ))}
     </div>
   );
 }

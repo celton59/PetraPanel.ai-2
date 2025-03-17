@@ -159,8 +159,8 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
                 <AffiliatesBadgeContainer 
                   affiliates={affiliates.map(a => ({
                     id: a.id,
-                    companyName: a.company!.name,
-                    isIncluded: a.included_by_youtuber
+                    companyName: a.companyName,
+                    isIncluded: a.includedByYoutuber
                   }))}
                 />
               </div>

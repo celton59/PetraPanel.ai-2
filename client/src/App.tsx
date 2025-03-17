@@ -6,6 +6,7 @@ import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile/ProfilePage";
 import { useUser } from "@/hooks/use-user";
+import { Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import VideosPage from "@/pages/videos/VideosPage";
 import TrashPage from "@/pages/videos/TrashPage";

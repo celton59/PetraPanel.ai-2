@@ -172,13 +172,17 @@ export function setupAuth(app: Express) {
         console.log("Authenticating user:", username);
         
         // Seleccionar todos los campos pero manejamos posibles errores
-        // Convertir el nombre de usuario a minúsculas para comparación
-        const normalizedUsername = username.toLowerCase();
-
-        const [user] = await db
+        const usersResult = await db
           .select()
-          .from(users)
-          .where(eq(users.username, normalizedUsername));
+          .from(users);
+          
+        // Normalizar el nombre de usuario para comparación
+        const normalizedUsername = username.toLowerCase();
+        
+        // Filtrar manualmente con comparación normalizada
+        const user = usersResult.find(u => 
+          u.username.toLowerCase() === normalizedUsername
+        );
 
         // Si no encontramos usuario, registramos un intento fallido
         if (!user) {
