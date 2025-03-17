@@ -12,6 +12,14 @@ export interface VideoLimitsData {
   monthlyLimit: number;
   currentMonthlyCount: number;
   reachedMonthlyLimit: boolean;
+  
+  // Nuevos campos para límites mensuales específicos
+  specificMonthlyLimit?: boolean;
+  monthlyLimits?: Array<{
+    year: number;
+    month: number;
+    maxVideos: number;
+  }>;
 }
 
 /**
@@ -69,6 +77,47 @@ export const useVideoLimits = (userId?: number) => {
   // Determinar si ha alcanzado el límite mensual
   const isAtMonthlyLimit = videoLimits.reachedMonthlyLimit;
 
+  // Nueva función para establecer un límite mensual específico
+  const setMonthlyLimit = async (params: {
+    userId: number;
+    maxVideos: number;
+    year?: number;
+    month?: number;
+  }) => {
+    try {
+      const response = await axios.post('/api/youtuber/monthly-limit', params);
+      await refetch(); // Refrescar datos después de establecer el límite
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Error al establecer límite mensual:', error);
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Error al establecer límite mensual'
+      };
+    }
+  };
+
+  // Función para obtener todos los límites mensuales específicos de un usuario
+  const getAllMonthlyLimits = async (userId: number) => {
+    try {
+      const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error al obtener límites mensuales:', error);
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Error al obtener límites mensuales',
+        data: []
+      };
+    }
+  };
+
   return {
     videoLimits,
     isLoading,
@@ -81,6 +130,9 @@ export const useVideoLimits = (userId?: number) => {
     // Información de límites mensuales
     monthlyUsagePercentage,
     isNearMonthlyLimit,
-    isAtMonthlyLimit
+    isAtMonthlyLimit,
+    // Nuevas funciones para gestionar límites mensuales específicos
+    setMonthlyLimit,
+    getAllMonthlyLimits
   };
 };
