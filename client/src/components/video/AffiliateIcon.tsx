@@ -27,7 +27,7 @@ export function AffiliateIcon({ video, className }: AffiliateIconProps) {
   const firstMatch = affiliates[0];
   
   // Determina si ya se ha incluido el enlace de afiliado
-  const isAffiliateIncluded = firstMatch.included_by_youtuber;
+  const isAffiliateIncluded = firstMatch.includedByYoutuber;
   
   return (
     <TooltipProvider>
@@ -51,10 +51,10 @@ export function AffiliateIcon({ video, className }: AffiliateIconProps) {
             <div className="text-xs text-muted-foreground">
               {affiliates.map((match) => (
                 <div key={match.id} className="flex items-center gap-2 mb-1">
-                  {match.company && match.company.logo_url ? (
+                  {match.companyLogo ? (
                     <img 
-                      src={match.company.logo_url} 
-                      alt={match.company.name}
+                      src={match.companyLogo} 
+                      alt={match.companyName}
                       className="w-4 h-4 object-contain"
                     />
                   ) : (
@@ -62,7 +62,7 @@ export function AffiliateIcon({ video, className }: AffiliateIconProps) {
                       <Link className="w-3 h-3 text-primary" />
                     </div>
                   )}
-                  <span>{match.company?.name || "Empresa afiliada"}</span>
+                  <span>{match.companyName}</span>
                 </div>
               ))}
             </div>
