@@ -137,8 +137,8 @@ export function VideoLimitsWidget() {
 
   // Función para renderizar los círculos que representan videos
   const renderVideoCircles = () => {
-    const totalCircles = videoLimits.maxAllowed;
-    const filledCircles = videoLimits.currentCount;
+    const totalCircles = videoLimits.maxAssignedAllowed;
+    const filledCircles = videoLimits.currentAssignedCount;
     
     return (
       <div className="flex flex-wrap gap-1.5 mt-3 mb-1">
@@ -246,16 +246,16 @@ export function VideoLimitsWidget() {
                     <div className="flex items-baseline">
                       <motion.span 
                         className={`text-3xl font-bold ${currentTheme.textColor}`}
-                        key={videoLimits.currentCount}
+                        key={videoLimits.currentAssignedCount}
                         initial={{ y: -10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ type: "spring", stiffness: 300 }}
                       >
-                        {videoLimits.currentCount}
+                        {videoLimits.currentAssignedCount}
                       </motion.span>
                       <span className="text-sm text-muted-foreground mx-1.5 font-medium">de</span>
                       <span className="text-xl font-medium text-muted-foreground">
-                        {videoLimits.maxAllowed}
+                        {videoLimits.maxAssignedAllowed}
                       </span>
                     </div>
                     
@@ -303,12 +303,12 @@ export function VideoLimitsWidget() {
                     <div className="flex items-baseline">
                       <motion.span 
                         className={`text-3xl font-bold ${monthlyTheme.textColor}`}
-                        key={videoLimits.currentMonthCount}
+                        key={videoLimits.currentMonthlyCount}
                         initial={{ y: -10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ type: "spring", stiffness: 300 }}
                       >
-                        {videoLimits.currentMonthCount}
+                        {videoLimits.currentMonthlyCount}
                       </motion.span>
                       <span className="text-sm text-muted-foreground mx-1.5 font-medium">de</span>
                       <span className="text-xl font-medium text-muted-foreground">

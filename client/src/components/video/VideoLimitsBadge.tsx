@@ -14,11 +14,11 @@ export function VideoLimitsBadge() {
 
   // Siempre mostrar el badge, incluso durante la carga,
   // para evitar saltos en la interfaz
-  const count = isLoading ? 0 : videoLimits.currentCount;
-  const max = isLoading ? 10 : videoLimits.maxAllowed;
+  const count = isLoading ? 0 : videoLimits.currentAssignedCount;
+  const max = isLoading ? 10 : videoLimits.maxAssignedAllowed;
   
   // Datos de límites mensuales
-  const monthlyCount = isLoading ? 0 : videoLimits.currentMonthCount;
+  const monthlyCount = isLoading ? 0 : videoLimits.currentMonthlyCount;
   const monthlyMax = isLoading ? 50 : videoLimits.monthlyLimit;
 
   return (
