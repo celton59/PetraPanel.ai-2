@@ -38,11 +38,9 @@ export default function TitulinPage() {
   const [currentTab, setCurrentTab] = useState("overview");
 
   const { setTitleFilter, channelFilter, setChannelFilter, videos,
-        channels, refetch, pagination, totalVideos, viewsCount, likesCount,
-        handleDownloadCSV, isDownloading, isFetching, isLoading } = useTitulin()
+    channels, refetch, pagination, totalVideos, viewsCount, likesCount,
+    handleDownloadCSV, isDownloading, isFetching, isLoading } = useTitulin()
 
-  
-  // Estado para detectar si estamos en un dispositivo móvil
 
   // Efecto para gestionar la búsqueda
   useEffect(() => {
@@ -53,7 +51,6 @@ export default function TitulinPage() {
 
     return () => clearTimeout(timerId);
   }, [searchValue]);
-
 
   // Obtener el queryClient para poder usarlo más tarde
   const queryClient = useQueryClient();
@@ -124,7 +121,6 @@ export default function TitulinPage() {
     return channel?.name || channelId;
   };
 
-
   // Función para refrescar datos
   const refreshData = async () => {
     setIsRefreshing(true);
@@ -168,10 +164,10 @@ export default function TitulinPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start">
-                  <div className="relative flex-1 w-full">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="w-full">
                     <SearchBar
                       searchValue={searchValue}
                       setSearchValue={setSearchValue}
@@ -181,20 +177,20 @@ export default function TitulinPage() {
                     />
                   </div>
 
-                  <TableActions
-                    channelFilter={channelFilter}
-                    setChannelFilter={setChannelFilter}
-                    setCurrentPage={setCurrentPage}
-                    channels={channels}
-                    handleDownloadCSV={handleDownloadCSV}
-                    isDownloading={isDownloading}
-                    onlyEvergreen={onlyEvergreen}
-                    setOnlyEvergreen={setOnlyEvergreen}
-                    onlyAnalyzed={onlyAnalyzed}
-                    setOnlyAnalyzed={setOnlyAnalyzed}
-                    refreshData={refreshData}
-                    isRefreshing={isRefreshing}
-                  />
+                  <div className="w-full">
+                    <TableActions
+                      channelFilter={channelFilter}
+                      setChannelFilter={setChannelFilter}
+                      setCurrentPage={setCurrentPage}
+                      channels={channels}
+                      onlyEvergreen={onlyEvergreen}
+                      setOnlyEvergreen={setOnlyEvergreen}
+                      onlyAnalyzed={onlyAnalyzed}
+                      setOnlyAnalyzed={setOnlyAnalyzed}
+                      refreshData={refreshData}
+                      isRefreshing={isRefreshing}
+                    />
+                  </div>
                 </div>
 
                 {isLoading ? (
@@ -210,62 +206,62 @@ export default function TitulinPage() {
                       setAnalysisVideo={setAnalysisVideo}
                       getChannelName={getChannelName}
                       isLoading={isFetching}
+                      handleDownloadCSV={handleDownloadCSV}
+                      isDownloading={isDownloading}
                     />
+                    <div className="flex justify-between items-center mt-4 px-2">
+                      <div className="text-sm text-muted-foreground">
+                        {pagination.total > 0 ? (
+                          <span>
+                            Mostrando {Math.min((currentPage - 1) * pageSize + 1, pagination.total)} - {Math.min(currentPage * pageSize, pagination.total)} de {pagination.total} videos
+                          </span>
+                        ) : (
+                          <span>No hay videos que coincidan con los filtros</span>
+                        )}
+                      </div>
+
+                      <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={pagination.totalPages}
+                        setCurrentPage={setCurrentPage}
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* Paginación */}
-                <div className="flex justify-between items-center mt-4 px-2">
-                  <div className="text-sm text-muted-foreground">
-                    {pagination.total > 0 ? (
-                      <span>
-                        Mostrando {Math.min((currentPage - 1) * pageSize + 1, pagination.total)} - {Math.min(currentPage * pageSize, pagination.total)} de {pagination.total} videos
-                      </span>
-                    ) : (
-                      <span>No hay videos que coincidan con los filtros</span>
-                    )}
-                  </div>
 
-                  <PaginationControls
-                    currentPage={currentPage}
-                    totalPages={pagination.totalPages}
-                    setCurrentPage={setCurrentPage}
+                {selectedVideo && (
+                  <SendToOptimizeDialog
+                    video={selectedVideo}
+                    open={!!selectedVideo}
+                    onOpenChange={(open) => {
+                      if (!open) setSelectedVideo(null);
+                    }}
                   />
-                </div>
+                )}
+
+                {analysisVideo && (
+                  <VideoAnalysisDialog
+                    video={analysisVideo}
+                    open={!!analysisVideo}
+                    onOpenChange={(open) => {
+                      if (!open) setAnalysisVideo(null);
+                    }}
+                    onAnalysisComplete={() => {
+                      window.setTimeout(() => {
+                        queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
+                      }, 500);
+                    }}
+                  />
+                )}
+
+                {showComparisonDialog && (
+                  <TitleComparisonDialog
+                    open={showComparisonDialog}
+                    onOpenChange={setShowComparisonDialog}
+                  />
+                )}
               </motion.div>
-
-              {/* Mantener los diálogos y modales */}
-              {selectedVideo && (
-                <SendToOptimizeDialog
-                  video={selectedVideo}
-                  open={!!selectedVideo}
-                  onOpenChange={(open) => {
-                    if (!open) setSelectedVideo(null);
-                  }}
-                />
-              )}
-
-              {analysisVideo && (
-                <VideoAnalysisDialog
-                  video={analysisVideo}
-                  open={!!analysisVideo}
-                  onOpenChange={(open) => {
-                    if (!open) setAnalysisVideo(null);
-                  }}
-                  onAnalysisComplete={() => {
-                    window.setTimeout(() => {
-                      queryClient.invalidateQueries({ queryKey: ["youtube-videos"] });
-                    }, 500);
-                  }}
-                />
-              )}
-
-              {showComparisonDialog && (
-                <TitleComparisonDialog
-                  open={showComparisonDialog}
-                  onOpenChange={setShowComparisonDialog}
-                />
-              )}
             </VideoOverviewTab>
           </TabsContent>
 
