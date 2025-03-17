@@ -487,7 +487,7 @@ export function VideoLimitsTab() {
           <CardHeader className="bg-amber-50">
             <div className="flex items-center gap-2">
               <div className="bg-amber-100 p-1.5 rounded-full">
-                <CalendarCheck className="h-5 w-5 text-amber-600" />
+                <Calendar className="h-5 w-5 text-amber-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">Calendario de Límites Personalizados</CardTitle>
@@ -500,7 +500,7 @@ export function VideoLimitsTab() {
           <CardContent>
             <div className="bg-amber-50/50 -mt-2 -mx-2 p-4 mb-4 rounded-lg border border-amber-100">
               <h4 className="text-sm font-medium flex items-center gap-1.5 mb-2">
-                <Info className="h-4 w-4 text-amber-600" />
+                <Calendar className="h-4 w-4 text-amber-600" />
                 ¿Por qué usar límites mensuales personalizados?
               </h4>
               <p className="text-sm text-muted-foreground">
@@ -508,15 +508,15 @@ export function VideoLimitsTab() {
               </p>
               <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                 <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-amber-600" />
+                  <Calendar className="h-3.5 w-3.5 text-amber-600" />
                   Temporadas altas o campañas especiales (aumentar el límite)
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-amber-600" />
+                  <Calendar className="h-3.5 w-3.5 text-amber-600" />
                   Períodos de vacaciones o baja actividad (reducir el límite)
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-amber-600" />
+                  <Calendar className="h-3.5 w-3.5 text-amber-600" />
                   Asignar cuotas de producción específicas por mes
                 </li>
               </ul>
@@ -703,188 +703,127 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
 
   // Renderizar vista de calendario
   const renderCalendarView = () => {
-    // Mostrar año actual y el siguiente
+    // Mostrar solo el año actual para simplificar
     const currentYear = new Date().getFullYear();
-    const years = [currentYear, currentYear + 1];
-
+    
     return (
-      <div className="space-y-8">
-        {years.map(year => (
-          <div key={year} className="space-y-2">
-            <h3 className="text-lg font-medium">{year}</h3>
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
-                const limit = monthlyLimits.find(l => l.year === year && l.month === month);
-                const styles = getMonthStyles(year, month);
-                
-                return (
-                  <Popover key={`${year}-${month}`}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "h-auto py-3 justify-start border",
-                          styles.background,
-                          styles.text,
-                          styles.border,
-                          styles.hover,
-                          "transition-all duration-200"
-                        )}
-                      >
-                        <div className="w-full">
-                          <div className="flex items-center justify-between w-full">
-                            <span className="font-medium">{getMonthName(month)}</span>
-                            {limit && (
-                              <Badge
-                                variant="outline"
-                                className={cn("ml-1 text-xs", styles.text, "border-current")}
-                              >
-                                {limit.maxVideos}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {limit ? (
-                            <div className="w-full h-1.5 bg-gray-100 rounded-full mt-2">
-                              <div 
-                                className={cn(
-                                  "h-full rounded-full",
-                                  limit.maxVideos >= 80 ? "bg-emerald-500" :
-                                  limit.maxVideos >= 50 ? "bg-green-500" :
-                                  limit.maxVideos >= 30 ? "bg-blue-500" :
-                                  limit.maxVideos >= 15 ? "bg-amber-500" : "bg-red-500"
-                                )}
-                                style={{ width: `${Math.min(limit.maxVideos, 100)}%` }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full h-1.5 mt-2 bg-gray-100 rounded-full" />
-                          )}
-                        </div>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72 p-0" align="start">
-                      <div className="p-4 pb-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium">
-                            {getMonthName(month)} {year}
-                          </h4>
-                          {limit ? (
-                            <Badge variant="outline" className={cn(styles.text, "border-current")}>
-                              {limit.maxVideos} videos
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-gray-500">
-                              Sin límite específico
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <Separator className="my-4" />
-                      <div className="p-4 pt-0 space-y-4">
-                        <Form {...form}>
-                          <form className="space-y-4">
-                            <FormField
-                              control={form.control}
-                              name="maxVideos"
-                              render={({ field }) => (
-                                <FormItem className="space-y-1">
-                                  <FormLabel className="text-xs">Establecer límite</FormLabel>
-                                  <div className="flex items-center gap-2">
-                                    <FormControl>
-                                      <Input
-                                        type="number"
-                                        min={1}
-                                        placeholder="Límite"
-                                        className="h-8"
-                                        value={limit?.maxVideos || field.value}
-                                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                      />
-                                    </FormControl>
-                                    <Button 
-                                      size="sm"
-                                      className="h-8"
-                                      onClick={async () => {
-                                        const newLimit = form.getValues().maxVideos;
-                                        const result = await setMonthlyLimit({
-                                          userId,
-                                          maxVideos: newLimit,
-                                          year,
-                                          month
-                                        });
-                                        
-                                        if (result.success) {
-                                          const updatedLimits = await getAllMonthlyLimits(userId);
-                                          if (updatedLimits.success && updatedLimits.data) {
-                                            setMonthlyLimits(updatedLimits.data);
-                                          }
-                                          
-                                          toast({
-                                            title: "Límite actualizado",
-                                            description: `Límite para ${getMonthName(month)} ${year} establecido a ${newLimit} videos.`
-                                          });
-                                        } else {
-                                          toast({
-                                            title: "Error",
-                                            description: result.message || "No se pudo actualizar el límite",
-                                            variant: "destructive"
-                                          });
-                                        }
-                                      }}
-                                    >
-                                      Guardar
-                                    </Button>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          </form>
-                        </Form>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-amber-600" />
+            {currentYear}
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
+              const limit = monthlyLimits.find(l => l.year === currentYear && l.month === month);
+              const hasLimit = !!limit;
+              
+              return (
+                <div 
+                  key={`${currentYear}-${month}`}
+                  className={`p-3 rounded-md border ${hasLimit ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{getMonthName(month)}</span>
+                    {hasLimit ? (
+                      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
+                        {limit?.maxVideos} videos
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">
+                        Límite global
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2 mt-3">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Límite"
+                      className="h-8"
+                      defaultValue={limit?.maxVideos || 50}
+                      onChange={(e) => {
+                        form.setValue("maxVideos", parseInt(e.target.value));
+                      }}
+                    />
+                    
+                    <Button 
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={async () => {
+                        const newLimit = form.getValues().maxVideos;
+                        const result = await setMonthlyLimit({
+                          userId,
+                          maxVideos: newLimit,
+                          year: currentYear,
+                          month
+                        });
                         
-                        {limit && (
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            className="w-full h-8"
-                            onClick={async () => {
-                              const result = await setMonthlyLimit({
-                                userId,
-                                maxVideos: 0, // Usar 0 para eliminar el límite específico
-                                year,
-                                month
-                              });
-                              
-                              if (result.success) {
-                                const updatedLimits = await getAllMonthlyLimits(userId);
-                                if (updatedLimits.success && updatedLimits.data) {
-                                  setMonthlyLimits(updatedLimits.data);
-                                }
-                                
-                                toast({
-                                  title: "Límite eliminado",
-                                  description: `Límite para ${getMonthName(month)} ${year} eliminado correctamente.`
-                                });
-                              } else {
-                                toast({
-                                  title: "Error",
-                                  description: result.message || "No se pudo eliminar el límite",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar límite
-                          </Button>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              })}
-            </div>
+                        if (result.success) {
+                          const updatedLimits = await getAllMonthlyLimits(userId);
+                          if (updatedLimits.success && updatedLimits.data) {
+                            setMonthlyLimits(updatedLimits.data);
+                          }
+                          
+                          toast({
+                            title: "Límite actualizado",
+                            description: `Límite para ${getMonthName(month)} ${currentYear} establecido a ${newLimit} videos.`
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: result.message || "No se pudo actualizar el límite",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      Guardar
+                    </Button>
+                  </div>
+                  
+                  {hasLimit && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full h-7 mt-2 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                      onClick={async () => {
+                        const result = await setMonthlyLimit({
+                          userId,
+                          maxVideos: 0, // Usar 0 para eliminar el límite específico
+                          year: currentYear,
+                          month
+                        });
+                        
+                        if (result.success) {
+                          const updatedLimits = await getAllMonthlyLimits(userId);
+                          if (updatedLimits.success && updatedLimits.data) {
+                            setMonthlyLimits(updatedLimits.data);
+                          }
+                          
+                          toast({
+                            title: "Límite eliminado",
+                            description: `Límite para ${getMonthName(month)} ${currentYear} eliminado correctamente.`
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: result.message || "No se pudo eliminar el límite",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      Eliminar límite específico
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        ))}
+        </div>
       </div>
     );
   };
