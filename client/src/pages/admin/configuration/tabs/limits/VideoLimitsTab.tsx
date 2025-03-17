@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -532,7 +532,7 @@ export function VideoLimitsTab() {
 /**
  * Componente para gestionar límites mensuales específicos
  * Permite configurar límites personalizados por mes y año
- * Versión simplificada para evitar excesivas consultas a la API
+ * Versión optimizada para reducir las llamadas a la API
  */
 function MonthlyLimitsManager({ userId }: { userId: number }) {
   const { toast } = useToast();
@@ -541,7 +541,9 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
   const [monthlyLimits, setMonthlyLimits] = useState<MonthlyLimit[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { setMonthlyLimit, getAllMonthlyLimits } = useVideoLimits(userId);
-  const [activeView, setActiveView] = useState<'table' | 'calendar'>('table'); // Cambiado a tabla por defecto
+  const [activeView, setActiveView] = useState<'table' | 'calendar'>('table');
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Formulario para añadir un nuevo límite mensual específico
   const form = useForm<MonthlyLimitFormValues>({
@@ -552,65 +554,79 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
     }
   });
 
-  // Cargar los límites mensuales específicos existentes
-  useEffect(() => {
-    let isMounted = true;
+  // Función para cargar límites con control de frecuencia
+  const fetchMonthlyLimits = useCallback(async (force = false) => {
+    if (!userId) return;
     
-    const fetchMonthlyLimits = async () => {
-      if (!userId) return;
+    const now = Date.now();
+    // Evitar consultas más frecuentes que cada 5 segundos, a menos que se fuerce
+    if (!force && now - lastFetchTime < 5000) {
+      console.log('Omitiendo consulta por límite de frecuencia');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const result = await getAllMonthlyLimits(userId);
+      setLastFetchTime(Date.now());
       
-      setIsLoading(true);
-      try {
-        const result = await getAllMonthlyLimits(userId);
-        
-        // Solo actualizamos el estado si el componente sigue montado
-        if (!isMounted) return;
-        
-        if (result.success && result.data) {
-          // Determinar el formato de los datos recibidos
-          if (Array.isArray(result.data)) {
-            // Si ya es un array, usarlo directamente
-            setMonthlyLimits(result.data);
-          } else if (result.data && Array.isArray(result.data.data)) {
-            // Si tiene una propiedad data que es un array
-            setMonthlyLimits(result.data.data);
-          } else {
-            console.error('Formato de datos inesperado:', result.data);
-            setMonthlyLimits([]);
-          }
+      if (result.success && result.data) {
+        // Determinar el formato de los datos recibidos
+        if (Array.isArray(result.data)) {
+          // Si ya es un array, usarlo directamente
+          setMonthlyLimits(result.data);
+        } else if (result.data && Array.isArray(result.data.data)) {
+          // Si tiene una propiedad data que es un array
+          setMonthlyLimits(result.data.data);
         } else {
-          console.error('Error al cargar límites mensuales:', result.message);
-          toast({
-            title: "Error",
-            description: "No se pudieron cargar los límites mensuales específicos",
-            variant: "destructive"
-          });
+          console.error('Formato de datos inesperado:', result.data);
+          setMonthlyLimits([]);
         }
-      } catch (error) {
-        // Solo mostramos el error si el componente sigue montado
-        if (!isMounted) return;
-        
-        console.error('Error al cargar límites mensuales:', error);
+      } else {
+        console.error('Error al cargar límites mensuales:', result.message);
         toast({
           title: "Error",
-          description: "Error al cargar los límites mensuales específicos",
+          description: "No se pudieron cargar los límites mensuales específicos",
           variant: "destructive"
         });
-      } finally {
-        // Solo actualizamos el estado si el componente sigue montado
-        if (isMounted) {
-          setIsLoading(false);
-        }
+      }
+    } catch (error) {
+      console.error('Error al cargar límites mensuales:', error);
+      toast({
+        title: "Error",
+        description: "Error al cargar los límites mensuales específicos",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, getAllMonthlyLimits, lastFetchTime, toast]);
+
+  // Efecto para la carga inicial de datos
+  useEffect(() => {
+    // Limpiar cualquier intervalo anterior al cambiar de usuario
+    if (fetchIntervalRef.current) {
+      clearInterval(fetchIntervalRef.current);
+      fetchIntervalRef.current = null;
+    }
+    
+    // Realizar la carga inicial
+    fetchMonthlyLimits(true);
+    
+    // Configurar intervalo de actualización (cada 30 segundos)
+    // Esto proporciona actualizaciones periódicas sin sobrecargar el servidor
+    fetchIntervalRef.current = setInterval(() => {
+      fetchMonthlyLimits(false);
+    }, 30000);
+    
+    // Cleanup al desmontar
+    return () => {
+      if (fetchIntervalRef.current) {
+        clearInterval(fetchIntervalRef.current);
+        fetchIntervalRef.current = null;
       }
     };
-
-    fetchMonthlyLimits();
-    
-    // Cleanup function para evitar actualizar el estado si el componente se desmonta
-    return () => {
-      isMounted = false;
-    };
-  }, [userId, getAllMonthlyLimits, toast]);
+  }, [userId, fetchMonthlyLimits]);
 
   // Manejar la creación de un nuevo límite mensual
   const handleCreateMonthlyLimit = async (data: MonthlyLimitFormValues) => {
@@ -624,20 +640,9 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
       });
 
       if (result.success) {
-        // Actualizar la lista de límites
-        const updatedLimits = await getAllMonthlyLimits(userId);
-        console.log('Límites actualizados tras crear:', updatedLimits);
-        if (updatedLimits.success && updatedLimits.data) {
-          // Determinar el formato de los datos recibidos
-          if (Array.isArray(updatedLimits.data)) {
-            setMonthlyLimits(updatedLimits.data);
-          } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
-            setMonthlyLimits(updatedLimits.data.data);
-          } else {
-            console.error('Formato de datos inesperado:', updatedLimits.data);
-          }
-        }
-
+        // Forzar recarga de límites mensuales, respetando el control de frecuencia
+        fetchMonthlyLimits(true);
+        
         toast({
           title: "Límite creado",
           description: "Límite mensual específico creado correctamente",
