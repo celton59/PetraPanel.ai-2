@@ -20,10 +20,22 @@ import {
 } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Search, Save, User, CalendarClock } from 'lucide-react';
+import { Search, Save, User, CalendarClock, Calendar, Plus } from 'lucide-react';
 import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { useVideoLimits } from "@/hooks/useVideoLimits";
 
 // Tipo para el usuario con sus límites
 interface UserWithLimits {
@@ -37,11 +49,25 @@ interface UserWithLimits {
   currentAssignedVideos: number;
 }
 
-// Interfaz para el formulario de límites
+// Interfaz para el formulario de límites básicos
 interface LimitsFormValues {
   userId: string;
   maxMonthlyVideos: number;
   maxAssignedVideos: number;
+}
+
+// Interfaz para el formulario de límites mensuales específicos
+interface MonthlyLimitFormValues {
+  year: number;
+  month: number;
+  maxVideos: number;
+}
+
+// Interfaz para representar un límite mensual específico
+interface MonthlyLimit {
+  year: number;
+  month: number;
+  maxVideos: number;
 }
 
 /**
@@ -447,6 +473,342 @@ export function VideoLimitsTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Nuevo componente para gestionar límites mensuales específicos */}
+      {selectedUser && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Límites Mensuales Específicos</CardTitle>
+            <CardDescription>
+              Configura límites personalizados para meses específicos para {selectedUser.fullName}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MonthlyLimitsManager userId={selectedUser.id} />
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Componente para gestionar límites mensuales específicos
+ * Permite configurar límites personalizados por mes y año
+ */
+function MonthlyLimitsManager({ userId }: { userId: number }) {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [monthlyLimits, setMonthlyLimits] = useState<MonthlyLimit[]>([]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const { setMonthlyLimit, getAllMonthlyLimits } = useVideoLimits(userId);
+
+  // Formulario para añadir un nuevo límite mensual específico
+  const form = useForm<MonthlyLimitFormValues>({
+    defaultValues: {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+      maxVideos: 50
+    }
+  });
+
+  // Cargar los límites mensuales específicos existentes
+  useEffect(() => {
+    const fetchMonthlyLimits = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getAllMonthlyLimits(userId);
+        if (result.success && result.data) {
+          setMonthlyLimits(result.data);
+        } else {
+          console.error('Error al cargar límites mensuales:', result.message);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los límites mensuales específicos",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Error al cargar límites mensuales:', error);
+        toast({
+          title: "Error",
+          description: "Error al cargar los límites mensuales específicos",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (userId) {
+      fetchMonthlyLimits();
+    }
+  }, [userId, getAllMonthlyLimits, toast]);
+
+  // Manejar la creación de un nuevo límite mensual
+  const handleCreateMonthlyLimit = async (data: MonthlyLimitFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const result = await setMonthlyLimit({
+        userId,
+        maxVideos: data.maxVideos,
+        year: data.year,
+        month: data.month
+      });
+
+      if (result.success) {
+        // Actualizar la lista de límites
+        const updatedLimits = await getAllMonthlyLimits(userId);
+        if (updatedLimits.success && updatedLimits.data) {
+          setMonthlyLimits(updatedLimits.data);
+        }
+
+        toast({
+          title: "Límite creado",
+          description: "Límite mensual específico creado correctamente",
+        });
+
+        // Cerrar el diálogo y reiniciar el formulario
+        setShowAddDialog(false);
+        form.reset({
+          year: new Date().getFullYear(),
+          month: new Date().getMonth() + 1,
+          maxVideos: 50
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "No se pudo crear el límite mensual",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error al crear límite mensual:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear el límite mensual específico",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Obtener nombre del mes
+  const getMonthName = (month: number) => {
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return months[month - 1] || 'Desconocido';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Botón para añadir nuevo límite */}
+      <div className="flex justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-1">Límites mensuales personalizados</h3>
+          <p className="text-xs text-muted-foreground">
+            Estos límites tienen precedencia sobre el límite mensual general
+          </p>
+        </div>
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Añadir límite específico
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Añadir límite mensual específico</DialogTitle>
+              <DialogDescription>
+                Configura un límite mensual personalizado para un mes y año específicos.
+              </DialogDescription>
+            </DialogHeader>
+
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateMonthlyLimit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="year"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Año</FormLabel>
+                        <Select
+                          value={field.value.toString()}
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar año" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {[...Array(5)].map((_, i) => {
+                              const year = new Date().getFullYear() + i;
+                              return (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="month"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mes</FormLabel>
+                        <Select
+                          value={field.value.toString()}
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar mes" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {[...Array(12)].map((_, i) => (
+                              <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                {getMonthName(i + 1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="maxVideos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número máximo de videos</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Establece el número máximo de videos para este mes específico
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Creando..." : "Crear límite"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Lista de límites mensuales específicos */}
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : monthlyLimits.length === 0 ? (
+        <Alert>
+          <AlertDescription>
+            No hay límites mensuales específicos configurados para este usuario.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Año</TableHead>
+                <TableHead>Mes</TableHead>
+                <TableHead>Límite de videos</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {monthlyLimits.map((limit) => (
+                <TableRow key={`${limit.year}-${limit.month}`}>
+                  <TableCell>{limit.year}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {getMonthName(limit.month)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {limit.maxVideos} videos
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={async () => {
+                        // Eliminar límite mensual (estableciendo el mismo valor que el límite global)
+                        const result = await setMonthlyLimit({
+                          userId,
+                          maxVideos: 0, // Usar 0 para eliminar el límite específico
+                          year: limit.year,
+                          month: limit.month
+                        });
+                        
+                        if (result.success) {
+                          // Actualizar la lista
+                          const updatedLimits = await getAllMonthlyLimits(userId);
+                          if (updatedLimits.success && updatedLimits.data) {
+                            setMonthlyLimits(updatedLimits.data);
+                          }
+                          
+                          toast({
+                            title: "Límite eliminado",
+                            description: `Límite para ${getMonthName(limit.month)} ${limit.year} eliminado correctamente.`
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: result.message || "No se pudo eliminar el límite",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
