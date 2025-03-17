@@ -291,7 +291,7 @@ export function UploadContentDetail({
         {/* Componente de gestión de afiliados */}
         {video && video.id && (
           <div className="mt-4">
-            <AffiliateManager videoId={video.id} className="overflow-hidden" />
+            <AffiliateManager video={video} className="overflow-hidden" />
           </div>
         )}
       </div>

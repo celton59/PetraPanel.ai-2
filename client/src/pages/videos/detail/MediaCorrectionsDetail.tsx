@@ -329,7 +329,7 @@ export function MediaCorrectionsDetail({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <AffiliateManager videoId={video.id} className="overflow-hidden" />
+            <AffiliateManager video={video} className="overflow-hidden" />
           </motion.div>
         )}
       </div>

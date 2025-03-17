@@ -12,7 +12,7 @@ import express from "express";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
-import { canYoutuberTakeMoreVideos, getYoutuberVideoLimits, setMonthlyLimit, getAllMonthlyLimits } from "./utils/youtuber-utils";
+import { getYoutuberVideoLimits, setMonthlyLimit, getAllMonthlyLimits } from "./utils/youtuber-utils";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
 import { setUpUserRoutes } from "./controllers/userController.js";
