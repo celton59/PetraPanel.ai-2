@@ -532,6 +532,7 @@ export function VideoLimitsTab() {
 /**
  * Componente para gestionar límites mensuales específicos
  * Permite configurar límites personalizados por mes y año
+ * Versión simplificada para evitar excesivas consultas a la API
  */
 function MonthlyLimitsManager({ userId }: { userId: number }) {
   const { toast } = useToast();
@@ -540,7 +541,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
   const [monthlyLimits, setMonthlyLimits] = useState<MonthlyLimit[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { setMonthlyLimit, getAllMonthlyLimits } = useVideoLimits(userId);
-  const [activeView, setActiveView] = useState<'table' | 'calendar'>('calendar');
+  const [activeView, setActiveView] = useState<'table' | 'calendar'>('table'); // Cambiado a tabla por defecto
 
   // Formulario para añadir un nuevo límite mensual específico
   const form = useForm<MonthlyLimitFormValues>({

@@ -77,6 +77,9 @@ export const useVideoLimits = (userId?: number) => {
   // Determinar si ha alcanzado el límite mensual
   const isAtMonthlyLimit = videoLimits.reachedMonthlyLimit;
 
+  // Cache para los límites mensuales específicos
+  const monthlyLimitsCache = new Map<number, { data: any[], timestamp: number }>();
+  
   // Nueva función para establecer un límite mensual específico
   const setMonthlyLimit = async (params: {
     userId: number;
@@ -87,6 +90,10 @@ export const useVideoLimits = (userId?: number) => {
     try {
       const response = await axios.post('/api/youtuber/monthly-limit', params);
       await refetch(); // Refrescar datos después de establecer el límite
+      
+      // Invalidar la caché para este usuario
+      monthlyLimitsCache.delete(params.userId);
+      
       return {
         success: true,
         message: response.data.message
@@ -99,11 +106,32 @@ export const useVideoLimits = (userId?: number) => {
       };
     }
   };
-
+  
   // Función para obtener todos los límites mensuales específicos de un usuario
+  // Con caché para reducir peticiones a la API
   const getAllMonthlyLimits = async (userId: number) => {
     try {
+      // Verificar caché para reducir llamadas a la API
+      const cachedData = monthlyLimitsCache.get(userId);
+      const now = Date.now();
+      
+      // Usar caché si existe y tiene menos de 30 segundos
+      if (cachedData && (now - cachedData.timestamp < 30000)) {
+        console.log('Usando caché para límites mensuales');
+        return {
+          success: true,
+          data: cachedData.data
+        };
+      }
+      
       const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);
+      
+      // Guardar en caché
+      monthlyLimitsCache.set(userId, {
+        data: response.data.data,
+        timestamp: now
+      });
+      
       return {
         success: true,
         data: response.data.data
