@@ -358,12 +358,12 @@ export function VideoLimitsWidget() {
                     <p className="text-xs text-muted-foreground mt-2">
                       {isAtMonthlyLimit 
                         ? `Has alcanzado tu límite mensual de ${videoLimits.monthlyLimit} videos. El contador se reiniciará el primer día del próximo mes.`
-                        : `Has completado ${videoLimits.currentMonthCount} videos este mes de un total de ${videoLimits.monthlyLimit} permitidos.`}
+                        : `Has completado ${videoLimits.currentMonthlyCount} videos este mes de un total de ${videoLimits.monthlyLimit} permitidos.`}
                     </p>
                     <p className="text-xs mt-1 text-gray-500">
                       {isAtMonthlyLimit
                         ? "Podrás continuar trabajando en videos ya asignados pero no podrás tomar nuevos hasta el próximo mes."
-                        : `Puedes completar ${videoLimits.monthlyLimit - videoLimits.currentMonthCount} videos más este mes.`}
+                        : `Puedes completar ${videoLimits.monthlyLimit - videoLimits.currentMonthlyCount} videos más este mes.`}
                     </p>
                   </div>
                 </TabsContent>
@@ -404,7 +404,7 @@ export function VideoLimitsWidget() {
                       <li className="flex gap-2">
                         <Video className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
                         <span>
-                          <strong className="text-gray-700">Límite de asignación:</strong> Máximo {videoLimits.maxAllowed} videos asignados a la vez. 
+                          <strong className="text-gray-700">Límite de asignación:</strong> Máximo {videoLimits.maxAssignedAllowed} videos asignados a la vez. 
                           Esto evita sobrecarga de trabajo y garantiza que puedas enfocarte.
                         </span>
                       </li>

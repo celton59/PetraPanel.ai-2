@@ -519,8 +519,7 @@ export function registerRoutes(app: Express): Server {
       try {
         if (!req.user) {
           return res.status(401).json({
-            success: false,
-            message: "No autorizado"
+            message: "No autenticado"
           });
         }
         
@@ -536,7 +535,6 @@ export function registerRoutes(app: Express): Server {
             userId = req.user.id;
           } else {
             return res.status(403).json({
-              success: false,
               message: "No tienes permisos para consultar datos de otros usuarios"
             });
           }
@@ -547,24 +545,28 @@ export function registerRoutes(app: Express): Server {
           // Si no es youtuber y no proporcionó un ID específico, error
           if (req.user.role !== 'youtuber' && req.user.role !== 'admin') {
             return res.status(403).json({
-              success: false,
               message: "Esta información solo está disponible para usuarios con rol youtuber o admin"
             });
           }
         }
         
+        console.log(`Consultando límites para usuario ID: ${userId}, por usuario ${req.user.username} (${req.user.role})`);
+        
         // Usar la nueva función que incluye tanto los límites de asignación como los mensuales
         const allLimits = await getYoutuberVideoLimits(userId);
         
         // Respuesta simplificada para que sea más fácil de usar en el frontend
-        res.json({
+        const responseData = {
           currentAssignedCount: allLimits.currentAssignedCount,
           maxAssignedAllowed: allLimits.maxAssignedAllowed,
           currentMonthlyCount: allLimits.currentMonthCount,
           monthlyLimit: allLimits.monthlyLimit,
           canTakeMore: allLimits.canTakeMoreVideos,
           reachedMonthlyLimit: allLimits.reachedMonthlyLimit
-        });
+        };
+        
+        console.log("Enviando respuesta:", JSON.stringify(responseData));
+        res.json(responseData);
       } catch (error) {
         console.error("Error obteniendo límites de videos:", error);
         res.status(500).json({

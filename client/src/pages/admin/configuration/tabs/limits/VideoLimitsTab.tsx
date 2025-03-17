@@ -74,21 +74,31 @@ export function VideoLimitsTab() {
       try {
         setIsLoading(true);
         const response = await axios.get('/api/users');
+        console.log('Respuesta completa:', response.data);
+        
+        if (!response.data || !response.data.data || !Array.isArray(response.data.data)) {
+          console.error('Formato de respuesta incorrecto:', response.data);
+          throw new Error('La respuesta de usuarios no tiene el formato esperado');
+        }
         
         // Obtener límites actuales para todos los usuarios (no filtrar por rol en el backend)
-        const usersWithLimitsPromises = response.data
+        const usersWithLimitsPromises = response.data.data
           .map(async (user: any) => {
             try {
               const limitsResponse = await axios.get(`/api/youtuber/video-limits?userId=${user.id}`);
+              console.log(`Límites para usuario ${user.id}:`, limitsResponse.data);
+              
+              // Asegurarse de que la estructura sea correcta
+              const limits = limitsResponse.data;
               return {
                 id: user.id,
                 username: user.username,
                 fullName: user.fullName,
                 role: user.role,
-                maxAssignedVideos: user.maxAssignedVideos || limitsResponse.data.maxAssignedAllowed || 10,
-                maxMonthlyVideos: user.maxMonthlyVideos || limitsResponse.data.monthlyLimit || 50,
-                currentMonthVideos: limitsResponse.data.currentMonthlyCount,
-                currentAssignedVideos: limitsResponse.data.currentAssignedCount
+                maxAssignedVideos: user.maxAssignedVideos || limits.maxAssignedAllowed || 10,
+                maxMonthlyVideos: user.maxMonthlyVideos || limits.monthlyLimit || 50,
+                currentMonthVideos: limits.currentMonthlyCount || 0,
+                currentAssignedVideos: limits.currentAssignedCount || 0
               };
             } catch (error) {
               console.error(`Error fetching limits for user ${user.id}:`, error);
@@ -156,7 +166,11 @@ export function VideoLimitsTab() {
       
       // Intentar actualizar mediante API
       try {
-        await axios.post(`/api/users/${userId}`, {
+        console.log(`Actualizando límites para usuario ${userId}:`, {
+          maxMonthlyVideos: data.maxMonthlyVideos,
+          maxAssignedVideos: data.maxAssignedVideos
+        });
+        await axios.put(`/api/users/${userId}`, {
           maxMonthlyVideos: data.maxMonthlyVideos,
           maxAssignedVideos: data.maxAssignedVideos
         });
