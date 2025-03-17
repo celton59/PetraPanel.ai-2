@@ -14,7 +14,7 @@ export const users = pgTable("users", {
   role: text("role", { enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"] }).notNull(),
   avatarUrl: text("avatar_url"),
   maxAssignedVideos: integer("max_assigned_videos").default(10), // Número máximo de videos que puede tener asignados simultáneamente, por defecto 10
-  maxMonthlyVideos: integer("max_monthly_videos").default(50), // Número máximo de videos que puede subir por mes, por defecto 50
+  maxMonthlyVideos: integer("max_monthly_videos").default(50), // Número máximo de videos que puede subir por mes (valor global por defecto), por defecto 50
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
@@ -371,4 +371,37 @@ export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
 export type InsertAffiliateCompany = typeof affiliateCompanies.$inferInsert;
 export type VideoAffiliateMatch = typeof videoAffiliateMatches.$inferSelect;
 export type InsertVideoAffiliateMatch = typeof videoAffiliateMatches.$inferInsert;
+
+// Tabla para configurar límites mensuales específicos por mes y usuario
+export const monthlyVideoLimits = pgTable("monthly_video_limits", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),  // 1-12 para representar el mes
+  maxVideos: integer("max_videos").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
+});
+
+// Relaciones para monthlyVideoLimits
+export const monthlyVideoLimitsRelations = relations(monthlyVideoLimits, ({ one }) => ({
+  user: one(users, {
+    fields: [monthlyVideoLimits.userId],
+    references: [users.id],
+  }),
+  creator: one(users, {
+    fields: [monthlyVideoLimits.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Tipos para límites mensuales
+export type MonthlyVideoLimit = typeof monthlyVideoLimits.$inferSelect;
+export type InsertMonthlyVideoLimit = typeof monthlyVideoLimits.$inferInsert;
+
+export const insertMonthlyVideoLimitSchema = createInsertSchema(monthlyVideoLimits);
+export const selectMonthlyVideoLimitSchema = createSelectSchema(monthlyVideoLimits);
 

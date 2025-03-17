@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { videos, users } from "@db/schema";
+import { videos, users, monthlyVideoLimits } from "@db/schema";
 import { and, eq, not, or, sql, between, gte, lte } from "drizzle-orm";
 
 /**
