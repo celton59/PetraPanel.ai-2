@@ -4,6 +4,7 @@ import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { VideoBadges } from "@/components/video/VideoBadges";
 import { VideoAffiliates } from "@/components/video/VideoAffiliates";
+import { AffiliateIconsColumn } from "@/components/video/AffiliateIconsColumn";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 // Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
@@ -23,6 +24,14 @@ import {
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
+import { Link2, CircleDollarSign, ExternalLink, TagIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -505,6 +514,7 @@ export default function VideosPage() {
                   <TableHead className="">Miniatura</TableHead>
                   <TableHead className="">Serie</TableHead>
                   <TableHead className="">Título</TableHead>
+                  <TableHead className="">Afiliados</TableHead>
                   <TableHead className="">Estado</TableHead>
                   <TableHead className="">Colaboradores</TableHead>
                   <TableHead className="">Actualización</TableHead>
@@ -593,7 +603,12 @@ export default function VideosPage() {
                     <TableCell>
                       <VideoBadges video={video} compact={true} />
                     </TableCell>
-                    {/* La celda de afiliados se ha integrado con el título para una presentación más elegante */}
+                    {/* Afiliados - Columna dedicada con iconos */}
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center">
+                        <AffiliateIconsColumn video={video} />
+                      </div>
+                    </TableCell>
                     {/* Updated */}
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDate(video.updatedAt, false)}
