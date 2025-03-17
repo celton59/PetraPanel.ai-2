@@ -5,6 +5,7 @@ import { UsersTab } from "./tabs/users/UsersTab";
 import { RolesTab } from "./tabs/roles/RolesTab";
 import { ProjectsTab } from "./tabs/project/ProjectsTab";
 import { VideoFlowTab } from "./tabs/workflow/VideoFlowTab";
+import { VideoLimitsTab } from "./tabs/limits/VideoLimitsTab";
 import { RatesTab } from "../accounting/RatesTab";
 import { FinanceConfigTab } from "../accounting/FinanceConfigTab";
 import TitulinTab from "./tabs/titulin/TitulinTab";
@@ -38,6 +39,7 @@ export default function ConfigurationPage() {
             <TabsTrigger value="proyectos">Proyectos</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="workflow">Flujo de trabajo</TabsTrigger>
+            <TabsTrigger value="limites">Límites de Videos</TabsTrigger>
             <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
             <TabsTrigger value="finanzas">Configuración Financiera</TabsTrigger>
             <TabsTrigger value="titulin">Titulín</TabsTrigger>
@@ -59,6 +61,10 @@ export default function ConfigurationPage() {
 
           <TabsContent value="workflow" className="space-y-4">
             <VideoFlowTab />
+          </TabsContent>
+
+          <TabsContent value="limites" className="space-y-4">
+            <VideoLimitsTab />
           </TabsContent>
 
           <TabsContent value="tarifas" className="space-y-4">
