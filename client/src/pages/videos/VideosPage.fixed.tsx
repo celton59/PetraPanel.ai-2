@@ -714,23 +714,22 @@ export default function VideosPage() {
                   <h3 className="font-medium text-sm line-clamp-2 mb-1 flex-1">
                     {video.optimizedTitle || video.title}
                   </h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
-                      copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
-                    }}
-                  >
-                    <Copy className="h-3 w-3" />
-                    <span className="sr-only">Copiar título</span>
-                  </Button>
-                </div>
-                {/* Afiliados mini-iconos para vista grid */}
-                <div className="-mt-1 mb-1">
-                  <VideoAffiliates video={video} compact={true} showHeader={false} />
+                  <div className="flex items-center gap-1">
+                    <AffiliateIcon video={video} className="mt-[2px]" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                        copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span className="sr-only">Copiar título</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
               
@@ -812,23 +811,22 @@ export default function VideosPage() {
                   <h3 className="font-medium text-sm line-clamp-1 mb-1 flex-1">
                     {video.optimizedTitle || video.title}
                   </h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
-                      copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
-                    }}
-                  >
-                    <Copy className="h-3 w-3" />
-                    <span className="sr-only">Copiar título</span>
-                  </Button>
-                </div>
-                {/* Afiliados mini-iconos para vista de lista */}
-                <div className="-mt-1">
-                  <VideoAffiliates video={video} compact={true} showHeader={false} />
+                  <div className="flex items-center gap-1">
+                    <AffiliateIcon video={video} className="mt-[2px]" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 -mt-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const seriesPrefix = video.seriesNumber ? `S${video.seriesNumber} - ` : '';
+                        copyToClipboard(`${seriesPrefix}${video.optimizedTitle || video.title}`, "Título copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span className="sr-only">Copiar título</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
               
