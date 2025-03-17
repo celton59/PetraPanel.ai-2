@@ -125,16 +125,17 @@ export const useVideoLimits = (userId?: number) => {
       }
       
       const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);
+      console.log('Respuesta de límites mensuales:', response.data);
       
       // Guardar en caché
       monthlyLimitsCache.set(userId, {
-        data: response.data.data,
+        data: response.data,
         timestamp: now
       });
       
       return {
         success: true,
-        data: response.data.data
+        data: response.data
       };
     } catch (error: any) {
       console.error('Error al obtener límites mensuales:', error);

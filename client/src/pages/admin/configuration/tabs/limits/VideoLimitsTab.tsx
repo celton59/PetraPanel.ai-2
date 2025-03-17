@@ -559,7 +559,19 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
       try {
         const result = await getAllMonthlyLimits(userId);
         if (result.success && result.data) {
-          setMonthlyLimits(result.data);
+          console.log('Datos de límites mensuales recibidos:', result.data);
+          
+          // Determinar el formato de los datos recibidos
+          if (Array.isArray(result.data)) {
+            // Si ya es un array, usarlo directamente
+            setMonthlyLimits(result.data);
+          } else if (result.data && Array.isArray(result.data.data)) {
+            // Si tiene una propiedad data que es un array
+            setMonthlyLimits(result.data.data);
+          } else {
+            console.error('Formato de datos inesperado:', result.data);
+            setMonthlyLimits([]);
+          }
         } else {
           console.error('Error al cargar límites mensuales:', result.message);
           toast({
@@ -599,8 +611,16 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
       if (result.success) {
         // Actualizar la lista de límites
         const updatedLimits = await getAllMonthlyLimits(userId);
+        console.log('Límites actualizados tras crear:', updatedLimits);
         if (updatedLimits.success && updatedLimits.data) {
-          setMonthlyLimits(updatedLimits.data);
+          // Determinar el formato de los datos recibidos
+          if (Array.isArray(updatedLimits.data)) {
+            setMonthlyLimits(updatedLimits.data);
+          } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
+            setMonthlyLimits(updatedLimits.data.data);
+          } else {
+            console.error('Formato de datos inesperado:', updatedLimits.data);
+          }
         }
 
         toast({
@@ -764,8 +784,16 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                         
                         if (result.success) {
                           const updatedLimits = await getAllMonthlyLimits(userId);
+                          console.log('Límites actualizados (calendario):', updatedLimits);
                           if (updatedLimits.success && updatedLimits.data) {
-                            setMonthlyLimits(updatedLimits.data);
+                            // Determinar el formato de los datos recibidos
+                            if (Array.isArray(updatedLimits.data)) {
+                              setMonthlyLimits(updatedLimits.data);
+                            } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
+                              setMonthlyLimits(updatedLimits.data.data);
+                            } else {
+                              console.error('Formato de datos inesperado:', updatedLimits.data);
+                            }
                           }
                           
                           toast({
@@ -800,8 +828,16 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                         
                         if (result.success) {
                           const updatedLimits = await getAllMonthlyLimits(userId);
+                          console.log('Límites actualizados (eliminar calendario):', updatedLimits);
                           if (updatedLimits.success && updatedLimits.data) {
-                            setMonthlyLimits(updatedLimits.data);
+                            // Determinar el formato de los datos recibidos
+                            if (Array.isArray(updatedLimits.data)) {
+                              setMonthlyLimits(updatedLimits.data);
+                            } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
+                              setMonthlyLimits(updatedLimits.data.data);
+                            } else {
+                              console.error('Formato de datos inesperado:', updatedLimits.data);
+                            }
                           }
                           
                           toast({
@@ -887,8 +923,16 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                         if (result.success) {
                           // Actualizar la lista
                           const updatedLimits = await getAllMonthlyLimits(userId);
+                          console.log('Límites actualizados (tabla):', updatedLimits);
                           if (updatedLimits.success && updatedLimits.data) {
-                            setMonthlyLimits(updatedLimits.data);
+                            // Determinar el formato de los datos recibidos
+                            if (Array.isArray(updatedLimits.data)) {
+                              setMonthlyLimits(updatedLimits.data);
+                            } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
+                              setMonthlyLimits(updatedLimits.data.data);
+                            } else {
+                              console.error('Formato de datos inesperado:', updatedLimits.data);
+                            }
                           }
                           
                           toast({
