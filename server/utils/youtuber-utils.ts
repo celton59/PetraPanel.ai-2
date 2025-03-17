@@ -1,6 +1,6 @@
 import { db } from "@db";
 import { videos, users } from "@db/schema";
-import { and, eq, not, or, sql } from "drizzle-orm";
+import { and, eq, not, or, sql, between, gte, lte } from "drizzle-orm";
 
 /**
  * Cuenta el número de videos que un youtuber tiene asignados actualmente
@@ -35,7 +35,50 @@ export async function countAssignedVideos(userId: number): Promise<number> {
 }
 
 /**
- * Verifica si un youtuber puede tomar más videos basado en su límite personal
+ * Cuenta el número de videos que un youtuber ha realizado en el mes actual
+ * @param userId ID del usuario youtuber
+ * @returns Número de videos realizados en el mes actual
+ */
+export async function countMonthlyVideos(userId: number): Promise<number> {
+  try {
+    // Obtener el primer día del mes actual
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    // Formatear fechas para mostrar en log
+    const firstDayStr = firstDayOfMonth.toISOString().split('T')[0];
+    const lastDayStr = lastDayOfMonth.toISOString().split('T')[0];
+    console.log(`Contando videos del mes (${firstDayStr} al ${lastDayStr}) para usuario ${userId}`);
+    
+    // Obtener todos los videos completados por el usuario en el mes actual
+    // Usamos updatedAt en lugar de completedAt, ya que el campo completedAt no existe
+    const monthlyVideos = await db
+      .select({ id: videos.id })
+      .from(videos)
+      .where(
+        and(
+          eq(videos.contentUploadedBy, userId),
+          eq(videos.status, "completed"),
+          eq(videos.isDeleted, false),
+          // Videos completados en el mes actual (basado en la fecha de última actualización)
+          and(
+            gte(videos.updatedAt, firstDayOfMonth),
+            lte(videos.updatedAt, lastDayOfMonth)
+          )
+        )
+      );
+    
+    console.log(`Videos del mes para usuario ${userId}:`, monthlyVideos.length);
+    return monthlyVideos.length;
+  } catch (error) {
+    console.error("Error al contar videos mensuales:", error);
+    return 0;
+  }
+}
+
+/**
+ * Verifica si un youtuber puede tomar más videos basado en su límite de asignación personal
  * @param userId ID del usuario youtuber
  * @returns { canTakeMore: boolean, currentCount: number, maxAllowed: number }
  */
@@ -74,6 +117,108 @@ export async function canYoutuberTakeMoreVideos(userId: number): Promise<{
       canTakeMore: false,
       currentCount: 0,
       maxAllowed: 0
+    };
+  }
+}
+
+/**
+ * Verifica si un youtuber ha alcanzado su límite mensual de videos
+ * @param userId ID del usuario youtuber
+ * @returns { reachedMonthlyLimit: boolean, currentCount: number, monthlyLimit: number }
+ */
+export async function checkMonthlyVideoLimit(userId: number): Promise<{
+  reachedMonthlyLimit: boolean;
+  currentMonthCount: number;
+  monthlyLimit: number;
+}> {
+  try {
+    // Obtener el usuario para verificar su límite mensual
+    const [user] = await db
+      .select({
+        maxMonthlyVideos: users.maxMonthlyVideos
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+    
+    // Obtener el número de videos completados en el mes actual
+    const currentMonthCount = await countMonthlyVideos(userId);
+    const monthlyLimit = user.maxMonthlyVideos || 50; // Valor predeterminado si no está definido
+    
+    return {
+      reachedMonthlyLimit: currentMonthCount >= monthlyLimit,
+      currentMonthCount,
+      monthlyLimit
+    };
+  } catch (error) {
+    console.error("Error al verificar límite mensual:", error);
+    // En caso de error, devolvemos que ha alcanzado el límite para evitar asignaciones indebidas
+    return {
+      reachedMonthlyLimit: true,
+      currentMonthCount: 0,
+      monthlyLimit: 0
+    };
+  }
+}
+
+/**
+ * Obtiene toda la información de límites de videos para un youtuber
+ * @param userId ID del usuario youtuber
+ * @returns Objeto con toda la información de límites
+ */
+export async function getYoutuberVideoLimits(userId: number): Promise<{
+  currentAssignedCount: number;
+  maxAssignedAllowed: number;
+  currentMonthCount: number;
+  monthlyLimit: number;
+  canTakeMoreVideos: boolean;
+  reachedMonthlyLimit: boolean;
+}> {
+  try {
+    // Obtener el usuario para verificar sus límites
+    const [user] = await db
+      .select({
+        maxAssignedVideos: users.maxAssignedVideos,
+        maxMonthlyVideos: users.maxMonthlyVideos
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+    
+    // Contar videos asignados y mensuales
+    const currentAssignedCount = await countAssignedVideos(userId);
+    const currentMonthCount = await countMonthlyVideos(userId);
+    
+    // Obtener límites (con valores predeterminados si no están definidos)
+    const maxAssignedAllowed = user.maxAssignedVideos || 10; 
+    const monthlyLimit = user.maxMonthlyVideos || 50;
+    
+    return {
+      currentAssignedCount,
+      maxAssignedAllowed,
+      currentMonthCount,
+      monthlyLimit,
+      canTakeMoreVideos: currentAssignedCount < maxAssignedAllowed,
+      reachedMonthlyLimit: currentMonthCount >= monthlyLimit
+    };
+  } catch (error) {
+    console.error("Error al obtener límites de videos:", error);
+    // En caso de error, devolvemos valores restrictivos
+    return {
+      currentAssignedCount: 0,
+      maxAssignedAllowed: 0,
+      currentMonthCount: 0,
+      monthlyLimit: 0,
+      canTakeMoreVideos: false,
+      reachedMonthlyLimit: true
     };
   }
 }

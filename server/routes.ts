@@ -12,7 +12,7 @@ import express from "express";
 import { StatsService } from "./services/stats";
 import { getOnlineUsersService } from "./services/online-users";
 import translatorRouter from "./routes/translator";
-import { canYoutuberTakeMoreVideos } from "./utils/youtuber-utils";
+import { canYoutuberTakeMoreVideos, getYoutuberVideoLimits } from "./utils/youtuber-utils";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
 import { setUpUserRoutes } from "./controllers/userController.js";
@@ -526,11 +526,21 @@ export function registerRoutes(app: Express): Server {
         }
 
         const userId = req.user.id as number;
-        const limits = await canYoutuberTakeMoreVideos(userId);
+        // Usar la nueva función que incluye tanto los límites de asignación como los mensuales
+        const allLimits = await getYoutuberVideoLimits(userId);
         
         res.json({
           success: true,
-          data: limits
+          data: {
+            // Mantenemos la estructura anterior para compatibilidad
+            canTakeMore: allLimits.canTakeMoreVideos,
+            currentCount: allLimits.currentAssignedCount,
+            maxAllowed: allLimits.maxAssignedAllowed,
+            // Añadimos la información de límites mensuales
+            monthlyLimit: allLimits.monthlyLimit,
+            currentMonthCount: allLimits.currentMonthCount,
+            reachedMonthlyLimit: allLimits.reachedMonthlyLimit
+          }
         });
       } catch (error) {
         console.error("Error obteniendo límites de videos:", error);
