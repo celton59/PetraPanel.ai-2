@@ -98,6 +98,42 @@ export function VideoAffiliates({
           className={compact ? "" : ""}
         />
       )}
+      
+      {/* Versión minimalista solo con iconos (para uso en tablas) */}
+      {!isLoading && affiliates.length > 0 && showHeader === false && compact && (
+        <div className="flex gap-1 items-center">
+          {affiliates.length > 0 && (
+            <div className="flex -space-x-1">
+              {affiliates.slice(0, 3).map(affiliate => (
+                <div 
+                  key={affiliate.id}
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border ${
+                    affiliate.isIncluded 
+                      ? 'bg-green-50 border-green-200 text-green-600' 
+                      : 'bg-amber-50 border-amber-200 text-amber-600'
+                  }`}
+                  title={`${affiliate.isIncluded ? 'Afiliado' : 'Requiere'}: ${affiliate.companyName}`}
+                >
+                  {affiliate.companyLogo ? (
+                    <img 
+                      src={affiliate.companyLogo} 
+                      alt={affiliate.companyName}
+                      className="w-3 h-3 object-contain" 
+                    />
+                  ) : (
+                    <TagIcon className="w-2.5 h-2.5" />
+                  )}
+                </div>
+              ))}
+              {affiliates.length > 3 && (
+                <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[9px] font-medium border border-border">
+                  +{affiliates.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
