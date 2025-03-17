@@ -70,15 +70,6 @@ export function SearchBar({
           </button>
         )}
       </div>
-      
-      <StandardSearchButton 
-        size="default"
-        variant="default"
-        iconOnly={false}
-        className="h-11 whitespace-nowrap font-medium"
-        disabled={isFetching}
-        onClick={handleSearch}
-      />
     </div>
   );
 }

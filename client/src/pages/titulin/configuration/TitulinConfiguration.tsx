@@ -28,9 +28,9 @@ import axios from "axios";
 import { toast } from "sonner";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { useTitulinChannels } from "@/hooks/useTitulinChannels";
 import { ImprovedTrainingExamplesDialog } from "./ImprovedTrainingExamplesDialog";
 import { TitleComparisonDialog } from "./TitleComparisonDialog";
+import { useTitulin } from "@/hooks/useTitulin";
 
 export default function TitulinConfiguration () {
   const [isAddingChannel, setIsAddingChannel] = useState(false);
@@ -41,31 +41,10 @@ export default function TitulinConfiguration () {
   const [showTitleComparison, setShowTitleComparison] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isCleaningOrphanedVideos, setIsCleaningOrphanedVideos] = useState(false);
   const queryClient = useQueryClient();
 
   // Consulta para canales usando el hook personalizado
-  const { channels, isLoading: isLoadingChannels } = useTitulinChannels();
-  
-  // Consulta para estadísticas
-  const { data: statsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ["titulin-stats"],
-    queryFn: async () => {
-      try {
-        const response = await axios.get("/api/stats/overall");
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-        return {
-          total_videos: 0,
-          total_optimizations: 0,
-          total_uploads: 0,
-          titulin_analyzed: 0,
-          titulin_evergreen: 0
-        };
-      }
-    },
-  });
+  const { channels, isLoading } = useTitulin()
   
   // Consulta para estadísticas de canales y videos analizados de Titulin
   const { data: titulinStats, isLoading: isLoadingTitulinStats } = useQuery({
@@ -203,10 +182,7 @@ export default function TitulinConfiguration () {
     onError: (error) => {
       console.error("Error limpiando videos huérfanos:", error);
       toast.error("No se pudieron limpiar los videos huérfanos");
-    },
-    onSettled: () => {
-      setIsCleaningOrphanedVideos(false);
-    },
+    }
   });
 
   const handleAddChannel = async () => {
@@ -231,11 +207,8 @@ export default function TitulinConfiguration () {
   };
   
   const cleanupOrphanedVideos = () => {
-    setIsCleaningOrphanedVideos(true);
     cleanupOrphanedVideosMutation.mutate();
   };
-
-  const isLoading = isLoadingChannels || isLoadingStats || isLoadingTitulinStats;
   
   if (isLoading) {
     return (
@@ -470,13 +443,13 @@ export default function TitulinConfiguration () {
                   </div>
                   <span>&rarr;</span>
                 </Button>
-                {channels.length > 0 && (
+                {(channels?.length ?? 0) > 0 && (
                   <Button variant="outline" className="w-full flex items-center justify-between" 
                     onClick={() => {
-                      const activeChannel = channels.find(c => c.active);
+                      const activeChannel = channels?.find(c => c.active);
                       if (activeChannel) handleSyncChannel(activeChannel.id, activeChannel.channelId);
                     }}
-                    disabled={!channels.some(c => c.active)}
+                    disabled={!channels?.some(c => c.active)}
                   >
                     <div className="flex items-center">
                       <RefreshCw className="mr-2 h-4 w-4" />
@@ -546,8 +519,8 @@ export default function TitulinConfiguration () {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {channels.length > 0 ? (
-                      channels.map((channel) => (
+                    {(channels?.length ?? 0) > 0 ? (
+                      channels?.map((channel) => (
                         <TableRow key={channel.id}>
                           <TableCell>
                             <div className="w-16 h-12 bg-muted rounded overflow-hidden">

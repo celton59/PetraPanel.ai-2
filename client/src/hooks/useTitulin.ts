@@ -1,15 +1,34 @@
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { TitulinVideo, Channel, VideoResponse } from "../types";
+import { YoutubeChannel, YoutubeVideo } from "@db/schema";
+
+export interface TitulinVideo extends Omit<YoutubeVideo, 'publishedAt'> {
+  publishedAt?: string
+}
+
+export interface TitulinChannel extends Omit<YoutubeChannel, 'lastVideoFetch'> {
+  lastVideoFetch?: string
+}
+
+export interface VideoResponse {
+  videos: TitulinVideo[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }
+}
 
 export function useTitulin() {
-  const queryClient = useQueryClient();
   const [titleFilter, setTitleFilter] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [onlyEvergreen, setOnlyEvergreen] = useState(false);
+  const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
   
   // Estados para paginación y búsqueda
@@ -49,13 +68,15 @@ export function useTitulin() {
   }, [searchValue, titleFilter, setTitleFilter]);
 
   // Obtener videos
-  const { data: videosData, isLoading, isFetching } = useQuery<VideoResponse>({
+  const { data: videosData, isLoading, isFetching, refetch: refetchVideos } = useQuery<VideoResponse>({
     queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter],
     queryFn: async () => {
       // Parámetros de búsqueda simplificados
       const searchParams = {
         ...(channelFilter !== "all" ? { channelId: channelFilter } : {}),
         ...(titleFilter ? { title: titleFilter } : {}),
+        ...(onlyEvergreen ? { isEvergreen: true } : {}),
+        ...(onlyAnalyzed ? { analyzed: true } : {}),
         page: currentPage,
         limit: pageSize
       };
@@ -77,7 +98,7 @@ export function useTitulin() {
   const pagination = videosData?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
 
   // Obtener canales
-  const { data: channels } = useQuery<Channel[]>({
+  const { data: channels, refetch: refetchChannels } = useQuery<TitulinChannel[]>({
     queryKey: ["youtube-channels"],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/channels");
@@ -98,7 +119,7 @@ export function useTitulin() {
   const viewsCount = statsData?.totalViews || 0;
   const likesCount = statsData?.totalLikes || 0;
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     try {
       const date = parseISO(dateString);
@@ -110,7 +131,7 @@ export function useTitulin() {
     }
   };
 
-  const formatLastUpdate = (dateString: string | null) => {
+  const formatLastUpdate = (dateString?: string) => {
     if (!dateString) return "No hay datos";
     try {
       const date = parseISO(dateString);
@@ -130,11 +151,11 @@ export function useTitulin() {
       return selectedChannel ? formatLastUpdate(selectedChannel.lastVideoFetch) : "Canal no encontrado";
     }
 
-    const lastUpdate = channels.reduce((latest, channel) => {
+    const lastUpdate = channels.reduce((latest: string | undefined, channel) => {
       if (!channel.lastVideoFetch) return latest;
       if (!latest) return channel.lastVideoFetch;
       return channel.lastVideoFetch > latest ? channel.lastVideoFetch : latest;
-    }, null as string | null);
+    }, undefined);
 
     return formatLastUpdate(lastUpdate);
   };
@@ -175,8 +196,8 @@ export function useTitulin() {
         published: formatDate(video.publishedAt),
         channel: getChannelName(video.channelId),
         duration: video.duration,
-        isEvergreen: video.analyzed && video.analysisData ? (video.analysisData.isEvergreen ? "Sí" : "No") : "No analizado",
-        url: `https://youtube.com/watch?v=${video.videoId}`
+        isEvergreen: video.analyzed && video.analysisData ? (video.isEvergreen ? "Sí" : "No") : "No analizado",
+        url: `https://youtube.com/watch?v=${video.youtubeId}`
       }));
       
       // Convertir a formato CSV
@@ -251,6 +272,14 @@ export function useTitulin() {
     handleDownloadCSV,
     handleClearSearch,
     getLastUpdateInfo,
-    getChannelName
+    getChannelName,
+    setOnlyAnalyzed,
+    setOnlyEvergreen,
+    onlyEvergreen,
+    onlyAnalyzed,
+    refetch: () => {
+      refetchVideos();
+      refetchChannels();
+    }
   };
 }
