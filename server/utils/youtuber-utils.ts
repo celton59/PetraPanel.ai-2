@@ -192,11 +192,6 @@ export async function setMonthlyLimit(
 }
 
 /**
- * Obtiene toda la información de límites de videos para un youtuber
- * @param userId ID del usuario youtuber
- * @returns Objeto con toda la información de límites
- */
-/**
  * Obtiene el límite mensual específico para un usuario y un mes/año concreto
  * @param userId ID del usuario youtuber
  * @param year Año (por defecto año actual)
@@ -228,12 +223,10 @@ export async function getMonthlyLimit(
 
     // Si existe un límite específico, lo devolvemos
     if (specificLimit) {
-      console.log(`Límite específico encontrado para usuario ${userId}, ${month}/${year}: ${specificLimit.maxVideos}`);
       return specificLimit.maxVideos;
     }
 
     // Si no existe límite específico, devolvemos null
-    console.log(`No se encontró límite específico para usuario ${userId}, ${month}/${year}`);
     return null;
   } catch (error) {
     console.error("Error al obtener límite mensual específico:", error);
@@ -266,7 +259,6 @@ export async function getAllMonthlyLimits(userId: number): Promise<Array<{
       .where(eq(monthlyVideoLimits.userId, userId))
       .orderBy(monthlyVideoLimits.year, monthlyVideoLimits.month);
 
-    console.log(`Límites mensuales para usuario ${userId}:`, limits);
     return limits;
   } catch (error) {
     console.error("Error al obtener límites mensuales:", error);
@@ -349,7 +341,7 @@ export async function getYoutuberVideoLimits(userId: number): Promise<{
           reason: monthlyLimitChanges.reason
         })
         .from(monthlyLimitChanges)
-        .where(eq(monthlyLimitChanges.limitId, specificLimit?.id))
+        .where(eq(monthlyLimitChanges.limitId, specificLimit.id))
         .orderBy(desc(monthlyLimitChanges.changedAt));
     }
 
@@ -380,41 +372,5 @@ export async function getYoutuberVideoLimits(userId: number): Promise<{
       canTakeMoreVideos: false,
       reachedMonthlyLimit: true
     };
-  }
-}
-
-export async function setMonthlyLimit(
-  userId: number,
-  maxVideos: number,
-  year: number = new Date().getFullYear(),
-  month: number = new Date().getMonth() + 1,
-  createdBy: number,
-  options?: {
-    isProrated?: boolean;
-    overrideReason?: string;
-    startDate?: Date;
-  }
-): Promise<boolean> {
-  try {
-    const { isProrated = false, overrideReason = null, startDate = null } = options || {};
-    let finalLimit = maxVideos;
-
-    if (isProrated && startDate) {
-      const endDate = new Date(year, month, 0);
-      finalLimit = calculateProratedLimit(maxVideos, startDate, endDate);
-    }
-
-    const [existingLimit] = await db.select({ id: monthlyVideoLimits.id, currentLimit: monthlyVideoLimits.maxVideos }).from(monthlyVideoLimits).where(and(eq(monthlyVideoLimits.userId, userId), eq(monthlyVideoLimits.year, year), eq(monthlyVideoLimits.month, month))).limit(1);
-
-    if (existingLimit) {
-      await db.insert(monthlyLimitChanges).values({ limitId: existingLimit.id, previousLimit: existingLimit.currentLimit, newLimit: finalLimit, reason: overrideReason, changedBy: createdBy, changedAt: new Date() });
-      await db.update(monthlyVideoLimits).set({ maxVideos: finalLimit, isProrated, overrideReason, updatedAt: new Date() }).where(eq(monthlyVideoLimits.id, existingLimit.id));
-    } else {
-      await db.insert(monthlyVideoLimits).values({ userId, year, month, maxVideos: finalLimit, isProrated, overrideReason, createdBy, createdAt: new Date(), updatedAt: new Date() });
-    }
-    return true;
-  } catch (error) {
-    console.error("Error al establecer límite mensual específico:", error);
-    return false;
   }
 }
