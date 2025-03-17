@@ -13,8 +13,8 @@ export const users = pgTable("users", {
   phone: text("phone"),
   role: text("role", { enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"] }).notNull(),
   avatarUrl: text("avatar_url"),
-  maxAssignedVideos: integer("max_assigned_videos").default(10),
-  maxMonthlyVideos: integer("max_monthly_videos").default(50),
+  maxAssignedVideos: integer("max_assigned_videos").default(10), // Número máximo de videos que puede tener asignados simultáneamente, por defecto 10
+  maxMonthlyVideos: integer("max_monthly_videos").default(50), // Número máximo de videos que puede subir por mes (valor global por defecto), por defecto 50
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
@@ -81,11 +81,11 @@ export const videos = pgTable("videos", {
   seriesNumber: text("series_number"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-
+  
   optimizedTitle: text("optimized_title"),
   optimizedDescription: text("optimized_description"),
   optimizedBy: integer("optimized_by").references(() => users.id),
-
+  
   contentReviewedBy: integer("content_reviewed_by").references(() => users.id),
   contentLastReviewedAt: timestamp("content_last_reviewed_at"),
   contentReviewComments: text("content_review_comments").array(),
@@ -99,14 +99,13 @@ export const videos = pgTable("videos", {
   mediaReviewComments: text("media_review_comments").array(),
   mediaVideoNeedsCorrection: boolean("media_video_needs_correction"),
   mediaThumbnailNeedsCorrection: boolean("media_thumbnail_needs_correction"),
-
+  
   publishedAt: timestamp("published_at"),
-
+  
   // Campos para la papelera
   isDeleted: boolean("is_deleted").default(false),
   deletedAt: timestamp("deleted_at"),
-  deletedBy: integer("deleted_by").references(() => users.id),
-  completedAt: timestamp("completed_at")
+  deletedBy: integer("deleted_by").references(() => users.id)
 });
 
 export type Video = typeof videos.$inferSelect
@@ -128,25 +127,25 @@ export const youtube_channels = pgTable("youtube_channels", {
   lastVideoFetch: timestamp("last_video_fetch"),
   lastAnalysis: timestamp("last_analysis"),
   active: boolean("active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+   createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  });
 
 export type YoutubeChannel = typeof youtube_channels.$inferSelect;
 
 // Tabla para configurar las tarifas por acción según el rol
 export const actionRates = pgTable("action_rates", {
   id: serial("id").primaryKey(),
-  actionType: text("action_type", {
+  actionType: text("action_type", { 
     enum: [
-      "content_optimization",
-      "content_review",
-      "upload_media",
-      "media_review",
+      "content_optimization", 
+      "content_review", 
+      "upload_media", 
+      "media_review", 
       "video_creation"
-    ]
+    ] 
   }).notNull(),
-  roleId: text("role_id", {
+  roleId: text("role_id", { 
     enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"]
   }).notNull(),
   rate: numeric("rate").notNull(),
@@ -190,14 +189,14 @@ export const userActions = pgTable("user_actions", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  actionType: text("action_type", {
+  actionType: text("action_type", { 
     enum: [
-      "content_optimization",
-      "content_review",
-      "upload_media",
-      "media_review",
+      "content_optimization", 
+      "content_review", 
+      "upload_media", 
+      "media_review", 
       "video_creation"
-    ]
+    ] 
   }).notNull(),
   videoId: integer("video_id")
     .references(() => videos.id, { onDelete: "cascade" }),
@@ -249,8 +248,8 @@ export const notifications = pgTable("notifications", {
     .notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  type: text("type", {
-    enum: ["info", "success", "warning", "error", "system"]
+  type: text("type", { 
+    enum: ["info", "success", "warning", "error", "system"] 
   }).notNull().default("info"),
   isRead: boolean("is_read").default(false),
   isArchived: boolean("is_archived").default(false),
@@ -375,6 +374,7 @@ export const affiliateCompanyRelations = relations(affiliateCompanies, ({ many }
 export type AffiliateCompany = typeof affiliateCompanies.$inferSelect;
 export type InsertAffiliateCompany = typeof affiliateCompanies.$inferInsert;
 
+// Tabla para configurar límites mensuales específicos por mes y usuario
 export const monthlyVideoLimits = pgTable("monthly_video_limits", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
@@ -383,25 +383,9 @@ export const monthlyVideoLimits = pgTable("monthly_video_limits", {
   year: integer("year").notNull(),
   month: integer("month").notNull(),  // 1-12 para representar el mes
   maxVideos: integer("max_videos").notNull(),
-  isProrated: boolean("is_prorated").default(false),  // For partial month limits
-  overrideReason: text("override_reason"),  // Document why a limit was changed
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdBy: integer("created_by").references(() => users.id),
-});
-
-export const monthlyLimitChanges = pgTable("monthly_limit_changes", {
-  id: serial("id").primaryKey(),
-  limitId: integer("limit_id")
-    .notNull()
-    .references(() => monthlyVideoLimits.id),
-  previousLimit: integer("previous_limit").notNull(),
-  newLimit: integer("new_limit").notNull(),
-  reason: text("reason"),
-  changedBy: integer("changed_by")
-    .notNull()
-    .references(() => users.id),
-  changedAt: timestamp("changed_at").defaultNow(),
 });
 
 // Relaciones para monthlyVideoLimits
@@ -416,28 +400,10 @@ export const monthlyVideoLimitsRelations = relations(monthlyVideoLimits, ({ one 
   }),
 }));
 
-// Relaciones para monthlyLimitChanges
-export const monthlyLimitChangesRelations = relations(monthlyLimitChanges, ({ one }) => ({
-  limit: one(monthlyVideoLimits, {
-    fields: [monthlyLimitChanges.limitId],
-    references: [monthlyVideoLimits.id],
-  }),
-  user: one(users, {
-    fields: [monthlyLimitChanges.changedBy],
-    references: [users.id],
-  }),
-}));
-
-
 // Tipos para límites mensuales
 export type MonthlyVideoLimit = typeof monthlyVideoLimits.$inferSelect;
 export type InsertMonthlyVideoLimit = typeof monthlyVideoLimits.$inferInsert;
 
-export type MonthlyLimitChange = typeof monthlyLimitChanges.$inferSelect;
-export type InsertMonthlyLimitChange = typeof monthlyLimitChanges.$inferInsert;
-
 export const insertMonthlyVideoLimitSchema = createInsertSchema(monthlyVideoLimits);
 export const selectMonthlyVideoLimitSchema = createSelectSchema(monthlyVideoLimits);
 
-export const insertMonthlyLimitChangeSchema = createInsertSchema(monthlyLimitChanges);
-export const selectMonthlyLimitChangeSchema = createSelectSchema(monthlyLimitChanges);
