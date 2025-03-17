@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface VideoAffiliate {
   id: number;
@@ -15,90 +16,95 @@ export interface VideoAffiliate {
   updatedAt: string;
 }
 
+// Clave base para la caché de consultas
+const AFFILIATES_QUERY_KEY = 'videoAffiliates';
+
+/**
+ * Transforma los datos de afiliados desde la API al formato que necesitamos
+ */
+const transformAffiliateData = (affiliateData: any[]): VideoAffiliate[] => {
+  return affiliateData.map((affiliate: any) => ({
+    id: affiliate.id,
+    videoId: affiliate.video_id,
+    companyId: affiliate.company_id,
+    companyName: affiliate.company?.name || 'Desconocido',
+    companyLogo: affiliate.company?.logo_url,
+    companyUrl: affiliate.company?.affiliate_url,
+    includedByYoutuber: affiliate.included_by_youtuber || false,
+    notified: affiliate.notified || false,
+    createdAt: affiliate.created_at,
+    updatedAt: affiliate.updated_at
+  }));
+};
+
+/**
+ * Función para obtener afiliados desde el servidor
+ */
+const fetchVideoAffiliates = async (videoId: number): Promise<VideoAffiliate[]> => {
+  if (!videoId) return [];
+  
+  const response = await axios.get(`/api/affiliates/videos/${videoId}/matches`);
+  const affiliateData = response.data.data || [];
+  
+  return transformAffiliateData(affiliateData);
+};
+
 /**
  * Hook para gestionar los datos de afiliados de un video específico
+ * Utiliza react-query para caché y gestión de estado
  * @param videoId ID del video
  * @returns Estado y funciones para gestionar afiliados
  */
 export function useVideoAffiliates(videoId: number | undefined) {
-  const [affiliates, setAffiliates] = useState<VideoAffiliate[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const queryClient = useQueryClient();
+  
+  // Consulta con caché para obtener afiliados
+  const { 
+    data: affiliates = [], 
+    isLoading, 
+    error 
+  } = useQuery({
+    queryKey: [AFFILIATES_QUERY_KEY, videoId],
+    queryFn: () => videoId ? fetchVideoAffiliates(videoId) : Promise.resolve([]),
+    enabled: !!videoId,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    cacheTime: 10 * 60 * 1000, // 10 minutos
+  });
 
-  // Obtener afiliados al montar el componente o cuando cambia el videoId
-  useEffect(() => {
-    if (videoId) {
-      fetchAffiliates();
-    }
-  }, [videoId]);
-
-  // Función para obtener afiliados desde el servidor
-  const fetchAffiliates = async () => {
-    if (!videoId) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await axios.get(`/api/affiliates/videos/${videoId}/matches`);
-      const affiliateData = response.data.data || [];
-      
-      // Transformar los datos al formato que esperamos
-      const formattedAffiliates = affiliateData.map((affiliate: any) => ({
-        id: affiliate.id,
-        videoId: affiliate.video_id,
-        companyId: affiliate.company_id,
-        companyName: affiliate.company?.name || 'Desconocido',
-        companyLogo: affiliate.company?.logo_url,
-        companyUrl: affiliate.company?.affiliate_url,
-        includedByYoutuber: affiliate.included_by_youtuber || false,
-        notified: affiliate.notified || false,
-        createdAt: affiliate.created_at,
-        updatedAt: affiliate.updated_at
-      }));
-      
-      setAffiliates(formattedAffiliates);
-    } catch (error) {
-      console.error('Error al cargar afiliados:', error);
-      setError(error instanceof Error ? error : new Error('Error desconocido al cargar afiliados'));
-      setAffiliates([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Función para actualizar el estado de inclusión de un afiliado
-  const updateAffiliateStatus = async (affiliateId: number, isIncluded: boolean) => {
-    setIsUpdating(true);
-    
-    try {
+  // Mutación para actualizar el estado de inclusión de un afiliado
+  const updateAffiliateMutation = useMutation({
+    mutationFn: async ({ affiliateId, isIncluded }: { affiliateId: number, isIncluded: boolean }) => {
       const response = await axios.put(`/api/affiliates/matches/${affiliateId}/inclusion`, {
         included: isIncluded
       });
-      
-      if (response.data.success) {
-        // Actualizar el estado localmente
-        setAffiliates(prevAffiliates => 
-          prevAffiliates.map(affiliate => 
-            affiliate.id === affiliateId 
-              ? { ...affiliate, includedByYoutuber: isIncluded } 
+      return { success: response.data.success, affiliateId, isIncluded };
+    },
+    onSuccess: (data) => {
+      if (data.success && videoId) {
+        // Actualizar la caché con el nuevo estado
+        queryClient.setQueryData([AFFILIATES_QUERY_KEY, videoId], (oldData: VideoAffiliate[] | undefined) => {
+          if (!oldData) return [];
+          
+          return oldData.map(affiliate => 
+            affiliate.id === data.affiliateId 
+              ? { ...affiliate, includedByYoutuber: data.isIncluded } 
               : affiliate
-          )
-        );
+          );
+        });
         
-        toast.success(`Enlace de afiliado ${isIncluded ? 'marcado como incluido' : 'marcado como no incluido'}`);
-      } else {
-        throw new Error('Error al actualizar el estado del afiliado');
+        toast.success(`Enlace de afiliado ${data.isIncluded ? 'marcado como incluido' : 'marcado como no incluido'}`);
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error al actualizar estado de afiliado:', error);
       toast.error('No se pudo actualizar el estado del afiliado');
-      setError(error instanceof Error ? error : new Error('Error desconocido al actualizar afiliado'));
-    } finally {
-      setIsUpdating(false);
     }
-  };
+  });
+
+  // Función para actualizar el estado de inclusión de un afiliado
+  const updateAffiliateStatus = useCallback((affiliateId: number, isIncluded: boolean) => {
+    updateAffiliateMutation.mutate({ affiliateId, isIncluded });
+  }, [updateAffiliateMutation]);
 
   // Calcular número de afiliados pendientes (que no han sido incluidos)
   const pendingAffiliates = affiliates.filter(affiliate => !affiliate.includedByYoutuber).length;
@@ -110,6 +116,7 @@ export function useVideoAffiliates(videoId: number | undefined) {
     affiliates,
     isLoading,
     error,
+    isUpdating: updateAffiliateMutation.isLoading,
     updateAffiliateStatus,
     pendingAffiliates,
     hasAffiliates
