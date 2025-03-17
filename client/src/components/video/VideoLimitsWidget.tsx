@@ -15,7 +15,10 @@ import {
   PlayCircle,
   MonitorPlay,
   Sparkles,
-  Calendar
+  Calendar,
+  CalendarCheck,
+  Star,
+  ListTodo
 } from "lucide-react";
 import { useVideoLimits } from "@/hooks/useVideoLimits";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -43,6 +46,9 @@ export function VideoLimitsWidget() {
     isNearMonthlyLimit,
     isAtMonthlyLimit
   } = useVideoLimits();
+  
+  // Verificar si hay un límite mensual específico para este mes
+  const hasSpecificLimit = !isLoading && videoLimits.specificMonthlyLimit === true;
 
   // Trigger animation when component mounts
   useEffect(() => {
@@ -350,11 +356,39 @@ export function VideoLimitsWidget() {
                   </div>
                   
                   {/* Información de límite mensual */}
-                  <div className="bg-gray-50 p-3 rounded-md border border-gray-100 text-sm">
+                  <div className={cn(
+                    "p-3 rounded-md border text-sm",
+                    hasSpecificLimit 
+                      ? "bg-amber-50 border-amber-100" 
+                      : "bg-gray-50 border-gray-100"
+                  )}>
                     <div className="flex items-center gap-2 text-gray-700">
-                      <Calendar className="h-4 w-4" />
-                      <span className="font-medium">Videos completados este mes</span>
+                      {hasSpecificLimit ? (
+                        <>
+                          <CalendarCheck className="h-4 w-4 text-amber-600" />
+                          <span className="font-medium flex items-center gap-1.5">
+                            Videos completados este mes
+                            <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                              <Star className="h-2.5 w-2.5" />
+                              Límite específico
+                            </span>
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="h-4 w-4" />
+                          <span className="font-medium">Videos completados este mes</span>
+                        </>
+                      )}
                     </div>
+                    
+                    {hasSpecificLimit && (
+                      <div className="flex items-center gap-1.5 mt-2 text-[11px] text-amber-700 bg-amber-100/50 px-2 py-1 rounded">
+                        <ListTodo className="h-3 w-3" />
+                        Tienes un límite mensual personalizado para este mes
+                      </div>
+                    )}
+                    
                     <p className="text-xs text-muted-foreground mt-2">
                       {isAtMonthlyLimit 
                         ? `Has alcanzado tu límite mensual de ${videoLimits.monthlyLimit} videos. El contador se reiniciará el primer día del próximo mes.`
@@ -365,6 +399,15 @@ export function VideoLimitsWidget() {
                         ? "Podrás continuar trabajando en videos ya asignados pero no podrás tomar nuevos hasta el próximo mes."
                         : `Puedes completar ${videoLimits.monthlyLimit - videoLimits.currentMonthlyCount} videos más este mes.`}
                     </p>
+                    
+                    {hasSpecificLimit && (
+                      <div className="mt-2 pt-2 border-t border-amber-200/50">
+                        <p className="text-xs text-amber-700">
+                          <Info className="h-3 w-3 inline mr-1" />
+                          Tu supervisor ha establecido un límite personalizado para este mes específico.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -409,10 +452,31 @@ export function VideoLimitsWidget() {
                         </span>
                       </li>
                       <li className="flex gap-2">
-                        <Calendar className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        {hasSpecificLimit ? (
+                          <CalendarCheck className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Calendar className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        )}
                         <span>
-                          <strong className="text-gray-700">Límite mensual:</strong> Máximo {videoLimits.monthlyLimit} videos completados por mes.
-                          Diseñado para mantener un ritmo saludable y sostenible.
+                          <strong className="text-gray-700 flex items-center gap-1.5">
+                            Límite mensual:
+                            {hasSpecificLimit && (
+                              <span className="bg-amber-100 text-amber-800 text-[10px] px-1 py-0.5 rounded-full flex items-center gap-0.5">
+                                <Star className="h-2 w-2" />
+                                Específico
+                              </span>
+                            )}
+                          </strong> 
+                          <span className="block mt-0.5">
+                            Máximo {videoLimits.monthlyLimit} videos completados por mes.
+                            Diseñado para mantener un ritmo saludable y sostenible.
+                          </span>
+                          {hasSpecificLimit && (
+                            <span className="block mt-1 text-xs text-amber-700">
+                              <Info className="h-3 w-3 inline mr-1" />
+                              Tu supervisor ha configurado un límite personalizado para este mes.
+                            </span>
+                          )}
                         </span>
                       </li>
                     </ul>

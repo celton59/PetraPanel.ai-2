@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Search, Save, User, CalendarClock, Calendar, Plus } from 'lucide-react';
+import { 
+  Search, Save, User, CalendarClock, Calendar, Plus, Video, Info, 
+  Star, Trash2, Check, CalendarRange, Table2, CalendarCheck, ListTodo
+} from 'lucide-react';
 import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,6 +38,9 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { useVideoLimits } from "@/hooks/useVideoLimits";
 
 // Tipo para el usuario con sus límites
@@ -476,14 +482,45 @@ export function VideoLimitsTab() {
 
       {/* Nuevo componente para gestionar límites mensuales específicos */}
       {selectedUser && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Límites Mensuales Específicos</CardTitle>
-            <CardDescription>
-              Configura límites personalizados para meses específicos para {selectedUser.fullName}
-            </CardDescription>
+        <Card className="mt-6 border-amber-200">
+          <div className="h-1 w-full bg-gradient-to-r from-amber-400 to-amber-600"></div>
+          <CardHeader className="bg-amber-50">
+            <div className="flex items-center gap-2">
+              <div className="bg-amber-100 p-1.5 rounded-full">
+                <CalendarCheck className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Calendario de Límites Personalizados</CardTitle>
+                <CardDescription>
+                  Define cuántos videos puede producir {selectedUser.fullName} en meses específicos
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
+            <div className="bg-amber-50/50 -mt-2 -mx-2 p-4 mb-4 rounded-lg border border-amber-100">
+              <h4 className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                <Info className="h-4 w-4 text-amber-600" />
+                ¿Por qué usar límites mensuales personalizados?
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Los límites mensuales personalizados te permiten ajustar la capacidad de producción para:
+              </p>
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                <li className="flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-amber-600" />
+                  Temporadas altas o campañas especiales (aumentar el límite)
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-amber-600" />
+                  Períodos de vacaciones o baja actividad (reducir el límite)
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-amber-600" />
+                  Asignar cuotas de producción específicas por mes
+                </li>
+              </ul>
+            </div>
             <MonthlyLimitsManager userId={selectedUser.id} />
           </CardContent>
         </Card>
@@ -503,6 +540,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
   const [monthlyLimits, setMonthlyLimits] = useState<MonthlyLimit[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { setMonthlyLimit, getAllMonthlyLimits } = useVideoLimits(userId);
+  const [activeView, setActiveView] = useState<'table' | 'calendar'>('calendar');
 
   // Formulario para añadir un nuevo límite mensual específico
   const form = useForm<MonthlyLimitFormValues>({
@@ -603,157 +641,276 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
     ];
     return months[month - 1] || 'Desconocido';
   };
+  
+  // Obtener el color de fondo y texto para el mes basado en el límite
+  const getMonthStyles = (year: number, month: number) => {
+    const limit = monthlyLimits.find(l => l.year === year && l.month === month);
+    
+    if (!limit) {
+      return {
+        background: 'bg-gray-100',
+        text: 'text-gray-500',
+        border: 'border-gray-200',
+        hover: 'hover:bg-gray-200'
+      };
+    }
+    
+    // Definimos diferentes niveles de intensidad basados en el valor
+    if (limit.maxVideos >= 80) {
+      return {
+        background: 'bg-emerald-100',
+        text: 'text-emerald-700',
+        border: 'border-emerald-200',
+        hover: 'hover:bg-emerald-200'
+      };
+    } else if (limit.maxVideos >= 50) {
+      return {
+        background: 'bg-green-100',
+        text: 'text-green-700',
+        border: 'border-green-200',
+        hover: 'hover:bg-green-200'
+      };
+    } else if (limit.maxVideos >= 30) {
+      return {
+        background: 'bg-blue-100',
+        text: 'text-blue-700',
+        border: 'border-blue-200',
+        hover: 'hover:bg-blue-200'
+      };
+    } else if (limit.maxVideos >= 15) {
+      return {
+        background: 'bg-amber-100',
+        text: 'text-amber-700',
+        border: 'border-amber-200',
+        hover: 'hover:bg-amber-200'
+      };
+    } else {
+      return {
+        background: 'bg-red-100',
+        text: 'text-red-700',
+        border: 'border-red-200',
+        hover: 'hover:bg-red-200'
+      };
+    }
+  };
 
-  return (
-    <div className="space-y-4">
-      {/* Botón para añadir nuevo límite */}
-      <div className="flex justify-between mb-4">
-        <div>
-          <h3 className="text-sm font-medium text-foreground mb-1">Límites mensuales personalizados</h3>
-          <p className="text-xs text-muted-foreground">
-            Estos límites tienen precedencia sobre el límite mensual general
-          </p>
-        </div>
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Añadir límite específico
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Añadir límite mensual específico</DialogTitle>
-              <DialogDescription>
-                Configura un límite mensual personalizado para un mes y año específicos.
-              </DialogDescription>
-            </DialogHeader>
+  // Función para mostrar un tooltip al hacer hover sobre un mes
+  const renderMonthTooltip = (year: number, month: number) => {
+    const limit = monthlyLimits.find(l => l.year === year && l.month === month);
+    if (!limit) return "Sin límite personalizado";
+    return `${limit.maxVideos} videos por mes`;
+  };
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateMonthlyLimit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="year"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Año</FormLabel>
-                        <Select
-                          value={field.value.toString()}
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar año" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {[...Array(5)].map((_, i) => {
-                              const year = new Date().getFullYear() + i;
-                              return (
-                                <SelectItem key={year} value={year.toString()}>
-                                  {year}
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+  // Renderizar vista de calendario
+  const renderCalendarView = () => {
+    // Mostrar año actual y el siguiente
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear, currentYear + 1];
 
-                  <FormField
-                    control={form.control}
-                    name="month"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mes</FormLabel>
-                        <Select
-                          value={field.value.toString()}
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar mes" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {[...Array(12)].map((_, i) => (
-                              <SelectItem key={i + 1} value={(i + 1).toString()}>
-                                {getMonthName(i + 1)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="maxVideos"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número máximo de videos</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Establece el número máximo de videos para este mes específico
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Creando..." : "Crear límite"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+    return (
+      <div className="space-y-8">
+        {years.map(year => (
+          <div key={year} className="space-y-2">
+            <h3 className="text-lg font-medium">{year}</h3>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
+                const limit = monthlyLimits.find(l => l.year === year && l.month === month);
+                const styles = getMonthStyles(year, month);
+                
+                return (
+                  <Popover key={`${year}-${month}`}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-auto py-3 justify-start border",
+                          styles.background,
+                          styles.text,
+                          styles.border,
+                          styles.hover,
+                          "transition-all duration-200"
+                        )}
+                      >
+                        <div className="w-full">
+                          <div className="flex items-center justify-between w-full">
+                            <span className="font-medium">{getMonthName(month)}</span>
+                            {limit && (
+                              <Badge
+                                variant="outline"
+                                className={cn("ml-1 text-xs", styles.text, "border-current")}
+                              >
+                                {limit.maxVideos}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {limit ? (
+                            <div className="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                              <div 
+                                className={cn(
+                                  "h-full rounded-full",
+                                  limit.maxVideos >= 80 ? "bg-emerald-500" :
+                                  limit.maxVideos >= 50 ? "bg-green-500" :
+                                  limit.maxVideos >= 30 ? "bg-blue-500" :
+                                  limit.maxVideos >= 15 ? "bg-amber-500" : "bg-red-500"
+                                )}
+                                style={{ width: `${Math.min(limit.maxVideos, 100)}%` }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-1.5 mt-2 bg-gray-100 rounded-full" />
+                          )}
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-0" align="start">
+                      <div className="p-4 pb-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium">
+                            {getMonthName(month)} {year}
+                          </h4>
+                          {limit ? (
+                            <Badge variant="outline" className={cn(styles.text, "border-current")}>
+                              {limit.maxVideos} videos
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-gray-500">
+                              Sin límite específico
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Separator className="my-4" />
+                      <div className="p-4 pt-0 space-y-4">
+                        <Form {...form}>
+                          <form className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="maxVideos"
+                              render={({ field }) => (
+                                <FormItem className="space-y-1">
+                                  <FormLabel className="text-xs">Establecer límite</FormLabel>
+                                  <div className="flex items-center gap-2">
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min={1}
+                                        placeholder="Límite"
+                                        className="h-8"
+                                        value={limit?.maxVideos || field.value}
+                                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <Button 
+                                      size="sm"
+                                      className="h-8"
+                                      onClick={async () => {
+                                        const newLimit = form.getValues().maxVideos;
+                                        const result = await setMonthlyLimit({
+                                          userId,
+                                          maxVideos: newLimit,
+                                          year,
+                                          month
+                                        });
+                                        
+                                        if (result.success) {
+                                          const updatedLimits = await getAllMonthlyLimits(userId);
+                                          if (updatedLimits.success && updatedLimits.data) {
+                                            setMonthlyLimits(updatedLimits.data);
+                                          }
+                                          
+                                          toast({
+                                            title: "Límite actualizado",
+                                            description: `Límite para ${getMonthName(month)} ${year} establecido a ${newLimit} videos.`
+                                          });
+                                        } else {
+                                          toast({
+                                            title: "Error",
+                                            description: result.message || "No se pudo actualizar el límite",
+                                            variant: "destructive"
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      Guardar
+                                    </Button>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          </form>
+                        </Form>
+                        
+                        {limit && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="w-full h-8"
+                            onClick={async () => {
+                              const result = await setMonthlyLimit({
+                                userId,
+                                maxVideos: 0, // Usar 0 para eliminar el límite específico
+                                year,
+                                month
+                              });
+                              
+                              if (result.success) {
+                                const updatedLimits = await getAllMonthlyLimits(userId);
+                                if (updatedLimits.success && updatedLimits.data) {
+                                  setMonthlyLimits(updatedLimits.data);
+                                }
+                                
+                                toast({
+                                  title: "Límite eliminado",
+                                  description: `Límite para ${getMonthName(month)} ${year} eliminado correctamente.`
+                                });
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description: result.message || "No se pudo eliminar el límite",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar límite
+                          </Button>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
+    );
+  };
 
-      {/* Lista de límites mensuales específicos */}
-      {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
-      ) : monthlyLimits.length === 0 ? (
-        <Alert>
-          <AlertDescription>
-            No hay límites mensuales específicos configurados para este usuario.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
+  // Renderizar vista de tabla
+  const renderTableView = () => {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Año</TableHead>
+              <TableHead>Mes</TableHead>
+              <TableHead>Límite de videos</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {monthlyLimits.length === 0 ? (
               <TableRow>
-                <TableHead>Año</TableHead>
-                <TableHead>Mes</TableHead>
-                <TableHead>Límite de videos</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                  No hay límites mensuales específicos configurados.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {monthlyLimits.map((limit) => (
+            ) : (
+              monthlyLimits.map((limit) => (
                 <TableRow key={`${limit.year}-${limit.month}`}>
                   <TableCell>{limit.year}</TableCell>
                   <TableCell>
@@ -763,7 +920,14 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
+                    {/* Añadimos colores según el valor */}
+                    <Badge variant="outline" className={cn(
+                      limit.maxVideos >= 80 ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                      limit.maxVideos >= 50 ? "bg-green-100 text-green-700 border-green-200" :
+                      limit.maxVideos >= 30 ? "bg-blue-100 text-blue-700 border-blue-200" :
+                      limit.maxVideos >= 15 ? "bg-amber-100 text-amber-700 border-amber-200" : 
+                      "bg-red-100 text-red-700 border-red-200"
+                    )}>
                       {limit.maxVideos} videos
                     </Badge>
                   </TableCell>
@@ -800,13 +964,175 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                         }
                       }}
                     >
-                      Eliminar
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Botón para añadir nuevo límite y selector de vista */}
+      <div className="flex justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-1">Límites mensuales personalizados</h3>
+          <p className="text-xs text-muted-foreground">
+            Estos límites tienen precedencia sobre el límite mensual general
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="bg-muted p-1 rounded-md flex text-sm">
+            <Button 
+              variant={activeView === 'calendar' ? 'default' : 'ghost'} 
+              size="sm" 
+              className="h-8"
+              onClick={() => setActiveView('calendar')}
+            >
+              <CalendarRange className="h-4 w-4 mr-1.5" />
+              Calendario
+            </Button>
+            <Button 
+              variant={activeView === 'table' ? 'default' : 'ghost'} 
+              size="sm" 
+              className="h-8"
+              onClick={() => setActiveView('table')}
+            >
+              <Table2 className="h-4 w-4 mr-1.5" />
+              Tabla
+            </Button>
+          </div>
+        
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="h-8">
+                <Plus className="h-4 w-4 mr-1.5" />
+                Añadir límite
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Añadir límite mensual específico</DialogTitle>
+                <DialogDescription>
+                  Configura un límite mensual personalizado para un mes y año específicos.
+                </DialogDescription>
+              </DialogHeader>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleCreateMonthlyLimit)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Año</FormLabel>
+                          <Select
+                            value={field.value.toString()}
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar año" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {[...Array(5)].map((_, i) => {
+                                const year = new Date().getFullYear() + i;
+                                return (
+                                  <SelectItem key={year} value={year.toString()}>
+                                    {year}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="month"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mes</FormLabel>
+                          <Select
+                            value={field.value.toString()}
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar mes" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {[...Array(12)].map((_, i) => (
+                                <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                  {getMonthName(i + 1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="maxVideos"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número máximo de videos</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Establece el número máximo de videos para este mes específico
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "Creando..." : "Crear límite"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Vista de límites mensuales */}
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : (
+        <div className="rounded-md border p-4">
+          {activeView === 'calendar' ? renderCalendarView() : renderTableView()}
         </div>
       )}
     </div>
