@@ -25,7 +25,7 @@ interface VideoAffiliate {
  * Hook para gestionar los enlaces de afiliados de un video
  * @param videoId ID del video
  */
-export function useVideoAffiliates(videoId: number) {
+export function useVideoAffiliates(videoId: number | null) {
   const queryClient = useQueryClient();
   
   // Obtener los afiliados detectados para el video

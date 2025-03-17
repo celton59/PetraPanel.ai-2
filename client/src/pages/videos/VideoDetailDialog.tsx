@@ -40,16 +40,13 @@ const statusDescriptions: Record<VideoStatus, string> = {
 };
 
 export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const { user, isLoading: isUserLoading } = useUser();
   
   // Cargar información de afiliados para este video
   const { 
     affiliates, 
     isLoading: isLoadingAffiliates,
-    pendingAffiliates,
-    updateAffiliateStatus
-  } = useVideoAffiliates(video?.id || null);
+  } = useVideoAffiliates(video?.id);
   
   // Si no hay video o usuario, mostrar estado de carga con mascota
   if (!video || !user || isUserLoading) {
@@ -162,7 +159,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
                 <AffiliatesBadgeContainer 
                   affiliates={affiliates.map(a => ({
                     id: a.id,
-                    companyName: a.company.name,
+                    companyName: a.company!.name,
                     isIncluded: a.included_by_youtuber
                   }))}
                 />
