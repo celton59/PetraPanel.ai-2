@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -19,18 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from 'lucide-react';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import { Search } from 'lucide-react';
 import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// Tipo para la configuración de límites mensuales
-interface MonthlyLimitConfig {
-  year: number;
-  month: number;
-  limit: number;
-}
 
 // Tipo para el usuario con sus límites
 interface UserWithLimits {
@@ -46,23 +36,15 @@ interface UserWithLimits {
 
 /**
  * Pestaña de configuración de límites de videos
- * Permite configurar límites mensuales para todos los youtubers
+ * Permite configurar límites mensuales individuales para cada youtuber
  */
 export function VideoLimitsTab() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("global");
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<UserWithLimits[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [globalMonthlyLimit, setGlobalMonthlyLimit] = useState(50);
-  
-  // Formulario para configuración global
-  const globalForm = useForm({
-    defaultValues: {
-      globalMonthlyLimit: 50,
-    },
-  });
+  const [filteredUsers, setFilteredUsers] = useState<UserWithLimits[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Cargar usuarios y sus límites
   useEffect(() => {
@@ -104,6 +86,7 @@ export function VideoLimitsTab() {
           
         const usersWithLimits = await Promise.all(usersWithLimitsPromises);
         setUsers(usersWithLimits);
+        setFilteredUsers(usersWithLimits);
       } catch (error) {
         console.error("Error fetching users:", error);
         toast({
@@ -119,26 +102,20 @@ export function VideoLimitsTab() {
     fetchUsers();
   }, [toast]);
 
-  // Actualizar límite mensual global
-  const updateGlobalMonthlyLimit = async (data: { globalMonthlyLimit: number }) => {
-    try {
-      // Aquí iría la llamada a la API para actualizar el límite global mensual
-      // Por ahora solo actualizamos el estado local para demostración
-      setGlobalMonthlyLimit(data.globalMonthlyLimit);
-      
-      toast({
-        title: "Configuración actualizada",
-        description: `Límite mensual global configurado a ${data.globalMonthlyLimit} videos`,
-      });
-    } catch (error) {
-      console.error("Error updating global monthly limit:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el límite mensual global",
-        variant: "destructive",
-      });
+  // Filtrar usuarios basados en el término de búsqueda
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredUsers(users);
+    } else {
+      const lowercaseSearchTerm = searchTerm.toLowerCase();
+      const filtered = users.filter(
+        user => 
+          user.username.toLowerCase().includes(lowercaseSearchTerm) || 
+          user.fullName.toLowerCase().includes(lowercaseSearchTerm)
+      );
+      setFilteredUsers(filtered);
     }
-  };
+  }, [searchTerm, users]);
 
   // Actualizar límite individual de un usuario
   const updateUserLimit = async (userId: number, field: string, value: number) => {
@@ -168,234 +145,126 @@ export function VideoLimitsTab() {
     }
   };
 
-  // Generar años para el selector (últimos 3 años hasta 2 años futuros)
-  const getYearOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let year = currentYear - 3; year <= currentYear + 2; year++) {
-      years.push(year);
-    }
-    return years;
-  };
-
-  // Generar meses para el selector
-  const getMonthOptions = () => {
-    return [
-      { value: 1, label: "Enero" },
-      { value: 2, label: "Febrero" },
-      { value: 3, label: "Marzo" },
-      { value: 4, label: "Abril" },
-      { value: 5, label: "Mayo" },
-      { value: 6, label: "Junio" },
-      { value: 7, label: "Julio" },
-      { value: 8, label: "Agosto" },
-      { value: 9, label: "Septiembre" },
-      { value: 10, label: "Octubre" },
-      { value: 11, label: "Noviembre" },
-      { value: 12, label: "Diciembre" },
-    ];
+  // Manejar cuando se selecciona un usuario
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Límites de Videos</CardTitle>
+        <CardTitle className="text-xl">Límites de Videos por Usuario</CardTitle>
         <CardDescription>
-          Configura los límites de videos para youtubers, tanto globales como individuales
+          Configura los límites mensuales de videos para cada youtuber individualmente
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Tabs defaultValue="global" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="global">Límites Globales</TabsTrigger>
-            <TabsTrigger value="individual">Límites Individuales</TabsTrigger>
-          </TabsList>
-
-          {/* Pestaña de límites globales */}
-          <TabsContent value="global" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Form {...globalForm}>
-                    <form onSubmit={globalForm.handleSubmit(updateGlobalMonthlyLimit)} className="space-y-4">
-                      <FormField
-                        control={globalForm.control}
-                        name="globalMonthlyLimit"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Límite Mensual Global</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                min={1} 
-                                {...field} 
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Este límite se aplicará a todos los nuevos youtubers
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit">Guardar Configuración</Button>
-                    </form>
-                  </Form>
-                </div>
-
-                <div className="col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm font-medium">Configuración para periodo específico</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-col md:flex-row gap-4 items-end">
-                        <div className="space-y-2 flex-1">
-                          <label className="text-sm font-medium">Mes</label>
-                          <Select 
-                            value={selectedMonth.toString()} 
-                            onValueChange={(value) => setSelectedMonth(Number(value))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar mes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getMonthOptions().map((month) => (
-                                <SelectItem key={month.value} value={month.value.toString()}>
-                                  {month.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2 flex-1">
-                          <label className="text-sm font-medium">Año</label>
-                          <Select 
-                            value={selectedYear.toString()} 
-                            onValueChange={(value) => setSelectedYear(Number(value))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar año" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getYearOptions().map((year) => (
-                                <SelectItem key={year} value={year.toString()}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2 flex-1">
-                          <label className="text-sm font-medium">Límite para el periodo</label>
-                          <Input 
-                            type="number" 
-                            min={1} 
-                            value={globalMonthlyLimit}
-                            onChange={(e) => setGlobalMonthlyLimit(Number(e.target.value))}
-                          />
-                        </div>
-                        
-                        <Button className="mt-4 md:mt-0">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Establecer para periodo
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">Buscar usuario</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre o usuario"
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </TabsContent>
+          </div>
+          
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">Seleccionar usuario</label>
+            <Select 
+              value={selectedUserId} 
+              onValueChange={handleUserSelect}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar usuario" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id.toString()}>
+                    {user.fullName} ({user.username})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-          {/* Pestaña de límites individuales */}
-          <TabsContent value="individual" className="space-y-4 mt-4">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Usuario</TableHead>
-                      <TableHead>Nombre completo</TableHead>
-                      <TableHead className="text-center">Límite concurrente</TableHead>
-                      <TableHead className="text-center">En uso</TableHead>
-                      <TableHead className="text-center">Límite mensual</TableHead>
-                      <TableHead className="text-center">Usados este mes</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
-                        <TableCell>{user.fullName}</TableCell>
-                        <TableCell className="text-center">
-                          <Input
-                            type="number"
-                            min={1}
-                            className="w-16 mx-auto text-center"
-                            value={user.maxAssignedVideos}
-                            onChange={(e) => {
-                              const newValue = Number(e.target.value);
-                              setUsers(users.map(u => 
-                                u.id === user.id 
-                                  ? { ...u, maxAssignedVideos: newValue }
-                                  : u
-                              ));
-                            }}
-                            onBlur={(e) => updateUserLimit(user.id, "maxAssignedVideos", Number(e.target.value))}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">{user.currentAssignedVideos}</TableCell>
-                        <TableCell className="text-center">
-                          <Input
-                            type="number"
-                            min={1}
-                            className="w-16 mx-auto text-center"
-                            value={user.maxMonthlyVideos}
-                            onChange={(e) => {
-                              const newValue = Number(e.target.value);
-                              setUsers(users.map(u => 
-                                u.id === user.id 
-                                  ? { ...u, maxMonthlyVideos: newValue }
-                                  : u
-                              ));
-                            }}
-                            onBlur={(e) => updateUserLimit(user.id, "maxMonthlyVideos", Number(e.target.value))}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">{user.currentMonthVideos}</TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              // Aplicar el límite global al usuario
-                              updateUserLimit(user.id, "maxMonthlyVideos", globalMonthlyLimit);
-                            }}
-                          >
-                            Aplicar global
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+        {/* Tabla de usuarios y sus límites */}
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Nombre completo</TableHead>
+                  <TableHead className="text-center">Límite concurrente</TableHead>
+                  <TableHead className="text-center">En uso</TableHead>
+                  <TableHead className="text-center">Límite mensual</TableHead>
+                  <TableHead className="text-center">Usados este mes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow 
+                    key={user.id} 
+                    className={selectedUserId === user.id.toString() ? "bg-muted/50" : ""}
+                  >
+                    <TableCell className="font-medium">{user.username}</TableCell>
+                    <TableCell>{user.fullName}</TableCell>
+                    <TableCell className="text-center">
+                      <Input
+                        type="number"
+                        min={1}
+                        className="w-16 mx-auto text-center"
+                        value={user.maxAssignedVideos}
+                        onChange={(e) => {
+                          const newValue = Number(e.target.value);
+                          setUsers(users.map(u => 
+                            u.id === user.id 
+                              ? { ...u, maxAssignedVideos: newValue }
+                              : u
+                          ));
+                        }}
+                        onBlur={(e) => updateUserLimit(user.id, "maxAssignedVideos", Number(e.target.value))}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">{user.currentAssignedVideos}</TableCell>
+                    <TableCell className="text-center">
+                      <Input
+                        type="number"
+                        min={1}
+                        className="w-16 mx-auto text-center"
+                        value={user.maxMonthlyVideos}
+                        onChange={(e) => {
+                          const newValue = Number(e.target.value);
+                          setUsers(users.map(u => 
+                            u.id === user.id 
+                              ? { ...u, maxMonthlyVideos: newValue }
+                              : u
+                          ));
+                        }}
+                        onBlur={(e) => updateUserLimit(user.id, "maxMonthlyVideos", Number(e.target.value))}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">{user.currentMonthVideos}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
