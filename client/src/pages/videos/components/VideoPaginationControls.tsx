@@ -198,7 +198,7 @@ export function VideoPaginationControls({
                 <span className="sr-only">Ir a página</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]" onClick={e => e.stopPropagation()}>
               <DialogHeader>
                 <DialogTitle>Ir a página</DialogTitle>
                 <DialogDescription>
@@ -218,6 +218,7 @@ export function VideoPaginationControls({
                     }
                   }}
                   placeholder={`1-${totalPages}`}
+                  autoFocus
                 />
               </div>
               <DialogFooter>
