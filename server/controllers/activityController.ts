@@ -22,7 +22,10 @@ export async function startSession(req: Request, res: Response) {
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"] || "";
 
+    console.log("Starting session for user:", userId, "IP:", ipAddress);
     const session = await activityService.startUserSession(userId, ipAddress, userAgent);
+    console.log("Session started:", session);
+
     res.json(session);
   } catch (error) {
     console.error("Error starting session:", error);
@@ -33,7 +36,11 @@ export async function startSession(req: Request, res: Response) {
 export async function endSession(req: Request, res: Response) {
   try {
     const { sessionId } = req.params;
+    console.log("Ending session:", sessionId);
+
     await activityService.endUserSession(parseInt(sessionId));
+    console.log("Session ended successfully:", sessionId);
+
     res.json({ success: true });
   } catch (error) {
     console.error("Error ending session:", error);
@@ -44,7 +51,11 @@ export async function endSession(req: Request, res: Response) {
 export async function updateActivity(req: Request, res: Response) {
   try {
     const { sessionId } = req.params;
+    console.log("Updating activity for session:", sessionId);
+
     await activityService.updateLastActivity(parseInt(sessionId));
+    console.log("Activity updated successfully:", sessionId);
+
     res.json({ success: true });
   } catch (error) {
     console.error("Error updating activity:", error);
