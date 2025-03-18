@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { 
-  Search, Save, User, CalendarClock, Calendar, Plus, Video, Info, 
+import {
+  Search, Save, User, CalendarClock, Calendar, Plus, Video, Info,
   Star, Trash2, Check, CalendarRange, Table2, CalendarCheck, ListTodo
 } from 'lucide-react';
 import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -42,6 +42,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useVideoLimits } from "@/hooks/useVideoLimits";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Tipo para el usuario con sus límites
 interface UserWithLimits {
@@ -49,7 +50,7 @@ interface UserWithLimits {
   username: string;
   fullName: string;
   role: string;
-  maxAssignedVideos: number; 
+  maxAssignedVideos: number;
   maxMonthlyVideos: number;
   currentMonthVideos: number;
   currentAssignedVideos: number;
@@ -90,7 +91,6 @@ export function VideoLimitsTab() {
   const [searchTerm, setSearchTerm] = useState("");
 
 
-
   // Inicializar formulario
   const form = useForm<LimitsFormValues>({
     defaultValues: {
@@ -107,19 +107,19 @@ export function VideoLimitsTab() {
         setIsLoading(true);
         const response = await axios.get('/api/users');
         console.log('Respuesta completa:', response.data);
-        
+
         if (!response.data || !response.data.data || !Array.isArray(response.data.data)) {
           console.error('Formato de respuesta incorrecto:', response.data);
           throw new Error('La respuesta de usuarios no tiene el formato esperado');
         }
-        
+
         // Obtener límites actuales para todos los usuarios (no filtrar por rol en el backend)
         const usersWithLimitsPromises = response.data.data
           .map(async (user: any) => {
             try {
               const limitsResponse = await axios.get(`/api/youtuber/video-limits?userId=${user.id}`);
               console.log(`Límites para usuario ${user.id}:`, limitsResponse.data);
-              
+
               // Asegurarse de que la estructura sea correcta
               const limits = limitsResponse.data;
               return {
@@ -146,7 +146,7 @@ export function VideoLimitsTab() {
               };
             }
           });
-          
+
         const usersWithLimits = await Promise.all(usersWithLimitsPromises);
         setUsers(usersWithLimits);
         setFilteredUsers(usersWithLimits);
@@ -172,8 +172,8 @@ export function VideoLimitsTab() {
     } else {
       const lowercaseSearchTerm = searchTerm.toLowerCase();
       const filtered = users.filter(
-        user => 
-          user.username.toLowerCase().includes(lowercaseSearchTerm) || 
+        user =>
+          user.username.toLowerCase().includes(lowercaseSearchTerm) ||
           user.fullName.toLowerCase().includes(lowercaseSearchTerm)
       );
       setFilteredUsers(filtered);
@@ -195,7 +195,7 @@ export function VideoLimitsTab() {
 
     try {
       const userId = Number(data.userId);
-      
+
       // Intentar actualizar mediante API
       try {
         console.log(`Actualizando límites para usuario ${userId}:`, {
@@ -209,21 +209,21 @@ export function VideoLimitsTab() {
       } catch (apiError) {
         console.warn("API update failed, only updating UI:", apiError);
       }
-      
+
       // Siempre actualizar el estado local (para modo demo/offline)
-      const updatedUsers = users.map(user => 
-        user.id === userId 
-          ? { 
-              ...user, 
-              maxMonthlyVideos: data.maxMonthlyVideos,
-              maxAssignedVideos: data.maxAssignedVideos
-            }
+      const updatedUsers = users.map(user =>
+        user.id === userId
+          ? {
+            ...user,
+            maxMonthlyVideos: data.maxMonthlyVideos,
+            maxAssignedVideos: data.maxAssignedVideos
+          }
           : user
       );
-      
+
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
-      
+
       toast({
         title: "Límites actualizados",
         description: `Límites actualizados correctamente para el usuario`,
@@ -290,7 +290,7 @@ export function VideoLimitsTab() {
                                 <SelectItem key={user.id} value={user.id.toString()}>
                                   {user.fullName} ({user.username})
                                 </SelectItem>
-                            ))}
+                              ))}
                           </SelectContent>
                         </Select>
                         <FormDescription>
@@ -386,7 +386,7 @@ export function VideoLimitsTab() {
                 />
               </div>
 
-              <Button 
+              <Button
                 type="submit"
                 disabled={isSubmitting || !form.getValues().userId}
                 className="w-full md:w-auto"
@@ -452,27 +452,27 @@ export function VideoLimitsTab() {
                   {filteredUsers
                     .filter(user => user.role === 'youtuber')
                     .map((user) => (
-                    <TableRow 
-                      key={user.id} 
-                      className={selectedUser?.id === user.id ? "bg-muted/50" : ""}
-                    >
-                      <TableCell className="font-medium">{user.username}</TableCell>
-                      <TableCell>{user.fullName}</TableCell>
-                      <TableCell className="text-center">{user.maxAssignedVideos}</TableCell>
-                      <TableCell className="text-center">{user.currentAssignedVideos}</TableCell>
-                      <TableCell className="text-center">{user.maxMonthlyVideos}</TableCell>
-                      <TableCell className="text-center">{user.currentMonthVideos}</TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleUserSelect(user.id.toString())}
-                        >
-                          Editar
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                      <TableRow
+                        key={user.id}
+                        className={selectedUser?.id === user.id ? "bg-muted/50" : ""}
+                      >
+                        <TableCell className="font-medium">{user.username}</TableCell>
+                        <TableCell>{user.fullName}</TableCell>
+                        <TableCell className="text-center">{user.maxAssignedVideos}</TableCell>
+                        <TableCell className="text-center">{user.currentAssignedVideos}</TableCell>
+                        <TableCell className="text-center">{user.maxMonthlyVideos}</TableCell>
+                        <TableCell className="text-center">{user.currentMonthVideos}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUserSelect(user.id.toString())}
+                          >
+                            Editar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>
@@ -538,12 +538,31 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [monthlyLimits, setMonthlyLimits] = useState<MonthlyLimit[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const { setMonthlyLimit, getAllMonthlyLimits } = useVideoLimits(userId);
   const [activeView, setActiveView] = useState<'table' | 'calendar'>('table');
-  const [lastFetchTime, setLastFetchTime] = useState(0);
-  const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
+
+  // Obtener los límites mensuales usando react-query
+  const { data: monthlyLimitsData, isError, error } = useQuery({
+    queryKey: ["monthly-limits", userId],
+    queryFn: async () => {
+      const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);
+      return response.data;
+    },
+    enabled: Boolean(userId)
+  });
+
+  const monthlyLimits = monthlyLimitsData?.data || [];
+
+  useEffect(() => {
+    if (isError) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al cargar los límites mensuales",
+        variant: "destructive"
+      });
+    }
+  }, [isError, error, toast]);
 
   // Formulario para añadir un nuevo límite mensual específico
   const form = useForm<MonthlyLimitFormValues>({
@@ -554,95 +573,22 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
     }
   });
 
-  // Función para cargar límites con control de frecuencia
-  const fetchMonthlyLimits = useCallback(async (force = false) => {
-    if (!userId) return;
-    
-    const now = Date.now();
-    // Evitar consultas más frecuentes que cada 5 segundos, a menos que se fuerce
-    if (!force && now - lastFetchTime < 5000) {
-      console.log('Omitiendo consulta por límite de frecuencia');
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const result = await getAllMonthlyLimits(userId);
-      setLastFetchTime(Date.now());
-      
-      if (result.success && result.data) {
-        // Determinar el formato de los datos recibidos
-        if (Array.isArray(result.data)) {
-          // Si ya es un array, usarlo directamente
-          setMonthlyLimits(result.data);
-        } else if (result.data && Array.isArray(result.data.data)) {
-          // Si tiene una propiedad data que es un array
-          setMonthlyLimits(result.data.data);
-        } else {
-          console.error('Formato de datos inesperado:', result.data);
-          setMonthlyLimits([]);
-        }
-      } else {
-        console.error('Error al cargar límites mensuales:', result.message);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los límites mensuales específicos",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error al cargar límites mensuales:', error);
-      toast({
-        title: "Error",
-        description: "Error al cargar los límites mensuales específicos",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId, getAllMonthlyLimits, lastFetchTime, toast]);
-
-  // Efecto para la carga inicial de datos
-  useEffect(() => {
-    // Limpiar cualquier intervalo anterior al cambiar de usuario
-    if (fetchIntervalRef.current) {
-      clearInterval(fetchIntervalRef.current);
-      fetchIntervalRef.current = null;
-    }
-    
-    // Realizar la carga inicial
-    fetchMonthlyLimits(true);
-    
-    // Configurar intervalo de actualización (cada 30 segundos)
-    // Esto proporciona actualizaciones periódicas sin sobrecargar el servidor
-    fetchIntervalRef.current = setInterval(() => {
-      fetchMonthlyLimits(false);
-    }, 30000);
-    
-    // Cleanup al desmontar
-    return () => {
-      if (fetchIntervalRef.current) {
-        clearInterval(fetchIntervalRef.current);
-        fetchIntervalRef.current = null;
-      }
-    };
-  }, [userId, fetchMonthlyLimits]);
-
   // Manejar la creación de un nuevo límite mensual
   const handleCreateMonthlyLimit = async (data: MonthlyLimitFormValues) => {
     setIsSubmitting(true);
     try {
-      const result = await setMonthlyLimit({
+      const result = await axios.post('/api/youtuber/monthly-limit', {
         userId,
         maxVideos: data.maxVideos,
         year: data.year,
         month: data.month
       });
 
-      if (result.success) {
-        // Forzar recarga de límites mensuales, respetando el control de frecuencia
-        fetchMonthlyLimits(true);
-        
+      if (result.data.success) {
+        // Invalidar las queries relacionadas
+        queryClient.invalidateQueries({ queryKey: ["monthly-limits", userId] });
+        queryClient.invalidateQueries({ queryKey: ["video-limits", userId] });
+
         toast({
           title: "Límite creado",
           description: "Límite mensual específico creado correctamente",
@@ -658,7 +604,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
       } else {
         toast({
           title: "Error",
-          description: result.message || "No se pudo crear el límite mensual",
+          description: result.data.message || "No se pudo crear el límite mensual",
           variant: "destructive"
         });
       }
@@ -682,11 +628,11 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
     ];
     return months[month - 1] || 'Desconocido';
   };
-  
+
   // Obtener el color de fondo y texto para el mes basado en el límite
   const getMonthStyles = (year: number, month: number) => {
     const limit = monthlyLimits.find(l => l.year === year && l.month === month);
-    
+
     if (!limit) {
       return {
         background: 'bg-gray-100',
@@ -695,7 +641,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
         hover: 'hover:bg-gray-200'
       };
     }
-    
+
     // Definimos diferentes niveles de intensidad basados en el valor
     if (limit.maxVideos >= 80) {
       return {
@@ -746,7 +692,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
   const renderCalendarView = () => {
     // Mostrar solo el año actual para simplificar
     const currentYear = new Date().getFullYear();
-    
+
     return (
       <div className="space-y-6">
         <div className="space-y-3">
@@ -754,14 +700,14 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
             <Calendar className="h-5 w-5 text-amber-600" />
             {currentYear}
           </h3>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
               const limit = monthlyLimits.find(l => l.year === currentYear && l.month === month);
               const hasLimit = !!limit;
-              
+
               return (
-                <div 
+                <div
                   key={`${currentYear}-${month}`}
                   className={`p-3 rounded-md border ${hasLimit ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}
                 >
@@ -777,7 +723,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                       </Badge>
                     )}
                   </div>
-                  
+
                   <div className="flex gap-2 mt-3">
                     <Input
                       type="number"
@@ -789,41 +735,41 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                         form.setValue("maxVideos", parseInt(e.target.value));
                       }}
                     />
-                    
-                    <Button 
+
+                    <Button
                       size="sm"
                       className="h-8 px-2"
                       onClick={async () => {
                         const newLimit = form.getValues().maxVideos;
-                        const result = await setMonthlyLimit({
-                          userId,
-                          maxVideos: newLimit,
-                          year: currentYear,
-                          month
-                        });
-                        
-                        if (result.success) {
-                          const updatedLimits = await getAllMonthlyLimits(userId);
-                          console.log('Límites actualizados (calendario):', updatedLimits);
-                          if (updatedLimits.success && updatedLimits.data) {
-                            // Determinar el formato de los datos recibidos
-                            if (Array.isArray(updatedLimits.data)) {
-                              setMonthlyLimits(updatedLimits.data);
-                            } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
-                              setMonthlyLimits(updatedLimits.data.data);
-                            } else {
-                              console.error('Formato de datos inesperado:', updatedLimits.data);
-                            }
-                          }
-                          
-                          toast({
-                            title: "Límite actualizado",
-                            description: `Límite para ${getMonthName(month)} ${currentYear} establecido a ${newLimit} videos.`
+                        try {
+                          const result = await axios.post('/api/youtuber/monthly-limit', {
+                            userId,
+                            maxVideos: newLimit,
+                            year: currentYear,
+                            month
                           });
-                        } else {
+
+                          if (result.data.success) {
+                            // Invalidar las queries relacionadas
+                            queryClient.invalidateQueries({ queryKey: ["monthly-limits", userId] });
+                            queryClient.invalidateQueries({ queryKey: ["video-limits", userId] });
+
+                            toast({
+                              title: "Límite actualizado",
+                              description: `Límite para ${getMonthName(month)} ${currentYear} establecido a ${newLimit} videos.`
+                            });
+                          } else {
+                            toast({
+                              title: "Error",
+                              description: result.data.message || "No se pudo actualizar el límite",
+                              variant: "destructive"
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Error al actualizar límite:', error);
                           toast({
                             title: "Error",
-                            description: result.message || "No se pudo actualizar el límite",
+                            description: "No se pudo actualizar el límite",
                             variant: "destructive"
                           });
                         }
@@ -832,42 +778,42 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                       Guardar
                     </Button>
                   </div>
-                  
+
                   {hasLimit && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="w-full h-7 mt-2 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
                       onClick={async () => {
-                        const result = await setMonthlyLimit({
-                          userId,
-                          maxVideos: 0, // Usar 0 para eliminar el límite específico
-                          year: currentYear,
-                          month
-                        });
-                        
-                        if (result.success) {
-                          const updatedLimits = await getAllMonthlyLimits(userId);
-                          console.log('Límites actualizados (eliminar calendario):', updatedLimits);
-                          if (updatedLimits.success && updatedLimits.data) {
-                            // Determinar el formato de los datos recibidos
-                            if (Array.isArray(updatedLimits.data)) {
-                              setMonthlyLimits(updatedLimits.data);
-                            } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
-                              setMonthlyLimits(updatedLimits.data.data);
-                            } else {
-                              console.error('Formato de datos inesperado:', updatedLimits.data);
-                            }
-                          }
-                          
-                          toast({
-                            title: "Límite eliminado",
-                            description: `Límite para ${getMonthName(month)} ${currentYear} eliminado correctamente.`
+                        try {
+                          const result = await axios.post('/api/youtuber/monthly-limit', {
+                            userId,
+                            maxVideos: 0, // Usar 0 para eliminar el límite específico
+                            year: currentYear,
+                            month
                           });
-                        } else {
+
+                          if (result.data.success) {
+                            // Invalidar las queries relacionadas
+                            queryClient.invalidateQueries({ queryKey: ["monthly-limits", userId] });
+                            queryClient.invalidateQueries({ queryKey: ["video-limits", userId] });
+
+                            toast({
+                              title: "Límite eliminado",
+                              description: `Se ha eliminado el límite específico para ${getMonthName(month)} ${currentYear}.`
+                            });
+                          } else {
+                            toast({
+                              title: "Error",
+                              description: result.data.message || "No se pudo eliminar el límite",
+                              variant: "destructive"
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Error al eliminar límite:', error);
                           toast({
                             title: "Error",
-                            description: result.message || "No se pudo eliminar el límite",
+                            description: "No se pudo eliminar el límite",
                             variant: "destructive"
                           });
                         }
@@ -919,50 +865,49 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                     {/* Añadimos colores según el valor */}
                     <Badge variant="outline" className={cn(
                       limit.maxVideos >= 80 ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
-                      limit.maxVideos >= 50 ? "bg-green-100 text-green-700 border-green-200" :
-                      limit.maxVideos >= 30 ? "bg-blue-100 text-blue-700 border-blue-200" :
-                      limit.maxVideos >= 15 ? "bg-amber-100 text-amber-700 border-amber-200" : 
-                      "bg-red-100 text-red-700 border-red-200"
+                        limit.maxVideos >= 50 ? "bg-green-100 text-green-700 border-green-200" :
+                          limit.maxVideos >= 30 ? "bg-blue-100 text-blue-700 border-blue-200" :
+                            limit.maxVideos >= 15 ? "bg-amber-100 text-amber-700 border-amber-200" :
+                              "bg-red-100 text-red-700 border-red-200"
                     )}>
                       {limit.maxVideos} videos
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={async () => {
                         // Eliminar límite mensual (estableciendo el mismo valor que el límite global)
-                        const result = await setMonthlyLimit({
-                          userId,
-                          maxVideos: 0, // Usar 0 para eliminar el límite específico
-                          year: limit.year,
-                          month: limit.month
-                        });
-                        
-                        if (result.success) {
-                          // Actualizar la lista
-                          const updatedLimits = await getAllMonthlyLimits(userId);
-                          console.log('Límites actualizados (tabla):', updatedLimits);
-                          if (updatedLimits.success && updatedLimits.data) {
-                            // Determinar el formato de los datos recibidos
-                            if (Array.isArray(updatedLimits.data)) {
-                              setMonthlyLimits(updatedLimits.data);
-                            } else if (updatedLimits.data && Array.isArray(updatedLimits.data.data)) {
-                              setMonthlyLimits(updatedLimits.data.data);
-                            } else {
-                              console.error('Formato de datos inesperado:', updatedLimits.data);
-                            }
-                          }
-                          
-                          toast({
-                            title: "Límite eliminado",
-                            description: `Límite para ${getMonthName(limit.month)} ${limit.year} eliminado correctamente.`
+                        try {
+                          const result = await axios.post('/api/youtuber/monthly-limit', {
+                            userId,
+                            maxVideos: 0, // Usar 0 para eliminar el límite específico
+                            year: limit.year,
+                            month: limit.month
                           });
-                        } else {
+
+                          if (result.data.success) {
+                            // Actualizar la lista
+                            queryClient.invalidateQueries({ queryKey: ["monthly-limits", userId] });
+                            queryClient.invalidateQueries({ queryKey: ["video-limits", userId] });
+
+                            toast({
+                              title: "Límite eliminado",
+                              description: `Límite para ${getMonthName(limit.month)} ${limit.year} eliminado correctamente.`
+                            });
+                          } else {
+                            toast({
+                              title: "Error",
+                              description: result.data.message || "No se pudo eliminar el límite",
+                              variant: "destructive"
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Error al eliminar límite:', error);
                           toast({
                             title: "Error",
-                            description: result.message || "No se pudo eliminar el límite",
+                            description: "No se pudo eliminar el límite",
                             variant: "destructive"
                           });
                         }
@@ -992,18 +937,18 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
         </div>
         <div className="flex items-center gap-2">
           <div className="bg-muted p-1 rounded-md flex text-sm">
-            <Button 
-              variant={activeView === 'calendar' ? 'default' : 'ghost'} 
-              size="sm" 
+            <Button
+              variant={activeView === 'calendar' ? 'default' : 'ghost'}
+              size="sm"
               className="h-8"
               onClick={() => setActiveView('calendar')}
             >
               <CalendarRange className="h-4 w-4 mr-1.5" />
               Calendario
             </Button>
-            <Button 
-              variant={activeView === 'table' ? 'default' : 'ghost'} 
-              size="sm" 
+            <Button
+              variant={activeView === 'table' ? 'default' : 'ghost'}
+              size="sm"
               className="h-8"
               onClick={() => setActiveView('table')}
             >
@@ -1011,7 +956,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
               Tabla
             </Button>
           </div>
-        
+
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
               <Button size="sm" className="h-8">
