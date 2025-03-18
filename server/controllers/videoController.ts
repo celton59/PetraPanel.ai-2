@@ -1346,17 +1346,10 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
     });
   }
 
-  if (titles.length > 50) {
-    return res.status(400).json({
-      success: false,
-      message: "Máximo 50 títulos permitidos por operación"
-    });
-  }
-
-  if (req.user?.role !== 'admin') {
+  if (req.user?.role !== "admin") {
     return res.status(403).json({
       success: false,
-      message: "No tienes permisos para crear videos en masa"
+      message: "Solo los administradores pueden crear videos",
     });
   }
 
@@ -1409,8 +1402,7 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
       return createdVideos;
     });
 
-    // Escanear todos los videos creados para detectar afiliados
-    console.log(`🔍 Escaneando ${results.length} videos para detectar afiliados después de la creación masiva...`);
+    // Escanear los videos creados para detectar afiliados fuera de la transacción
     for (const video of results) {
       if (video.title) {
         try {
@@ -1427,11 +1419,11 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
       message: `${results.length} videos creados correctamente`,
       data: results
     });
-  } catch (error: any) {
-    console.error("Error creating bulk videos:", error);
+  } catch (error) {
+    console.error("Error creating videos in bulk:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error al crear los videos en masa"
+      message: error instanceof Error ? error.message : "Error al crear los videos",
     });
   }
 }
