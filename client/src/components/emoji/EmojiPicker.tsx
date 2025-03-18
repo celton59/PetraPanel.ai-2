@@ -1,6 +1,11 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Search, History, Smile, Star, Coffee, Gamepad, Music, Heart, Car } from "lucide-react";
 
 interface EmojiPickerProps {
   isOpen: boolean;
@@ -10,7 +15,45 @@ interface EmojiPickerProps {
   currentLength: number;
 }
 
-const EMOJIS = ["🎮", "🎯", "🎲", "🎪", "🎨", "🎭", "🎪", "🎢", "🎡", "🎠", "🎪", "🎭", "🎨", "🎯", "🎮", "🎲"];
+// Categorías de emojis con sus emojis correspondientes
+const EMOJI_CATEGORIES = {
+  recent: { icon: History, label: "Recientes" },
+  smileys: {
+    icon: Smile,
+    label: "Caras",
+    emojis: ["😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘"]
+  },
+  gaming: {
+    icon: Gamepad,
+    label: "Gaming",
+    emojis: ["🎮", "🕹️", "👾", "🎲", "♟️", "🎯", "🎪", "🎨", "🎭", "🎪", "🎢", "🎡", "🎠", "🎪", "🎭", "🎨"]
+  },
+  food: {
+    icon: Coffee,
+    label: "Comida",
+    emojis: ["🍕", "🍔", "🍟", "🌭", "🍿", "🧂", "🥓", "🥚", "🍳", "🧇", "🥞", "🧈", "🍞", "🥐", "🥨", "🥯"]
+  },
+  activities: {
+    icon: Star,
+    label: "Actividades",
+    emojis: ["⚽", "🏀", "🏈", "⚾", "🥎", "🎾", "🏐", "🏉", "🥏", "🎱", "🪀", "🏓", "🏸", "🏒", "🏑", "🥍"]
+  },
+  music: {
+    icon: Music,
+    label: "Música",
+    emojis: ["🎵", "🎶", "🎼", "🎹", "🥁", "🎷", "🎺", "🎸", "🪕", "🎻", "🎤", "🎧", "🎙️", "🎚️", "🎛️", "📻"]
+  },
+  love: {
+    icon: Heart,
+    label: "Amor",
+    emojis: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🤎", "🖤", "🤍", "💗", "💓", "💕", "💖", "💝", "💘", "💌"]
+  },
+  travel: {
+    icon: Car,
+    label: "Viajes",
+    emojis: ["🚗", "✈️", "🚅", "🚢", "🚁", "🚀", "🛸", "🏖️", "🗺️", "🗽", "🗼", "🎢", "🎡", "🎠", "🏰", "⛰️"]
+  }
+};
 
 export function EmojiPicker({
   isOpen,
@@ -19,38 +62,127 @@ export function EmojiPicker({
   maxLength,
   currentLength,
 }: EmojiPickerProps) {
+  const [activeTab, setActiveTab] = useState("smileys");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [previewEmoji, setPreviewEmoji] = useState<string | null>(null);
+  const [recentEmojis, setRecentEmojis] = useLocalStorage<string[]>("recent-emojis", []);
+
+  // Función para agregar un emoji a recientes
+  const addToRecent = (emoji: string) => {
+    setRecentEmojis((prev) => {
+      const newRecent = [emoji, ...prev.filter((e) => e !== emoji)].slice(0, 16);
+      return newRecent;
+    });
+  };
+
+  // Función para manejar la selección de emoji
   const handleSelect = (emoji: string) => {
     if (currentLength + emoji.length <= maxLength) {
       onEmojiSelect(emoji);
+      addToRecent(emoji);
       onClose();
     }
+  };
+
+  // Filtrar emojis basado en la búsqueda
+  const getFilteredEmojis = () => {
+    if (!searchTerm) return [];
+
+    return Object.entries(EMOJI_CATEGORIES)
+      .filter(([key]) => key !== 'recent')
+      .flatMap(([_, category]) => category.emojis || [])
+      .filter(emoji => emoji.indexOf(searchTerm) !== -1);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <div className="space-y-4">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold">Selecciona un Emoji</h2>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-center">Selecciona un Emoji</h2>
+            <p className="text-sm text-muted-foreground text-center">
               Caracteres disponibles: {maxLength - currentLength}
             </p>
-          </div>
-          <ScrollArea className="h-72">
-            <div className="grid grid-cols-6 gap-2 p-4">
-              {EMOJIS.map((emoji, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="h-10 w-10"
-                  onClick={() => handleSelect(emoji)}
-                  disabled={currentLength + emoji.length > maxLength}
-                >
-                  {emoji}
-                </Button>
-              ))}
+
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar emoji..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </ScrollArea>
+          </div>
+
+          {searchTerm ? (
+            <ScrollArea className="h-[300px] rounded-md border p-4">
+              <div className="grid grid-cols-8 gap-2">
+                {getFilteredEmojis().map((emoji, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-9 w-9 p-0 hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => handleSelect(emoji)}
+                    onMouseEnter={() => setPreviewEmoji(emoji)}
+                    onMouseLeave={() => setPreviewEmoji(null)}
+                    disabled={currentLength + emoji.length > maxLength}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-4 sm:grid-cols-8">
+                {Object.entries(EMOJI_CATEGORIES).map(([key, category]) => {
+                  const Icon = category.icon;
+                  return (
+                    <TabsTrigger
+                      key={key}
+                      value={key}
+                      className="px-2 py-1"
+                      title={category.label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+
+              {Object.entries(EMOJI_CATEGORIES).map(([key, category]) => (
+                <TabsContent key={key} value={key} className="mt-2">
+                  <ScrollArea className="h-[300px] rounded-md border">
+                    <div className="grid grid-cols-8 gap-2 p-4">
+                      {(key === "recent" ? recentEmojis : category.emojis)?.map(
+                        (emoji, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            className="h-9 w-9 p-0 hover:bg-accent hover:text-accent-foreground relative group"
+                            onClick={() => handleSelect(emoji)}
+                            onMouseEnter={() => setPreviewEmoji(emoji)}
+                            onMouseLeave={() => setPreviewEmoji(null)}
+                            disabled={currentLength + emoji.length > maxLength}
+                          >
+                            {emoji}
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              ))}
+            </Tabs>
+          )}
+
+          {/* Vista previa del emoji */}
+          {previewEmoji && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-popover rounded-lg shadow-lg p-4 border">
+              <div className="text-4xl text-center">{previewEmoji}</div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
