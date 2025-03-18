@@ -31,6 +31,7 @@ import AccountingPage from "@/pages/admin/accounting/AccountingPage";
 import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
 import NotificationsAdminPage from "@/pages/admin/notifications/NotificationsAdminPage";
 import ConfiguracionAfiliados from "@/pages/administracion/ConfiguracionAfiliados";
+import ActivityPage from "@/pages/admin/activity/ActivityPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -77,18 +78,21 @@ function Router() {
       <Route path="/mascot-demo" component={() => <ProtectedRoute component={MascotDemo} />} />
       <Route path="/easter-eggs-demo" component={() => <ProtectedRoute component={EasterEggsDemo} />} />
       
+
       {/* Rutas de administración - solo accesibles para administradores */}
       { user.role === 'admin' && (
         <>
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
           <Route path="/admin/stats" component={() => <ProtectedRoute component={AdminStatsPage} />} />
           <Route path="/admin/accounting" component={() => <ProtectedRoute component={AccountingPage} />} />
+          <Route path="/admin/activity" component={() => <ProtectedRoute component={ActivityPage} />} />
           <Route path="/admin/configuration" component={() => <ProtectedRoute component={ConfigurationPage} />} />
           <Route path="/admin/notifications" component={() => <ProtectedRoute component={NotificationsAdminPage} />} />
           <Route path="/admin/afiliados" component={() => <ProtectedRoute component={ConfiguracionAfiliados} />} />
         </>
       )}
       
+
       <Route component={NotFound} />
     </Switch>
   );
