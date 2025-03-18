@@ -24,14 +24,14 @@ import { useVideos } from "@/hooks/useVideos";
 import { useUser } from "@/hooks/use-user";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
-import { 
-  Loader2, 
-  FolderKanban, 
-  VideoIcon, 
-  FolderIcon, 
-  FileVideo, 
-  ArrowRight, 
-  CheckCircle2, 
+import {
+  Loader2,
+  FolderKanban,
+  VideoIcon,
+  FolderIcon,
+  FileVideo,
+  ArrowRight,
+  CheckCircle2,
   CircleSlash,
   FileStack,
   ListPlus,
@@ -84,14 +84,14 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const { user } = useUser();
   const [, navigate] = useLocation();
-  
+
   // Verificar si el usuario tiene permiso para crear videos
   useEffect(() => {
     if (user && user.role !== "admin" && open) {
       toast.error("Acceso denegado", {
         description: "No tienes permisos para crear nuevos videos"
       });
-      
+
       // Cerrar el diálogo y redirigir si no tiene permisos
       if (onOpenChange) {
         onOpenChange(false);
@@ -122,12 +122,12 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       description: "",
     });
   }
-  
+
   // Función para importar títulos desde un archivo
   function handleFileImport(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     // Aceptamos solo archivos .txt y .csv
     if (file.type !== "text/plain" && !file.name.endsWith('.csv')) {
       toast.error("Formato de archivo no soportado", {
@@ -135,7 +135,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       });
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -155,42 +155,42 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
         // Para archivos .txt, simplemente usamos el contenido tal cual
         setBulkTitles(content);
       }
-      
+
       // Resetear el input para permitir cargar el mismo archivo otra vez
       event.target.value = '';
-      
+
       toast.success("Archivo importado", {
         description: "Los títulos se han cargado correctamente",
       });
     };
-    
+
     reader.onerror = () => {
       toast.error("Error al leer el archivo", {
         description: "No se pudo procesar el archivo seleccionado",
       });
     };
-    
+
     reader.readAsText(file);
   }
-  
+
   // Función para manejar el drag and drop de archivos
   function handleDragOver(event: React.DragEvent) {
     event.preventDefault();
     setIsDraggingFile(true);
   }
-  
+
   function handleDragLeave(event: React.DragEvent) {
     event.preventDefault();
     setIsDraggingFile(false);
   }
-  
+
   function handleDrop(event: React.DragEvent) {
     event.preventDefault();
     setIsDraggingFile(false);
-    
+
     const file = event.dataTransfer.files[0];
     if (!file) return;
-    
+
     // Mismo procesamiento que en handleFileImport
     if (file.type !== "text/plain" && !file.name.endsWith('.csv')) {
       toast.error("Formato de archivo no soportado", {
@@ -198,7 +198,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       });
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -213,28 +213,28 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       } else {
         setBulkTitles(content);
       }
-      
+
       toast.success("Archivo importado", {
         description: "Los títulos se han cargado correctamente",
       });
     };
-    
+
     reader.onerror = () => {
       toast.error("Error al leer el archivo", {
         description: "No se pudo procesar el archivo seleccionado",
       });
     };
-    
+
     reader.readAsText(file);
   }
-  
+
   // Función para generar la vista previa de los videos
   function renderVideoPreview() {
     const titles = bulkTitles
       .split('\n')
       .map(line => line.trim())
       .filter(title => title.length > 0);
-      
+
     if (titles.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center p-10 bg-muted/20 rounded-lg border border-dashed">
@@ -243,24 +243,24 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium">Vista Previa ({titles.length} videos)</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowPreview(false)}
             className="h-7 text-xs"
           >
             Volver a edición
           </Button>
         </div>
-        
+
         <div className="grid grid-cols-1 gap-2 max-h-[180px] overflow-y-auto pr-2">
           {titles.map((title, index) => (
-            <div 
+            <div
               key={index}
               className="flex items-center gap-2 p-2 bg-background rounded-md border"
             >
@@ -352,10 +352,10 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                       <span className="font-medium">{selectedProject?.name}</span> &bull; <span className="text-xs">{selectedProject?.id}</span>
                     </p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-auto h-7 w-7" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto h-7 w-7"
                     onClick={() => setStep(1)}
                   >
                     <CircleSlash className="h-4 w-4 text-muted-foreground/70" />
@@ -373,8 +373,8 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
               Detalles del video
             </CardTitle>
             <CardDescription>
-              {activeTab === "single" 
-                ? "Completa la información básica para tu nuevo video" 
+              {activeTab === "single"
+                ? "Completa la información básica para tu nuevo video"
                 : "Crea múltiples videos a partir de una lista de títulos"}
             </CardDescription>
           </CardHeader>
@@ -397,7 +397,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
               </TabsList>
             </Tabs>
           </div>
-          
+
           <CardContent className="p-6 space-y-6">
             <AnimatePresence mode="wait">
               {activeTab === "single" ? (
@@ -469,11 +469,11 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                           )}
                         />
                       </motion.div>
-                      
+
                       <div className="flex justify-between pt-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           onClick={() => setStep(1)}
                           size="sm"
                         >
@@ -522,14 +522,14 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                         </p>
                       </div>
                     </div>
-                    
+
                     <Textarea
                       value={bulkTitles}
                       onChange={(e) => setBulkTitles(e.target.value)}
                       placeholder="Título 1&#10;Título 2&#10;Título 3&#10;..."
                       className="h-[120px] max-h-[120px] bg-background"
                     />
-                    
+
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <FileTextIcon className="h-3.5 w-3.5" />
@@ -551,12 +551,12 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Área para drop de archivos */}
-                    <div 
+                    <div
                       className={`border-2 border-dashed rounded-md p-3 mt-2 transition-colors ${
-                        isDraggingFile 
-                          ? 'bg-primary/10 border-primary' 
+                        isDraggingFile
+                          ? 'bg-primary/10 border-primary'
                           : 'bg-muted/30 border-muted-foreground/20 hover:bg-muted/50'
                       }`}
                       onDragOver={handleDragOver}
@@ -573,10 +573,10 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                             Arrastra un archivo TXT o CSV aquí, o{" "}
                             <label className="text-primary cursor-pointer hover:underline">
                               busca en tu dispositivo
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                accept=".txt,.csv" 
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".txt,.csv"
                                 onChange={handleFileImport}
                               />
                             </label>
@@ -592,9 +592,9 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                   ) : (
                     <div className="flex justify-between pt-4">
                       <div className="flex gap-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           onClick={() => setStep(1)}
                           size="sm"
                         >
@@ -653,7 +653,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       }
       return;
     }
-    
+
     if (!selectedProject) {
       toast.error("Error", {
         description: "Debes seleccionar un proyecto",
@@ -684,7 +684,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       setIsSubmitting(false);
     }
   }
-  
+
   async function handleBulkSubmit() {
     // Verificar el rol del usuario
     if (user?.role !== "admin") {
@@ -696,7 +696,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       }
       return;
     }
-    
+
     if (!selectedProject) {
       toast.error("Error", {
         description: "Debes seleccionar un proyecto",
@@ -717,9 +717,9 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       return;
     }
 
-    // Confirmar si hay muchos títulos (más de 10)
-    if (titles.length > 10) {
-      if (!window.confirm(`¿Estás seguro que deseas crear ${titles.length} videos?`)) {
+    // Confirmar si hay muchos títulos
+    if (titles.length > 100) {
+      if (!window.confirm(`¿Estás seguro que deseas crear ${titles.length} videos? Esta operación puede tardar varios minutos.`)) {
         return;
       }
     }
