@@ -5,7 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Search, History, Smile, Star, Coffee, Gamepad, Music, Heart, Car } from "lucide-react";
+import { 
+  Search, History, Smile, Star, Coffee, Gamepad, Music, 
+  Heart, Car, Cloud, Flower2, Camera, Flag, UserCircle2, 
+  Trophy, Hash
+} from "lucide-react";
 
 interface EmojiPickerProps {
   isOpen: boolean;
@@ -20,38 +24,75 @@ const EMOJI_CATEGORIES = {
   recent: { icon: History, label: "Recientes" },
   smileys: {
     icon: Smile,
-    label: "Caras",
-    emojis: ["😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘"]
+    label: "Caras y Personas",
+    emojis: ["😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", 
+             "😗", "😙", "😚", "🤪", "😝", "😜", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳", "😏", "😔", "😟"]
+  },
+  people: {
+    icon: UserCircle2,
+    label: "Profesiones",
+    emojis: ["👨‍💻", "👩‍💻", "👨‍🏫", "👩‍🏫", "👨‍⚕️", "👩‍⚕️", "👨‍🌾", "👩‍🌾", "👨‍🍳", "👩‍🍳", "👨‍🔧", "👩‍🔧",
+             "👨‍🎨", "👩‍🎨", "👨‍🚀", "👩‍🚀", "👨‍🚒", "👩‍🚒", "👮‍♂️", "👮‍♀️", "🕵️‍♂️", "🕵️‍♀️", "💂‍♂️", "💂‍♀️"]
+  },
+  nature: {
+    icon: Flower2,
+    label: "Naturaleza",
+    emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔",
+             "🌸", "🌺", "🌹", "🌷", "🌼", "🌻", "🌞", "🌝", "🌛", "🌜", "🌚", "🌕", "🌖", "🌗", "🌘", "🌑"]
   },
   gaming: {
     icon: Gamepad,
     label: "Gaming",
-    emojis: ["🎮", "🕹️", "👾", "🎲", "♟️", "🎯", "🎪", "🎨", "🎭", "🎪", "🎢", "🎡", "🎠", "🎪", "🎭", "🎨"]
+    emojis: ["🎮", "🕹️", "👾", "🎲", "♟️", "🎯", "🎪", "🎨", "🎭", "🎪", "🎢", "🎡", "🎠", "🎪", "🎭", "🎨",
+             "🃏", "🀄", "🎴", "🎱", "🎳", "🎮", "🕹️", "🎰", "🎲", "🎯", "🎳", "🎪", "🎭", "🎨", "🖼️", "🎰"]
   },
   food: {
     icon: Coffee,
     label: "Comida",
-    emojis: ["🍕", "🍔", "🍟", "🌭", "🍿", "🧂", "🥓", "🥚", "🍳", "🧇", "🥞", "🧈", "🍞", "🥐", "🥨", "🥯"]
+    emojis: ["🍕", "🍔", "🍟", "🌭", "🍿", "🧂", "🥓", "🥚", "🍳", "🧇", "🥞", "🧈", "🍞", "🥐", "🥨", "🥯",
+             "🥗", "🥙", "🥪", "🌮", "🌯", "🫔", "🥫", "🍖", "🍗", "🥩", "🍠", "🥟", "🥠", "🥡", "🍱", "🍘"]
   },
   activities: {
-    icon: Star,
-    label: "Actividades",
-    emojis: ["⚽", "🏀", "🏈", "⚾", "🥎", "🎾", "🏐", "🏉", "🥏", "🎱", "🪀", "🏓", "🏸", "🏒", "🏑", "🥍"]
+    icon: Trophy,
+    label: "Deportes",
+    emojis: ["⚽", "🏀", "🏈", "⚾", "🥎", "🎾", "🏐", "🏉", "🥏", "🎱", "🪀", "🏓", "🏸", "🏒", "🏑", "🥍",
+             "🏹", "🥊", "🥋", "🎽", "🛹", "🛼", "🛷", "⛸️", "🎿", "⛷️", "🏂", "🪂", "🏋️‍♀️", "🤼", "🤸‍♀️", "🤺"]
   },
   music: {
     icon: Music,
     label: "Música",
-    emojis: ["🎵", "🎶", "🎼", "🎹", "🥁", "🎷", "🎺", "🎸", "🪕", "🎻", "🎤", "🎧", "🎙️", "🎚️", "🎛️", "📻"]
+    emojis: ["🎵", "🎶", "🎼", "🎹", "🥁", "🎷", "🎺", "🎸", "🪕", "🎻", "🎤", "🎧", "🎙️", "🎚️", "🎛️", "📻",
+             "🎼", "🎹", "🥁", "🪘", "🎷", "🎺", "🪗", "🎸", "🪕", "🎻", "🎤", "🎧", "📻", "🎙️", "🎚️", "🎛️"]
   },
   love: {
     icon: Heart,
     label: "Amor",
-    emojis: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🤎", "🖤", "🤍", "💗", "💓", "💕", "💖", "💝", "💘", "💌"]
+    emojis: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🤎", "🖤", "🤍", "💗", "💓", "💕", "💖", "💝", "💘", "💌",
+             "💝", "💖", "💗", "💓", "💞", "💕", "💟", "❣️", "💔", "❤️‍🔥", "❤️‍🩹", "💋", "💫", "💭", "💦", "💨"]
+  },
+  weather: {
+    icon: Cloud,
+    label: "Clima",
+    emojis: ["☀️", "🌤️", "⛅", "🌥️", "☁️", "🌦️", "🌧️", "⛈️", "🌩️", "🌨️", "❄️", "💨", "🌪️", "🌫️", "🌊", "💧",
+             "⚡", "❄️", "☃️", "⛄", "☔", "☂️", "🌈", "☀️", "🌤️", "🌥️", "🌦️", "🌧️", "⛈️", "🌩️", "🌨️", "⭐"]
   },
   travel: {
     icon: Car,
     label: "Viajes",
-    emojis: ["🚗", "✈️", "🚅", "🚢", "🚁", "🚀", "🛸", "🏖️", "🗺️", "🗽", "🗼", "🎢", "🎡", "🎠", "🏰", "⛰️"]
+    emojis: ["🚗", "✈️", "🚅", "🚢", "🚁", "🚀", "🛸", "🏖️", "🗺️", "🗽", "🗼", "🎢", "🎡", "🎠", "🏰", "⛰️",
+             "🌋", "🗻", "🏕️", "⛺", "🏠", "🏡", "🏘️", "🏚️", "🏗️", "🏭", "🏢", "🏬", "🏣", "🏤", "🏥", "🏦"]
+  },
+  objects: {
+    icon: Camera,
+    label: "Objetos",
+    emojis: ["📱", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️", "📷", "🎥", "🎞️", "📽️", "📺", "📹", "📼", "🔍", "🔎",
+             "💡", "🔦", "🏮", "📔", "📕", "📖", "📗", "📘", "📙", "📚", "📓", "📒", "📃", "📜", "📄", "📰"]
+  },
+  symbols: {
+    icon: Hash,
+    label: "Símbolos",
+    emojis: ["💯", "✨", "💫", "💥", "💢", "💦", "💨", "🕉️", "☮️", "✝️", "☪️", "🕎", "☯️", "☦️", "🛐", "⚛️",
+             "📛", "🔰", "⭕", "✅", "☑️", "✔️", "❌", "❎", "〽️", "⚠️", "🚸", "🔱", "⚜️", "🔰", "♻️", "✳️"]
   }
 };
 
@@ -70,7 +111,7 @@ export function EmojiPicker({
   // Función para agregar un emoji a recientes
   const addToRecent = (emoji: string) => {
     setRecentEmojis((prev) => {
-      const newRecent = [emoji, ...prev.filter((e) => e !== emoji)].slice(0, 16);
+      const newRecent = [emoji, ...prev.filter((e) => e !== emoji)].slice(0, 32);
       return newRecent;
     });
   };
@@ -96,7 +137,7 @@ export function EmojiPicker({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[600px]">
         <div className="space-y-4">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-center">Selecciona un Emoji</h2>
@@ -116,7 +157,7 @@ export function EmojiPicker({
           </div>
 
           {searchTerm ? (
-            <ScrollArea className="h-[300px] rounded-md border p-4">
+            <ScrollArea className="h-[400px] rounded-md border p-4">
               <div className="grid grid-cols-8 gap-2">
                 {getFilteredEmojis().map((emoji, index) => (
                   <Button
@@ -135,7 +176,7 @@ export function EmojiPicker({
             </ScrollArea>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-4 sm:grid-cols-8">
+              <TabsList className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-12 mb-4">
                 {Object.entries(EMOJI_CATEGORIES).map(([key, category]) => {
                   const Icon = category.icon;
                   return (
@@ -153,7 +194,7 @@ export function EmojiPicker({
 
               {Object.entries(EMOJI_CATEGORIES).map(([key, category]) => (
                 <TabsContent key={key} value={key} className="mt-2">
-                  <ScrollArea className="h-[300px] rounded-md border">
+                  <ScrollArea className="h-[400px] rounded-md border">
                     <div className="grid grid-cols-8 gap-2 p-4">
                       {(key === "recent" ? recentEmojis : category.emojis)?.map(
                         (emoji, index) => (
