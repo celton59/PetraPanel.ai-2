@@ -34,6 +34,28 @@ interface ChangelogEntry {
 // Historial de versiones
 const versionHistory: ChangelogEntry[] = [
   {
+    version: '2.8.0',
+    date: '18.03.2025',
+    changes: [
+      { 
+        type: 'new', 
+        description: 'Nueva funcionalidad de selección directa de página en la paginación de videos'
+      },
+      { 
+        type: 'improved', 
+        description: 'Eliminada la limitación de 50 títulos en la carga masiva de videos'
+      },
+      { 
+        type: 'improved', 
+        description: 'Optimizada la interfaz del botón de creación masiva para mantener consistencia visual'
+      },
+      { 
+        type: 'fixed', 
+        description: 'Corregida la animación del botón de creación masiva de videos'
+      }
+    ]
+  },
+  {
     version: '2.7.0',
     date: '13.03.2025',
     changes: [
