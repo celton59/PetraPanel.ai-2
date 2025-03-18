@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { FileDown, Users, Clock, Calendar } from "lucide-react";
+import { FileDown, Users, Clock, Calendar, Activity, ChevronUp, UserCheck, RefreshCw } from "lucide-react";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useUserActivity } from '@/hooks/useUserActivity';
+import { cn } from '@/lib/utils';
 
 export default function ActivityPage() {
   const [timeRange, setTimeRange] = useState("week");
@@ -16,20 +17,49 @@ export default function ActivityPage() {
   // Obtener datos de actividad usando el hook
   const { data: activityData, isLoading } = useUserActivity(timeRange);
 
+  const statsCards = [
+    {
+      title: "Usuarios Activos Hoy",
+      icon: Users,
+      value: isLoading ? "..." : activityData?.stats.activeUsers,
+      change: "+2 vs ayer",
+      changeType: "positive",
+    },
+    {
+      title: "Tiempo Promedio",
+      icon: Clock,
+      value: isLoading ? "..." : `${Math.floor(activityData?.stats.averageSessionDuration / 60)}m`,
+      description: "Por sesión",
+    },
+    {
+      title: "Sesiones Hoy",
+      icon: Activity,
+      value: isLoading ? "..." : activityData?.stats.activeSessions,
+      change: "+5 vs ayer",
+      changeType: "positive",
+    },
+    {
+      title: "Tasa de Retorno",
+      icon: RefreshCw,
+      value: isLoading ? "..." : `${Math.round((activityData?.stats.returningUsers / activityData?.stats.totalUsers) * 100)}%`,
+      description: "Usuarios que vuelven",
+    },
+  ];
+
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold">Análisis de Actividad</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold tracking-tight">Análisis de Actividad</h1>
+            <p className="text-muted-foreground mt-2">
               Monitorea el uso y la actividad de los usuarios en la plataforma
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
               <SelectContent>
@@ -40,9 +70,9 @@ export default function ActivityPage() {
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Select value={exportFormat} onValueChange={setExportFormat}>
-                <SelectTrigger className="w-[100px]">
+                <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="Formato" />
                 </SelectTrigger>
                 <SelectContent>
@@ -51,7 +81,7 @@ export default function ActivityPage() {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="gap-1">
+              <Button variant="outline" className="gap-2">
                 <FileDown className="h-4 w-4" />
                 Exportar
               </Button>
@@ -59,85 +89,75 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Usuarios Activos Hoy
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? "..." : activityData?.stats.activeUsers}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                +2 vs ayer
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Tiempo Promedio
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? "..." : `${Math.floor(activityData?.stats.averageSessionDuration / 60)}m`}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Por sesión
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Sesiones Hoy
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? "..." : activityData?.stats.totalSessions}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                +5 vs ayer
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Tasa de Retorno
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? "..." : `${Math.round((activityData?.stats.returningUsers / activityData?.stats.totalUsers) * 100)}%`}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Usuarios que vuelven
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {statsCards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <Card key={index} className="relative overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {card.title}
+                  </CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                  {card.change && (
+                    <div className={cn(
+                      "text-xs flex items-center gap-1 mt-1",
+                      card.changeType === "positive" ? "text-green-600" : "text-red-600"
+                    )}>
+                      <ChevronUp className={cn(
+                        "h-3 w-3",
+                        card.changeType === "positive" ? "" : "rotate-180"
+                      )} />
+                      {card.change}
+                    </div>
+                  )}
+                  {card.description && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {card.description}
+                    </p>
+                  )}
+                </CardContent>
+                <div className={cn(
+                  "absolute bottom-0 left-0 right-0 h-1",
+                  card.changeType === "positive" ? "bg-green-500" : "bg-blue-500"
+                )} />
+              </Card>
+            );
+          })}
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Vista General</TabsTrigger>
-            <TabsTrigger value="users">Por Usuario</TabsTrigger>
-            <TabsTrigger value="sessions">Sesiones</TabsTrigger>
-            <TabsTrigger value="retention">Retención</TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="bg-background border-b w-full justify-start rounded-none p-0">
+            <TabsTrigger 
+              value="overview"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Vista General
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Por Usuario
+            </TabsTrigger>
+            <TabsTrigger 
+              value="sessions"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Sesiones
+            </TabsTrigger>
+            <TabsTrigger 
+              value="retention"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Retención
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Actividad Semanal</CardTitle>
@@ -146,7 +166,6 @@ export default function ActivityPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                {/* Aquí irá el gráfico de actividad */}
                 <div className="h-[350px] flex items-center justify-center border-2 border-dashed rounded-lg">
                   Gráfico de Actividad
                 </div>
@@ -154,7 +173,7 @@ export default function ActivityPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-4">
+          <TabsContent value="users" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Actividad por Usuario</CardTitle>
@@ -163,7 +182,6 @@ export default function ActivityPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Aquí irá la tabla de usuarios */}
                 <div className="h-[350px] flex items-center justify-center border-2 border-dashed rounded-lg">
                   Tabla de Actividad por Usuario
                 </div>
@@ -171,7 +189,7 @@ export default function ActivityPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="sessions" className="space-y-4">
+          <TabsContent value="sessions" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Registro de Sesiones</CardTitle>
@@ -180,7 +198,6 @@ export default function ActivityPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Aquí irá la tabla de sesiones */}
                 <div className="h-[350px] flex items-center justify-center border-2 border-dashed rounded-lg">
                   Tabla de Sesiones
                 </div>
@@ -188,7 +205,7 @@ export default function ActivityPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="retention" className="space-y-4">
+          <TabsContent value="retention" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Análisis de Retención</CardTitle>
@@ -197,7 +214,6 @@ export default function ActivityPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Aquí irá el gráfico de retención */}
                 <div className="h-[350px] flex items-center justify-center border-2 border-dashed rounded-lg">
                   Gráfico de Retención
                 </div>
