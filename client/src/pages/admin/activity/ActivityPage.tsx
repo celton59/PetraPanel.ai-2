@@ -7,10 +7,14 @@ import { Button } from "@/components/ui/button";
 import { FileDown, Users, Clock, Calendar } from "lucide-react";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useUserActivity } from '@/hooks/useUserActivity';
 
 export default function ActivityPage() {
   const [timeRange, setTimeRange] = useState("week");
   const [exportFormat, setExportFormat] = useState("excel");
+
+  // Obtener datos de actividad usando el hook
+  const { data: activityData, isLoading } = useUserActivity(timeRange);
 
   return (
     <AdminLayout>
@@ -64,7 +68,9 @@ export default function ActivityPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">15</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : activityData?.stats.activeUsers}
+              </div>
               <p className="text-xs text-muted-foreground">
                 +2 vs ayer
               </p>
@@ -79,7 +85,9 @@ export default function ActivityPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">45m</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : `${Math.floor(activityData?.stats.averageSessionDuration / 60)}m`}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Por sesión
               </p>
@@ -94,7 +102,9 @@ export default function ActivityPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : activityData?.stats.totalSessions}
+              </div>
               <p className="text-xs text-muted-foreground">
                 +5 vs ayer
               </p>
@@ -109,7 +119,9 @@ export default function ActivityPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">85%</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : `${Math.round((activityData?.stats.returningUsers / activityData?.stats.totalUsers) * 100)}%`}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Usuarios que vuelven
               </p>
