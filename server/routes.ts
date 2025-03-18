@@ -22,7 +22,7 @@ import { setupNotificationRoutes } from "./routes/notifications";
 import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 import { setupAffiliateRoutes } from "./controllers/affiliateController";
-
+import * as activityController from "./controllers/activityController";
 
 export function registerRoutes(app: Express): Server {
   try {
@@ -102,7 +102,6 @@ export function registerRoutes(app: Express): Server {
     //   try {
     //     const projectId = parseInt(req.params.id);
     //     const metadata = await backupService.createBackup(projectId);
-
     //     res.json({
     //       success: true,
     //       data: metadata,
@@ -121,7 +120,6 @@ export function registerRoutes(app: Express): Server {
     //   try {
     //     const projectId = parseInt(req.params.id);
     //     const backups = await backupService.listBackups(projectId);
-
     //     res.json({
     //       success: true,
     //       data: backups,
@@ -140,16 +138,13 @@ export function registerRoutes(app: Express): Server {
     //   try {
     //     const projectId = parseInt(req.params.id);
     //     const { timestamp } = req.body;
-
     //     if (!timestamp) {
     //       return res.status(400).json({
     //         success: false,
     //         message: "Timestamp is required for restoration"
     //       });
     //     }
-
     //     await backupService.restoreFromBackup(projectId, timestamp);
-
     //     res.json({
     //       success: true,
     //       message: "Project restored successfully"
@@ -181,6 +176,7 @@ export function registerRoutes(app: Express): Server {
     });
     // Rutas para el sistema de contabilidad
     
+
     // Obtener todas las tarifas por acción
     app.get("/api/accounting/rates", requireAuth, async (req: Request, res: Response) => {
       try {
@@ -394,7 +390,6 @@ export function registerRoutes(app: Express): Server {
           // Ordenar por fecha (más reciente primero)
           .orderBy(desc(userActions.createdAt)); 
 
-
         const actions = await query;
 
         res.json({
@@ -513,7 +508,8 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
- 
+    
+
     // Ruta para obtener información sobre el límite de videos para youtuber
     app.get("/api/youtuber/video-limits", requireAuth, async (req: Request, res: Response) => {
       try {
@@ -523,9 +519,11 @@ export function registerRoutes(app: Express): Server {
           });
         }
         
+
         // Permitir consultas con userId cuando el usuario es admin o está consultando sus propios datos
         let userId: number;
         
+
         if (req.query.userId) {
           // Si se proporciona un userId en la consulta, verificar que el usuario sea admin
           if (req.user.role === 'admin') {
@@ -542,6 +540,7 @@ export function registerRoutes(app: Express): Server {
           // Si no se proporciona userId, usar el ID del usuario autenticado
           userId = req.user.id as number;
           
+
           // Si no es youtuber y no proporcionó un ID específico, error
           if (req.user.role !== 'youtuber' && req.user.role !== 'admin') {
             return res.status(403).json({
@@ -550,11 +549,14 @@ export function registerRoutes(app: Express): Server {
           }
         }
         
+
         console.log(`Consultando límites para usuario ID: ${userId}, por usuario ${req.user.username} (${req.user.role})`);
         
+
         // Usar la nueva función que incluye tanto los límites de asignación como los mensuales
         const allLimits = await getYoutuberVideoLimits(userId);
         
+
         // Respuesta completa para incluir información de límites específicos por mes
         const responseData = {
           currentAssignedCount: allLimits.currentAssignedCount,
@@ -568,6 +570,7 @@ export function registerRoutes(app: Express): Server {
           monthlyLimits: allLimits.monthlyLimits || []
         };
         
+
         console.log("Enviando respuesta:", JSON.stringify(responseData));
         res.json(responseData);
       } catch (error) {
@@ -590,9 +593,11 @@ export function registerRoutes(app: Express): Server {
           });
         }
         
+
         // Validar datos requeridos
         const { userId, year, month, maxVideos } = req.body;
         
+
         if (!userId || !maxVideos || maxVideos < 0) {
           return res.status(400).json({
             success: false,
@@ -600,12 +605,15 @@ export function registerRoutes(app: Express): Server {
           });
         }
         
+
         // Valores por defecto para año y mes (mes actual si no se especifican)
         const targetYear = year || new Date().getFullYear();
         const targetMonth = month || (new Date().getMonth() + 1);
         
+
         console.log(`Estableciendo límite mensual para usuario ${userId}: ${maxVideos} videos para ${targetMonth}/${targetYear}`);
         
+
         // Establecer el límite mensual
         const result = await setMonthlyLimit(
           userId,
@@ -615,6 +623,7 @@ export function registerRoutes(app: Express): Server {
           req.user.id // ID del administrador que establece el límite
         );
         
+
         if (result) {
           res.json({
             success: true,
@@ -635,12 +644,14 @@ export function registerRoutes(app: Express): Server {
       }
     });
     
+
     // Endpoint para obtener todos los límites mensuales específicos de un youtuber
     app.get("/api/youtuber/monthly-limits/:userId", requireAuth, async (req: Request, res: Response) => {
       try {
         // Verificar permisos: solo el propio usuario (youtuber) o administradores pueden consultar
         const userId = parseInt(req.params.userId);
         
+
         if (!userId) {
           return res.status(400).json({
             success: false,
@@ -648,6 +659,7 @@ export function registerRoutes(app: Express): Server {
           });
         }
         
+
         if (req.user?.id !== userId && req.user?.role !== 'admin') {
           return res.status(403).json({
             success: false,
@@ -655,8 +667,10 @@ export function registerRoutes(app: Express): Server {
           });
         }
         
+
         const limits = await getAllMonthlyLimits(userId);
         
+
         res.json({
           success: true,
           data: limits
@@ -670,6 +684,7 @@ export function registerRoutes(app: Express): Server {
       }
     });
     
+
     // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
     app.get("/api/online-users", requireAuth, async (req: Request, res: Response) => {
       try {
@@ -680,11 +695,13 @@ export function registerRoutes(app: Express): Server {
             message: "El servicio de usuarios en línea no está disponible"
           });
         }
+        
 
         // Registra la actividad del usuario actual mediante REST
         if (req.user) {
           onlineUsersService.registerUserActivity(req.user);
         }
+        
 
         const activeUsers = onlineUsersService.getActiveUsers();
         res.json({
@@ -700,26 +717,31 @@ export function registerRoutes(app: Express): Server {
       }
     });
     
+
     // Endpoint para búsqueda global
     app.get("/api/search", requireAuth, async (req: Request, res: Response) => {
       try {
         const query = (req.query.q as string || '').toLowerCase();
         
+
         // Si no hay query, devolver resultados vacíos
         if (!query || query.length < 2) {
           return res.json({ results: [] });
         }
         
+
         // Arrays para almacenar los diferentes tipos de resultados
         let dbUsers: SearchResponseItem[] = []
         let dbVideos: SearchResponseItem[] = []
         let dbProjects: SearchResponseItem[] = []
         let dbYoutubeChannels: SearchResponseItem[] = []
         
+
         // 1. Obtener usuarios de la base de datos
         try {
           const usersResult = await db.select().from(users).limit(20);
           
+
           dbUsers = usersResult.map<SearchResponseItem>(user => ({
             id: user.id,
             title: user.fullName || user.username,
@@ -729,11 +751,13 @@ export function registerRoutes(app: Express): Server {
             thumbnail: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
           }));
           
+
           console.log(`Encontrados ${dbUsers.length} usuarios en la base de datos`);
         } catch (error) {
           console.error('Error al obtener usuarios de la base de datos:', error);
         }
         
+
         // 2. Obtener videos de la base de datos
         try {
           const videosResult = await db.select({
@@ -751,6 +775,7 @@ export function registerRoutes(app: Express): Server {
           .leftJoin(projects, eq(videos.projectId, projects.id))
           .limit(30);
           
+
           dbVideos = videosResult.map(video => ({
             id: video.id,
             title: video.title,
@@ -763,15 +788,18 @@ export function registerRoutes(app: Express): Server {
             tags: video.tags?.split(',') || [],
           }));
           
+
           console.log(`Encontrados ${dbVideos.length} videos en la base de datos`);
         } catch (error) {
           console.error('Error al obtener videos de la base de datos:', error);
         }
-               
+                        
+
         // 3. Obtener proyectos de la base de datos
         try {
           const projectsResult = await db.select().from(projects).limit(20);
           
+
           dbProjects = projectsResult.map(project => ({
             id: project.id,
             title: project.name,
@@ -781,15 +809,18 @@ export function registerRoutes(app: Express): Server {
             icon: project.prefix || '📁',
           }));
           
+
           console.log(`Encontrados ${dbProjects.length} proyectos en la base de datos`);
         } catch (error) {
           console.error('Error al obtener proyectos de la base de datos:', error);
         }
         
+
         // 4. Obtener canales de YouTube
         try {
           const channelsResult = await db.select().from(youtube_channels).limit(15);
           
+
           dbYoutubeChannels = channelsResult.map(channel => ({
             id: channel.id,
             title: channel.name,
@@ -800,11 +831,13 @@ export function registerRoutes(app: Express): Server {
             icon: '📺',
           }));
           
+
           console.log(`Encontrados ${dbYoutubeChannels.length} canales de YouTube en la base de datos`);
         } catch (error) {
           console.error('Error al obtener canales de YouTube de la base de datos:', error);
         }
         
+
         // 5. Configuración y elementos estáticos
         const settingsItems: SearchResponseItem[] = [
           {
@@ -837,6 +870,7 @@ export function registerRoutes(app: Express): Server {
           }
         ];
         
+
         // Combinamos todos los resultados con prioridad a los datos reales
         const allResults: SearchResponseItem[] = [
           ...dbUsers,           // Usuarios reales de la base de datos
@@ -846,27 +880,39 @@ export function registerRoutes(app: Express): Server {
           ...settingsItems,     // Items estáticos de configuración
         ];
         
+
         // Filtrar resultados según query (mejorado para ser más inclusivo)
         const filteredResults = allResults.filter(item => {
           const titleMatch = item.title?.toLowerCase().includes(query);
           const subtitleMatch = item.subtitle?.toLowerCase().includes(query);
           const tagsMatch = item.tags?.some(tag => tag.toLowerCase().includes(query));
           
+
           // Buscamos también coincidencias parciales en palabras
           const words = item.title?.toLowerCase().split(' ') || [];
           const wordMatch = words.some(word => word.startsWith(query));
           
+
           return titleMatch || subtitleMatch || tagsMatch || wordMatch;
         });
         
+
         console.log(`Búsqueda "${query}" encontró ${filteredResults.length} resultados`);
         
+
         return res.json({ results: filteredResults });
       } catch (error) {
         console.error('Error en búsqueda global:', error);
         return res.status(500).json({ success: false, message: 'Error al realizar la búsqueda' });
       }
     });
+
+    // Actividad de usuarios
+    app.get("/api/admin/activity", requireAuth, activityController.getUserActivity);
+    app.post("/api/sessions/start", requireAuth, activityController.startSession);
+    app.post("/api/sessions/:sessionId/end", requireAuth, activityController.endSession);
+    app.post("/api/sessions/:sessionId/update-activity", requireAuth, activityController.updateActivity);
+
 
     const httpServer = createServer(app);
     return httpServer;
