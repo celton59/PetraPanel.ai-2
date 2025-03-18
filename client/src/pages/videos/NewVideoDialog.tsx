@@ -619,7 +619,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
                         disabled={isSubmitting || !bulkTitles.trim()}
                         className="gap-1.5"
                       >
-                        {isSubmitting ? (
+                        {isSubmitting && bulkTitles.trim() ? (
                           <>
                             <MascotLoader animation="wave" size="sm" text="" />
                             <span className="ml-2">Creando videos...</span>
