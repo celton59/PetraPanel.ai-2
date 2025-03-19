@@ -364,7 +364,7 @@ export async function findSimilarTitles(
     .select({
       ...getTableColumns(youtubeVideos),
       similarity:
-        sql`1 - (${youtubeVideos.embedding.name} <=> ${JSON.stringify(titleEmbedding)}::vector)`.as(
+        sql`1 - (${youtubeVideos.embedding} <=> '[${titleEmbedding.join(",")}]'::vector)`.as(
           "similarity",
         ),
     })
