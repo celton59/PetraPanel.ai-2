@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideoStats } from "@/hooks/useVideoStats";
-import { Video, Upload, RefreshCw, PlayCircle, CheckCircle2, FileCheck } from "lucide-react";
+import { Video, Upload, RefreshCw, CheckCircle2, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function VideoStats() {
@@ -42,8 +42,8 @@ export function VideoStats() {
   // Calcular porcentajes y preparar datos para visualización
   const videoStats = Object.entries(videoStates).map(([state, config]) => ({
     title: config.label,
-    value: stats?.stateCounts[state] || 0,
-    percentage: stats?.totalVideos ? ((stats.stateCounts[state] || 0) / stats.totalVideos) * 100 : 0,
+    value: stats?.stateCounts[state as keyof typeof stats.stateCounts] || 0,
+    percentage: stats?.totalVideos ? ((stats.stateCounts[state as keyof typeof stats.stateCounts] || 0) / stats.totalVideos) * 100 : 0,
     icon: config.icon,
     color: config.color,
     textColor: config.textColor,

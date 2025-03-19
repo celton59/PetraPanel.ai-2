@@ -4,10 +4,10 @@ import axios from "axios";
 interface VideoStats {
   totalVideos: number;
   stateCounts: {
+    upload_media: number;
+    content_corrections: number;
     available: number;
-    completed: number;
-    analyzed: number;
-    pending_analysis: number;
+    final_review: number;
   };
 }
 

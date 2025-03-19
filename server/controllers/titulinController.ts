@@ -302,7 +302,7 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   try {
     console.log('Obteniendo estadísticas de videos...');
 
-    // Obtener el total y conteos por estado
+    // Obtener el total y conteos por estado de la tabla videos
     const [stats] = await db.execute(sql`
       WITH video_stats AS (
         SELECT 
