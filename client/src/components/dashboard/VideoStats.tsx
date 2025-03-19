@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useVideos } from "@/hooks/useVideos";
-import { VideoStatus } from "@db/schema";
-import { BarChart, FileCheck, Upload, RefreshCw, PlayCircle, CheckCircle2, Clock } from "lucide-react";
+import { useVideoStats } from "@/hooks/useVideoStats";
+import { Upload, RefreshCw, PlayCircle, CheckCircle2, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function VideoStats() {
-  const { videos } = useVideos();
+  const { data: stats, isLoading } = useVideoStats();
 
   // Definir estados y sus colores
   const videoStates = {
@@ -16,21 +16,11 @@ export function VideoStats() {
     completed: { label: 'Completados', icon: CheckCircle2, color: "bg-green-500", textColor: "text-green-500", bgColor: "bg-green-500/10" },
   };
 
-  // Calcular totales por estado
-  const stateCounts = videos?.reduce((acc, video) => {
-    const status = video.status as VideoStatus;
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>) || {};
-
-  // Total de videos
-  const totalVideos = videos?.length || 0;
-
   // Calcular porcentajes y preparar datos para visualización
   const videoStats = Object.entries(videoStates).map(([state, config]) => ({
     title: config.label,
-    value: stateCounts[state] || 0,
-    percentage: totalVideos > 0 ? ((stateCounts[state] || 0) / totalVideos) * 100 : 0,
+    value: stats?.stateCounts[state] || 0,
+    percentage: stats?.totalVideos ? ((stats.stateCounts[state] || 0) / stats.totalVideos) * 100 : 0,
     icon: config.icon,
     color: config.color,
     textColor: config.textColor,
@@ -39,12 +29,11 @@ export function VideoStats() {
 
   return (
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      {/* Gradiente superior que representa los estados de video */}
       <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500"></div>
 
       <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <BarChart className="h-5 w-5 text-primary" />
+          <VideoIcon className="h-5 w-5 text-primary" /> {/* Assuming VideoIcon is defined elsewhere */}
           Métricas de Videos
         </CardTitle>
       </CardHeader>
@@ -61,8 +50,8 @@ export function VideoStats() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-md ${stat.bgColor}`}>
-                    <stat.icon className={`h-4 w-4 ${stat.textColor}`} />
+                  <div className={cn("p-1.5 rounded-md", stat.bgColor)}>
+                    <stat.icon className={cn("h-4 w-4", stat.textColor)} />
                   </div>
                   <span className="text-sm font-medium">{stat.title}</span>
                 </div>
@@ -74,10 +63,9 @@ export function VideoStats() {
                 </div>
               </div>
 
-              {/* Barra de progreso con animación */}
               <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
                 <motion.div 
-                  className={`h-full ${stat.color}`}
+                  className={stat.color}
                   initial={{ width: 0 }}
                   animate={{ width: `${stat.percentage}%` }}
                   transition={{ duration: 1, delay: 0.2 + index * 0.1 }}
@@ -89,7 +77,7 @@ export function VideoStats() {
 
         <div className="flex justify-between items-center mt-6 pt-4 border-t border-muted/30">
           <span className="text-sm font-medium text-muted-foreground">Total de videos</span>
-          <span className="text-xl font-bold">{totalVideos}</span>
+          <span className="text-xl font-bold">{isLoading ? "..." : stats?.totalVideos || 0}</span>
         </div>
       </CardContent>
     </Card>

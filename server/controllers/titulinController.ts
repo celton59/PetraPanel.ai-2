@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, or, ilike, getTableColumns, count, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, or, ilike, count, sql } from "drizzle-orm";
 import {
   youtube_videos,
   youtube_channels,
@@ -222,7 +222,6 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
   }
 }
 
-// Función para analizar si un video es evergreen usando vectores
 async function analyzeVideo(req: Request, res: Response): Promise<Response> {
   if (!req.user?.role || req.user.role !== 'admin') {
     return res.status(403).json({
@@ -299,25 +298,33 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
       message: 'No tienes permisos para obtener estadísticas',
     });
   }
-  
+
   try {
-    // Consulta para obtener el total de vistas
-    const [viewsResult] = await db.select({
-      totalViews: sql`SUM(view_count)`.mapWith(Number),
+    // Obtener el conteo total de videos
+    const [totalResult] = await db.select({
+      total: count()
     })
     .from(youtube_videos)
     .execute();
-    
-    // Consulta para obtener el total de likes
-    const [likesResult] = await db.select({
-      totalLikes: sql`SUM(like_count)`.mapWith(Number),
+
+    // Obtener conteos por estado
+    const stateCounts = await db.select({
+      status: youtube_videos.status,
+      count: count()
     })
     .from(youtube_videos)
+    .groupBy(youtube_videos.status)
     .execute();
-    
+
+    // Convertir resultados a un objeto
+    const stateCountsObj = stateCounts.reduce((acc, curr) => {
+      acc[curr.status] = Number(curr.count);
+      return acc;
+    }, {} as Record<string, number>);
+
     return res.status(200).json({
-      totalViews: viewsResult?.totalViews || 0,
-      totalLikes: likesResult?.totalLikes || 0
+      totalVideos: Number(totalResult?.total || 0),
+      stateCounts: stateCountsObj
     });
   } catch (error) {
     console.error('Error al obtener estadísticas de videos', error);
@@ -425,9 +432,8 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
     return res.status(500).json({ 
       error: 'Error al añadir canal',
       details: error instanceof Error ? error.message : 'Error desconocido'
-  });
+    });
 }
-
 }
 
 async function sendToOptimize (req: Request, res: Response): Promise<Response> {
@@ -632,7 +638,7 @@ async function getSimilarVideos (req: Request, res: Response): Promise<Response>
   }
 }
 
-export function setUpTitulinRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+export function setUpTitulinRoutes (requireAuth: any, app: Express) {
   app.post('/api/titulin/channels', requireAuth, addChannel )
   app.get('/api/titulin/channels', requireAuth, getChannels )
   app.delete('/api/titulin/channels/:channelId', requireAuth, deleteChannel )
@@ -645,6 +651,7 @@ export function setUpTitulinRoutes (requireAuth: (req: Request, res: Response, n
   app.get('/api/titulin/videos', requireAuth, getVideos)
   app.get('/api/titulin/videos/stats', requireAuth, getVideoStats)
   
+
   // Nuevas rutas
   app.post('/api/titulin/videos/:videoId/analyze', requireAuth, analyzeVideo)
   
@@ -655,7 +662,7 @@ export function setUpTitulinRoutes (requireAuth: (req: Request, res: Response, n
   app.get('/api/titulin/suggestions', requireAuth, getSuggestions)
   
   // Endpoint público para obtener canales (para ejemplos de entrenamiento)
-  app.get('/api/titulin/channels/for-training', requireAuth, getChannelsForTraining)
+  app.get('/api/titulin/channels/for-training', getChannelsForTraining)
   
   // Nueva ruta para búsqueda de títulos similares
   app.get('/api/titulin/videos/:videoId/similar', requireAuth, getSimilarVideos );
