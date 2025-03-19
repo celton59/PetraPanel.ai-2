@@ -1,84 +1,54 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideos } from "@/hooks/useVideos";
 import { VideoStatus } from "@db/schema";
-import { BarChart, FileCheck, Clock, FileVideo, Film } from "lucide-react";
+import { BarChart, FileCheck, Upload, RefreshCw, PlayCircle, CheckCircle2, Clock } from "lucide-react";
 
 export function VideoStats() {
   const { videos } = useVideos();
-  
-  // Agrupar videos por estado
-  const availableVideos = videos?.filter(v => v.status === 'available').length || 0;
-  const inReviewVideos = videos?.filter(v => 
-    v.status === 'content_review' || 
-    v.status === 'media_review' || 
-    v.status === 'final_review').length || 0;
-  const inProcessVideos = videos?.filter(v => 
-    v.status === 'content_corrections' || 
-    v.status === 'media_corrections' || 
-    v.status === 'upload_media').length || 0;
-  const completedVideos = videos?.filter(v => v.status === 'completed').length || 0;
-  
+
+  // Definir estados y sus colores
+  const videoStates = {
+    upload_media: { label: 'Subiendo', icon: Upload, color: "bg-blue-500", textColor: "text-blue-500", bgColor: "bg-blue-500/10" },
+    content_review: { label: 'En Revisión', icon: Clock, color: "bg-purple-500", textColor: "text-purple-500", bgColor: "bg-purple-500/10" },
+    content_corrections: { label: 'Correcciones', icon: RefreshCw, color: "bg-orange-500", textColor: "text-orange-500", bgColor: "bg-orange-500/10" },
+    media_review: { label: 'Rev. Media', icon: PlayCircle, color: "bg-indigo-500", textColor: "text-indigo-500", bgColor: "bg-indigo-500/10" },
+    completed: { label: 'Completados', icon: CheckCircle2, color: "bg-green-500", textColor: "text-green-500", bgColor: "bg-green-500/10" },
+  };
+
+  // Calcular totales por estado
+  const stateCounts = videos?.reduce((acc, video) => {
+    const status = video.status as VideoStatus;
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>) || {};
+
   // Total de videos
   const totalVideos = videos?.length || 0;
-  
-  // Calcular porcentajes para las barras
-  const getPercentage = (count: number) => {
-    return totalVideos > 0 ? (count / totalVideos) * 100 : 0;
-  };
-  
-  const videoStats = [
-    {
-      title: "Disponibles",
-      value: availableVideos,
-      percentage: getPercentage(availableVideos),
-      icon: FileVideo,
-      color: "bg-yellow-500",
-      textColor: "text-yellow-500",
-      bgColor: "bg-yellow-500/10"
-    },
-    {
-      title: "En Revisión",
-      value: inReviewVideos,
-      percentage: getPercentage(inReviewVideos),
-      icon: Clock,
-      color: "bg-purple-500",
-      textColor: "text-purple-500",
-      bgColor: "bg-purple-500/10"
-    },
-    {
-      title: "En Proceso",
-      value: inProcessVideos,
-      percentage: getPercentage(inProcessVideos),
-      icon: Film,
-      color: "bg-blue-500",
-      textColor: "text-blue-500",
-      bgColor: "bg-blue-500/10"
-    },
-    {
-      title: "Completados",
-      value: completedVideos,
-      percentage: getPercentage(completedVideos),
-      icon: FileCheck,
-      color: "bg-green-500",
-      textColor: "text-green-500",
-      bgColor: "bg-green-500/10"
-    }
-  ];
+
+  // Calcular porcentajes y preparar datos para visualización
+  const videoStats = Object.entries(videoStates).map(([state, config]) => ({
+    title: config.label,
+    value: stateCounts[state] || 0,
+    percentage: totalVideos > 0 ? ((stateCounts[state] || 0) / totalVideos) * 100 : 0,
+    icon: config.icon,
+    color: config.color,
+    textColor: config.textColor,
+    bgColor: config.bgColor
+  }));
 
   return (
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      {/* Enhanced rich accent gradient representing all video statuses */}
-      <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-purple-500 to-emerald-500"></div>
-      
+      {/* Gradiente superior que representa los estados de video */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500"></div>
+
       <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
         <CardTitle className="flex items-center gap-2 text-lg">
           <BarChart className="h-5 w-5 text-primary" />
-          Estado de Videos
+          Métricas de Videos
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-6">
         <div className="space-y-6">
           {videoStats.map((stat, index) => (
@@ -103,8 +73,8 @@ export function VideoStats() {
                   </span>
                 </div>
               </div>
-              
-              {/* Barra de progreso */}
+
+              {/* Barra de progreso con animación */}
               <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
                 <motion.div 
                   className={`h-full ${stat.color}`}
@@ -116,8 +86,8 @@ export function VideoStats() {
             </motion.div>
           ))}
         </div>
-        
-        <div className="flex justify-between items-center mt-4 pt-4 border-t border-muted/30">
+
+        <div className="flex justify-between items-center mt-6 pt-4 border-t border-muted/30">
           <span className="text-sm font-medium text-muted-foreground">Total de videos</span>
           <span className="text-xl font-bold">{totalVideos}</span>
         </div>
