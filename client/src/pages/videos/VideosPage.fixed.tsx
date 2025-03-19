@@ -98,20 +98,21 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
   ],
 } as const;
 
+// Mapeo correcto de estados previos
 const PREVIOUS_STATUS: Record<VideoStatus, VideoStatus | undefined> = {
   'pending': undefined,
-  'in_progress': 'available', 
-  'content_review': 'in_progress',
-  'content_corrections': 'content_review',
-  'optimize_review': 'content_corrections',
-  'title_corrections': 'optimize_review',
-  'media_review': 'title_corrections',
-  'media_corrections': 'media_review',
-  'final_review': 'media_review',
-  'completed': undefined, 
-  'available': undefined, 
-  'upload_media': undefined, 
-  'en_revision': undefined 
+  'available': undefined, // Estado inicial
+  'in_progress': 'available', // Cuando el optimizador comienza, puede volver a disponible
+  'content_review': 'in_progress', // De revisión de contenido vuelve a en progreso
+  'content_corrections': 'content_review', // De correcciones vuelve a revisión
+  'optimize_review': 'content_corrections', // De revisión de optimización vuelve a correcciones
+  'title_corrections': 'optimize_review', // De correcciones de título vuelve a revisión de optimización
+  'media_review': 'title_corrections', // De revisión de media vuelve a correcciones de título
+  'media_corrections': 'media_review', // De correcciones de media vuelve a revisión de media
+  'final_review': 'media_review', // De revisión final vuelve a revisión de media
+  'completed': undefined, // Estado final, no se puede revertir
+  'upload_media': undefined, // Estado inicial para subida de media
+  'en_revision': undefined // Estado especial que no se puede revertir
 };
 
 const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
@@ -626,7 +627,7 @@ export default function VideosPage() {
                                     await updateVideo({
                                       videoId: video.id,
                                       projectId: video.projectId,
-                                      updateRequest: { status: prevStatus } 
+                                      updateRequest: { status: prevStatus }
                                     });
                                     toast.success("Estado revertido correctamente");
                                   } catch (error) {
