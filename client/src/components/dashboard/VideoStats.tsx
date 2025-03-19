@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideoStats } from "@/hooks/useVideoStats";
-import { Upload, RefreshCw, PlayCircle, CheckCircle2, Clock } from "lucide-react";
+import { Upload, RefreshCw, PlayCircle, CheckCircle2, Clock, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function VideoStats() {
@@ -33,7 +33,7 @@ export function VideoStats() {
 
       <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <VideoIcon className="h-5 w-5 text-primary" /> {/* Assuming VideoIcon is defined elsewhere */}
+          <Video className="h-5 w-5 text-primary" />
           Métricas de Videos
         </CardTitle>
       </CardHeader>
