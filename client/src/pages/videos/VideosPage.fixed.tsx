@@ -108,10 +108,10 @@ const PREVIOUS_STATUS: Record<VideoStatus, VideoStatus | undefined> = {
   'media_review': 'title_corrections',
   'media_corrections': 'media_review',
   'final_review': 'media_review',
-  'completed': 'final_review',
-  'available': undefined,
-  'upload_media': undefined,
-  'en_revision': undefined
+  'completed': undefined, // No debería poder revertirse
+  'available': undefined, // Estado inicial
+  'upload_media': undefined, // Estado inicial
+  'en_revision': undefined // Estado especial
 };
 
 const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
@@ -626,7 +626,7 @@ export default function VideosPage() {
                                     await updateVideo({
                                       videoId: video.id,
                                       projectId: video.projectId,
-                                      status: prevStatus
+                                      updateRequest: { status: prevStatus } // Corregido: usar updateRequest
                                     });
                                     toast.success("Estado revertido correctamente");
                                   } catch (error) {
