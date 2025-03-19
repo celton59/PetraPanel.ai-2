@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
-import { eq, and, or, ilike, count, sql } from "drizzle-orm";
-import { youtube_videos, youtube_channels } from "@db/schema";
+import { eq, count, desc } from "drizzle-orm";
+import { youtubeVideos, youtubeChannels, YoutubeVideo } from "@db/schema";
 import { db } from "@db";
 import { youtubeService } from "server/services/youtubeService";
-import { findSimilarTitles, generateEmbedding } from "server/services/vectorAnalysis";
+import { findSimilarTitles } from "server/services/vectorAnalysis";
 import type { Express } from "express";
 
 /**
@@ -23,45 +23,27 @@ export async function compareTitleWithExisting(req: Request, res: Response): Pro
     }
     
     // Buscar títulos similares en la base de datos
-    const similarTitles = await findSimilarTitles(proposedTitle, 5);
+    const { results: similarTitles } = await findSimilarTitles(proposedTitle, 5);
     
     // Si se especificó un canal, verificar si el canal existe
     let channelExists = false;
-    let channelVideos: Array<{
-      id: number;
-      videoId: string;
-      title: string;
-      publishedAt: Date | null;
-      thumbnailUrl: string | null;
-      viewCount: number | null;
-      likeCount: number | null;
-    }> = [];
+    let channelVideos: YoutubeVideo[] = []
     
     if (channelId) {
-      const channel = await db.query.youtube_channels.findFirst({
-        where: eq(youtube_channels.channelId, channelId),
+      const channel = await db.query.youtubeChannels.findFirst({
+        where: eq(youtubeChannels.channelId, channelId),
       });
       
       channelExists = !!channel;
       
       if (channelExists) {
         // Obtener videos del canal
-        const videos = await db.query.youtube_videos.findMany({
-          where: eq(youtube_videos.channelId, channelId),
-          orderBy: (youtube_videos, { desc }) => [desc(youtube_videos.publishedAt)],
+        channelVideos = await db.query.youtubeVideos.findMany({
+          where: eq(youtubeVideos.channelId, channelId),
+          orderBy: desc(youtubeVideos.publishedAt),
           limit: 100,
         });
-        
-        // Preparar datos de videos para enviar al cliente
-        channelVideos = videos.map(video => ({
-          id: video.id,
-          videoId: video.youtubeId,
-          title: video.title,
-          publishedAt: video.publishedAt,
-          thumbnailUrl: video.thumbnailUrl,
-          viewCount: video.viewCount,
-          likeCount: video.likeCount
-        }));
+          
       }
     }
     
@@ -103,7 +85,7 @@ export async function compareBulkTitles(req: Request, res: Response): Promise<Re
     // Para cada título, buscar similitudes
     const results = await Promise.all(
       limitedTitles.map(async (title) => {
-        const similarTitles = await findSimilarTitles(title, 3);
+        const { results: similarTitles } = await findSimilarTitles(title, 3);
         
         // Calcular score de similitud promedio
         const avgSimilarity = similarTitles.length > 0
@@ -125,25 +107,21 @@ export async function compareBulkTitles(req: Request, res: Response): Promise<Re
     let channelInfo = null;
     
     if (channelId) {
-      const channel = await db.query.youtube_channels.findFirst({
-        where: eq(youtube_channels.channelId, channelId),
+      const channel = await db.query.youtubeChannels.findFirst({
+        where: eq(youtubeChannels.channelId, channelId),
       });
       
       if (channel) {
         // Contar videos del canal de forma manual
-        const videoCountResult = await db.execute(sql`
-          SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelId}
-        `);
-        
-        const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
-          ? parseInt(videoCountResult[0].count) || 0
-          : 0;
+        const videoCountResult = await db.select({ count: count() })
+        .from(youtubeVideos)
+        .where( eq( youtubeVideos.channelId, channelId ));    
             
         channelInfo = {
           id: channel.id,
           channelId: channel.channelId,
           name: channel.name,
-          videoCount
+          videoCount: videoCountResult?.at(0)?.count ?? 0,
         };
       }
     }
@@ -171,48 +149,43 @@ export async function compareBulkTitles(req: Request, res: Response): Promise<Re
 export async function checkChannelStatus(req: Request, res: Response): Promise<Response> {
   try {
     const { channelUrl, channelId } = req.query;
+
+    if (!channelUrl && !channelId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Se requiere una URL o ID de canal para verificar'
+      });
+    }
     
     // Si se proporciona un channelId, es una verificación directa
     if (channelId) {
       // Verificar si el canal ya está en nuestra base de datos
-      const existingChannel = await db.query.youtube_channels.findFirst({
-        where: eq(youtube_channels.channelId, channelId as string)
+      const existingChannel = await db.query.youtubeChannels.findFirst({
+        where: eq(youtubeChannels.channelId, channelId as string)
       });
-      
-      if (existingChannel) {
-        // Obtener algunos detalles del canal
-        const videoCountResult = await db.execute(sql`
-          SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelId}
-        `);
-        
-        const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
-          ? parseInt(videoCountResult[0].count) || 0
-          : 0;
-        
-        return res.status(200).json({
-          success: true,
-          exists: true,
-          channel: {
-            id: existingChannel.id,
-            channelId: existingChannel.channelId,
-            name: existingChannel.name,
-            thumbnailUrl: existingChannel.thumbnailUrl,
-            videoCount
-          }
-        });
-      } else {
+
+      if (!existingChannel) {
         return res.status(200).json({
           success: true,
           exists: false
         });
       }
-    }
-    
-    // Si no hay channelId, entonces verificamos por URL
-    if (!channelUrl) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Se requiere la URL o ID del canal' 
+      
+      // Obtener algunos detalles del canal
+      const videoCountResult = await db.select({ count: count() })
+      .from(youtubeVideos)
+      .where( eq( youtubeVideos.channelId, channelId as string ));    
+
+      return res.status(200).json({
+        success: true,
+        exists: true,
+        channel: {
+          id: existingChannel.id,
+          channelId: existingChannel.channelId,
+          name: existingChannel.name,
+          thumbnailUrl: existingChannel.thumbnailUrl,
+          videoCount: videoCountResult?.at(0)?.count ?? 0,
+        }
       });
     }
     
@@ -227,18 +200,18 @@ export async function checkChannelStatus(req: Request, res: Response): Promise<R
     }
     
     // Verificar si el canal ya está en nuestra base de datos
-    const existingChannel = await db.query.youtube_channels.findFirst({
-      where: eq(youtube_channels.channelId, channelInfo.channelId)
+    const existingChannel = await db.query.youtubeChannels.findFirst({
+      where: eq(youtubeChannels.channelId, channelInfo.channelId)
     });
     
     if (existingChannel) {
       // Obtener algunos detalles del canal
-      const videoCountResult = await db.execute(sql`
-        SELECT COUNT(*) as count FROM youtube_videos WHERE channel_id = ${channelInfo.channelId}
-      `);
+      const videoCountResult = await db.select({ count: count() })
+      .from(youtubeVideos)
+      .where( eq( youtubeVideos.channelId, channelId as string )); 
       
       const videoCount = videoCountResult && Array.isArray(videoCountResult) && videoCountResult.length > 0
-        ? parseInt(videoCountResult[0].count) || 0
+        ? videoCountResult[0].count ?? 0
         : 0;
       
       return res.status(200).json({

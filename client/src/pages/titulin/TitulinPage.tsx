@@ -32,7 +32,7 @@ export default function TitulinPage() {
 
   const { setTitleFilter, channelFilter, setChannelFilter, videos, onlyAnalyzed, setOnlyAnalyzed,
     channels, refetch, pagination, totalVideos, viewsCount, likesCount, onlyEvergreen, setOnlyEvergreen,
-    handleDownloadCSV, isDownloading, isFetching, isLoading, pageSize, currentPage, setCurrentPage, titleFilter } = useTitulin()
+    handleDownloadCSV, isDownloading, isFetching, isLoading, pageSize, currentPage, setCurrentPage } = useTitulin()
 
   // Obtener el queryClient para poder usarlo más tarde
   const queryClient = useQueryClient();

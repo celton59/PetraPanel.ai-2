@@ -115,7 +115,7 @@ export type InsertVideo = typeof videos.$inferInsert;
 export const insertVideoSchema = createInsertSchema(videos);
 export const selectVideoSchema = createSelectSchema(videos);
 
-export const youtube_channels = pgTable("youtube_channels", {
+export const youtubeChannels = pgTable("youtube_channels", {
   id: serial("id").primaryKey(),
   channelId: text("channel_id").notNull().unique(),
   name: text("name").notNull(),
@@ -131,7 +131,7 @@ export const youtube_channels = pgTable("youtube_channels", {
     updatedAt: timestamp("updated_at").defaultNow(),
   });
 
-export type YoutubeChannel = typeof youtube_channels.$inferSelect;
+export type YoutubeChannel = typeof youtubeChannels.$inferSelect;
 
 // Tabla para configurar las tarifas por acción según el rol
 export const actionRates = pgTable("action_rates", {
@@ -155,7 +155,7 @@ export const actionRates = pgTable("action_rates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const youtube_videos = pgTable("youtube_videos", {
+export const youtubeVideos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
   youtubeId: text("youtube_id").notNull().unique(),
   channelId: text("channel_id").notNull(),
@@ -168,21 +168,16 @@ export const youtube_videos = pgTable("youtube_videos", {
   commentCount: integer("comment_count"),
   duration: text("duration"),
   tags: text("tags").array(),
-  analyzed: boolean("analyzed").default(false),
-  // Campo para almacenar los datos de análisis
-  analysisData: jsonb("analysis_data"),
   sentToOptimize: boolean("sent_to_optimize").default(false),
   sentToOptimizeAt: timestamp("sent_to_optimize_at"),
   sentToOptimizeProjectId: integer("sent_to_optimize_project_id")
     .references(() => projects.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  isEvergreen: boolean("is_evergreen"),
-  evergreenConfidence: numeric("evergreen_confidence")
 });
 
-export type YoutubeVideo = typeof youtube_videos.$inferSelect
-export type InsertYoutubeVideo = typeof youtube_videos.$inferInsert
+export type YoutubeVideo = typeof youtubeVideos.$inferSelect
+export type InsertYoutubeVideo = typeof youtubeVideos.$inferInsert
 // Tabla para registrar las acciones realizadas por los usuarios
 export const userActions = pgTable("user_actions", {
   id: serial("id").primaryKey(),
@@ -295,14 +290,19 @@ export const selectNotificationSettingSchema = createSelectSchema(notificationSe
 // Tabla para title embeddings
 
 export const titleEmbeddings = pgTable("title_embeddings", {
-  id: serial("id").primaryKey(),
+  id: serial("id").primaryKey()
+  .references(() => youtubeVideos.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull(),
   title: text("title").notNull(),
-  vector: vector("vector", { dimensions: 1536 }).notNull(),
-  is_evergreen: boolean("is_evergreen").default(false),
+  embedding: vector("vector", { dimensions: 1536 }).notNull(),
+  isEvergreen: boolean("is_evergreen").default(false),
   confidence: numeric("confidence"),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
+  reason: text("reason"),
 })
+
+export type InsertTitleEmbedding = typeof titleEmbeddings.$inferInsert;
+export type TitleEmbedding = typeof titleEmbeddings.$inferSelect;
 
 // Tabla training title examples 
 
@@ -310,7 +310,7 @@ export const trainingTitleExamples = pgTable("training_title_examples", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   youtubeId: text("youtube_id").notNull(), 
-  is_evergreen: boolean("is_evergreen").default(false),
+  isEvergreen: boolean("is_evergreen").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdBy: integer("created_by").references(() => users.id),

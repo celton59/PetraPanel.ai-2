@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   XCircle,
   Zap,
-  Search
+  Search,
+  BarChart2
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -42,7 +43,7 @@ export default function TitulinConfiguration () {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const queryClient = useQueryClient();
-
+  
   // Consulta para canales usando el hook personalizado
   const { channels, isLoading } = useTitulin()
   
@@ -688,6 +689,26 @@ export default function TitulinConfiguration () {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                Comparación de títulos
+              </CardTitle>
+              <CardDescription>
+                Compara títulos con los existentes para evitar repeticiones
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => setShowTitleComparison(true)}
+                className="w-full"
+              >
+                Abrir comparador
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Contenido de la pestaña Configuración */}
@@ -798,6 +819,7 @@ export default function TitulinConfiguration () {
         onOpenChange={setShowTitleComparison}
         initialChannelId={selectedChannelId}
       />
+      
     </div>
   );
 };

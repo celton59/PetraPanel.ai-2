@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { youtube_videos, YoutubeVideo, InsertYoutubeVideo } from '@db/schema';
+import { youtubeVideos, YoutubeVideo, InsertYoutubeVideo } from '@db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from "@db";
 
@@ -132,11 +132,11 @@ export class YouTubeService {
       // Optimized query: Get existing video IDs from database
       const startTime = Date.now();
       const existingVideos: Pick<YoutubeVideo, 'youtubeId' | 'updatedAt'>[] = await db.select({
-          youtubeId: youtube_videos.youtubeId,
-        updatedAt: youtube_videos.updatedAt
+          youtubeId: youtubeVideos.youtubeId,
+        updatedAt: youtubeVideos.updatedAt
       })
-      .from(youtube_videos)
-      .where(eq(youtube_videos.channelId, channelId))
+      .from(youtubeVideos)
+      .where(eq(youtubeVideos.channelId, channelId))
 
       const queryTime = Date.now() - startTime;
       if (queryTime > 100) {
@@ -265,10 +265,10 @@ export class YouTubeService {
       // Using a Set for O(1) lookups
       const existingVideoIds = new Set<string>();
       const existingVideos = await db
-        .select({ videoId: youtube_videos.youtubeId })
-        .from(youtube_videos)
+        .select({ videoId: youtubeVideos.youtubeId })
+        .from(youtubeVideos)
         .where(inArray(
-          youtube_videos.youtubeId, 
+          youtubeVideos.youtubeId, 
           videos.map(v => v.youtubeId)
         ));
 
@@ -286,7 +286,7 @@ export class YouTubeService {
           const batch = videosToInsert.slice(i, i + this.BATCH_SIZE);
 
           await db.transaction(async (tx) => {
-            await tx.insert(youtube_videos)
+            await tx.insert(youtubeVideos)
               .values(batch.map(video => ({
                 ...video,
                 createdAt: new Date(),
@@ -305,12 +305,12 @@ export class YouTubeService {
 
           for (const video of batch) {
             await db
-              .update(youtube_videos)
+              .update(youtubeVideos)
               .set({
                 ...video,
                 updatedAt: new Date(),
               })
-              .where(eq(youtube_videos.youtubeId, video.youtubeId));
+              .where(eq(youtubeVideos.youtubeId, video.youtubeId));
           }
         }
       }

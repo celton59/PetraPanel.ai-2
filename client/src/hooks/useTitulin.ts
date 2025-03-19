@@ -4,11 +4,13 @@ import axios from "axios";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { YoutubeChannel, YoutubeVideo } from "@db/schema";
+import { TitleEmbedding, YoutubeChannel, YoutubeVideo } from "@db/schema";
 
-export interface TitulinVideo extends Omit<YoutubeVideo, 'publishedAt'> {
+
+export type TitulinVideo = Omit<YoutubeVideo, 'publishedAt'> & TitleEmbedding & {
   publishedAt?: string
 }
+
 
 export interface TitulinChannel extends Omit<YoutubeChannel, 'lastVideoFetch'> {
   lastVideoFetch?: string
@@ -165,7 +167,7 @@ export function useTitulin() {
         published: formatDate(video.publishedAt),
         channel: getChannelName(video.channelId),
         duration: video.duration,
-        isEvergreen: video.analyzed && video.analysisData ? (video.isEvergreen ? "Sí" : "No") : "No analizado",
+        isEvergreen: video.isEvergreen,
         url: `https://youtube.com/watch?v=${video.youtubeId}`
       }));
       

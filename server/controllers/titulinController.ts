@@ -1,15 +1,16 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, or, ilike, getTableColumns, count, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, or, ilike, getTableColumns, count, desc, sql, inArray, isNotNull } from "drizzle-orm";
 import {
-  youtube_videos,
-  youtube_channels,
+  youtubeVideos,
+  youtubeChannels,
   videos,
-  trainingTitleExamples
+  trainingTitleExamples,
+  titleEmbeddings
 } from "@db/schema";
 import { db } from "@db";
 import { type Express } from "express";
 import { youtubeService } from "server/services/youtubeService";
-import { analyzeTitle, updateVideoAnalysisStatus, findSimilarTitles } from "server/services/vectorAnalysis";
+import { analyzeTitle, findSimilarTitles } from "server/services/vectorAnalysis";
 
 async function addChannel (req: Request, res: Response): Promise<Response> {
 
@@ -28,7 +29,7 @@ async function addChannel (req: Request, res: Response): Promise<Response> {
 
     const channelInfo = await youtubeService.getChannelInfo(url);
 
-    const [newChannel] = await db.insert(youtube_channels)
+    const [newChannel] = await db.insert(youtubeChannels)
       .values({
         channelId: channelInfo.channelId!,
         name: channelInfo.name || 'Sin nombre',
@@ -64,54 +65,43 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
   }
 
   // Obtener parámetros para paginación y filtrado
-  const { channelId, title } = req.query;
+  const { channelId, title, isEvergreen, analyzed } = req.query;
   const page = Number(req.query.page || '1');
   const limit = Number(req.query.limit || '20');
   const offset = (page - 1) * limit;
   
   try {
-    // Construimos las condiciones de filtrado
-    const conditions = [];
     
-    if (channelId) {
-      conditions.push(eq(youtube_videos.channelId, channelId as string));
-    }
-    
-    // Búsqueda por título
-    if (title) {
-      // Búsqueda directa por título
-      conditions.push(ilike(youtube_videos.title, `%${title}%`));
-      console.log(`Buscando videos con título que contiene: ${title}`);
-    }
+    const conditions = and(
+      title ? ilike(youtubeVideos.title, `%${title}%`) : undefined,
+      isEvergreen ? eq(titleEmbeddings.isEvergreen, true) : undefined,
+      channelId ? eq(youtubeVideos.channelId, channelId.toString()) : undefined,
+      analyzed ? isNotNull(titleEmbeddings.videoId) : undefined,
+      analyzed ? isNotNull(titleEmbeddings.embedding) : undefined,
+    )
     
     // Primero obtenemos el total de videos (para la paginación)
     const countQuery = db.select({ count: count() })
-      .from(youtube_videos);
-    
-    // Aplicamos los filtros al contador si hay condiciones
-    if (conditions.length > 0) {
-      countQuery.where(conditions.length === 1 ? conditions[0] : and(...conditions));
-    }
+      .from(youtubeVideos)
+      .where(conditions);    
     
     const [totalResult] = await countQuery.execute();
     const total = Number(totalResult?.count || 0);
     
     // Consulta principal para obtener los videos paginados
-    const query = db.select()
-      .from(youtube_videos)
-      .orderBy(desc(youtube_videos.publishedAt))
+    const query = db.select({
+        ...getTableColumns(youtubeVideos),
+        ...getTableColumns(titleEmbeddings)
+      })
+      .from(youtubeVideos)
+      .leftJoin(titleEmbeddings, eq(youtubeVideos.id, titleEmbeddings.videoId))
+      .where(conditions)
+      .orderBy(desc(youtubeVideos.publishedAt))
       .limit(limit)
       .offset(offset);
-      
-    // Aplicamos los mismos filtros a la consulta principal
-    if (conditions.length > 0) {
-      query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
-    }
     
     const result = await query.execute();
 
-    console.log(`Encontrados ${total} videos en la base de datos (mostrando ${result.length} en página ${page})`);
-    
     return res.status(200).json({
       videos: result,
       pagination: {
@@ -142,7 +132,7 @@ async function getChannels (req: Request, res: Response): Promise<Response> {
   try {
     // Usamos select() sin argumentos para evitar problemas con los nombres de columnas
     const result = await db.select()
-      .from(youtube_channels)
+      .from(youtubeChannels)
       .execute()
 
     return res.status(200).json(result);
@@ -168,8 +158,8 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
 
   try {
     // 1. Primero obtener los videos relacionados para obtener sus IDs
-    const channelVideos = await db.query.youtube_videos.findMany({
-      where: eq(youtube_videos.channelId, channelId),
+    const channelVideos = await db.query.youtubeVideos.findMany({
+      where: eq(youtubeVideos.channelId, channelId),
       columns: { id: true, youtubeId: true }
     });
     
@@ -194,8 +184,8 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
         // Eliminar los ejemplos de entrenamiento basados en los títulos de estos videos
         await trx.delete(trainingTitleExamples).where(inArray(trainingTitleExamples.youtubeId, batchVideoIds));
         // Eliminar los videos de este lote
-        await trx.delete(youtube_videos)
-          .where(inArray(youtube_videos.id, batchDbIds))
+        await trx.delete(youtubeVideos)
+          .where(inArray(youtubeVideos.id, batchDbIds))
           .execute();
       });
       
@@ -204,8 +194,8 @@ async function deleteChannel (req: Request, res: Response): Promise<Response> {
     }
     
     // Finalmente eliminamos el canal
-    await db.delete(youtube_channels)
-      .where(eq(youtube_channels.id, parseInt(channelId)))
+    await db.delete(youtubeChannels)
+      .where(eq(youtubeChannels.id, parseInt(channelId)))
       .execute();
     
     console.log("Canal y sus datos asociados eliminados correctamente");
@@ -238,8 +228,8 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
     console.log(`Iniciando análisis de evergreen para video ${videoId} usando vectores`);
     
     const video = await db.select()
-      .from(youtube_videos)
-      .where(eq(youtube_videos.id, videoIdNum))
+      .from(youtubeVideos)
+      .where(eq(youtubeVideos.id, videoIdNum))
       .limit(1)
       .execute();
     
@@ -255,14 +245,8 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
     
     // Usar el servicio de análisis vectorial para analizar el título
     console.log(`Analizando título: "${title}"`);
-    const analysisResult = await analyzeTitle(title, videoIdNum);
-    
-    // Actualizar estado del análisis en la base de datos
-    await updateVideoAnalysisStatus(videoIdNum, true, analysisResult);
-    
-    // Buscar títulos similares
-    const similarTitles = await findSimilarTitles(title, 5);
-    
+    const { similarTitles, result: analysisResult } = await analyzeTitle(title, videoIdNum);
+            
     console.log(`Análisis completado para video ${videoId}: Evergreen: ${analysisResult.isEvergreen}, Confianza: ${analysisResult.confidence}`);
     
     return res.status(200).json({
@@ -305,14 +289,14 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
     const [viewsResult] = await db.select({
       totalViews: sql`SUM(view_count)`.mapWith(Number),
     })
-    .from(youtube_videos)
+    .from(youtubeVideos)
     .execute();
     
     // Consulta para obtener el total de likes
     const [likesResult] = await db.select({
       totalLikes: sql`SUM(like_count)`.mapWith(Number),
     })
-    .from(youtube_videos)
+    .from(youtubeVideos)
     .execute();
     
     return res.status(200).json({
@@ -335,13 +319,13 @@ async function getChannelsForTraining(req: Request, res: Response): Promise<Resp
   try {
     // Obtener lista simplificada de canales para selector
     const result = await db.select({
-      id: youtube_channels.id,
-      channelId: youtube_channels.channelId,
-      name: youtube_channels.name,
-      thumbnailUrl: youtube_channels.thumbnailUrl
+      id: youtubeChannels.id,
+      channelId: youtubeChannels.channelId,
+      name: youtubeChannels.name,
+      thumbnailUrl: youtubeChannels.thumbnailUrl
     })
-    .from(youtube_channels)
-    .where(eq(youtube_channels.active, true))
+    .from(youtubeChannels)
+    .where(eq(youtubeChannels.active, true))
     .execute();
 
     return res.status(200).json(result);
@@ -387,12 +371,12 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
       // Still update the channel's last fetch time
       ;
       await db
-        .update(youtube_channels)
+        .update(youtubeChannels)
         .set({
           lastVideoFetch: now,
           updatedAt: now
         })
-        .where(eq(youtube_channels.channelId, channelId));
+        .where(eq(youtubeChannels.channelId, channelId));
 
     }
 
@@ -409,12 +393,12 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
 
     // Update channel's last fetch time
     await db
-      .update(youtube_channels)
+      .update(youtubeChannels)
       .set({
         lastVideoFetch: now,
         updatedAt: now
       })
-      .where(eq(youtube_channels.channelId, channelId));
+      .where(eq(youtubeChannels.channelId, channelId));
 
     return res.status(200).json({
       success: true
@@ -453,8 +437,8 @@ async function sendToOptimize (req: Request, res: Response): Promise<Response> {
 
     // Get the youtube video from the database
     const youtubeVideo = await db.select({
-      ...getTableColumns(youtube_videos)
-    }).from(youtube_videos).where(eq(youtube_videos.id, parseInt(videoId))).execute();
+      ...getTableColumns(youtubeVideos)
+    }).from(youtubeVideos).where(eq(youtubeVideos.id, parseInt(videoId))).execute();
 
     // Check if the youtube video exists
     if (!youtubeVideo.at(0)) {
@@ -488,10 +472,10 @@ async function sendToOptimize (req: Request, res: Response): Promise<Response> {
           })
           .returning();
 
-        await trx.update(youtube_videos).set({
+        await trx.update(youtubeVideos).set({
           sentToOptimize: true,
           updatedAt: new Date()
-        }).where(eq(youtube_videos.id, parseInt(videoId)));
+        }).where(eq(youtubeVideos.id, parseInt(videoId)));
     });
 
     return res.status(200).json({
@@ -599,8 +583,8 @@ async function getSimilarVideos (req: Request, res: Response): Promise<Response>
 
   try {
     const video = await db.select()
-      .from(youtube_videos)
-      .where(eq(youtube_videos.id, parseInt(videoId)))
+      .from(youtubeVideos)
+      .where(eq(youtubeVideos.id, parseInt(videoId)))
       .limit(1)
       .execute();
 

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth.js";
 import { db } from "@db";
 import { 
-  users, videos, actionRates, userActions, payments, projects, youtube_channels
+  users, videos, actionRates, userActions, payments, projects, youtubeChannels
 } from "@db/schema"; 
 import { eq, count, sql, and, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import path from "path";
@@ -788,7 +788,7 @@ export function registerRoutes(app: Express): Server {
         
         // 4. Obtener canales de YouTube
         try {
-          const channelsResult = await db.select().from(youtube_channels).limit(15);
+          const channelsResult = await db.select().from(youtubeChannels).limit(15);
           
           dbYoutubeChannels = channelsResult.map(channel => ({
             id: channel.id,

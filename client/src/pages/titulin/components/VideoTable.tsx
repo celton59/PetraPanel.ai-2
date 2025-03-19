@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "./DataTable";
-import { TitulinVideo } from "../types";
+import { TitulinVideo } from "@/hooks/useTitulin";
 
 interface VideoTableProps {
   videos: TitulinVideo[];
@@ -35,7 +35,7 @@ export function VideoTable({
   ]);
 
   // Formatear fecha ISO a una fecha legible
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     try {
       const date = parseISO(dateString);
@@ -163,12 +163,12 @@ export function VideoTable({
         header: "Publicado",
         accessorFn: (row) => {
           // Intentar obtener el valor, ya sea como publishedAt o published_at
-          return row.publishedAt || row['published_at'] || null;
+          return row.publishedAt
         },
         sortingFn: (rowA, rowB) => {
           // Acceder directamente al valor original para la comparación
-          const aValue = rowA.original.publishedAt || rowA.original['published_at'];
-          const bValue = rowB.original.publishedAt || rowB.original['published_at'];
+          const aValue = rowA.original.publishedAt
+          const bValue = rowB.original.publishedAt
           
           // Convertir a fechas para comparar
           const aTime = aValue ? new Date(aValue).getTime() : 0;
@@ -177,7 +177,7 @@ export function VideoTable({
           return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
         },
         cell: ({ row }) => {
-          const dateValue = row.original.publishedAt || row.original['published_at'];
+          const dateValue = row.original.publishedAt
           return <span>{formatDate(dateValue)}</span>;
         },
       },
@@ -221,27 +221,22 @@ export function VideoTable({
         header: "Evergreen",
         sortingFn: (rowA, rowB) => {
           // Si no está analizado, va al final
-          if (!rowA.original.analyzed && !rowB.original.analyzed) return 0;
-          if (!rowA.original.analyzed) return 1;
-          if (!rowB.original.analyzed) return -1;
-          
-          // Si no hay datos de análisis, va después de los analizados
-          if (!rowA.original.analysisData && !rowB.original.analysisData) return 0;
-          if (!rowA.original.analysisData) return 1;
-          if (!rowB.original.analysisData) return -1;
+          if (!rowA.original.embedding && !rowB.original.embedding) return 0;
+          if (!rowA.original.embedding) return 1;
+          if (!rowB.original.embedding) return -1;
           
           // Primero compara si es evergreen (true primero)
-          if (rowA.original.analysisData.isEvergreen !== rowB.original.analysisData.isEvergreen) {
-            return rowA.original.analysisData.isEvergreen ? -1 : 1;
+          if (rowA.original.isEvergreen !== rowB.original.confidence) {
+            return rowA.original.isEvergreen ? -1 : 1;
           }
           
           // Si ambos tienen el mismo estado evergreen, compara por confianza
-          return rowB.original.analysisData.confidence - rowA.original.analysisData.confidence;
+          return (rowB.original.confidence ?? 0) - (rowB.original.confidence ?? 0);
         },
         cell: ({ row }) => {
           const video = row.original;
 
-          if (!video.analyzed) {
+          if (!video.embedding) {
             return (
               <Button
                 variant="outline"
@@ -260,28 +255,14 @@ export function VideoTable({
             );
           }
 
-          if (!video.analysisData) {
-            // El video está analizado pero no tenemos los datos de análisis
-            // Esto puede ocurrir con la versión actual del esquema de base de datos
-            return (
-              <div className="space-y-1">
-                <Badge variant="outline" className="text-muted-foreground">
-                  Analizado
-                </Badge>
-                <div className="text-xs text-muted-foreground">
-                  Datos no disponibles
-                </div>
-              </div>
-            );
-          }
 
           return (
             <div className="space-y-1">
-              <Badge variant={video.analysisData.isEvergreen ? "default" : "secondary"}>
-                {video.analysisData.isEvergreen ? "Evergreen" : "No Evergreen"}
+              <Badge variant={video.isEvergreen ? "default" : "secondary"}>
+                {video.isEvergreen ? "Evergreen" : "No Evergreen"}
               </Badge>
               <div className="text-xs text-muted-foreground">
-                {Math.round(video.analysisData.confidence * 100)}% confianza
+                {Math.round((parseFloat(video.confidence ?? '0') ) * 100)}% confianza
               </div>
             </div>
           );
@@ -294,27 +275,15 @@ export function VideoTable({
         cell: ({ row }) => {
           const video = row.original;
           return (
-            <div className="flex flex-col gap-2">
-              {setAnalysisVideo && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAnalysisVideo(video)}
-                  className="w-full"
-                >
-                  Análisis Detallado
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedVideo(video)}
-                className="w-full"
-                disabled={video.sentToOptimize}
-              >
-                {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedVideo(video)}
+              className="w-full"
+              disabled={Boolean(video.sentToOptimize)}
+            >
+              {video.sentToOptimize ? "Ya enviado" : "Enviar a Optimización"}
+            </Button>
           );
         }
       }
