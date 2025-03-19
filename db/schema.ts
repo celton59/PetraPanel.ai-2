@@ -174,6 +174,11 @@ export const youtubeVideos = pgTable("youtube_videos", {
     .references(() => projects.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  embedding: vector("vector", { dimensions: 1536 }),
+  isEvergreen: boolean("is_evergreen"),
+  confidence: numeric("confidence"),
+  analyzedAt: timestamp("created_at"),
+  reason: text("reason"),
 });
 
 export type YoutubeVideo = typeof youtubeVideos.$inferSelect
@@ -286,23 +291,6 @@ export const selectNotificationSchema = createSelectSchema(notifications);
 export const insertNotificationSettingSchema = createInsertSchema(notificationSettings);
 export const selectNotificationSettingSchema = createSelectSchema(notificationSettings);
 
-
-// Tabla para title embeddings
-
-export const titleEmbeddings = pgTable("title_embeddings", {
-  id: serial("id").primaryKey()
-  .references(() => youtubeVideos.id, { onDelete: "cascade" }),
-  videoId: integer("video_id").notNull(),
-  title: text("title").notNull(),
-  embedding: vector("vector", { dimensions: 1536 }).notNull(),
-  isEvergreen: boolean("is_evergreen").default(false),
-  confidence: numeric("confidence"),
-  createdAt: timestamp("created_at").defaultNow(),
-  reason: text("reason"),
-})
-
-export type InsertTitleEmbedding = typeof titleEmbeddings.$inferInsert;
-export type TitleEmbedding = typeof titleEmbeddings.$inferSelect;
 
 // Tabla training title examples 
 

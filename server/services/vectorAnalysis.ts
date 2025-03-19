@@ -1,12 +1,10 @@
 import { OpenAI } from "openai";
-import { sql, desc, SQL, getTableColumns, and, eq } from "drizzle-orm";
+import { sql, desc, getTableColumns, and, eq, isNotNull } from "drizzle-orm";
 import { db } from "@db";
 import {
-  InsertTitleEmbedding,
-  TitleEmbedding,
-  titleEmbeddings,
   trainingTitleExamples,
-  youtubeVideos,
+  YoutubeVideo,
+  youtubeVideos
 } from "@db/schema";
 
 // Inicializar cliente de OpenAI
@@ -121,6 +119,8 @@ async function getTrainingExamples(limit: number = 10): Promise<{
   }
 }
 
+export type AnalysisResult = Pick<YoutubeVideo, 'confidence' | 'isEvergreen' | 'analyzedAt' | 'embedding' | 'reason'>;
+
 /**
  * Analiza un título para determinar si es evergreen usando un enfoque híbrido
  * que combina similitud de vectores y análisis de GPT cuando es necesario
@@ -132,7 +132,7 @@ export async function analyzeTitle(
   title: string,
   videoId: number,
 ): Promise<{
-  result: InsertTitleEmbedding;
+  result: AnalysisResult;
   similarTitles: SimilarTitleEmbedding[];
 }> {
   console.log(
@@ -178,20 +178,19 @@ export async function analyzeTitle(
 
     // Si la confianza es alta (>= 0.7), usar el resultado basado en vectores
     if (confidence >= 0.7) {
-      const result: InsertTitleEmbedding = {
+      const result: AnalysisResult = {
         embedding: titleEmbedding,
         // embedding: titleEmbedding as unknown as SQL<unknown>,
         isEvergreen,
-        title,
-        videoId,
+        analyzedAt: new Date(),
         confidence: confidence.toFixed(2),
         reason: isEvergreen
           ? `Este título es considerado evergreen con ${(confidence * 100).toFixed(0)}% de confianza basado en ${validSimilarTitles.length} títulos similares. La mayoría de títulos similares también son evergreen.`
           : `Este título no es considerado evergreen con ${(confidence * 100).toFixed(0)}% de confianza basado en ${validSimilarTitles.length} títulos similares. La mayoría de títulos similares no son evergreen.`,
       };
 
-      // Almacenar el resultado en la base de datos
-      await db.insert(titleEmbeddings).values(result);
+      // Actualizar el resultado en la base de datos
+      await db.update(youtubeVideos).set(result)
 
       console.log(
         `Análisis completado para video ${videoId}: Evergreen: ${result.isEvergreen}, Confianza: ${result.confidence}`,
@@ -321,17 +320,16 @@ export async function analyzeTitle(
       })
     : undefined;
 
-  const finalResult: InsertTitleEmbedding = {
+  const finalResult: AnalysisResult = {
     embedding: titleEmbedding,
     isEvergreen: openAiResult?.isEvergreen ?? false,
-    title,
-    videoId,
     confidence: openAiResult?.confidence.toFixed(2) ?? "0",
     reason: openAiResult?.reason ?? "Error al analizar el título",
+    analyzedAt: new Date(),
   };
 
   // Almacenar el resultado en la base de datos usando SQL directo
-  await db.insert(titleEmbeddings).values(finalResult);
+  await db.update(youtubeVideos).set(finalResult);
 
   console.log(
     `Análisis completado para video ${videoId}: Evergreen: ${finalResult.isEvergreen}, Confianza: ${finalResult.confidence}`,
@@ -349,7 +347,7 @@ export async function analyzeTitle(
  * @returns Array de títulos similares con su puntuación
  */
 
-export interface SimilarTitleEmbedding extends TitleEmbedding {
+export interface SimilarTitleEmbedding extends YoutubeVideo {
   similarity: number;
 }
 
@@ -364,32 +362,17 @@ export async function findSimilarTitles(
 
   const results = await db
     .select({
-      ...getTableColumns(titleEmbeddings),
+      ...getTableColumns(youtubeVideos),
       similarity:
-        sql`1 - (${titleEmbeddings.embedding.name} <=> ${JSON.stringify(titleEmbedding)}::vector)`.as(
+        sql`1 - (${youtubeVideos.embedding.name} <=> ${JSON.stringify(titleEmbedding)}::vector)`.as(
           "similarity",
         ),
     })
-    .from(titleEmbeddings)
-    // .orderBy(desc(sql`1 - (embedding <=> ${JSON.stringify(titleEmbedding)}::vector)`))
+    .from(youtubeVideos)
+    .where(isNotNull(youtubeVideos.embedding))
     .orderBy(desc(sql`similarity`))
     .limit(limit);
 
-  // const results = await db.execute<{
-  //   video_id: number;
-  //   title: string;
-  //   similarity: number;
-  //   is_evergreen: boolean;
-  // }>(sql`
-  //   SELECT
-  //     video_id,
-  //     title,
-  //     1 - (embedding <=> ${JSON.stringify(titleEmbedding)}::vector) as similarity,
-  //     is_evergreen
-  //   FROM title_embeddings
-  //   ORDER BY similarity DESC
-  //   LIMIT ${limit}
-  // `);
   return {
     results: results.map((result) => ({
       ...result,

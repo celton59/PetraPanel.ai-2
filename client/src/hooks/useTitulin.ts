@@ -4,10 +4,10 @@ import axios from "axios";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { TitleEmbedding, YoutubeChannel, YoutubeVideo } from "@db/schema";
+import { YoutubeChannel, YoutubeVideo } from "@db/schema";
 
 
-export type TitulinVideo = Omit<YoutubeVideo, 'publishedAt'> & TitleEmbedding & {
+export type TitulinVideo = Omit<YoutubeVideo, 'publishedAt'> & {
   publishedAt?: string
 }
 

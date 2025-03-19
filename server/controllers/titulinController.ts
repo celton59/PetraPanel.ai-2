@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import {
   eq,
   and,
-  or,
   ilike,
   getTableColumns,
   count,
@@ -15,8 +14,7 @@ import {
   youtubeVideos,
   youtubeChannels,
   videos,
-  trainingTitleExamples,
-  titleEmbeddings,
+  trainingTitleExamples
 } from "@db/schema";
 import { db } from "@db";
 import { type Express } from "express";
@@ -86,10 +84,9 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   try {
     const conditions = and(
       title ? ilike(youtubeVideos.title, `%${title}%`) : undefined,
-      isEvergreen ? eq(titleEmbeddings.isEvergreen, true) : undefined,
+      isEvergreen ? eq(youtubeVideos.isEvergreen, true) : undefined,
       channelId ? eq(youtubeVideos.channelId, channelId.toString()) : undefined,
-      analyzed ? isNotNull(titleEmbeddings.videoId) : undefined,
-      analyzed ? isNotNull(titleEmbeddings.embedding) : undefined,
+      analyzed ? isNotNull(youtubeVideos.embedding) : undefined,
     );
 
     // Primero obtenemos el total de videos (para la paginación)
@@ -103,29 +100,8 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
 
     // Consulta principal para obtener los videos paginados
     const query = db
-      .select({
-        id: youtubeVideos.id,
-        youtubeId: youtubeVideos.youtubeId,
-        channelId: youtubeVideos.channelId,
-        title: youtubeVideos.title,
-        description: youtubeVideos.description,
-        publishedAt: youtubeVideos.publishedAt,
-        thumbnailUrl: youtubeVideos.thumbnailUrl,
-        viewCount: youtubeVideos.viewCount,
-        likeCount: youtubeVideos.likeCount,
-        commentCount: youtubeVideos.commentCount,
-        duration: youtubeVideos.duration,
-        tags: youtubeVideos.tags,
-        sentToOptimize: youtubeVideos.sentToOptimize,
-        sentToOptimizeAt: youtubeVideos.sentToOptimizeAt,
-        sentToOptimizeProjectId: youtubeVideos.sentToOptimizeProjectId,
-        isEvergreen: titleEmbeddings.isEvergreen,
-        confidence: titleEmbeddings.confidence,
-        reason: titleEmbeddings.reason,
-        embedding: titleEmbeddings.embedding,
-      })
+      .select()
       .from(youtubeVideos)
-      .leftJoin(titleEmbeddings, eq(youtubeVideos.id, titleEmbeddings.videoId))
       .where(conditions)
       .orderBy(desc(youtubeVideos.publishedAt))
       .limit(limit)
@@ -302,7 +278,7 @@ async function analyzeVideo(req: Request, res: Response): Promise<Response> {
         confidence: analysisResult.confidence,
         reason: analysisResult.reason,
         similarTitles: similarTitles.map((st) => ({
-          videoId: st.videoId,
+          videoId: videoIdNum,
           title: st.title,
           similarity: st.similarity,
           isEvergreen: st.isEvergreen,
