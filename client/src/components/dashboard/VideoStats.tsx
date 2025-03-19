@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideoStats } from "@/hooks/useVideoStats";
-import { Video, Upload, RefreshCw, FileCheck } from "lucide-react";
+import { Upload, RefreshCw, Video, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function VideoStats() {
