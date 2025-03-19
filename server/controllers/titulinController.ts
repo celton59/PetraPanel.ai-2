@@ -302,22 +302,21 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   try {
     console.log('Obteniendo estadísticas de videos...');
 
-    // Obtener estadísticas básicas
-    const statsResult = await db.select({
-      total: count(),
-      optimized: sql`SUM(CASE WHEN sent_to_optimize THEN 1 ELSE 0 END)`.mapWith(Number),
-      analyzed: sql`SUM(CASE WHEN analyzed THEN 1 ELSE 0 END)`.mapWith(Number),
-    })
-    .from(youtube_videos)
-    .execute();
+    // Usar COUNT directo en vez de SUM para evitar NULLs
+    const [stats] = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN sent_to_optimize = true THEN 1 END) as optimized,
+        COUNT(CASE WHEN analyzed = true THEN 1 END) as analyzed
+      FROM youtube_videos;
+    `);
 
-    const stats = statsResult[0];
-    console.log('Estadísticas obtenidas:', stats);
+    console.log('Estadísticas obtenidas de la BD:', stats);
 
-    // Construir objeto de respuesta
-    const totalVideos = Number(stats?.total || 0);
-    const optimizedCount = Number(stats?.optimized || 0);
-    const analyzedCount = Number(stats?.analyzed || 0);
+    // Asegurar que los valores son números
+    const totalVideos = parseInt(stats.total) || 0;
+    const optimizedCount = parseInt(stats.optimized) || 0;
+    const analyzedCount = parseInt(stats.analyzed) || 0;
 
     const stateCountsObj = {
       'available': totalVideos - optimizedCount,
