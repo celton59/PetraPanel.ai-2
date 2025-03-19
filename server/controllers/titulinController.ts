@@ -302,43 +302,35 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   try {
     console.log('Obteniendo estadísticas de videos...');
 
-    // Obtener estadísticas combinadas de ambas tablas
+    // Obtener el total y conteos por estado
     const [stats] = await db.execute(sql`
-      WITH youtube_stats AS (
+      WITH video_stats AS (
         SELECT 
-          COUNT(*) as youtube_total,
-          COUNT(CASE WHEN sent_to_optimize = true THEN 1 END) as youtube_optimized,
-          COUNT(CASE WHEN analyzed = true THEN 1 END) as youtube_analyzed
-        FROM youtube_videos
-      ),
-      video_stats AS (
-        SELECT 
-          COUNT(*) as video_total,
-          COUNT(CASE WHEN status = 'completed' THEN 1 END) as video_completed
+          COUNT(*) as total_videos,
+          COUNT(CASE WHEN status = 'upload_media' THEN 1 END) as upload_media_count,
+          COUNT(CASE WHEN status = 'content_corrections' THEN 1 END) as content_corrections_count,
+          COUNT(CASE WHEN status = 'available' THEN 1 END) as available_count,
+          COUNT(CASE WHEN status = 'final_review' THEN 1 END) as final_review_count
         FROM videos
       )
       SELECT 
-        COALESCE(ys.youtube_total, 0) as total_videos,
-        COALESCE(ys.youtube_optimized, 0) as optimized,
-        COALESCE(ys.youtube_analyzed, 0) as analyzed,
-        COALESCE(vs.video_completed, 0) as completed
-      FROM youtube_stats ys
-      CROSS JOIN video_stats vs;
+        total_videos,
+        upload_media_count,
+        content_corrections_count,
+        available_count,
+        final_review_count
+      FROM video_stats;
     `);
 
-    console.log('Estadísticas combinadas obtenidas:', stats);
+    console.log('Estadísticas obtenidas:', stats);
 
     // Asegurar que los valores son números
     const totalVideos = parseInt(stats.total_videos) || 0;
-    const optimizedCount = parseInt(stats.optimized) || 0;
-    const analyzedCount = parseInt(stats.analyzed) || 0;
-    const completedCount = parseInt(stats.completed) || 0;
-
     const stateCountsObj = {
-      'available': totalVideos - optimizedCount,
-      'completed': completedCount,
-      'analyzed': analyzedCount,
-      'pending_analysis': totalVideos - analyzedCount
+      'upload_media': parseInt(stats.upload_media_count) || 0,
+      'content_corrections': parseInt(stats.content_corrections_count) || 0,
+      'available': parseInt(stats.available_count) || 0,
+      'final_review': parseInt(stats.final_review_count) || 0
     };
 
     console.log('Respuesta final:', {
