@@ -12,14 +12,14 @@ interface VideoStats {
 }
 
 export function useVideoStats() {
-  return useQuery({
+  return useQuery<VideoStats>({
     queryKey: ["video-stats"],
     queryFn: async () => {
-      console.log('Fetching video stats...');
+      console.log('Fetching video stats from /api/titulin/videos/stats');
       const { data } = await axios.get<VideoStats>('/api/titulin/videos/stats');
       console.log('Received video stats:', data);
       return data;
     },
-    staleTime: 30000, // Refrescar cada 30 segundos
+    staleTime: 30000 // Refrescar cada 30 segundos
   });
 }

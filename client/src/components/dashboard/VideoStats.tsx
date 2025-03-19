@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideoStats } from "@/hooks/useVideoStats";
-import { Video, Upload, RefreshCw, CheckCircle2, FileCheck } from "lucide-react";
+import { Video, Upload, RefreshCw, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function VideoStats() {
@@ -9,46 +9,52 @@ export function VideoStats() {
 
   // Definir estados y sus colores
   const videoStates = {
-    upload_media: { 
+    'upload_media': { 
       label: 'Subiendo Media', 
       icon: Upload, 
       color: "bg-blue-500", 
       textColor: "text-blue-500", 
       bgColor: "bg-blue-500/10" 
     },
-    content_corrections: { 
+    'content_corrections': { 
       label: 'En Corrección', 
       icon: RefreshCw, 
       color: "bg-orange-500", 
       textColor: "text-orange-500", 
       bgColor: "bg-orange-500/10" 
     },
-    available: { 
+    'available': { 
       label: 'Disponibles', 
       icon: Video, 
       color: "bg-purple-500", 
       textColor: "text-purple-500", 
       bgColor: "bg-purple-500/10" 
     },
-    final_review: { 
+    'final_review': { 
       label: 'Revisión Final', 
       icon: FileCheck, 
       color: "bg-green-500", 
       textColor: "text-green-500", 
       bgColor: "bg-green-500/10" 
     }
-  };
+  } as const;
 
-  // Calcular porcentajes y preparar datos para visualización
-  const videoStats = Object.entries(videoStates).map(([state, config]) => ({
-    title: config.label,
-    value: stats?.stateCounts[state as keyof typeof stats.stateCounts] || 0,
-    percentage: stats?.totalVideos ? ((stats.stateCounts[state as keyof typeof stats.stateCounts] || 0) / stats.totalVideos) * 100 : 0,
-    icon: config.icon,
-    color: config.color,
-    textColor: config.textColor,
-    bgColor: config.bgColor
-  }));
+  const videoStats = Object.entries(videoStates).map(([stateKey, config]) => {
+    const value = stats?.stateCounts ? stats.stateCounts[stateKey as keyof typeof stats.stateCounts] : 0;
+    const percentage = stats?.totalVideos && stats.totalVideos > 0
+      ? (value / stats.totalVideos) * 100
+      : 0;
+
+    return {
+      title: config.label,
+      value,
+      percentage,
+      icon: config.icon,
+      color: config.color,
+      textColor: config.textColor,
+      bgColor: config.bgColor
+    };
+  });
 
   return (
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
