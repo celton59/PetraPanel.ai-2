@@ -5,7 +5,6 @@ import { PerformanceStats } from "@/components/dashboard/PerformanceStats";
 import { VideoStats } from "@/components/dashboard/VideoStats";
 import { WeatherWidget } from "@/components/dashboard/WeatherWidget";
 import { UsersList } from "@/components/dashboard/UsersList";
-import { VideoMetricsWidget } from "@/components/dashboard/VideoMetricsWidget";
 import { useUser } from "@/hooks/use-user";
 import { motion } from "framer-motion";
 
@@ -56,11 +55,6 @@ const Index = () => {
         {/* Stats cards */}
         <motion.div variants={itemVariants}>
           <DashboardStats />
-        </motion.div>
-
-        {/* Video Metrics Widget - Added here */}
-        <motion.div variants={itemVariants}>
-          <VideoMetricsWidget />
         </motion.div>
 
         {/* Widgets grid */}
