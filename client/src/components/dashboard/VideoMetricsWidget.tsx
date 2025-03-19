@@ -42,10 +42,7 @@ export function VideoMetricsWidget() {
 
   return (
     <Card className="col-span-3">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-medium">
-          Estado de Videos
-        </CardTitle>
+      <CardHeader className="flex flex-row items-center justify-end space-y-0 pb-2">
         <span className="text-sm text-muted-foreground">
           Total: {total}
         </span>

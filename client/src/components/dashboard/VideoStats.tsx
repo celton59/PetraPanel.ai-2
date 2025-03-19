@@ -42,11 +42,10 @@ export function VideoStats() {
     <Card className="border border-muted/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
       <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500"></div>
 
-      <CardHeader className="border-b border-muted/30 bg-muted/10 backdrop-blur-sm">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Video className="h-5 w-5 text-primary" />
-          Métricas de Videos
-        </CardTitle>
+      <CardHeader className="flex flex-row items-center justify-end space-y-0 pb-2">
+        <span className="text-sm text-muted-foreground">
+          Total: {total}
+        </span>
       </CardHeader>
 
       <CardContent className="p-6">
