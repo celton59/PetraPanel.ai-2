@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVideoStats } from "@/hooks/useVideoStats";
-import { Upload, RefreshCw, PlayCircle, CheckCircle2, Clock, Video } from "lucide-react";
+import { Video, Upload, RefreshCw, PlayCircle, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function VideoStats() {
@@ -9,11 +9,34 @@ export function VideoStats() {
 
   // Definir estados y sus colores
   const videoStates = {
-    upload_media: { label: 'Subiendo', icon: Upload, color: "bg-blue-500", textColor: "text-blue-500", bgColor: "bg-blue-500/10" },
-    content_review: { label: 'En Revisión', icon: Clock, color: "bg-purple-500", textColor: "text-purple-500", bgColor: "bg-purple-500/10" },
-    content_corrections: { label: 'Correcciones', icon: RefreshCw, color: "bg-orange-500", textColor: "text-orange-500", bgColor: "bg-orange-500/10" },
-    media_review: { label: 'Rev. Media', icon: PlayCircle, color: "bg-indigo-500", textColor: "text-indigo-500", bgColor: "bg-indigo-500/10" },
-    completed: { label: 'Completados', icon: CheckCircle2, color: "bg-green-500", textColor: "text-green-500", bgColor: "bg-green-500/10" },
+    available: { 
+      label: 'Disponibles', 
+      icon: Video, 
+      color: "bg-blue-500", 
+      textColor: "text-blue-500", 
+      bgColor: "bg-blue-500/10" 
+    },
+    pending_analysis: { 
+      label: 'Pendientes', 
+      icon: AlertCircle, 
+      color: "bg-orange-500", 
+      textColor: "text-orange-500", 
+      bgColor: "bg-orange-500/10" 
+    },
+    analyzed: { 
+      label: 'Analizados', 
+      icon: PlayCircle, 
+      color: "bg-purple-500", 
+      textColor: "text-purple-500", 
+      bgColor: "bg-purple-500/10" 
+    },
+    completed: { 
+      label: 'Optimizados', 
+      icon: CheckCircle2, 
+      color: "bg-green-500", 
+      textColor: "text-green-500", 
+      bgColor: "bg-green-500/10" 
+    },
   };
 
   // Calcular porcentajes y preparar datos para visualización
@@ -58,7 +81,7 @@ export function VideoStats() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold">{stat.value}</span>
                   <span className="text-xs text-muted-foreground">
-                    ({stat.percentage.toFixed(0)}%)
+                    ({stat.percentage.toFixed(1)}%)
                   </span>
                 </div>
               </div>

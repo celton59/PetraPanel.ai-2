@@ -300,34 +300,43 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   }
 
   try {
-    // Obtener el conteo total de videos
-    const [totalResult] = await db.select({
-      total: count()
+    console.log('Obteniendo estadísticas de videos...');
+
+    // Obtener estadísticas básicas
+    const statsResult = await db.select({
+      total: count(),
+      optimized: sql`SUM(CASE WHEN sent_to_optimize THEN 1 ELSE 0 END)`.mapWith(Number),
+      analyzed: sql`SUM(CASE WHEN analyzed THEN 1 ELSE 0 END)`.mapWith(Number),
     })
     .from(youtube_videos)
     .execute();
 
-    // Obtener conteos por estado
-    const stateCounts = await db.select({
-      status: youtube_videos.status,
-      count: count()
-    })
-    .from(youtube_videos)
-    .groupBy(youtube_videos.status)
-    .execute();
+    const stats = statsResult[0];
+    console.log('Estadísticas obtenidas:', stats);
 
-    // Convertir resultados a un objeto
-    const stateCountsObj = stateCounts.reduce((acc, curr) => {
-      acc[curr.status] = Number(curr.count);
-      return acc;
-    }, {} as Record<string, number>);
+    // Construir objeto de respuesta
+    const totalVideos = Number(stats?.total || 0);
+    const optimizedCount = Number(stats?.optimized || 0);
+    const analyzedCount = Number(stats?.analyzed || 0);
+
+    const stateCountsObj = {
+      'available': totalVideos - optimizedCount,
+      'completed': optimizedCount,
+      'analyzed': analyzedCount,
+      'pending_analysis': totalVideos - analyzedCount
+    };
+
+    console.log('Respuesta final:', {
+      totalVideos,
+      stateCounts: stateCountsObj
+    });
 
     return res.status(200).json({
-      totalVideos: Number(totalResult?.total || 0),
+      totalVideos,
       stateCounts: stateCountsObj
     });
   } catch (error) {
-    console.error('Error al obtener estadísticas de videos', error);
+    console.error('Error al obtener estadísticas de videos:', error);
     return res.status(500).json({ 
       error: 'Error al obtener estadísticas de videos',
       details: error instanceof Error ? error.message : 'Error desconocido'
@@ -335,9 +344,6 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   }
 }
 
-import { getSuggestions } from './titulinSuggestionsController';
-
-// Función para obtener canales para ejemplos de entrenamiento (sin restricción de rol)
 async function getChannelsForTraining(req: Request, res: Response): Promise<Response> {
   try {
     // Obtener lista simplificada de canales para selector
@@ -433,7 +439,7 @@ async function syncChannel (req: Request, res: Response): Promise<Response> {
       error: 'Error al añadir canal',
       details: error instanceof Error ? error.message : 'Error desconocido'
     });
-}
+  }
 }
 
 async function sendToOptimize (req: Request, res: Response): Promise<Response> {
@@ -668,4 +674,22 @@ export function setUpTitulinRoutes (requireAuth: any, app: Express) {
   app.get('/api/titulin/videos/:videoId/similar', requireAuth, getSimilarVideos );
   
 
+}
+
+// Placeholder function - needs to be implemented
+function getSuggestions(req: Request, res: Response) {
+  res.status(501).json({ message: 'Not implemented' });
+}
+
+
+function getTableColumns(table: any) {
+    return Object.fromEntries(Object.entries(table).filter(([key]) => !key.startsWith('_')))
+}
+
+function desc(column: any) {
+    return column.desc()
+}
+
+function inArray(column: any, array: any) {
+    return column.in(array)
 }
