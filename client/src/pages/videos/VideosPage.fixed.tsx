@@ -22,7 +22,6 @@ import {
   CheckSquare,
   Square,
   Copy,
-  RotateCcw
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -98,23 +97,6 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
   ],
 } as const;
 
-// Mapeo correcto de estados previos
-const PREVIOUS_STATUS: Record<VideoStatus, VideoStatus | undefined> = {
-  'pending': undefined,
-  'available': undefined, // Estado inicial
-  'in_progress': 'available', // Cuando el optimizador comienza, puede volver a disponible
-  'content_review': 'in_progress', // De revisión de contenido vuelve a en progreso
-  'content_corrections': 'content_review', // De correcciones vuelve a revisión
-  'optimize_review': 'content_corrections', // De revisión de optimización vuelve a correcciones
-  'title_corrections': 'optimize_review', // De correcciones de título vuelve a revisión de optimización
-  'media_review': 'title_corrections', // De revisión de media vuelve a correcciones de título
-  'media_corrections': 'media_review', // De correcciones de media vuelve a revisión de media
-  'final_review': 'media_review', // De revisión final vuelve a revisión de media
-  'completed': undefined, // Estado final, no se puede revertir
-  'upload_media': undefined, // Estado inicial para subida de media
-  'en_revision': undefined // Estado especial que no se puede revertir
-};
-
 const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
   admin: [],
   optimizer: ["available", "content_corrections"],
@@ -127,12 +109,12 @@ const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 export default function VideosPage() {
   const { user, isLoading: isUserLoading } = useUser();
   // Utilizar el hook useVideos con soporte para paginación
-  const {
-    videos,
-    isLoading,
-    deleteVideo,
-    updateVideo,
-    bulkDeleteVideos,
+  const { 
+    videos, 
+    isLoading, 
+    deleteVideo, 
+    updateVideo, 
+    bulkDeleteVideos, 
     assignVideoToYoutuber,
     pagination,
     page,
@@ -140,24 +122,24 @@ export default function VideosPage() {
     limit,
     setLimit
   } = useVideos();
-
+  
   // Estados para UI
   const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
-
+  
   // Determinar si estamos en un dispositivo móvil para la vista inicial
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const [viewMode, setViewMode] = useState<"table" | "grid" | "list">(isMobile ? "list" : "table");
-
+  
   // Estados para selección
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-
+  
   // Estados para selección por arrastre
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{ x: number, y: number } | null>(null);
-  const [dragCurrentPosition, setDragCurrentPosition] = useState<{ x: number, y: number } | null>(null);
+  const [dragStartPosition, setDragStartPosition] = useState<{x: number, y: number} | null>(null);
+  const [dragCurrentPosition, setDragCurrentPosition] = useState<{x: number, y: number} | null>(null);
   const dragSelectionRef = useRef<HTMLDivElement>(null);
 
   // Estados para filtros
@@ -176,7 +158,7 @@ export default function VideosPage() {
       window.history.replaceState({}, "", "/videos");
     }
   }, []);
-
+  
   // Efecto para cambiar automáticamente a vista de lista en dispositivos móviles
   useEffect(() => {
     const handleResize = () => {
@@ -188,13 +170,13 @@ export default function VideosPage() {
         }
       }
     };
-
+    
     // Ejecutar al montar para asegurar la vista correcta
     handleResize();
-
+    
     // Agregar listener para cambios de tamaño
     window.addEventListener('resize', handleResize);
-
+    
     // Limpiar listener al desmontar
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -214,6 +196,25 @@ export default function VideosPage() {
       );
     }
 
+    // if (status !== "all") {
+    //   return video.status === status;
+    // }
+
+    // if (assignedTo !== "all") {
+    //   return video.assigned_to === assignedTo;
+    // }
+
+    // if (projectId !== "all") {
+    //   return video.project_id === projectId;
+    // }
+
+    // if (dateRange) {
+    //   return (
+    //     video.created_at >= dateRange.startDate &&
+    //     video.created_at <= dateRange.endDate
+    //   );
+    // }
+
     return true;
   });
 
@@ -222,9 +223,9 @@ export default function VideosPage() {
     return (
       <div className="flex items-center justify-center bg-background w-full">
         <div className="flex flex-col items-center justify-center p-8">
-          <MascotLoader
-            animation="wave"
-            text="Cargando datos de usuario..."
+          <MascotLoader 
+            animation="wave" 
+            text="Cargando datos de usuario..." 
             size="md"
           />
         </div>
@@ -240,9 +241,9 @@ export default function VideosPage() {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center justify-center">
-          <MascotLoader
-            animation="thinking"
-            text="Buscando tus videos..."
+          <MascotLoader 
+            animation="thinking" 
+            text="Buscando tus videos..." 
             size="lg"
           />
         </div>
@@ -259,8 +260,8 @@ export default function VideosPage() {
   async function handleVideoClick(video: ApiVideo) {
     // Asignar el video automáticamente al youtuber cuando está en estado 'upload_media' y no está asignado
     if (
-      user?.role === 'youtuber' &&
-      video.status === 'upload_media' &&
+      user?.role === 'youtuber' && 
+      video.status === 'upload_media' && 
       (!video.assignedToId || (video.assignedToId && video.assignedToId === user.id))
     ) {
       try {
@@ -277,7 +278,7 @@ export default function VideosPage() {
         }
       }
     }
-
+    
     // Mostrar los detalles del video
     setSelectedVideo(video);
   }
@@ -336,7 +337,7 @@ export default function VideosPage() {
   // Handle bulk delete
   const handleBulkDelete = async () => {
     if (selectedVideos.length === 0) return;
-
+    
     const projectIdToUse = videos.find(v => selectedVideos.includes(v.id))?.projectId;
     if (!projectIdToUse) return;
 
@@ -351,58 +352,58 @@ export default function VideosPage() {
       console.error("Error deleting videos in bulk:", error);
     }
   };
-
+  
   // Funciones para selección por arrastre
   const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!selectMode) return;
-
+    
     // Solo permitir arrastre con botón izquierdo
     if (e.button !== 0) return;
-
+    
     // Capturar las coordenadas relativas al viewport
     const clientX = e.clientX;
     const clientY = e.clientY;
-
+    
     // Calcular coordenadas relativas al contenedor
     const containerRect = e.currentTarget.getBoundingClientRect();
     const offsetX = clientX - containerRect.left;
     const offsetY = clientY - containerRect.top;
-
+    
     // Actualizar el estado para reflejar la posición inicial del arrastre
     setIsDragging(true);
     setDragStartPosition({ x: clientX, y: clientY });
     setDragCurrentPosition({ x: clientX, y: clientY });
-
+    
     // Prevenir comportamiento de arrastre del navegador
     e.preventDefault();
   };
-
+  
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !selectMode) return;
-
+    
     // Actualizar la posición actual del cursor
     setDragCurrentPosition({ x: e.clientX, y: e.clientY });
-
+    
     // Solo intentar seleccionar si tenemos el elemento de referencia
     if (dragSelectionRef.current) {
       // Actualizar el estilo del rectángulo de selección antes de detectar intersecciones
       const style = getSelectionRectStyle();
       Object.assign(dragSelectionRef.current.style, style);
-
+      
       // Usar requestAnimationFrame para sincronizar con la siguiente actualización de pantalla
       requestAnimationFrame(() => {
         if (!dragSelectionRef.current) return;
-
+        
         // Obtener el rectángulo calculado después de aplicar los estilos
         const selectionRect = dragSelectionRef.current.getBoundingClientRect();
-
+        
         // Obtener todos los elementos de video en la vista actual
         const videoElements = document.querySelectorAll('.video-card');
-
+        
         videoElements.forEach((element) => {
           const videoRect = element.getBoundingClientRect();
           const videoId = Number(element.getAttribute('data-video-id'));
-
+          
           // Verificar si el elemento está dentro del rectángulo de selección
           if (videoId && rectanglesIntersect(selectionRect, videoRect)) {
             // Agregar a seleccionados si no está ya
@@ -413,18 +414,18 @@ export default function VideosPage() {
         });
       });
     }
-
+    
     e.preventDefault();
   };
-
+  
   const handleDragEnd = () => {
     if (!isDragging || !selectMode) return;
-
+    
     setIsDragging(false);
     setDragStartPosition(null);
     setDragCurrentPosition(null);
   };
-
+  
   // Función para verificar si dos rectángulos se intersectan
   const rectanglesIntersect = (rect1: DOMRect, rect2: DOMRect) => {
     return !(
@@ -434,21 +435,21 @@ export default function VideosPage() {
       rect1.top > rect2.bottom
     );
   };
-
+  
   // Calcular las coordenadas del rectángulo de selección
   const getSelectionRectStyle = () => {
     if (!dragStartPosition || !dragCurrentPosition) return {};
-
+    
     // Obtener el rectángulo del contenedor
     const containerRect = document.querySelector('.relative')?.getBoundingClientRect();
     if (!containerRect) return {};
-
+    
     // Calcular las coordenadas relativas al contenedor
     const left = Math.min(dragStartPosition.x, dragCurrentPosition.x) - containerRect.left;
     const top = Math.min(dragStartPosition.y, dragCurrentPosition.y) - containerRect.top;
     const width = Math.abs(dragCurrentPosition.x - dragStartPosition.x);
     const height = Math.abs(dragCurrentPosition.y - dragStartPosition.y);
-
+    
     // Retornar con precisión de pixeles para evitar problemas de renderizado
     return {
       left: `${Math.round(left)}px`,
@@ -462,7 +463,7 @@ export default function VideosPage() {
       borderRadius: '2px'
     };
   };
-
+  
   // Nota: Los atajos de teclado han sido desactivados para evitar problemas en macOS
 
   // Función para copiar al portapapeles
@@ -491,10 +492,10 @@ export default function VideosPage() {
                   {user?.role === "admin" && selectMode && (
                     <TableHead className="w-[40px]">
                       <div className={cn(
-                        "p-1.5 rounded-md transition-colors",
+                        "p-1.5 rounded-md transition-colors", 
                         selectedVideos.length === filteredVideos.length && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
                       )}>
-                        <Checkbox
+                        <Checkbox 
                           checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
                           onCheckedChange={toggleSelectAll}
                           className="h-4 w-4 border-2 transition-all duration-200"
@@ -520,10 +521,10 @@ export default function VideosPage() {
                     {user?.role === "admin" && selectMode && (
                       <TableCell className="w-[40px]">
                         <div className={cn(
-                          "p-1.5 rounded-md transition-colors",
+                          "p-1.5 rounded-md transition-colors", 
                           selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
                         )}>
-                          <Checkbox
+                          <Checkbox 
                             checked={selectedVideos.includes(video.id)}
                             onCheckedChange={() => toggleSelectVideo(video.id)}
                             className="h-4 w-4 border-2 transition-all duration-200"
@@ -593,6 +594,7 @@ export default function VideosPage() {
                     <TableCell>
                       <VideoBadges video={video} compact={true} />
                     </TableCell>
+                    {/* La celda de afiliados se ha integrado con el título para una presentación más elegante */}
                     {/* Updated */}
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDate(video.updatedAt, false)}
@@ -601,47 +603,15 @@ export default function VideosPage() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {canSeeVideoDetails(video) && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleVideoClick(video)}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <Eye className="h-4 w-4" />
-                              <span className="sr-only">Ver detalles</span>
-                            </Button>
-
-                            {/* Nuevo botón de revertir */}
-                            {PREVIOUS_STATUS[video.status] && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={async () => {
-                                  const prevStatus = PREVIOUS_STATUS[video.status];
-                                  if (!prevStatus) {
-                                    toast.error("No hay un estado anterior disponible");
-                                    return;
-                                  }
-                                  try {
-                                    await updateVideo({
-                                      videoId: video.id,
-                                      projectId: video.projectId,
-                                      updateRequest: { status: prevStatus }
-                                    });
-                                    toast.success("Estado revertido correctamente");
-                                  } catch (error) {
-                                    console.error("Error al revertir estado:", error);
-                                    toast.error("Error al revertir el estado del video");
-                                  }
-                                }}
-                                className="text-muted-foreground hover:text-amber-500"
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                                <span className="sr-only">Revertir estado</span>
-                              </Button>
-                            )}
-                          </>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleVideoClick(video)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Ver detalles</span>
+                          </Button>
                         )}
                         {user?.role === "admin" && (
                           <AlertDialog>
@@ -709,7 +679,7 @@ export default function VideosPage() {
               <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
                 data-state={selectMode ? "visible" : "hidden"}>
                 <div className={cn(
-                  "p-1.5 rounded-md transition-colors",
+                  "p-1.5 rounded-md transition-colors", 
                   selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/80 backdrop-blur-sm hover:bg-background/90"
                 )}>
                   <Checkbox
@@ -721,7 +691,7 @@ export default function VideosPage() {
                 </div>
               </div>
             )}
-
+            
             {/* Thumbnail */}
             <div className="aspect-video w-full overflow-hidden relative">
               <ThumbnailPreview
@@ -736,7 +706,7 @@ export default function VideosPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
             </div>
-
+            
             {/* Content */}
             <div className="p-3">
               <div className="flex flex-col gap-1">
@@ -762,7 +732,7 @@ export default function VideosPage() {
                   </div>
                 </div>
               </div>
-
+              
               <div className="flex justify-between items-center mt-2">
                 <Badge
                   variant="secondary"
@@ -777,11 +747,13 @@ export default function VideosPage() {
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
                 </div>
               </div>
-
+              
               {/* Colaboradores */}
               <div className="mt-3 mb-1">
                 <VideoBadges video={video} compact={true} />
               </div>
+              
+              {/* Los afiliados ahora se integran directamente con el título */}
             </div>
           </div>
         ))}
@@ -805,7 +777,7 @@ export default function VideosPage() {
               <div className="absolute top-2 right-2 z-10 transition-all duration-200 scale-0 animate-in zoom-in-50 data-[state=visible]:scale-100"
                 data-state={selectMode ? "visible" : "hidden"}>
                 <div className={cn(
-                  "p-1.5 rounded-md transition-colors",
+                  "p-1.5 rounded-md transition-colors", 
                   selectedVideos.includes(video.id) ? "bg-primary/30 backdrop-blur-sm" : "bg-background/80 backdrop-blur-sm hover:bg-background/90"
                 )}>
                   <Checkbox
@@ -817,7 +789,7 @@ export default function VideosPage() {
                 </div>
               </div>
             )}
-
+            
             {/* Thumbnail */}
             <div className="w-28 h-16 flex-shrink-0 overflow-hidden rounded mr-3">
               <ThumbnailPreview
@@ -831,7 +803,7 @@ export default function VideosPage() {
                 className="w-full h-full"
               />
             </div>
-
+            
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-col gap-1">
@@ -857,7 +829,7 @@ export default function VideosPage() {
                   </div>
                 </div>
               </div>
-
+              
               <div className="flex flex-wrap gap-2 items-center mt-1">
                 <Badge
                   variant="secondary"
@@ -868,18 +840,20 @@ export default function VideosPage() {
                 >
                   {getStatusLabel(user!.role, video)}
                 </Badge>
-
+                
                 <div className="text-xs text-muted-foreground">
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
                 </div>
               </div>
-
+              
               {/* Colaboradores */}
               <div className="mt-2">
                 <VideoBadges video={video} compact={true} />
               </div>
+              
+              {/* Los afiliados ahora se integran directamente con el título */}
             </div>
-
+            
             {/* Actions */}
             <div className="flex items-center ml-4 gap-1">
               {canSeeVideoDetails(video) && (
@@ -945,9 +919,9 @@ export default function VideosPage() {
   // Función para actualizar un video
   const handleVideoUpdate = async (data: UpdateVideoData, keepDialogOpen = false) => {
     if (!selectedVideo) return;
-
+    
     setUpdatingVideoId(selectedVideo.id);
-
+    
     try {
       await updateVideo({
         videoId: selectedVideo.id,
@@ -955,7 +929,7 @@ export default function VideosPage() {
         updateRequest: data,
       });
       toast.success("Video actualizado");
-
+      
       // Cerrar diálogo solo si no se indica lo contrario
       if (!keepDialogOpen) {
         setSelectedVideo(undefined);
@@ -975,7 +949,7 @@ export default function VideosPage() {
   };
 
   return (
-    <div
+    <div 
       className="relative pb-10"
       // Eventos para selección por arrastre
       onMouseDown={handleDragStart}
@@ -991,7 +965,7 @@ export default function VideosPage() {
           style={getSelectionRectStyle()}
         ></div>
       )}
-
+      
       {/* Toolbar con acciones */}
       <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-2">
@@ -1000,7 +974,7 @@ export default function VideosPage() {
             {pagination.totalVideos || 0} videos
           </div>
         </div>
-
+        
         <div className="flex items-center gap-2 flex-wrap">
           {user?.role === "admin" && (
             <>
@@ -1015,7 +989,7 @@ export default function VideosPage() {
                     <Square className="h-4 w-4" />
                     Salir del modo selección
                   </Button>
-
+                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -1060,7 +1034,7 @@ export default function VideosPage() {
                   Modo selección
                 </Button>
               )}
-
+              
               <Button
                 size="sm"
                 onClick={() => setNewVideoDialogOpen(true)}
@@ -1071,12 +1045,12 @@ export default function VideosPage() {
               </Button>
             </>
           )}
-
+          
           {/* Badge de límites de videos (antes de filtros) */}
           {user?.role === "youtuber" && (
             <VideoLimitsBadge />
           )}
-
+          
           <Button
             size="sm"
             variant="outline"
@@ -1086,7 +1060,7 @@ export default function VideosPage() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-
+          
           <Link href="/videos/trash" className="no-underline">
             <Button
               size="sm"
@@ -1099,7 +1073,7 @@ export default function VideosPage() {
           </Link>
         </div>
       </div>
-
+      
       {/* Filtros */}
       <VideoFilters
         searchTerm={searchTerm}
@@ -1115,7 +1089,7 @@ export default function VideosPage() {
         showFilters={showFilters}
         visibleStates={user ? VISIBLE_STATES[user.role] : []}
       />
-
+      
       {/* Vista principal */}
       <div className="flex justify-end mb-2 space-x-1">
         <Button
@@ -1146,15 +1120,15 @@ export default function VideosPage() {
           <span className="sr-only">Vista lista</span>
         </Button>
       </div>
-
-      {(!videos || videos.length === 0)
+      
+      {(!videos || videos.length === 0) 
         ? renderEmptyState()
         : (
           <>
             {viewMode === "table" && getTableView()}
             {viewMode === "grid" && getGridView()}
             {viewMode === "list" && getListView()}
-
+            
             {/* Control de paginación */}
             {pagination && filteredVideos.length > 0 && (
               <VideoPaginationControls
@@ -1167,9 +1141,9 @@ export default function VideosPage() {
             )}
           </>
         )}
-
-      <Dialog
-        open={videoDialogOpen}
+      
+      <Dialog 
+        open={videoDialogOpen} 
         onOpenChange={handleOpenChange}
       >
         {selectedVideo && (
@@ -1179,7 +1153,7 @@ export default function VideosPage() {
           />
         )}
       </Dialog>
-
+      
       <NewVideoDialog
         open={newVideoDialogOpen}
         onOpenChange={setNewVideoDialogOpen}
