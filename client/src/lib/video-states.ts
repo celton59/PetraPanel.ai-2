@@ -9,22 +9,22 @@ export type VideoStateTransition = {
 export const VIDEO_STATE_FLOW: Record<VideoStatus, VideoStatus | null> = {
   // Estado inicial
   "pending": null,
-  
+
   // Flujo de optimización
   "in_progress": "pending",
   "optimize_review": "in_progress",
   "title_corrections": "optimize_review",
-  
+
   // Flujo de contenido
   "content_review": "title_corrections",
   "content_corrections": "content_review",
-  
+
   // Flujo de media
   "available": "content_review",
   "upload_media": "available",
   "media_review": "upload_media",
   "media_corrections": "media_review",
-  
+
   // Estados finales
   "youtube_ready": "media_review",
   "completed": "youtube_ready",
@@ -52,13 +52,14 @@ export function canRevertState(userRole: string, currentState: VideoStatus): boo
 
 // Función para verificar si un video puede ser desasignado
 export function canUnassignVideo(userRole: string, videoStatus: VideoStatus): boolean {
-  // Solo admin puede desasignar cualquier video
-  if (userRole === "admin") return true;
+  // Solo admin y youtuber pueden desasignar videos
+  if (userRole !== "admin" && userRole !== "youtuber") return false;
 
-  // Youtubers solo pueden desasignar sus propios videos en ciertos estados
+  // Youtubers solo pueden desasignar videos en estados específicos
   if (userRole === "youtuber") {
-    return ["available", "upload_media"].includes(videoStatus);
+    return ["upload_media", "media_corrections"].includes(videoStatus);
   }
 
-  return false;
+  // Admin puede desasignar en cualquier estado excepto los finales
+  return !["completed", "youtube_ready", "en_revision"].includes(videoStatus);
 }

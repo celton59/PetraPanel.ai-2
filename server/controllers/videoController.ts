@@ -1438,8 +1438,6 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
   }
 }
 
-import { getPreviousState, canRevertState, canUnassignVideo } from "@/lib/video-states";
-
 async function revertVideoState(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
@@ -1549,13 +1547,22 @@ async function unassignVideo(req: Request, res: Response): Promise<Response> {
       });
     }
 
-    // Desasignar el video
+    // Obtener el estado anterior basado en el estado actual
+    const previousState = getPreviousState(video.status);
+    if (!previousState) {
+      return res.status(400).json({
+        success: false,
+        message: "No se puede determinar el estado anterior del video",
+      });
+    }
+
+    // Desasignar el video y revertir al estado anterior
     const [result] = await db
       .update(videos)
       .set({
         contentUploadedBy: null,
         updatedAt: new Date(),
-        status: "available", // Volver a disponible
+        status: previousState, // Usar el estado anterior en lugar de "available"
       })
       .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
       .returning();
