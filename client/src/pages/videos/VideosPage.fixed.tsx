@@ -69,7 +69,12 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
     "title_corrections",
     "en_revision",
   ],
-  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
+  youtuber: [
+    "upload_media",  // Video esperando subida de media
+    "media_corrections", // Video necesita correcciones de media
+    "available", // Video disponible para tomar
+    "completed" // Videos completados
+  ],
   reviewer: [
     "optimize_review",
     "title_corrections",
@@ -91,7 +96,7 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
     "in_progress",
     "optimize_review",
     "title_corrections",
-    "upload_review",
+    "upload_review", 
     "media_corrections",
     "review",
     "youtube_ready",
@@ -859,7 +864,7 @@ export default function VideosPage() {
                       }}
                     >
                       <Copy className="h-3 w-3" />
-                      <span className="sr-only">Copiar título</span>
+                      <span className="sr-only">Copiar título</</span>
                     </Button>
                   </div>
                 </div>
