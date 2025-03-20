@@ -57,22 +57,6 @@ export function UserBadges({ video, compact = false }: UserBadgesProps) {
     ? roles.filter(role => role.fullName || role.username)
     : roles;
 
-  const getDisplayInitials = (fullName: string | null | undefined, username: string | null | undefined) => {
-    if (fullName) return getInitials(fullName);
-    if (username) return username.substring(0, 2).toUpperCase();
-    return '-';
-  };
-
-  const getTooltipContent = (role: { name: string, fullName: string | null | undefined, username: string | null | undefined }) => {
-    if (!role.fullName && !role.username) {
-      return "No asignado";
-    }
-    if (role.fullName && role.username) {
-      return `${role.fullName} (${role.username})`;
-    }
-    return role.username || role.fullName || "No asignado";
-  };
-
   return (
     <div className="flex flex-wrap gap-1.5">
       <TooltipProvider>
@@ -86,7 +70,7 @@ export function UserBadges({ video, compact = false }: UserBadgesProps) {
                   <div className="flex items-center space-x-1">
                     <role.icon className={`w-3.5 h-3.5 ${role.iconColor}`} />
                     <span className="text-xs font-medium">
-                      {getDisplayInitials(role.fullName, role.username)}
+                      {getInitials(role.fullName)}
                     </span>
                   </div>
                 ) : (
@@ -101,9 +85,13 @@ export function UserBadges({ video, compact = false }: UserBadgesProps) {
             </TooltipTrigger>
             <TooltipContent side="bottom" align="center" className="p-2 max-w-xs text-xs">
               <div className="font-medium">{role.name}</div>
-              <div className="text-muted-foreground">
-                {getTooltipContent(role)}
-              </div>
+              {role.fullName || role.username ? (
+                <div className="text-muted-foreground">
+                  {role.fullName ? `${role.fullName} (${role.username})` : role.username}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">No asignado</div>
+              )}
             </TooltipContent>
           </Tooltip>
         ))}
