@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, desc, getTableColumns, aliasedTable, isNull, inArray, or, sql } from "drizzle-orm";
+import { eq, and, desc, getTableColumns, aliasedTable, isNull, inArray, or, sql, asc } from "drizzle-orm";
 import {
   videos,
   users,
@@ -583,10 +583,11 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 }
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
-
   // Parámetros de paginación (obligatorios)
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
+  const sortField = (req.query.sortField as string) || 'updatedAt';
+  const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
 
   // Validar parámetros de paginación
   if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
@@ -599,9 +600,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   // Calcular el offset
   const offset = (page - 1) * limit;
 
-
   try {
-
     // Verificar si queremos mostrar elementos de la papelera
     const showDeleted = req.query.trash === 'true';
 
@@ -662,7 +661,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         : undefined,
     );
 
-    // Consulta para obtener el total de videos (para metadata de paginación) con los mismos filtros
+    // Consulta para obtener el total de videos con los mismos filtros
     const countQuery = db.select({
       count: sql`count(distinct ${videos.id})`.mapWith(Number)
     })
@@ -671,6 +670,25 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .where(commonFilters);
 
     const [countResult] = await countQuery.execute();
+
+    // Construir el objeto de ordenamiento
+    let orderBy: any = {};
+    switch (sortField) {
+      case 'title':
+        orderBy = sortOrder === 'asc' ? asc(videos.title) : desc(videos.title);
+        break;
+      case 'status':
+        orderBy = sortOrder === 'asc' ? asc(videos.status) : desc(videos.status);
+        break;
+      case 'seriesNumber':
+        orderBy = sortOrder === 'asc' ? asc(videos.seriesNumber) : desc(videos.seriesNumber);
+        break;
+      case 'createdAt':
+        orderBy = sortOrder === 'asc' ? asc(videos.createdAt) : desc(videos.createdAt);
+        break;
+      default:
+        orderBy = desc(videos.updatedAt);
+    }
 
     const query = db
       .selectDistinct({
@@ -709,9 +727,9 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
       .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
       .where(commonFilters)
-      .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
+      .orderBy(orderBy)
       .limit(limit)
-      .offset(offset)
+      .offset(offset);
 
     const result = await query.execute();
 
@@ -744,12 +762,6 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   }
 }
 
-/**
- * Restaura un video de la papelera
- * @param req Request con ID del video a restaurar
- * @param res Response
- * @returns Response con resultado de la operación
- */
 async function restoreVideo(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
