@@ -1,6 +1,5 @@
+import VideosPage from "./VideosPage.fixed";
 
-import VideosPageFixed from "./VideosPage.fixed";
-
-export default function VideosPage() {
-  return <VideosPageFixed />;
+export default function VideosPageWrapper() {
+  return <VideosPage />;
 }
