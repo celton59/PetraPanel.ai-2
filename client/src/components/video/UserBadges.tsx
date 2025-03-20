@@ -57,6 +57,12 @@ export function UserBadges({ video, compact = false }: UserBadgesProps) {
     ? roles.filter(role => role.fullName || role.username)
     : roles;
 
+  const getDisplayInitials = (fullName: string | null | undefined) => {
+    if (!fullName) return '-';
+    const initials = getInitials(fullName);
+    return initials || '-';
+  };
+
   return (
     <div className="flex flex-wrap gap-1.5">
       <TooltipProvider>
@@ -70,7 +76,7 @@ export function UserBadges({ video, compact = false }: UserBadgesProps) {
                   <div className="flex items-center space-x-1">
                     <role.icon className={`w-3.5 h-3.5 ${role.iconColor}`} />
                     <span className="text-xs font-medium">
-                      {getInitials(role.fullName)}
+                      {getDisplayInitials(role.fullName)}
                     </span>
                   </div>
                 ) : (
