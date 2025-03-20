@@ -9,6 +9,30 @@ import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
 import { AffiliateIcon } from "@/components/video/AffiliateIcon";
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
+import { useUser } from "@/hooks/use-user";
+import { NewVideoDialog } from "./NewVideoDialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { MascotLoader } from "@/components/ui/mascot-loader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Link } from "wouter";
@@ -845,7 +869,7 @@ export default function VideosPage() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w0">
               <div className="flex flex-col gap-1">
                 <div className="flex items-start gap-2">
                   <h3 className="font-medium text-sm line-clamp-1 mb-1 flex-1">
