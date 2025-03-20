@@ -110,11 +110,11 @@ export default function TrashPage() {
     filterVideos();
   }, [trashVideos, searchTerm, statusFilter, retentionTime, sorting]);
 
+  // Función de ordenamiento mejorada
   const filterVideos = () => {
-    // Asegurarse de que trashVideos es un array antes de desestructurarlo
     let filtered = Array.isArray(trashVideos) ? [...trashVideos] : [];
 
-    // Filtro por término de búsqueda
+    // Filtros existentes
     if (searchTerm) {
       filtered = filtered.filter(video =>
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,17 +123,13 @@ export default function TrashPage() {
       );
     }
 
-    // Filtro por estado
     if (statusFilter !== "all") {
       filtered = filtered.filter(video => video.status === statusFilter);
     }
 
-    // Filtro por tiempo de retención
     if (retentionTime === "expiring") {
-      // Mostrar videos que se eliminarán en menos de 15 días (simulado para demostración)
       const fifteenDaysAgo = new Date();
       fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-
       filtered = filtered.filter(video => {
         if (!video.deletedAt) return false;
         const deletedDate = new Date(video.deletedAt);
@@ -141,17 +137,34 @@ export default function TrashPage() {
       });
     }
 
-    //Ordenamiento
-    const sorted = [...filtered].sort((a, b) => {
-      const column = sorting[0].id as keyof typeof a;
-      if (sorting[0].desc) {
-        return String(b[column]).localeCompare(String(a[column]));
-      }
-      return String(a[column]).localeCompare(String(b[column]));
-    });
+    // Ordenamiento mejorado
+    if (sorting.length > 0) {
+      const { id: sortField, desc } = sorting[0];
 
+      filtered.sort((a, b) => {
+        let aValue = a[sortField as keyof typeof a];
+        let bValue = b[sortField as keyof typeof b];
 
-    setFilteredVideos(sorted);
+        // Manejar diferentes tipos de datos
+        if (sortField === 'deletedAt' || sortField === 'createdAt' || sortField === 'updatedAt') {
+          aValue = aValue ? new Date(aValue).getTime() : 0;
+          bValue = bValue ? new Date(bValue).getTime() : 0;
+        } else if (sortField === 'seriesNumber') {
+          aValue = Number(aValue) || 0;
+          bValue = Number(bValue) || 0;
+        } else {
+          aValue = String(aValue || '').toLowerCase();
+          bValue = String(bValue || '').toLowerCase();
+        }
+
+        if (desc) {
+          return bValue > aValue ? 1 : bValue < aValue ? -1 : 0;
+        }
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      });
+    }
+
+    setFilteredVideos(filtered);
   };
 
   const loadTrashVideos = async () => {
@@ -298,26 +311,22 @@ export default function TrashPage() {
 
   // Toggle select all videos
   const toggleSelectAll = () => {
-    if (selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0)) {
+    if (selectedVideos.length === filteredVideos.length) {
       setSelectedVideos([]);
     } else {
-      setSelectedVideos(Array.isArray(filteredVideos) ? filteredVideos.map(video => video.id) : []);
+      setSelectedVideos(filteredVideos.map(video => video.id));
     }
   };
 
   // Función para manejar el ordenamiento
   const handleSort = (columnId: string) => {
     setSorting(old => {
-      const currentSort = old.find(s => s.id === columnId);
-      if (currentSort) {
-        return [{ id: columnId, desc: !currentSort.desc }];
-      } else {
-        return [{ id: columnId, desc: true }, ...old.filter(s => s.id !== columnId)];
+      if (old[0]?.id === columnId) {
+        return [{ id: columnId, desc: !old[0].desc }];
       }
+      return [{ id: columnId, desc: true }];
     });
-    filterVideos();
   };
-
 
   if (isUserLoading) {
     return (
@@ -342,13 +351,13 @@ export default function TrashPage() {
             </Link>
             <h1 className="text-2xl font-bold">Papelera de Reciclaje</h1>
             <Badge variant="outline" className="ml-2">
-              {Array.isArray(filteredVideos) ? filteredVideos.length : 0} videos
+              {filteredVideos.length} videos
             </Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Modo Selección */}
-            {user.role === "admin" && (Array.isArray(filteredVideos) && filteredVideos.length > 0) && (
+            {user.role === "admin" && filteredVideos.length > 0 && (
               <>
                 {selectMode ? (
                   <>
@@ -545,7 +554,7 @@ export default function TrashPage() {
             </Button>
 
             {/* Botón vaciar papelera */}
-            {user.role === "admin" && Array.isArray(trashVideos) && trashVideos.length > 0 && (
+            {user.role === "admin" && trashVideos.length > 0 && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -583,279 +592,324 @@ export default function TrashPage() {
               </TooltipProvider>
             )}
           </div>
+
+          {/* Banner de información sobre tiempo de retención */}
+          <Card className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-400">Información sobre la papelera</CardTitle>
+                <CardDescription className="text-xs text-amber-700 dark:text-amber-300">
+                  Los videos en la papelera se eliminarán permanentemente después de 30 días.
+                  Para recuperar un video, utiliza el botón de restaurar correspondiente.
+                  Los videos eliminados permanentemente no se pueden recuperar.
+                </CardDescription>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Banner de información sobre tiempo de retención */}
-        <Card className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
-          <CardContent className="p-4 flex items-start gap-3">
-            <div className="flex-shrink-0 mt-0.5">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-            </div>
-            <div className="space-y-1">
-              <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-400">Información sobre la papelera</CardTitle>
-              <CardDescription className="text-xs text-amber-700 dark:text-amber-300">
-                Los videos en la papelera se eliminarán permanentemente después de 30 días.
-                Para recuperar un video, utiliza el botón de restaurar correspondiente.
-                Los videos eliminados permanentemente no se pueden recuperar.
-              </CardDescription>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <MascotLoader animation="jump" size="lg" />
-        </div>
-      ) : !Array.isArray(trashVideos) || trashVideos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed h-64">
-          <div className="rounded-full bg-muted p-3 mb-4">
-            <Trash2 className="w-6 h-6 text-muted-foreground" />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <MascotLoader animation="jump" size="lg" />
           </div>
-          <h3 className="text-lg font-medium">Papelera vacía</h3>
-          <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
-            No hay videos en la papelera. Los videos eliminados aparecerán aquí.
-          </p>
-          <Button variant="outline" asChild>
-            <Link href="/videos">
-              Volver a Gestión de Videos
-            </Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Vista de tabla para escritorio */}
-          <div className="rounded-lg border bg-card shadow-sm overflow-hidden relative">
-            {/* Accent gradient para la tabla de videos */}
-            <div className="h-1 w-full bg-gradient-to-r from-red-600 via-red-500 to-pink-500 absolute top-0 left-0"></div>
-            <div className="overflow-x-auto pt-1">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    {selectMode && (
-                      <TableHead className="w-[40px]">
-                        <div className={cn(
-                          "p-1.5 rounded-md transition-colors",
-                          selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
-                        )}>
-                          <Checkbox
-                            checked={selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0}
-                            onCheckedChange={toggleSelectAll}
-                            className="h-4 w-4 border-2 transition-all duration-200"
-                            aria-label="Seleccionar todos"
-                          />
-                        </div>
-                      </TableHead>
-                    )}
-                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('thumbnailUrl')}>
-                      Miniatura
-                      {sorting.find(s => s.id === 'thumbnailUrl')?.desc ? '↓' : '↑'}
-                    </TableHead>
-                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('seriesNumber')}>
-                      Serie
-                      {sorting.find(s => s.id === 'seriesNumber')?.desc ? '↓' : '↑'}
-                    </TableHead>
-                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('title')}>
-                      Título
-                      {sorting.find(s => s.id === 'title')?.desc ? '↓' : '↑'}
-                    </TableHead>
-                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('status')}>
-                      Estado
-                      {sorting.find(s => s.id === 'status')?.desc ? '↓' : '↑'}
-                    </TableHead>
-                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('deletedAt')}>
-                      Fecha de eliminación
-                      {sorting.find(s => s.id === 'deletedAt')?.desc ? '↓' : '↑'}
-                    </TableHead>
-                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('deletedBy')}>
-                      Eliminado por
-                      {sorting.find(s => s.id === 'deletedBy')?.desc ? '↓' : '↑'}
-                    </TableHead>
-                    <TableHead className=" text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
-                    <TableRow
-                      key={video.id}
-                      className="group video-card"
-                      data-video-id={video.id}
-                      onClick={() => {
-                        if (selectMode) toggleSelectVideo(video.id);
-                      }}
-                    >
-                      {/* Checkbox de selección */}
+        ) : trashVideos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center bg-card rounded-lg border border-dashed h-64">
+            <div className="rounded-full bg-muted p-3 mb-4">
+              <Trash2 className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium">Papelera vacía</h3>
+            <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
+              No hay videos en la papelera. Los videos eliminados aparecerán aquí.
+            </p>
+            <Button variant="outline" asChild>
+              <Link href="/videos">
+                Volver a Gestión de Videos
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Vista de tabla para escritorio */}
+            <div className="rounded-lg border bg-card shadow-sm overflow-hidden relative">
+              {/* Accent gradient para la tabla de videos */}
+              <div className="h-1 w-full bg-gradient-to-r from-red-600 via-red-500 to-pink-500 absolute top-0 left-0"></div>
+              <div className="overflow-x-auto pt-1">
+                <Table>
+                  {/* Updated TableHeader */}
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       {selectMode && (
-                        <TableCell className="w-[40px]">
+                        <TableHead className="w-[40px]">
                           <div className={cn(
                             "p-1.5 rounded-md transition-colors",
-                            selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
+                            selectedVideos.length === filteredVideos.length && filteredVideos.length > 0
+                              ? "bg-primary/20"
+                              : "bg-card hover:bg-muted"
                           )}>
                             <Checkbox
-                              checked={selectedVideos.includes(video.id)}
-                              onCheckedChange={() => toggleSelectVideo(video.id)}
-                              className="h-4 w-4 border-2 transition-all duration-200"
-                              aria-label={`Seleccionar video ${video.title}`}
+                              checked={selectedVideos.length === filteredVideos.length && filteredVideos.length > 0}
+                              onCheckedChange={toggleSelectAll}
+                              className="h-4 w-4"
+                              aria-label="Seleccionar todos"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
+                      <TableHead>Miniatura</TableHead>
+                      <TableHead
+                        onClick={() => handleSort('seriesNumber')}
+                        className="cursor-pointer hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-1">
+                          Serie
+                          {sorting[0]?.id === 'seriesNumber' && (
+                            <span className="text-primary">
+                              {sorting[0].desc ? ' ↓' : ' ↑'}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort('title')}
+                        className="cursor-pointer hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-1">
+                          Título
+                          {sorting[0]?.id === 'title' && (
+                            <span className="text-primary">
+                              {sorting[0].desc ? ' ↓' : ' ↑'}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort('status')}
+                        className="cursor-pointer hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-1">
+                          Estado
+                          {sorting[0]?.id === 'status' && (
+                            <span className="text-primary">
+                              {sorting[0].desc ? ' ↓' : ' ↑'}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort('deletedAt')}
+                        className="cursor-pointer hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-1">
+                          Fecha de eliminación
+                          {sorting[0]?.id === 'deletedAt' && (
+                            <span className="text-primary">
+                              {sorting[0].desc ? ' ↓' : ' ↑'}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort('deletedBy')}
+                        className="cursor-pointer hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-1">
+                          Eliminado por
+                          {sorting[0]?.id === 'deletedBy' && (
+                            <span className="text-primary">
+                              {sorting[0].desc ? ' ↓' : ' ↑'}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVideos.map((video) => (
+                      <TableRow
+                        key={video.id}
+                        className="group video-card"
+                        data-video-id={video.id}
+                        onClick={() => {
+                          if (selectMode) toggleSelectVideo(video.id);
+                        }}
+                      >
+                        {/* Checkbox de selección */}
+                        {selectMode && (
+                          <TableCell className="w-[40px]">
+                            <div className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
+                            )}>
+                              <Checkbox
+                                checked={selectedVideos.includes(video.id)}
+                                onCheckedChange={() => toggleSelectVideo(video.id)}
+                                className="h-4 w-4 border-2 transition-all duration-200"
+                                aria-label={`Seleccionar video ${video.title}`}
+                              />
+                            </div>
+                          </TableCell>
+                        )}
+
+                        {/* Miniatura */}
+                        <TableCell>
+                          <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
+                            <ThumbnailPreview
+                              src={video.thumbnailUrl}
+                              alt={video.optimizedTitle ?? video.title}
+                              aspectRatio="video"
+                              enableZoom={true}
+                              showPlaceholder={true}
+                              className="h-full"
+                              title={video.optimizedTitle ?? video.title}
+                              showHoverActions={true}
                             />
                           </div>
                         </TableCell>
-                      )}
-
-                      {/* Miniatura */}
-                      <TableCell>
-                        <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
-                          <ThumbnailPreview
-                            src={video.thumbnailUrl}
-                            alt={video.optimizedTitle ?? video.title}
-                            aspectRatio="video"
-                            enableZoom={true}
-                            showPlaceholder={true}
-                            className="h-full"
-                            title={video.optimizedTitle ?? video.title}
-                            showHoverActions={true}
-                          />
-                        </div>
-                      </TableCell>
-                      {/* Serie */}
-                      <TableCell className="font-medium text-center">
-                        {video.seriesNumber || "-"}
-                      </TableCell>
-                      {/* Título */}
-                      <TableCell className="font-medium max-w-md">
-                        <div className="space-y-1">
-                          <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
-                          {video.description && (
-                            <span className="text-xs text-muted-foreground line-clamp-1">{video.description}</span>
+                        {/* Serie */}
+                        <TableCell className="font-medium text-center">
+                          {video.seriesNumber || "-"}
+                        </TableCell>
+                        {/* Título */}
+                        <TableCell className="font-medium max-w-md">
+                          <div className="space-y-1">
+                            <span className="text-base line-clamp-1">{video.optimizedTitle || video.title}</span>
+                            {video.description && (
+                              <span className="text-xs text-muted-foreground line-clamp-1">{video.description}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        {/* Estado */}
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              "text-xs capitalize",
+                              getStatusBadgeColor(video.status)
+                            )}
+                          >
+                            {getStatusLabel(user.role, video)}
+                          </Badge>
+                        </TableCell>
+                        {/* Fecha de eliminación */}
+                        <TableCell className="text-sm">
+                          {video.deletedAt ? formatDate(video.deletedAt, true) : "Desconocido"}
+                        </TableCell>
+                        {/* Eliminado por */}
+                        <TableCell className="text-sm">
+                          {video.deletedByName || (video.deletedByUsername ? video.deletedByUsername : video.deletedBy ? `Usuario #${video.deletedBy}` : "-")}
+                        </TableCell>
+                        {/* Acciones */}
+                        <TableCell className="text-right">
+                          {(user.role === "admin" || video.createdBy === user.id) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRestoreVideo(video.id)}
+                                    className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Restaurar
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Restaurar el video de la papelera</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
-                        </div>
-                      </TableCell>
-                      {/* Estado */}
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-xs capitalize",
-                            getStatusBadgeColor(video.status)
-                          )}
-                        >
-                          {getStatusLabel(user.role, video)}
-                        </Badge>
-                      </TableCell>
-                      {/* Fecha de eliminación */}
-                      <TableCell className="text-sm">
-                        {video.deletedAt ? formatDate(video.deletedAt, true) : "Desconocido"}
-                      </TableCell>
-                      {/* Eliminado por */}
-                      <TableCell className="text-sm">
-                        {video.deletedByName || (video.deletedByUsername ? video.deletedByUsername : video.deletedBy ? `Usuario #${video.deletedBy}` : "-")}
-                      </TableCell>
-                      {/* Acciones */}
-                      <TableCell className="text-right">
-                        {(user.role === "admin" || video.createdBy === user.id) && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleRestoreVideo(video.id)}
-                                  className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
-                                >
-                                  <RefreshCw className="h-3.5 w-3.5" />
-                                  Restaurar
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Restaurar el video de la papelera</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-          </div>
 
-          {/* Vista de lista para móviles */}
-          <div className="block md:hidden space-y-3">
-            {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
-              <div
-                key={video.id}
-                className="group video-card relative flex items-center border-l-4 border-red-500 border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
-              >
-                {/* Thumbnail */}
-                <div className="h-16 w-28 rounded overflow-hidden mr-3 flex-shrink-0">
-                  <ThumbnailPreview
-                    src={video.thumbnailUrl}
-                    alt={video.title}
-                    aspectRatio="video"
-                    enableZoom={true}
-                    showPlaceholder={true}
-                    title={video.optimizedTitle || video.title}
-                    showHoverActions={true}
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-sm line-clamp-1">
-                      {video.seriesNumber && <span className="mr-1 text-muted-foreground">S{video.seriesNumber}</span>}
-                      {video.optimizedTitle || video.title}
-                    </h3>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "text-xs capitalize ml-2 flex-shrink-0",
-                        getStatusBadgeColor(video.status)
-                      )}
-                    >
-                      {getStatusLabel(user.role, video)}
-                    </Badge>
+            {/* Vista de lista para móviles */}
+            <div className="block md:hidden space-y-3">
+              {filteredVideos.map((video) => (
+                <div
+                  key={video.id}
+                  className="group video-card relative flex items-center border-l-4 border-red-500 border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
+                >
+                  {/* Thumbnail */}
+                  <div className="h-16 w-28 rounded overflow-hidden mr-3 flex-shrink-0">
+                    <ThumbnailPreview
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      aspectRatio="video"
+                      enableZoom={true}
+                      showPlaceholder={true}
+                      title={video.optimizedTitle || video.title}
+                      showHoverActions={true}
+                    />
                   </div>
 
-                  <div className="flex justify-between items-center mt-1">
-                    <div className="text-xs text-muted-foreground">
-                      <span>Eliminado: {video.deletedAt ? formatDate(video.deletedAt, true) : "Desconocido"}</span>
-                      {video.deletedBy && (
-                        <span> por {video.deletedByName || video.deletedByUsername || `Usuario #${video.deletedBy}`}</span>
-                      )}
+                  {/* Content */}
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-sm line-clamp-1">
+                        {video.seriesNumber && <span className="mr-1 text-muted-foreground">S{video.seriesNumber}</span>}
+                        {video.optimizedTitle || video.title}
+                      </h3>
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-xs capitalize ml-2 flex-shrink-0",
+                          getStatusBadgeColor(video.status)
+                        )}
+                      >
+                        {getStatusLabel(user.role, video)}
+                      </Badge>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-1">
+                      <div className="text-xs text-muted-foreground">
+                        <span>Eliminado: {video.deletedAt ? formatDate(video.deletedAt, true) : "Desconocido"}</span>
+                        {video.deletedBy && (
+                          <span> por {video.deletedByName || video.deletedByUsername || `Usuario #${video.deletedBy}`}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="ml-3">
-                  {/* Solo el creador o un administrador puede restaurar */}
-                  {(user.role === "admin" || video.createdBy === user.id) && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRestoreVideo(video.id)}
-                            className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" />
-                            Restaurar
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Restaurar el video de la papelera</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  {/* Actions */}
+                  <div className="ml-3">
+                    {/* Solo el creador o un administrador puede restaurar */}
+                    {(user.role === "admin" || video.createdBy === user.id) && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRestoreVideo(video.id)}
+                              className="h-8 gap-1 border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              Restaurar
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Restaurar el video de la papelera</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
