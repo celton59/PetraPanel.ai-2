@@ -123,7 +123,7 @@ export const youtubeChannels = pgTable("youtube_channels", {
   thumbnailUrl: text("thumbnail_url"),
   description: text("description"),
   subscriberCount: integer("subscriber_count"),
-  videoCount: integer("video_count"),
+  videoCount: integer("video_count").notNull(),
   lastVideoFetch: timestamp("last_video_fetch"),
   lastAnalysis: timestamp("last_analysis"),
   active: boolean("active").default(true),
@@ -297,16 +297,18 @@ export const selectNotificationSettingSchema = createSelectSchema(notificationSe
 export const trainingTitleExamples = pgTable("training_title_examples", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  youtubeId: text("youtube_id").notNull(), 
+  youtubeId: text("youtube_id").references(() => youtubeVideos.youtubeId, { onDelete: "cascade" }), 
   isEvergreen: boolean("is_evergreen").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  createdBy: integer("created_by").references(() => users.id),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
   vectorProcessed: boolean("vector_processed").default(false),
   confidence: numeric("confidence"),
-  category: text("category").notNull(),
-  embedding: vector("embedding", { dimensions: 1536 }).notNull(),
+  embedding: vector("embedding", { dimensions: 1536 })
 })
+
+export type TrainingTitleExample = typeof trainingTitleExamples.$inferSelect;
+export type InsertTrainingTitleExample = typeof trainingTitleExamples.$inferInsert;
 
 // Tabla para almacenar empresas con enlaces de afiliación
 export const affiliateCompanies = pgTable("affiliate_companies", {

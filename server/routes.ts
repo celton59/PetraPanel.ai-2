@@ -19,7 +19,6 @@ import { setUpUserRoutes } from "./controllers/userController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 import { setUpProfileRoutes } from "./controllers/profileController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
-import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 import { setupAffiliateRoutes } from "./controllers/affiliateController";
 
@@ -75,10 +74,7 @@ export function registerRoutes(app: Express): Server {
 
     // Titulin
     setUpTitulinRoutes(requireAuth, app)
-    
-    // Ejemplos para entrenamiento de IA
-    setupTrainingExamplesRoutes(app, requireAuth)
-    
+        
     // Notificaciones
     setupNotificationRoutes(app, requireAuth)
     

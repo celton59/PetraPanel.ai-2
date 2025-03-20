@@ -21,10 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Select, 
   SelectContent, 
@@ -32,17 +30,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
 import { 
   Loader2, 
   Plus, 
@@ -83,13 +71,6 @@ interface TrainingExample {
   similarity_score?: number;
   embedding?: number[];
   vector_processed?: boolean;
-}
-
-interface PaginationData {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 interface TrainingExamplesDialogProps {
@@ -148,64 +129,6 @@ function ImportPanel({
           >
             <Video className="mr-2 h-4 w-4" />
             Importar de YouTube
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// Componente para el panel de acciones
-function ActionsPanel({
-  onExport,
-  onProcessVectors,
-  unprocessedCount,
-  isExporting,
-  isProcessing
-}: {
-  onExport: () => void;
-  onProcessVectors: () => void;
-  unprocessedCount: number;
-  isExporting: boolean;
-  isProcessing: boolean;
-}) {
-  return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-md">Acciones</CardTitle>
-        <CardDescription>
-          Gestiona y procesa tus ejemplos de entrenamiento
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            onClick={onExport}
-            disabled={isExporting}
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-          >
-            {isExporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Exportar ejemplos
-          </Button>
-          <Button 
-            onClick={onProcessVectors}
-            disabled={isProcessing || unprocessedCount === 0}
-            variant="default" 
-            size="sm" 
-            className="flex items-center"
-          >
-            {isProcessing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Cpu className="mr-2 h-4 w-4" />
-            )}
-            {isProcessing ? 'Procesando...' : `Procesar vectores (${unprocessedCount})`}
           </Button>
         </div>
       </CardContent>
@@ -557,17 +480,8 @@ export function ImprovedTrainingExamplesDialog({
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showSidebar, setShowSidebar] = useState(true);
   
-  // Estado para paginación
-  const [pagination, setPagination] = useState<PaginationData>({
-    total: 0,
-    page: 1,
-    limit: 100,
-    totalPages: 0
-  });
-  
   // Estado para operaciones por lotes
   const [selectedExamples, setSelectedExamples] = useState<number[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
   
   // Estado para importación/exportación
   const [isUploading, setIsUploading] = useState(false);
@@ -608,7 +522,6 @@ export function ImprovedTrainingExamplesDialog({
   const loadExamples = async () => {
     setIsLoading(true);
     setSelectedExamples([]);
-    setSelectAll(false);
 
     try {
       // Construir parámetros de consulta
@@ -626,7 +539,6 @@ export function ImprovedTrainingExamplesDialog({
       
       if (response.data.success) {
         setExamples(response.data.data);
-        setPagination(response.data.pagination);
         
         // Contar ejemplos sin procesar
         const unprocessed = response.data.data.filter((example: TrainingExample) => !example.vector_processed).length;
@@ -689,7 +601,7 @@ export function ImprovedTrainingExamplesDialog({
   };
 
   // Añadir nuevo ejemplo
-  const addExample = async () => {
+  async function addExample () {
     if (!newTitle.trim()) {
       toast.error("El título no puede estar vacío");
       return;
@@ -938,7 +850,6 @@ export function ImprovedTrainingExamplesDialog({
         toast.success(`Operación completada con éxito en ${selectedExamples.length} ejemplos`);
         loadExamples(); // Recargar ejemplos
         setSelectedExamples([]); // Limpiar selección
-        setSelectAll(false); // Resetear selección total
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Error al realizar operación en lote');
