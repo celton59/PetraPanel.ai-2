@@ -76,6 +76,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface SortingState {
+  id: string;
+  desc: boolean;
+}
+
 export default function TrashPage() {
   const { user, isLoading: isUserLoading } = useUser();
   const [trashVideos, setTrashVideos] = useState<ApiVideo[]>([]);
@@ -87,12 +92,14 @@ export default function TrashPage() {
   // Estados para selección múltiple
   const [selectedVideos, setSelectedVideos] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-  
+
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [retentionTime, setRetentionTime] = useState<"all" | "expiring">("all");
+  const [sorting, setSorting] = useState<SortingState[]>([{ id: 'deletedAt', desc: true }]);
+
 
   useEffect(() => {
     loadTrashVideos();
@@ -101,7 +108,7 @@ export default function TrashPage() {
   // Efecto para filtrar videos
   useEffect(() => {
     filterVideos();
-  }, [trashVideos, searchTerm, statusFilter, retentionTime]);
+  }, [trashVideos, searchTerm, statusFilter, retentionTime, sorting]);
 
   const filterVideos = () => {
     // Asegurarse de que trashVideos es un array antes de desestructurarlo
@@ -109,7 +116,7 @@ export default function TrashPage() {
 
     // Filtro por término de búsqueda
     if (searchTerm) {
-      filtered = filtered.filter(video => 
+      filtered = filtered.filter(video =>
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (video.optimizedTitle && video.optimizedTitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (video.description && video.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -126,7 +133,7 @@ export default function TrashPage() {
       // Mostrar videos que se eliminarán en menos de 15 días (simulado para demostración)
       const fifteenDaysAgo = new Date();
       fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-      
+
       filtered = filtered.filter(video => {
         if (!video.deletedAt) return false;
         const deletedDate = new Date(video.deletedAt);
@@ -134,7 +141,17 @@ export default function TrashPage() {
       });
     }
 
-    setFilteredVideos(filtered);
+    //Ordenamiento
+    const sorted = [...filtered].sort((a, b) => {
+      const column = sorting[0].id as keyof typeof a;
+      if (sorting[0].desc) {
+        return String(b[column]).localeCompare(String(a[column]));
+      }
+      return String(a[column]).localeCompare(String(b[column]));
+    });
+
+
+    setFilteredVideos(sorted);
   };
 
   const loadTrashVideos = async () => {
@@ -156,7 +173,7 @@ export default function TrashPage() {
       await restoreVideo({ videoId, projectId: currentProject });
       toast.success("Video restaurado correctamente");
       loadTrashVideos(); // Recargar la lista después de restaurar
-      
+
       // Si estaba seleccionado, quitar de la selección
       if (selectedVideos.includes(videoId)) {
         setSelectedVideos(prev => prev.filter(id => id !== videoId));
@@ -169,11 +186,11 @@ export default function TrashPage() {
 
   const handleBulkRestore = async () => {
     if (selectedVideos.length === 0) return;
-    
+
     setIsLoading(true);
     let successCount = 0;
     let errorCount = 0;
-    
+
     // Restaurar videos secuencialmente para evitar problemas
     for (const videoId of selectedVideos) {
       try {
@@ -184,15 +201,15 @@ export default function TrashPage() {
         errorCount++;
       }
     }
-    
+
     if (successCount > 0) {
       toast.success(`${successCount} videos restaurados correctamente`);
     }
-    
+
     if (errorCount > 0) {
       toast.error(`No se pudieron restaurar ${errorCount} videos`);
     }
-    
+
     setSelectedVideos([]);
     loadTrashVideos();
   };
@@ -209,11 +226,11 @@ export default function TrashPage() {
       toast.error("Error al vaciar la papelera");
     }
   };
-  
+
   const handleDeletePermanently = async (videoId: number) => {
     try {
       await deleteVideo({
-        videoId, 
+        videoId,
         projectId: currentProject,
         permanent: true
       });
@@ -224,19 +241,19 @@ export default function TrashPage() {
       toast.error("Error al eliminar permanentemente el video");
     }
   };
-  
+
   const handleBulkDeletePermanently = async () => {
     if (selectedVideos.length === 0) return;
-    
+
     setIsLoading(true);
     let successCount = 0;
     let errorCount = 0;
-    
+
     // Eliminar videos secuencialmente para evitar problemas
     for (const videoId of selectedVideos) {
       try {
         await deleteVideo({
-          videoId, 
+          videoId,
           projectId: currentProject,
           permanent: true
         });
@@ -246,19 +263,19 @@ export default function TrashPage() {
         errorCount++;
       }
     }
-    
+
     if (successCount > 0) {
       toast.success(`${successCount} videos eliminados permanentemente`);
     }
-    
+
     if (errorCount > 0) {
       toast.error(`No se pudieron eliminar ${errorCount} videos`);
     }
-    
+
     setSelectedVideos([]);
     loadTrashVideos();
   };
-  
+
   // Toggle video selection
   const toggleSelectVideo = (videoId: number) => {
     setSelectedVideos(prev => {
@@ -287,6 +304,20 @@ export default function TrashPage() {
       setSelectedVideos(Array.isArray(filteredVideos) ? filteredVideos.map(video => video.id) : []);
     }
   };
+
+  // Función para manejar el ordenamiento
+  const handleSort = (columnId: string) => {
+    setSorting(old => {
+      const currentSort = old.find(s => s.id === columnId);
+      if (currentSort) {
+        return [{ id: columnId, desc: !currentSort.desc }];
+      } else {
+        return [{ id: columnId, desc: true }, ...old.filter(s => s.id !== columnId)];
+      }
+    });
+    filterVideos();
+  };
+
 
   if (isUserLoading) {
     return (
@@ -330,7 +361,7 @@ export default function TrashPage() {
                       <Square className="h-4 w-4" />
                       Salir del modo selección
                     </Button>
-                    
+
                     {selectedVideos.length > 0 && (
                       <>
                         <AlertDialog>
@@ -362,7 +393,7 @@ export default function TrashPage() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        
+
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -408,7 +439,7 @@ export default function TrashPage() {
                 )}
               </>
             )}
-            
+
             {/* Botón búsqueda/filtros */}
             <Popover>
               <PopoverTrigger asChild>
@@ -418,7 +449,7 @@ export default function TrashPage() {
                   className={cn("gap-1.5", (searchTerm || statusFilter !== "all" || retentionTime !== "all") && "bg-muted")}
                 >
                   <Filter className="h-4 w-4" />
-                  Filtros {(searchTerm || statusFilter !== "all" || retentionTime !== "all") && 
+                  Filtros {(searchTerm || statusFilter !== "all" || retentionTime !== "all") &&
                     <Badge className="ml-1 bg-primary text-white" variant="default">
                       {[
                         searchTerm ? 1 : 0,
@@ -432,20 +463,20 @@ export default function TrashPage() {
               <PopoverContent className="w-80">
                 <div className="space-y-4">
                   <h4 className="font-medium text-sm">Filtros de búsqueda</h4>
-                  
+
                   <div className="space-y-2">
                     <label className="text-xs font-medium">Buscar por título o descripción</label>
                     <div className="flex items-center border rounded-md pl-2 overflow-hidden focus-within:ring-1 focus-within:ring-primary">
                       <Search className="h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="Título o descripción..." 
+                      <Input
+                        placeholder="Título o descripción..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-xs font-medium">Estado</label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -465,7 +496,7 @@ export default function TrashPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-xs font-medium">Tiempo de retención</label>
                     <Select value={retentionTime} onValueChange={(value) => setRetentionTime(value as "all" | "expiring")}>
@@ -483,10 +514,10 @@ export default function TrashPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="flex justify-between pt-2">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={() => {
                         setSearchTerm("");
@@ -501,7 +532,7 @@ export default function TrashPage() {
                 </div>
               </PopoverContent>
             </Popover>
-            
+
             {/* Botón actualizar */}
             <Button
               variant="outline"
@@ -512,7 +543,7 @@ export default function TrashPage() {
               <RefreshCw className="w-4 w-4" />
               Actualizar
             </Button>
-            
+
             {/* Botón vaciar papelera */}
             {user.role === "admin" && Array.isArray(trashVideos) && trashVideos.length > 0 && (
               <TooltipProvider>
@@ -553,7 +584,7 @@ export default function TrashPage() {
             )}
           </div>
         </div>
-        
+
         {/* Banner de información sobre tiempo de retención */}
         <Card className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
           <CardContent className="p-4 flex items-start gap-3">
@@ -563,8 +594,8 @@ export default function TrashPage() {
             <div className="space-y-1">
               <CardTitle className="text-sm font-medium text-amber-800 dark:text-amber-400">Información sobre la papelera</CardTitle>
               <CardDescription className="text-xs text-amber-700 dark:text-amber-300">
-                Los videos en la papelera se eliminarán permanentemente después de 30 días. 
-                Para recuperar un video, utiliza el botón de restaurar correspondiente. 
+                Los videos en la papelera se eliminarán permanentemente después de 30 días.
+                Para recuperar un video, utiliza el botón de restaurar correspondiente.
                 Los videos eliminados permanentemente no se pueden recuperar.
               </CardDescription>
             </div>
@@ -604,10 +635,10 @@ export default function TrashPage() {
                     {selectMode && (
                       <TableHead className="w-[40px]">
                         <div className={cn(
-                          "p-1.5 rounded-md transition-colors", 
+                          "p-1.5 rounded-md transition-colors",
                           selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0 ? "bg-primary/20" : "bg-card hover:bg-muted"
                         )}>
-                          <Checkbox 
+                          <Checkbox
                             checked={selectedVideos.length === (Array.isArray(filteredVideos) ? filteredVideos.length : 0) && Array.isArray(filteredVideos) && filteredVideos.length > 0}
                             onCheckedChange={toggleSelectAll}
                             className="h-4 w-4 border-2 transition-all duration-200"
@@ -616,20 +647,38 @@ export default function TrashPage() {
                         </div>
                       </TableHead>
                     )}
-                    <TableHead className="">Miniatura</TableHead>
-                    <TableHead className="">Serie</TableHead>
-                    <TableHead className="">Título</TableHead>
-                    <TableHead className="">Estado</TableHead>
-                    <TableHead className="">Fecha de eliminación</TableHead>
-                    <TableHead className="">Eliminado por</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('thumbnailUrl')}>
+                      Miniatura
+                      {sorting.find(s => s.id === 'thumbnailUrl')?.desc ? '↓' : '↑'}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('seriesNumber')}>
+                      Serie
+                      {sorting.find(s => s.id === 'seriesNumber')?.desc ? '↓' : '↑'}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('title')}>
+                      Título
+                      {sorting.find(s => s.id === 'title')?.desc ? '↓' : '↑'}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('status')}>
+                      Estado
+                      {sorting.find(s => s.id === 'status')?.desc ? '↓' : '↑'}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('deletedAt')}>
+                      Fecha de eliminación
+                      {sorting.find(s => s.id === 'deletedAt')?.desc ? '↓' : '↑'}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/60" onClick={() => handleSort('deletedBy')}>
+                      Eliminado por
+                      {sorting.find(s => s.id === 'deletedBy')?.desc ? '↓' : '↑'}
+                    </TableHead>
                     <TableHead className=" text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
-                    <TableRow 
-                      key={video.id} 
-                      className="group video-card" 
+                    <TableRow
+                      key={video.id}
+                      className="group video-card"
                       data-video-id={video.id}
                       onClick={() => {
                         if (selectMode) toggleSelectVideo(video.id);
@@ -639,10 +688,10 @@ export default function TrashPage() {
                       {selectMode && (
                         <TableCell className="w-[40px]">
                           <div className={cn(
-                            "p-1.5 rounded-md transition-colors", 
+                            "p-1.5 rounded-md transition-colors",
                             selectedVideos.includes(video.id) ? "bg-primary/20" : "bg-card hover:bg-muted"
                           )}>
-                            <Checkbox 
+                            <Checkbox
                               checked={selectedVideos.includes(video.id)}
                               onCheckedChange={() => toggleSelectVideo(video.id)}
                               className="h-4 w-4 border-2 transition-all duration-200"
@@ -651,7 +700,7 @@ export default function TrashPage() {
                           </div>
                         </TableCell>
                       )}
-                      
+
                       {/* Miniatura */}
                       <TableCell>
                         <div className="w-16 h-12 rounded overflow-hidden group-hover:ring-2 ring-primary/20 transition-all">
@@ -729,7 +778,7 @@ export default function TrashPage() {
               </Table>
             </div>
           </div>
-          
+
           {/* Vista de lista para móviles */}
           <div className="block md:hidden space-y-3">
             {Array.isArray(filteredVideos) && filteredVideos.map((video) => (
@@ -749,7 +798,7 @@ export default function TrashPage() {
                     showHoverActions={true}
                   />
                 </div>
-                
+
                 {/* Content */}
                 <div className="flex-grow min-w-0">
                   <div className="flex items-center justify-between">
@@ -767,7 +816,7 @@ export default function TrashPage() {
                       {getStatusLabel(user.role, video)}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex justify-between items-center mt-1">
                     <div className="text-xs text-muted-foreground">
                       <span>Eliminado: {video.deletedAt ? formatDate(video.deletedAt, true) : "Desconocido"}</span>
@@ -777,7 +826,7 @@ export default function TrashPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Actions */}
                 <div className="ml-3">
                   {/* Solo el creador o un administrador puede restaurar */}
