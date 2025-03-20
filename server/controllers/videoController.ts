@@ -1574,72 +1574,79 @@ async function unassignVideo(req: Request, res: Response): Promise<Response> {
   }
 }
 
-export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
   // Videos normales (no eliminados)
   app.get("/api/videos", requireAuth, getVideos);
-
-  // Creación de videos
   app.post("/api/projects/:projectId/videos", requireAuth, createVideo);
   app.post("/api/projects/:projectId/videos/bulk", requireAuth, createBulkVideos);
-
-  // Actualización de videos
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
-
-  // Asignación de video a youtuber cuando lo visualiza
-  app.post("/api/projects/:projectId/videos/:videoId/assign", requireAuth, assignVideoToYoutuber);
-
-  // Eliminación de videos (mover a papelera o eliminación permanente)
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);
   app.delete("/api/projects/:projectId/videos", requireAuth, bulkDeleteVideos);
 
-  // Rutas relacionadas con la papelera
-  app.post("/api/projects/:projectId/videos/:videoId/restore", requireAuth, restoreVideo);
-  app.delete("/api/projects/:projectId/trash", requireAuth, emptyTrash);
-  // Ruta para obtener videos en la papelera
-  app.get("/api/projects/:projectId/videos", requireAuth, getVideos);
+  // Restaurar videos
+  app.post(
+    "/api/projects/:projectId/videos/:videoId/restore",
+    requireAuth,
+    restoreVideo
+  );
 
-  // Video upload endpoint
-  const thumbailUpload = multer({
+  // Gestión de papelera
+  app.delete("/api/projects/:projectId/trash", requireAuth, emptyTrash);
+
+  // Asignación de videos
+  app.post(
+    "/api/projects/:projectId/videos/:videoId/assign",
+    requireAuth,
+    assignVideoToYoutuber
+  );
+
+  // Revertir estado y desasignar
+  app.post(
+    "/api/projects/:projectId/videos/:videoId/revert",
+    requireAuth,
+    revertVideoState
+  );
+
+  app.post(
+    "/api/projects/:projectId/videos/:videoId/unassign",
+    requireAuth,
+    unassignVideo
+  );
+
+  // Upload endpoints
+  const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
       fileSize: 1024 * 1024 * 1024 // 1GB limit
     }
   });
-
-  // Endpoint para cargar miniaturas
-  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail",
+  app.post(
+    "/api/projects/:projectId/videos/:videoId/upload/thumbnail",
     requireAuth,
-    thumbailUpload.single('file'),
+    upload.single("thumbnail"),
     uploadThumbnail
   );
 
-  // Endpoint para iniciar carga multiparte (nuevo método recomendado)
-  app.post("/api/projects/:projectId/videos/:videoId/initiate-multipart-upload",
-    requireAuth,
-    initiateMultipartUpload
-  );
-
-  // Endpoint para completar carga multiparte
-  app.post("/api/projects/:projectId/videos/:videoId/complete-multipart-upload",
-    requireAuth,
-    completeMultipartUpload
-  );
-
-  // Endpoint para abortar carga multiparte
-  app.post("/api/projects/:projectId/videos/:videoId/abort-multipart-upload",
-    requireAuth,
-    abortMultipartUpload
-  );
-
-  // Endpoint legado para compatibilidad con versiones anteriores
-  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo",
+  app.get(
+    "/api/projects/:projectId/videos/:videoId/upload-url",
     requireAuth,
     getVideoUploadUrl
   );
 }
 
+// Exportar todas las funciones necesarias en un único lugar al final del archivo
 export {
   setUpVideoRoutes,
+  getVideos,
+  createVideo,
+  updateVideo,
+  deleteVideo,
   revertVideoState,
   unassignVideo,
+  restoreVideo,
+  emptyTrash,
+  bulkDeleteVideos,
+  assignVideoToYoutuber,
+  uploadThumbnail,
+  getVideoUploadUrl
 };
