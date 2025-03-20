@@ -6,6 +6,7 @@ export type VideoStateTransition = {
   allowedRoles: string[];
 };
 
+// Definir el flujo de estados como un grafo direccionado
 export const VIDEO_STATE_FLOW: Record<VideoStatus, VideoStatus | null> = {
   // Estado inicial
   "pending": null,
@@ -21,8 +22,8 @@ export const VIDEO_STATE_FLOW: Record<VideoStatus, VideoStatus | null> = {
 
   // Flujo de media
   "available": "content_review",
-  "upload_media": "available",
-  "media_review": "upload_media",
+  "upload_media": "media_review", // Cambiado: al desasignar vuelve a media_review
+  "media_review": "content_review",
   "media_corrections": "media_review",
 
   // Estados finales
@@ -31,6 +32,7 @@ export const VIDEO_STATE_FLOW: Record<VideoStatus, VideoStatus | null> = {
   "en_revision": "completed"
 };
 
+// Definir los permisos de reversión por rol
 export const REVERT_PERMISSIONS: Record<string, VideoStatus[]> = {
   "admin": Object.keys(VIDEO_STATE_FLOW) as VideoStatus[],
   "optimizer": ["in_progress", "optimize_review", "title_corrections"],
@@ -40,7 +42,7 @@ export const REVERT_PERMISSIONS: Record<string, VideoStatus[]> = {
   "reviewer": ["optimize_review", "title_corrections", "youtube_ready", "completed"]
 };
 
-// Función para obtener el estado anterior
+// Función para obtener el estado anterior según el rol y estado actual
 export function getPreviousState(currentState: VideoStatus): VideoStatus | null {
   return VIDEO_STATE_FLOW[currentState];
 }
@@ -62,4 +64,16 @@ export function canUnassignVideo(userRole: string, videoStatus: VideoStatus): bo
 
   // Admin puede desasignar en cualquier estado excepto los finales
   return !["completed", "youtube_ready", "en_revision"].includes(videoStatus);
+}
+
+// Función para obtener el estado al que debe volver un video cuando es desasignado
+export function getUnassignedState(currentState: VideoStatus): VideoStatus {
+  switch (currentState) {
+    case "upload_media":
+      return "media_review"; // Vuelve al estado de revisión de media
+    case "media_corrections":
+      return "media_review"; // También vuelve al estado de revisión de media
+    default:
+      return "available"; // Por defecto vuelve a disponible (para casos no manejados)
+  }
 }

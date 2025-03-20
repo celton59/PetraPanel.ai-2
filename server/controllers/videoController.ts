@@ -32,7 +32,7 @@ import multer from "multer";
 
 // Importar las funciones de manejo de estados
 import {
-  getPreviousState,
+  getUnassignedState,
   canRevertState,
   canUnassignVideo,
 } from "../../client/src/lib/video-states";
@@ -936,7 +936,7 @@ async function createVideo(req: Request, res: Response): Promise<Response> {
     return res.json(result);
   } catch (error) {
     console.error("Error creating video:", error);
-        return res.status(500).json({
+    return res.status(500).json({
       success: false,
       message:
         error instanceof Error ? error.message : "Error al crear el video",
@@ -1554,13 +1554,10 @@ async function unassignVideo(req: Request, res: Response): Promise<Response> {
       });
     }
 
-    // Obtener el estado anterior basado en el estado actual
-    const previousState = getPreviousState(video.status);
+    // Obtener el estado al que debe volver el video
+    const newStatus = getUnassignedState(video.status);
 
-    // Si no hay estado anterior, mantener el estado actual
-    const newStatus = previousState || video.status;
-
-    // Desasignar el video y actualizar al estado anterior o mantener el actual
+    // Desasignar el video y actualizar al estado correspondiente
     const [result] = await db
       .update(videos)
       .set({
