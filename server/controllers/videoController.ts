@@ -30,13 +30,6 @@ import { scanVideoForAffiliates } from "../controllers/affiliateController";
 import { type Express } from "express";
 import multer from "multer";
 
-// Importar las funciones de manejo de estados
-import {
-  getUnassignedState,
-  canRevertState,
-  canUnassignVideo,
-} from "../../client/src/lib/video-states";
-
 const bucketName = process.env.AWS_BUCKET_NAME || "petrafiles";
 const awsRegion = process.env.AWS_REGION || "eu-west-1";
 
@@ -839,6 +832,7 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
  * @returns Response con resultado de la operación
  */
 
+
 async function emptyTrash(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
 
@@ -1349,6 +1343,7 @@ async function getVideoUploadUrl(
   }
 }
 
+
 /**
  * Crea múltiples videos basados en una lista de títulos
  */
@@ -1445,216 +1440,66 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
   }
 }
 
-async function revertVideoState(req: Request, res: Response): Promise<Response> {
-  const projectId = parseInt(req.params.projectId);
-  const videoId = parseInt(req.params.videoId);
-
-  if (!req.user?.role) {
-    return res.status(403).json({
-      success: false,
-      message: "No tienes permisos para revertir estados de videos",
-    });
-  }
-
-  try {
-    // Obtener el video actual
-    const [video] = await db
-      .select()
-      .from(videos)
-      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
-      .limit(1);
-
-    if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video no encontrado",
-      });
-    }
-
-    // Verificar si el usuario puede revertir este estado
-    if (!canRevertState(req.user.role, video.status)) {
-      return res.status(403).json({
-        success: false,
-        message: "No tienes permisos para revertir este estado",
-      });
-    }
-
-    // Obtener el estado anterior
-    const previousState = getPreviousState(video.status);
-    if (!previousState) {
-      return res.status(400).json({
-        success: false,
-        message: "Este video no puede ser revertido a un estado anterior",
-      });
-    }
-
-    // Actualizar el estado del video
-    const [result] = await db
-      .update(videos)
-      .set({
-        status: previousState,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
-      .returning();
-
-    return res.status(200).json({
-      success: true,
-      data: result,
-      message: "Estado del video revertido correctamente",
-    });
-  } catch (error) {
-    console.error("Error revirtiendo estado del video:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al revertir el estado del video",
-    });
-  }
-}
-
-async function unassignVideo(req: Request, res: Response): Promise<Response> {
-  const projectId = parseInt(req.params.projectId);
-  const videoId = parseInt(req.params.videoId);
-
-  if (!req.user?.role) {
-    return res.status(403).json({
-      success: false,
-      message: "No tienes permisos para desasignar videos",
-    });
-  }
-
-  try {
-    // Obtener el video actual
-    const [video] = await db
-      .select()
-      .from(videos)
-      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
-      .limit(1);
-
-    if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video no encontrado",
-      });
-    }
-
-    // Verificar si el video puede ser desasignado
-    if (!canUnassignVideo(req.user.role, video.status)) {
-      return res.status(403).json({
-        success: false,
-        message: "No puedes desasignar este video en su estado actual",
-      });
-    }
-
-    // Verificar si el usuario es admin o el youtuber asignado
-    if (req.user.role !== "admin" && video.contentUploadedBy !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: "No tienes permisos para desasignar este video",
-      });
-    }
-
-    // Obtener el estado al que debe volver el video
-    const newStatus = getUnassignedState(video.status);
-
-    // Desasignar el video y actualizar al estado correspondiente
-    const [result] = await db
-      .update(videos)
-      .set({
-        contentUploadedBy: null,
-        updatedAt: new Date(),
-        status: newStatus,
-      })
-      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
-      .returning();
-
-    return res.status(200).json({
-      success: true,
-      data: result,
-      message: "Video desasignado correctamente",
-    });
-  } catch (error) {
-    console.error("Error desasignando video:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al desasignar el video",
-    });
-  }
-}
-
-function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
   // Videos normales (no eliminados)
   app.get("/api/videos", requireAuth, getVideos);
+
+  // Creación de videos
   app.post("/api/projects/:projectId/videos", requireAuth, createVideo);
   app.post("/api/projects/:projectId/videos/bulk", requireAuth, createBulkVideos);
+
+  // Actualización de videos
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
+
+  // Asignación de video a youtuber cuando lo visualiza
+  app.post("/api/projects/:projectId/videos/:videoId/assign", requireAuth, assignVideoToYoutuber);
+
+  // Eliminación de videos (mover a papelera o eliminación permanente)
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);
   app.delete("/api/projects/:projectId/videos", requireAuth, bulkDeleteVideos);
 
-  // Restaurar videos
-  app.post(
-    "/api/projects/:projectId/videos/:videoId/restore",
-    requireAuth,
-    restoreVideo
-  );
-
-  // Gestión de papelera
+  // Rutas relacionadas con la papelera
+  app.post("/api/projects/:projectId/videos/:videoId/restore", requireAuth, restoreVideo);
   app.delete("/api/projects/:projectId/trash", requireAuth, emptyTrash);
+  // Ruta para obtener videos en la papelera
+  app.get("/api/projects/:projectId/videos", requireAuth, getVideos);
 
-  // Asignación de videos
-  app.post(
-    "/api/projects/:projectId/videos/:videoId/assign",
-    requireAuth,
-    assignVideoToYoutuber
-  );
-
-  // Revertir estado y desasignar
-  app.post(
-    "/api/projects/:projectId/videos/:videoId/revert",
-    requireAuth,
-    revertVideoState
-  );
-
-  app.post(
-    "/api/projects/:projectId/videos/:videoId/unassign",
-    requireAuth,
-    unassignVideo
-  );
-
-  // Upload endpoints
-  const upload = multer({
+  // Video upload endpoint
+  const thumbailUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
       fileSize: 1024 * 1024 * 1024 // 1GB limit
     }
   });
-  app.post(
-    "/api/projects/:projectId/videos/:videoId/upload/thumbnail",
+
+  // Endpoint para cargar miniaturas
+  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail",
     requireAuth,
-    upload.single("thumbnail"),
+    thumbailUpload.single('file'),
     uploadThumbnail
   );
 
-  app.get(
-    "/api/projects/:projectId/videos/:videoId/upload-url",
+  // Endpoint para iniciar carga multiparte (nuevo método recomendado)
+  app.post("/api/projects/:projectId/videos/:videoId/initiate-multipart-upload",
+    requireAuth,
+    initiateMultipartUpload
+  );
+
+  // Endpoint para completar carga multiparte
+  app.post("/api/projects/:projectId/videos/:videoId/complete-multipart-upload",
+    requireAuth,
+    completeMultipartUpload
+  );
+
+  // Endpoint para abortar carga multiparte
+  app.post("/api/projects/:projectId/videos/:videoId/abort-multipart-upload",
+    requireAuth,
+    abortMultipartUpload
+  );
+
+  // Endpoint legado para compatibilidad con versiones anteriores
+  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo",
     requireAuth,
     getVideoUploadUrl
   );
 }
-
-// Exportar todas las funciones necesarias en un único lugar al final del archivo
-export {
-  setUpVideoRoutes,
-  getVideos,
-  createVideo,
-  updateVideo,
-  deleteVideo,
-  revertVideoState,
-  unassignVideo,
-  restoreVideo,
-  emptyTrash,
-  bulkDeleteVideos,
-  assignVideoToYoutuber,
-  uploadThumbnail,
-  getVideoUploadUrl
-};

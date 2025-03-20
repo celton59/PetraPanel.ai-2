@@ -418,82 +418,6 @@ export function useVideos() {
     },
   });
 
-  const revertVideoStateMutation = useMutation({
-    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
-      const api = (await import('../lib/axios')).default;
-      try {
-        await refreshCSRFToken();
-        const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/revert`);
-        return response.data;
-      } catch (error: any) {
-        console.error("Error revirtiendo estado:", error);
-        if (error.response?.status === 403 && 
-            (error.response?.data?.message?.includes('CSRF') || 
-             error.response?.data?.message?.includes('token') || 
-             error.response?.data?.message?.includes('Token'))) {
-          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
-        }
-        throw new Error(error.response?.data?.message || error.message || "Error al revertir el estado");
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey });
-      toast.success("Estado revertido", {
-        description: "El estado del video ha sido revertido correctamente",
-      });
-    },
-    onError: (error: Error) => {
-      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
-        toast.error("Error de seguridad", {
-          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
-        });
-      } else {
-        toast.error("Error", {
-          description: error.message || "No se pudo revertir el estado",
-        });
-      }
-    },
-  });
-
-  const unassignVideoMutation = useMutation({
-    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
-      const api = (await import('../lib/axios')).default;
-      try {
-        await refreshCSRFToken();
-        const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/unassign`);
-        return response.data;
-      } catch (error: any) {
-        console.error("Error desasignando video:", error);
-        if (error.response?.status === 403 && 
-            (error.response?.data?.message?.includes('CSRF') || 
-             error.response?.data?.message?.includes('token') || 
-             error.response?.data?.message?.includes('Token'))) {
-          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
-        }
-        throw new Error(error.response?.data?.message || error.message || "Error al desasignar el video");
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey });
-      toast.success("Video desasignado", {
-        description: "El video ha sido desasignado correctamente",
-      });
-    },
-    onError: (error: Error) => {
-      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
-        toast.error("Error de seguridad", {
-          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
-        });
-      } else {
-        toast.error("Error", {
-          description: error.message || "No se pudo desasignar el video",
-        });
-      }
-    },
-  });
-
   const pagination: PaginationMetadata = videosData?.pagination || {
     page,
     limit,
@@ -523,7 +447,5 @@ export function useVideos() {
     emptyTrash: emptyTrashMutation.mutateAsync,
     getTrashVideos,
     assignVideoToYoutuber: assignVideoToYoutuberMutation.mutateAsync,
-    revertVideoState: revertVideoStateMutation.mutateAsync,
-    unassignVideo: unassignVideoMutation.mutateAsync,
   };
 }
