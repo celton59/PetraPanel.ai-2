@@ -106,6 +106,14 @@ export const videos = pgTable("videos", {
   isDeleted: boolean("is_deleted").default(false),
   deletedAt: timestamp("deleted_at"),
   deletedBy: integer("deleted_by").references(() => users.id)
+}, (table) => {
+  return {
+    statusIdx: index("videos_status_idx").on(table.status),
+    createdAtIdx: index("videos_created_at_idx").on(table.createdAt),
+    updatedAtIdx: index("videos_updated_at_idx").on(table.updatedAt),
+    titleIdx: index("videos_title_idx").on(table.title),
+    projectIdx: index("videos_project_id_idx").on(table.projectId)
+  };
 });
 
 export type Video = typeof videos.$inferSelect
@@ -179,6 +187,14 @@ export const youtube_videos = pgTable("youtube_videos", {
   updatedAt: timestamp("updated_at").defaultNow(),
   isEvergreen: boolean("is_evergreen"),
   evergreenConfidence: numeric("evergreen_confidence")
+}, (table) => {
+  return {
+    publishedAtIdx: index("youtube_videos_published_at_idx").on(table.publishedAt),
+    viewCountIdx: index("youtube_videos_view_count_idx").on(table.viewCount),
+    likeCountIdx: index("youtube_videos_like_count_idx").on(table.likeCount),
+    channelIdx: index("youtube_videos_channel_id_idx").on(table.channelId),
+    titleIdx: index("youtube_videos_title_idx").on(table.title)
+  };
 });
 
 export type YoutubeVideo = typeof youtube_videos.$inferSelect

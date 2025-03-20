@@ -54,8 +54,7 @@ async function addChannel (req: Request, res: Response): Promise<Response> {
   }
 }
 
-async function getVideos (req: Request, res: Response): Promise<Response> {
-
+async function getVideos(req: Request, res: Response): Promise<Response> {
   if (!req.user?.role || req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
@@ -63,55 +62,79 @@ async function getVideos (req: Request, res: Response): Promise<Response> {
     });
   }
 
-  // Obtener parámetros para paginación y filtrado
+  // Obtener parámetros para paginación, filtrado y ordenamiento
   const { channelId, title } = req.query;
   const page = Number(req.query.page || '1');
   const limit = Number(req.query.limit || '20');
+  const sortField = (req.query.sortField as string) || 'publishedAt';
+  const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
   const offset = (page - 1) * limit;
-  
+
   try {
+    console.log(`Ordenando por ${sortField} en orden ${sortOrder}`);
+
     // Construimos las condiciones de filtrado
     const conditions = [];
-    
+
     if (channelId) {
       conditions.push(eq(youtube_videos.channelId, channelId as string));
     }
-    
-    // Búsqueda por título
+
     if (title) {
-      // Búsqueda directa por título
       conditions.push(ilike(youtube_videos.title, `%${title}%`));
       console.log(`Buscando videos con título que contiene: ${title}`);
     }
-    
+
+    // Construir el objeto de ordenamiento
+    const orderBy = {};
+    switch (sortField) {
+      case 'viewCount':
+        orderBy[sortOrder] = youtube_videos.viewCount;
+        break;
+      case 'likeCount':
+        orderBy[sortOrder] = youtube_videos.likeCount;
+        break;
+      case 'publishedAt':
+        orderBy[sortOrder] = youtube_videos.publishedAt;
+        break;
+      case 'title':
+        orderBy[sortOrder] = youtube_videos.title;
+        break;
+      case 'channelId':
+        orderBy[sortOrder] = youtube_videos.channelId;
+        break;
+      default:
+        orderBy['desc'] = youtube_videos.publishedAt;
+    }
+
     // Primero obtenemos el total de videos (para la paginación)
     const countQuery = db.select({ count: count() })
       .from(youtube_videos);
-    
+
     // Aplicamos los filtros al contador si hay condiciones
     if (conditions.length > 0) {
       countQuery.where(conditions.length === 1 ? conditions[0] : and(...conditions));
     }
-    
+
     const [totalResult] = await countQuery.execute();
     const total = Number(totalResult?.count || 0);
-    
-    // Consulta principal para obtener los videos paginados
+
+    // Consulta principal para obtener los videos paginados y ordenados
     const query = db.select()
       .from(youtube_videos)
-      .orderBy(desc(youtube_videos.publishedAt))
+      .orderBy(orderBy)
       .limit(limit)
       .offset(offset);
-      
+
     // Aplicamos los mismos filtros a la consulta principal
     if (conditions.length > 0) {
       query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
     }
-    
+
     const result = await query.execute();
 
     console.log(`Encontrados ${total} videos en la base de datos (mostrando ${result.length} en página ${page})`);
-    
+
     return res.status(200).json({
       videos: result,
       pagination: {
