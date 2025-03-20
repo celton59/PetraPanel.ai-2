@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/date";
 import { MascotLoader } from "@/components/ui/mascot-loader";
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { NewVideoDialog } from "./NewVideoDialog";
-import { VideoFilters } from "./components/VideoFilters";
+import { VideoFilters } from "./VideoFilters";
 import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Link } from "wouter";
 import { type DateRange } from "react-day-picker";
@@ -20,40 +20,34 @@ import { User } from "@db/schema";
 // Estados visibles por rol
 const VISIBLE_STATES: Record<User['role'], string[]> = {
   optimizer: [
-    "pending",
-    "in_progress",
-    "optimize_review",
-    "title_corrections",
-    "en_revision",
+    "available",
+    "content_corrections",
+    "content_review"
   ],
-  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
+  youtuber: [
+    "upload_media",
+    "media_corrections"
+  ],
   reviewer: [
-    "optimize_review",
-    "title_corrections",
-    "upload_review", 
-    "completed",
-    "en_revision",
+    "content_review",
+    "media_review",
+    "final_review"
   ],
   content_reviewer: [
-    "content_review",
-    "optimize_review",
-    "title_corrections"
+    "content_review"
   ],
   media_reviewer: [
-    "media_review",
-    "upload_review"
+    "media_review"
   ],
   admin: [
-    "pending",
-    "in_progress",
-    "optimize_review", 
-    "title_corrections",
-    "upload_review",
+    "available",
+    "content_corrections",
+    "content_review",
+    "upload_media",
     "media_corrections",
-    "review",
-    "youtube_ready",
-    "completed",
-    "en_revision",
+    "media_review",
+    "final_review",
+    "completed"
   ],
 };
 
