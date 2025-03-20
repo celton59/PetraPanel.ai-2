@@ -30,6 +30,13 @@ import { scanVideoForAffiliates } from "../controllers/affiliateController";
 import { type Express } from "express";
 import multer from "multer";
 
+// Importar las funciones de manejo de estados
+import {
+  getPreviousState,
+  canRevertState,
+  canUnassignVideo,
+} from "../../client/src/lib/video-states";
+
 const bucketName = process.env.AWS_BUCKET_NAME || "petrafiles";
 const awsRegion = process.env.AWS_REGION || "eu-west-1";
 
@@ -929,7 +936,7 @@ async function createVideo(req: Request, res: Response): Promise<Response> {
     return res.json(result);
   } catch (error) {
     console.error("Error creating video:", error);
-    return res.status(500).json({
+        return res.status(500).json({
       success: false,
       message:
         error instanceof Error ? error.message : "Error al crear el video",
@@ -1549,20 +1556,17 @@ async function unassignVideo(req: Request, res: Response): Promise<Response> {
 
     // Obtener el estado anterior basado en el estado actual
     const previousState = getPreviousState(video.status);
-    if (!previousState) {
-      return res.status(400).json({
-        success: false,
-        message: "No se puede determinar el estado anterior del video",
-      });
-    }
 
-    // Desasignar el video y revertir al estado anterior
+    // Si no hay estado anterior, mantener el estado actual
+    const newStatus = previousState || video.status;
+
+    // Desasignar el video y actualizar al estado anterior o mantener el actual
     const [result] = await db
       .update(videos)
       .set({
         contentUploadedBy: null,
         updatedAt: new Date(),
-        status: previousState, // Usar el estado anterior en lugar de "available"
+        status: newStatus,
       })
       .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
       .returning();
