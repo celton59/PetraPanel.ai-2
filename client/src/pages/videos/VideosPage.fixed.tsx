@@ -20,34 +20,40 @@ import { User } from "@db/schema";
 // Estados visibles por rol
 const VISIBLE_STATES: Record<User['role'], string[]> = {
   optimizer: [
-    "available",
-    "content_corrections",
-    "content_review"
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "en_revision",
   ],
-  youtuber: [
-    "upload_media",
-    "media_corrections"
-  ],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
   reviewer: [
-    "content_review",
-    "media_review",
-    "final_review"
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
+    "completed",
+    "en_revision",
   ],
   content_reviewer: [
-    "content_review"
+    "content_review",
+    "optimize_review",
+    "title_corrections"
   ],
   media_reviewer: [
-    "media_review"
+    "media_review",
+    "upload_review"
   ],
   admin: [
-    "available",
-    "content_corrections",
-    "content_review",
-    "upload_media",
+    "pending",
+    "in_progress",
+    "optimize_review",
+    "title_corrections",
+    "upload_review",
     "media_corrections",
-    "media_review",
-    "final_review",
-    "completed"
+    "review",
+    "youtube_ready",
+    "completed",
+    "en_revision",
   ],
 };
 
