@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { VideoPaginationControls } from "./components/VideoPaginationControls";
@@ -7,8 +8,15 @@ import { VideoAffiliates } from "@/components/video/VideoAffiliates";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
 import { AffiliateIcon } from "@/components/video/AffiliateIcon";
-// Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
+import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Link } from "wouter";
+import { VideoFilters } from "./VideoFilters";
+import type { DateRange } from "react-day-picker";
+import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
+import { cn, formatDate } from "@/lib/utils";
+import { User, VideoStatus } from "@db/schema";
 import {
   Eye,
   Trash2,
@@ -23,39 +31,6 @@ import {
   Square,
   Copy,
 } from "lucide-react";
-import { NewVideoDialog } from "./NewVideoDialog";
-import { useUser } from "@/hooks/use-user";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { MascotLoader } from "@/components/ui/mascot-loader";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "wouter";
-import { VideoFilters } from "./VideoFilters";
-import type { DateRange } from "react-day-picker";
-import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
-import { cn, formatDate } from "@/lib/utils";
-import { User, VideoStatus } from "@db/schema";
 
 // Estados visibles por rol
 const VISIBLE_STATES: Record<User['role'], string[]> = {
@@ -214,7 +189,7 @@ export default function VideosPage() {
   };
 
   // Modify the filtered videos to include sorting
-  const sortedAndFilteredVideos = React.useMemo(() => {
+  const sortedAndFilteredVideos = useMemo(() => {
     let result = [...filteredVideos];
 
     if (sorting) {
