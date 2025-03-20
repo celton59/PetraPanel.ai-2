@@ -24,7 +24,9 @@ import {
   Copy,
   ArrowDown,
   ArrowUp,
-  ArrowUpDown
+  ArrowUpDown,
+  RotateCcw,
+  UserMinus
 } from "lucide-react";
 import { NewVideoDialog } from "./NewVideoDialog";
 import { useUser } from "@/hooks/use-user";
@@ -59,6 +61,7 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
+import { canRevertState, canUnassignVideo } from "@/lib/video-states";
 
 // Estados visibles por rol
 const VISIBLE_STATES: Record<User['role'], string[]> = {
@@ -96,7 +99,7 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
     "in_progress",
     "optimize_review",
     "title_corrections",
-    "upload_review", 
+    "upload_review",
     "media_corrections",
     "review",
     "youtube_ready",
@@ -130,7 +133,9 @@ export default function VideosPage() {
     limit,
     setLimit,
     sort,
-    setSort
+    setSort,
+    revertVideoState,
+    unassignVideo,
   } = useVideos();
 
   // Estados para UI
@@ -655,6 +660,71 @@ export default function VideosPage() {
                             <span className="sr-only">Ver detalles</span>
                           </Button>
                         )}
+                        {(canRevertState(user!.role, video.status) || canUnassignVideo(user!.role, video.status)) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  "text-muted-foreground",
+                                  canUnassignVideo(user!.role, video.status)
+                                    ? "hover:text-orange-500"
+                                    : "hover:text-yellow-500"
+                                )}
+                              >
+                                {canUnassignVideo(user!.role, video.status) ? (
+                                  <UserMinus className="h-4 w-4" />
+                                ) : (
+                                  <RotateCcw className="h-4 w-4" />
+                                )}
+                                <span className="sr-only">
+                                  {canUnassignVideo(user!.role, video.status) ? "Desasignar video" : "Revertir estado"}
+                                </span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {canUnassignVideo(user!.role, video.status)
+                                    ? "¿Desasignar video?"
+                                    : "¿Revertir estado?"}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {canUnassignVideo(user!.role, video.status)
+                                    ? "Esta acción desasignará el video y lo volverá a dejar disponible para otros youtubers. Los cambios realizados se mantendrán."
+                                    : "Esta acción devolverá el video al estado anterior. Los cambios realizados en el estado actual se mantendrán."}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="gap-2">
+                                <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => {
+                                    if (canUnassignVideo(user!.role, video.status)) {
+                                      unassignVideo({
+                                        videoId: video.id,
+                                        projectId: video.projectId,
+                                      });
+                                    } else {
+                                      revertVideoState({
+                                        videoId: video.id,
+                                        projectId: video.projectId,
+                                      });
+                                    }
+                                  }}
+                                  className={cn(
+                                    "text-white",
+                                    canUnassignVideo(user!.role, video.status)
+                                      ? "bg-orange-500 hover:bg-orange-600"
+                                      : "bg-yellow-500 hover:bg-yellow-600"
+                                  )}
+                                >
+                                  {canUnassignVideo(user!.role, video.status) ? "Desasignar" : "Revertir"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                         {user?.role === "admin" && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -797,7 +867,7 @@ export default function VideosPage() {
             </div>
           </div>
         ))}
-        {/* El mensaje de "No hay videos" se mostrará en la vista principal */}
+        {/* El mensaje de"No hay videos" se mostrará en la vista principal */}
       </div>
     );
   }
@@ -864,7 +934,7 @@ export default function VideosPage() {
                       }}
                     >
                       <Copy className="h-3 w-3" />
-                      <span className="sr-only">Copiar título</</span>
+                      <span className="sr-only">Copiar título</span>
                     </Button>
                   </div>
                 </div>
@@ -985,6 +1055,7 @@ export default function VideosPage() {
   const handleOpenChange = (open: boolean) => {
     if (!open) setSelectedVideo(undefined);
   };
+
 
   return (
     <div

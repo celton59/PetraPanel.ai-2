@@ -832,7 +832,6 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
  * @returns Response con resultado de la operación
  */
 
-
 async function emptyTrash(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
 
@@ -1343,7 +1342,6 @@ async function getVideoUploadUrl(
   }
 }
 
-
 /**
  * Crea múltiples videos basados en una lista de títulos
  */
@@ -1440,6 +1438,142 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
   }
 }
 
+import { getPreviousState, canRevertState, canUnassignVideo } from "@/lib/video-states";
+
+async function revertVideoState(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  const videoId = parseInt(req.params.videoId);
+
+  if (!req.user?.role) {
+    return res.status(403).json({
+      success: false,
+      message: "No tienes permisos para revertir estados de videos",
+    });
+  }
+
+  try {
+    // Obtener el video actual
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+      .limit(1);
+
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video no encontrado",
+      });
+    }
+
+    // Verificar si el usuario puede revertir este estado
+    if (!canRevertState(req.user.role, video.status)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes permisos para revertir este estado",
+      });
+    }
+
+    // Obtener el estado anterior
+    const previousState = getPreviousState(video.status);
+    if (!previousState) {
+      return res.status(400).json({
+        success: false,
+        message: "Este video no puede ser revertido a un estado anterior",
+      });
+    }
+
+    // Actualizar el estado del video
+    const [result] = await db
+      .update(videos)
+      .set({
+        status: previousState,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+      .returning();
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "Estado del video revertido correctamente",
+    });
+  } catch (error) {
+    console.error("Error revirtiendo estado del video:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al revertir el estado del video",
+    });
+  }
+}
+
+async function unassignVideo(req: Request, res: Response): Promise<Response> {
+  const projectId = parseInt(req.params.projectId);
+  const videoId = parseInt(req.params.videoId);
+
+  if (!req.user?.role) {
+    return res.status(403).json({
+      success: false,
+      message: "No tienes permisos para desasignar videos",
+    });
+  }
+
+  try {
+    // Obtener el video actual
+    const [video] = await db
+      .select()
+      .from(videos)
+      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+      .limit(1);
+
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video no encontrado",
+      });
+    }
+
+    // Verificar si el video puede ser desasignado
+    if (!canUnassignVideo(req.user.role, video.status)) {
+      return res.status(403).json({
+        success: false,
+        message: "No puedes desasignar este video en su estado actual",
+      });
+    }
+
+    // Verificar si el usuario es admin o el youtuber asignado
+    if (req.user.role !== "admin" && video.contentUploadedBy !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes permisos para desasignar este video",
+      });
+    }
+
+    // Desasignar el video
+    const [result] = await db
+      .update(videos)
+      .set({
+        contentUploadedBy: null,
+        updatedAt: new Date(),
+        status: "available", // Volver a disponible
+      })
+      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
+      .returning();
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "Video desasignado correctamente",
+    });
+  } catch (error) {
+    console.error("Error desasignando video:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al desasignar el video",
+    });
+  }
+}
+
 export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
   // Videos normales (no eliminados)
   app.get("/api/videos", requireAuth, getVideos);
@@ -1503,3 +1637,9 @@ export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next
     getVideoUploadUrl
   );
 }
+
+export {
+  setUpVideoRoutes,
+  revertVideoState,
+  unassignVideo,
+};
