@@ -158,7 +158,7 @@ export const actionRates = pgTable("action_rates", {
 export const youtubeVideos = pgTable("youtube_videos", {
   id: serial("id").primaryKey(),
   youtubeId: text("youtube_id").notNull().unique(),
-  channelId: text("channel_id").notNull(),
+  channelId: text("channel_id").notNull().references(() => youtubeChannels.channelId, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
   publishedAt: timestamp("published_at"),
@@ -177,7 +177,7 @@ export const youtubeVideos = pgTable("youtube_videos", {
   embedding: vector("vector", { dimensions: 1536 }),
   isEvergreen: boolean("is_evergreen"),
   confidence: numeric("confidence"),
-  analyzedAt: timestamp("created_at"),
+  analyzedAt: timestamp("analyzed_at"),
   reason: text("reason"),
 });
 

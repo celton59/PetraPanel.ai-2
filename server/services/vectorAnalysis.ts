@@ -360,11 +360,14 @@ export async function findSimilarTitles(
 }> {
   const titleEmbedding = await generateEmbedding(title);
 
+  const debug = `1 - (${youtubeVideos.embedding.name} <=> '[${titleEmbedding.join(",")}]')`
+  console.log("DEBUG ", debug)
+  
   const results = await db
     .select({
       ...getTableColumns(youtubeVideos),
       similarity:
-        sql`1 - (${youtubeVideos.embedding} <=> '[${titleEmbedding.join(",")}]'::vector)`.as(
+        sql.raw(`1 - (${youtubeVideos.embedding.name} <=> '[${titleEmbedding.join(",")}]'::vector)`).as(
           "similarity",
         ),
     })

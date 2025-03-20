@@ -50,10 +50,7 @@ async function addChannel(req: Request, res: Response): Promise<Response> {
         thumbnailUrl: channelInfo.thumbnailUrl || null,
         subscriberCount: channelInfo.subscriberCount || 0,
         videoCount: channelInfo.videoCount || 0,
-        active: true,
-        lastVideoFetch: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        active: true
       })
       .returning();
 
@@ -321,9 +318,21 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
       .from(youtubeVideos)
       .execute();
 
+    const evergreenCount = await db
+    .select({ count: count() })
+    .from(youtubeVideos)
+    .where( eq(youtubeVideos.isEvergreen, true) );
+
+    const analyzedCount = await db
+    .select({ count: count() })
+    .from(youtubeVideos)
+    .where( isNotNull(youtubeVideos.embedding) );
+
     return res.status(200).json({
       totalViews: viewsResult?.totalViews || 0,
       totalLikes: likesResult?.totalLikes || 0,
+      evergreenVideos: evergreenCount?.at(0)?.count || 0,
+      analyzedVideos: analyzedCount?.at(0)?.count || 0,
     });
   } catch (error) {
     console.error("Error al obtener estadísticas de videos", error);
@@ -432,7 +441,7 @@ async function syncChannel(req: Request, res: Response): Promise<Response> {
       success: true,
     });
   } catch (error) {
-    console.error("Error adding channel:", error);
+    console.error("Error syncing channel:", error);
     return res.status(500).json({
       error: "Error al añadir canal",
       details: error instanceof Error ? error.message : "Error desconocido",
@@ -490,8 +499,6 @@ async function sendToOptimize(req: Request, res: Response): Promise<Response> {
         .insert(videos)
         .values({
           projectId: projectId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
           title: youtubeVideo.at(0)!.title,
           createdBy: req.user?.id,
           description: youtubeVideo.at(0)!.description,
@@ -515,7 +522,7 @@ async function sendToOptimize(req: Request, res: Response): Promise<Response> {
       success: true,
     });
   } catch (error) {
-    console.error("Error adding channel:", error);
+    console.error("Error sending to optimize:", error);
     return res.status(500).json({
       error: "Error al añadir canal",
       details: error instanceof Error ? error.message : "Error desconocido",

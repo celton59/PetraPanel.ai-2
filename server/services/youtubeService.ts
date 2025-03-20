@@ -228,9 +228,7 @@ export class YouTubeService {
                 commentCount: bv.commentCount,
                 duration: bv.duration,
                 tags: bv.tags,
-                updatedAt: new Date(),
                 analyzed: false,
-                createdAt: new Date(),
                 sentToOptimize: false,
                 sentToOptimizeAt: null,
                 sentToOptimizeReason: null,
@@ -287,11 +285,7 @@ export class YouTubeService {
 
           await db.transaction(async (tx) => {
             await tx.insert(youtubeVideos)
-              .values(batch.map(video => ({
-                ...video,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              })));
+              .values(batch.map(video => video ));
           });
 
           totalInserted += batch.length;

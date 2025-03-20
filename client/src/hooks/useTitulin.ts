@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { format, parseISO, isValid, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -32,6 +32,7 @@ export function useTitulin() {
   const [onlyEvergreen, setOnlyEvergreen] = useState(false);
   const [onlyAnalyzed, setOnlyAnalyzed] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<TitulinVideo | null>(null);
+  const queryClient = useQueryClient();
   
   // Estados para paginación y búsqueda
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +41,7 @@ export function useTitulin() {
 
   // Obtener videos
   const { data: videosData, isLoading, isFetching, refetch: refetchVideos } = useQuery<VideoResponse>({
-    queryKey: ["youtube-videos", channelFilter, currentPage, pageSize, titleFilter, onlyAnalyzed, onlyEvergreen],
+    queryKey: ["titulin-videos", channelFilter, currentPage, pageSize, titleFilter, onlyAnalyzed, onlyEvergreen],
     queryFn: async () => {
       // Parámetros de búsqueda simplificados
       const searchParams = {
@@ -70,7 +71,7 @@ export function useTitulin() {
 
   // Obtener canales
   const { data: channels, refetch: refetchChannels } = useQuery<TitulinChannel[]>({
-    queryKey: ["youtube-channels"],
+    queryKey: ["titulin-channels"],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/channels");
       return response.data;
@@ -79,16 +80,18 @@ export function useTitulin() {
 
   // Para estas estadísticas, necesitamos hacer una consulta adicional para obtener los totales
   const { data: statsData } = useQuery({
-    queryKey: ["youtube-videos-stats"],
+    queryKey: ["titulin-videos-stats"],
     queryFn: async () => {
       const response = await axios.get("/api/titulin/videos/stats");
       return response.data;
     },
   });
   
-  const totalVideos = pagination.total || 0;
-  const viewsCount = statsData?.totalViews || 0;
-  const likesCount = statsData?.totalLikes || 0;
+  const totalVideos = pagination.total || 0
+  const viewsCount = statsData?.totalViews || 0
+  const likesCount = statsData?.totalLikes || 0
+  const evergreenVideos = statsData?.evergreenVideos || 0
+  const analyzedVideos = statsData?.analyzedVideos || 0
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -135,6 +138,79 @@ export function useTitulin() {
     const channel = channels?.find(c => c.channelId === channelId);
     return channel?.name || channelId;
   };
+
+  const addChannelMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const response = await axios.post("/api/titulin/channels", { url });
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidar todas las consultas relacionadas para una actualización completa
+      queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      // Dar un tiempo para que se completen las revalidaciones
+      setTimeout(() => {
+        toast.success("Canal añadido correctamente");
+      }, 100);
+      // Reforzar la invalidación para asegurar que los datos sean frescos
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      }, 300);
+    },
+    onError: (error) => {
+      console.error("Error adding channel:", error);
+      toast.error("No se pudo añadir el canal");
+    }
+  });
+
+  const deleteChannelMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // await axios.delete(`/api/titulin/channels/${id}`);
+      await fetch(`/api/titulin/channels/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      // Invalidar múltiples consultas relacionadas para asegurar que todo se actualice
+      queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos"] });
+      // Dar tiempo para que ocurra la revalidación
+      setTimeout(() => {
+        toast.success("Canal eliminado correctamente");
+      }, 100);
+      // Reforzar con una segunda invalidación después de un tiempo
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      }, 500);
+    },
+    onError: (error) => {
+      console.error("Error deleting channel:", error);
+      toast.error("No se pudo eliminar el canal");
+    },
+  });
+
+  const syncChannelMutation = useMutation({
+    mutationFn: async (channelId: string) => {
+      const response = await axios.post(`/api/titulin/channels/${channelId}/sync`);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidar múltiples consultas relacionadas para una actualización completa
+      queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos"] });
+      // Dar tiempo para que se completen las revalidaciones
+      setTimeout(() => {
+        toast.success("Canal sincronizado correctamente");
+      }, 100);
+    },
+    onError: (error) => {
+      console.error("Error syncing channel:", error);
+      toast.error("No se pudo sincronizar el canal");
+    }
+  });
 
   // Descargar CSV
   const downloadCSVMutation = useMutation({
@@ -203,6 +279,30 @@ export function useTitulin() {
     }
   });
 
+  // Mutación para limpiar videos huérfanos
+  const cleanupOrphanedVideosMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post("/api/titulin/cleanup/orphaned-videos");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Invalidar consultas relacionadas para actualizar los datos
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulin-videos"] });
+
+      const message = data.videosDeleted > 0 
+        ? `Se eliminaron ${data.videosDeleted} videos huérfanos correctamente` 
+        : "No se encontraron videos huérfanos para eliminar";
+
+      toast.success(message);
+    },
+    onError: (error) => {
+      console.error("Error limpiando videos huérfanos:", error);
+      toast.error("No se pudieron limpiar los videos huérfanos");
+    }
+  });
+
+  
   const handleDownloadCSV = () => {
     downloadCSVMutation.mutate();
   };
@@ -247,6 +347,12 @@ export function useTitulin() {
     setOnlyEvergreen,
     onlyEvergreen,
     onlyAnalyzed,
+    addChannelMutation: addChannelMutation.mutateAsync,
+    deleteChannelMutation: deleteChannelMutation.mutateAsync,
+    syncChannelMutation: syncChannelMutation.mutateAsync,
+    evergreenVideos,
+    analyzedVideos,
+    cleanupOrphanedVideosMutation,
     refetch: () => {
       refetchVideos();
       refetchChannels();

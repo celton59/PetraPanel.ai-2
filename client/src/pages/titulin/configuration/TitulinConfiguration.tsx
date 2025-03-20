@@ -42,31 +42,9 @@ export default function TitulinConfiguration () {
   const [showTitleComparison, setShowTitleComparison] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const queryClient = useQueryClient();
+
+  const { addChannelMutation, deleteChannelMutation, syncChannelMutation, channels, isLoading, totalVideos, viewsCount, evergreenVideos, analyzedVideos, cleanupOrphanedVideosMutation } = useTitulin();
   
-  // Consulta para canales usando el hook personalizado
-  const { channels, isLoading } = useTitulin()
-  
-  // Consulta para estadísticas de canales y videos analizados de Titulin
-  const { data: titulinStats, isLoading: isLoadingTitulinStats } = useQuery({
-    queryKey: ["titulin-videos-stats"],
-    queryFn: async () => {
-      try {
-        const response = await axios.get("/api/titulin/videos/stats");
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching titulin stats:', error);
-        return {
-          totalVideos: 0,
-          analyzedVideos: 0,
-          evergreenVideos: 0,
-          totalViews: 0,
-          totalLikes: 0,
-          channelsCount: 0
-        };
-      }
-    },
-  });
 
   function formatLastUpdate (dateString?: string) {
     if (!dateString) return "Nunca";
@@ -79,127 +57,25 @@ export default function TitulinConfiguration () {
       return "Nunca";
     }
   };
-
-  const addChannelMutation = useMutation({
-    mutationFn: async (url: string) => {
-      const response = await axios.post("/api/titulin/channels", { url });
-      return response.data;
-    },
-    onSuccess: () => {
-      // Invalidar todas las consultas relacionadas para una actualización completa
-      queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
-      // Dar un tiempo para que se completen las revalidaciones
-      setTimeout(() => {
-        toast.success("Canal añadido correctamente");
-      }, 100);
-      setNewChannelUrl("");
-      // Reforzar la invalidación para asegurar que los datos sean frescos
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      }, 300);
-    },
-    onError: (error) => {
-      console.error("Error adding channel:", error);
-      toast.error("No se pudo añadir el canal");
-    },
-    onSettled: () => {
-      setIsAddingChannel(false);
-    },
-  });
-
-  const deleteChannelMutation = useMutation({
-    mutationFn: async (id: number) => {
-      // await axios.delete(`/api/titulin/channels/${id}`);
-      await fetch(`/api/titulin/channels/${id}`, {
-        method: 'DELETE',
-      });
-    },
-    onSuccess: () => {
-      // Invalidar múltiples consultas relacionadas para asegurar que todo se actualice
-      queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
-      // Dar tiempo para que ocurra la revalidación
-      setTimeout(() => {
-        toast.success("Canal eliminado correctamente");
-      }, 100);
-      // Reforzar con una segunda invalidación después de un tiempo
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      }, 500);
-    },
-    onError: (error) => {
-      console.error("Error deleting channel:", error);
-      toast.error("No se pudo eliminar el canal");
-    },
-    onSettled: () => {
-      setDeletingChannelId(null);
-    },
-  });
-
-  const syncChannelMutation = useMutation({
-    mutationFn: async (channelId: string) => {
-      const response = await axios.post(`/api/titulin/channels/${channelId}/sync`);
-      return response.data;
-    },
-    onSuccess: () => {
-      // Invalidar múltiples consultas relacionadas para una actualización completa
-      queryClient.invalidateQueries({ queryKey: ["titulin-channels"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
-      // Dar tiempo para que se completen las revalidaciones
-      setTimeout(() => {
-        toast.success("Canal sincronizado correctamente");
-      }, 100);
-    },
-    onError: (error) => {
-      console.error("Error syncing channel:", error);
-      toast.error("No se pudo sincronizar el canal");
-    },
-    onSettled: () => {
-      setSyncingChannelId(null);
-    },
-  });
   
-  // Mutación para limpiar videos huérfanos
-  const cleanupOrphanedVideosMutation = useMutation({
-    mutationFn: async () => {
-      const response = await axios.post("/api/titulin/cleanup/orphaned-videos");
-      return response.data;
-    },
-    onSuccess: (data) => {
-      // Invalidar consultas relacionadas para actualizar los datos
-      queryClient.invalidateQueries({ queryKey: ["titulin-videos-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulin-stats"] });
-      
-      const message = data.videosDeleted > 0 
-        ? `Se eliminaron ${data.videosDeleted} videos huérfanos correctamente` 
-        : "No se encontraron videos huérfanos para eliminar";
-      
-      toast.success(message);
-    },
-    onError: (error) => {
-      console.error("Error limpiando videos huérfanos:", error);
-      toast.error("No se pudieron limpiar los videos huérfanos");
-    }
-  });
-
   const handleAddChannel = async () => {
     if (!newChannelUrl.trim()) return;
     setIsAddingChannel(true);
-    addChannelMutation.mutate(newChannelUrl);
+    await addChannelMutation(newChannelUrl);
+    setNewChannelUrl("");
+    setIsAddingChannel(false);
   };
 
   const handleDeleteChannel = async (id: number) => {
     setDeletingChannelId(id);
-    deleteChannelMutation.mutate(id);
+    await deleteChannelMutation(id);
+    setDeletingChannelId(null);
   };
 
   const handleSyncChannel = async (id: number, channelId: string) => {
     setSyncingChannelId(id);
-    syncChannelMutation.mutate(channelId);
+    await syncChannelMutation(channelId);
+    setSyncingChannelId(null);
   };
   
   const handleCompareChannel = (channelId: string) => {
@@ -220,10 +96,6 @@ export default function TitulinConfiguration () {
   }
   
   // Obtener estadísticas para mostrar en el dashboard
-  const totalVideos = titulinStats?.totalVideos || 0;
-  const analyzedVideos = titulinStats?.analyzedVideos || 0;
-  const evergreenVideos = titulinStats?.evergreenVideos || 0;
-  const totalViews = titulinStats?.totalViews || 0;
   const channelsCount = channels?.length || 0;
   const activeChannels = channels?.filter(c => c.active)?.length || 0;
   
@@ -333,7 +205,7 @@ export default function TitulinConfiguration () {
           <CardContent>
             <div className="flex justify-between items-end">
               <div>
-                <p className="text-3xl font-bold">{totalViews.toLocaleString()}</p>
+                <p className="text-3xl font-bold">{viewsCount.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">
                   Visualizaciones totales
                 </p>
@@ -341,7 +213,7 @@ export default function TitulinConfiguration () {
               <div className="text-right">
                 {analyzedVideos > 0 && (
                   <div className="text-sm font-medium">
-                    {Math.round(totalViews / totalVideos).toLocaleString()} vistas por video
+                    {Math.round(viewsCount / totalVideos).toLocaleString()} vistas por video
                   </div>
                 )}
               </div>
@@ -513,7 +385,7 @@ export default function TitulinConfiguration () {
                     <TableRow className="bg-muted/50">
                       <TableHead>Thumbnail</TableHead>
                       <TableHead>Canal</TableHead>
-                      <TableHead>Videos Analizados</TableHead>
+                      <TableHead>Videos</TableHead>
                       <TableHead>Última Sincronización</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead className="w-[150px] text-right">Acciones</TableHead>
