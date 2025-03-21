@@ -864,7 +864,7 @@ export default function VideosPage() {
                       }}
                     >
                       <Copy className="h-3 w-3" />
-                      <span className="sr-only">Copiar título</</span>
+                      <span className="sr-only">Copiar título</span>
                     </Button>
                   </div>
                 </div>
