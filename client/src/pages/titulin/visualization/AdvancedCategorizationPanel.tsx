@@ -19,13 +19,7 @@ import {
   RefreshCcw,
   CheckSquare
 } from "lucide-react";
-
-interface TrainingExample {
-  id: number;
-  title: string;
-  is_evergreen: boolean;
-  category?: string;
-}
+import { TrainingTitleExample } from "@db/schema";
 
 interface Category {
   name: string;
@@ -34,7 +28,7 @@ interface Category {
 }
 
 interface AdvancedCategorizationPanelProps {
-  examples: TrainingExample[];
+  examples: TrainingTitleExample[];
   onCategorize: (exampleIds: number[], category: string) => Promise<void>;
   className?: string;
 }

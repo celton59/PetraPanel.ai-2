@@ -696,13 +696,13 @@ async function getTrainingExamples(req: Request, res: Response): Promise<Respons
 
     // Consulta paginada con filtros
     // Construcción segura de la consulta SQL
-    const orderBySql = sortBy ? sql.raw(sortBy) : sql.raw('id');
-    const sortDirSql = sortDir ? sql.raw(sortDir) : sql.raw('ASC');
+    const sortBySQL = sortBy ? sql.raw(sortBy) : sql.raw('id');
+    const orderBySQL = sortDir === 'ASC' ? asc(sortBySQL) : desc(sortBySQL)
 
     const examples = await db.select()
     .from(trainingTitleExamples)
     .where(whereConditions)
-    .orderBy(orderBySql, sortDirSql)
+    .orderBy(orderBySQL)
     .limit(limit)
     .offset(offset)
 
@@ -1275,6 +1275,45 @@ async function processVectorsFromTrainingExamples(req: Request, res: Response): 
   }
 }
 
+async function setCategoryToExamples(req: Request, res: Response): Promise<Response> {
+
+  // Obtain category and examples ids from request body
+  const { category, exampleIds } = req.body;
+
+  // Validate inputs separately
+  if (!category) {
+    return res.status(400).json({
+      success: false,
+      message: 'Debe proporcionar una categoría'
+    });
+  }
+
+  if (!exampleIds || !Array.isArray(exampleIds) || exampleIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Debe proporcionar una lista de ejemplos'
+    });
+  }
+
+  try {
+
+    await db.update(trainingTitleExamples).set({ category })
+      .where( inArray(trainingTitleExamples.id, exampleIds) )
+    
+    return res.status(200).json({ success: true })
+  }
+  catch (error) {
+    console.error('Error al asignar categoría a ejemplos:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al asignar categoría a los ejemplos'
+    })
+  }
+  
+  
+  
+}
+
 export function setUpTitulinRoutes(
   requireAuth: (
     req: Request,
@@ -1329,4 +1368,7 @@ export function setUpTitulinRoutes(
 
   // Procesar vectores para ejemplos de entrenamiento
   app.post('/api/titulin/training-examples/process-vectors', requireAuth, processVectorsFromTrainingExamples );
+
+  // Aplicar categoria a un ejemplo de título
+  app.post('/api/titulin/training-examples/category', requireAuth, setCategoryToExamples );
 }

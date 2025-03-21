@@ -1,5 +1,5 @@
 import { OpenAI } from "openai";
-import { sql, desc, getTableColumns, and, eq, isNotNull } from "drizzle-orm";
+import { sql, desc, getTableColumns, and, eq, isNotNull, isNull, inArray } from "drizzle-orm";
 import { db } from "@db";
 import {
   trainingTitleExamples,
@@ -359,9 +359,6 @@ export async function findSimilarTitles(
   titleEmbedding: number[];
 }> {
   const titleEmbedding = await generateEmbedding(title);
-
-  const debug = `1 - (${youtubeVideos.embedding.name} <=> '[${titleEmbedding.join(",")}]')`
-  console.log("DEBUG ", debug)
   
   const results = await db
     .select({
@@ -412,9 +409,7 @@ export async function processTrainingExamplesVectors(
     const queryBatchSize = 50; // Lotes más grandes para la consulta inicial
     const processBatchSize = 5; // Lotes más pequeños para el procesamiento de embeddings
 
-    console.log(
-      `Iniciando procesamiento de vectores para ${totalCount} ejemplos de entrenamiento`,
-    );
+    console.log(`Iniciando procesamiento de vectores para ${totalCount} ejemplos de entrenamiento`);
 
     // 1. Procesar por lotes más grandes para la consulta inicial
     for (let i = 0; i < ids.length; i += queryBatchSize) {
@@ -425,40 +420,28 @@ export async function processTrainingExamplesVectors(
       );
 
       // Obtener los ejemplos a procesar en este lote
-      const examples = await db.execute(sql`
-        SELECT id, title, is_evergreen 
-        FROM training_title_examples 
-        WHERE id IN (${sql.raw(queryBatch.join(","))})
-          AND (vector_processed IS NULL OR vector_processed = false)
-      `);
+      const examples = await db.select()
+      .from(trainingTitleExamples)
+      .where(and(
+        inArray(trainingTitleExamples.id, queryBatch),
+        isNull(trainingTitleExamples.embedding)
+      ))
 
-      // Normalizar el formato de resultados
-      let rows: any[] = [];
-      if (Array.isArray(examples)) {
-        rows = examples;
-      } else if (examples.rows && Array.isArray(examples.rows)) {
-        rows = examples.rows;
-      } else if (typeof examples === "object") {
-        rows = Object.values(examples);
-      }
-
-      if (rows.length === 0) {
-        console.log(
-          `No se encontraron ejemplos sin procesar en el lote ${Math.floor(i / queryBatchSize) + 1}`,
-        );
+      if (examples.length === 0) {
+        console.log( `No se encontraron ejemplos sin procesar en el lote ${Math.floor(i / queryBatchSize) + 1}`);
         continue;
       }
 
       console.log(
-        `Encontrados ${rows.length} ejemplos para procesar en el lote actual`,
+        `Encontrados ${examples.length} ejemplos para procesar en el lote actual`,
       );
 
       // 2. Procesar cada sub-lote para la generación de embeddings (evitar sobrecargar la API)
-      for (let j = 0; j < rows.length; j += processBatchSize) {
-        const processBatch = rows.slice(j, j + processBatchSize);
+      for (let j = 0; j < examples.length; j += processBatchSize) {
+        const processBatch = examples.slice(j, j + processBatchSize);
 
         console.log(
-          `Procesando sub-lote ${Math.floor(j / processBatchSize) + 1}/${Math.ceil(rows.length / processBatchSize)} de vectores`,
+          `Procesando sub-lote ${Math.floor(j / processBatchSize) + 1}/${Math.ceil(examples.length / processBatchSize)} de vectores`,
         );
 
         // Crear una cola de promesas para procesar cada elemento en paralelo
@@ -491,13 +474,11 @@ export async function processTrainingExamplesVectors(
               );
 
             // Actualizar el ejemplo con el embedding
-            await db.execute(sql`
-              UPDATE training_title_examples 
-              SET embedding = ${JSON.stringify(embedding)}::vector,
-                  vector_processed = true,
-                  updated_at = NOW()
-              WHERE id = ${example.id}
-            `);
+            await db.update(trainingTitleExamples).set({
+              embedding: embedding,
+              updatedAt: new Date()
+            })
+            .where( eq(trainingTitleExamples.id, example.id) )
 
             return { success: true, id: example.id };
           } catch (error) {

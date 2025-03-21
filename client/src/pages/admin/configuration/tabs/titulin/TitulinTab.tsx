@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImprovedTrainingExamplesDialog } from "@/pages/titulin/configuration/ImprovedTrainingExamplesDialog";
+import { ImprovedTrainingTitleExamplesDialog } from "@/pages/titulin/configuration/ImprovedTrainingExamplesDialog";
 import { TitleComparisonDialog } from "@/pages/titulin/configuration/TitleComparisonDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -146,7 +146,7 @@ export default function TitulinTab() {
       </Card>
       
       {/* Diálogos */}
-      <ImprovedTrainingExamplesDialog 
+      <ImprovedTrainingTitleExamplesDialog 
         open={trainingExamplesOpen} 
         onOpenChange={setTrainingExamplesOpen} 
       />

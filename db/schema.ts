@@ -304,7 +304,8 @@ export const trainingTitleExamples = pgTable("training_title_examples", {
   createdBy: integer("created_by").references(() => users.id).notNull(),
   vectorProcessed: boolean("vector_processed").default(false),
   confidence: numeric("confidence"),
-  embedding: vector("embedding", { dimensions: 1536 })
+  embedding: vector("embedding", { dimensions: 1536 }),
+  category: text("category")
 })
 
 export type TrainingTitleExample = typeof trainingTitleExamples.$inferSelect;

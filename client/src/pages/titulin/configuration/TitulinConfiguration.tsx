@@ -26,7 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { ImprovedTrainingExamplesDialog } from "./ImprovedTrainingExamplesDialog";
+import { ImprovedTrainingTitleExamplesDialog } from "./ImprovedTrainingExamplesDialog";
 import { TitleComparisonDialog } from "./TitleComparisonDialog";
 import { useTitulin } from "@/hooks/useTitulin";
 
@@ -677,7 +677,7 @@ export default function TitulinConfiguration () {
       </Tabs>
       
       {/* Diálogo de ejemplos de entrenamiento */}
-      <ImprovedTrainingExamplesDialog
+      <ImprovedTrainingTitleExamplesDialog
         open={showTrainingExamples}
         onOpenChange={setShowTrainingExamples}
       />

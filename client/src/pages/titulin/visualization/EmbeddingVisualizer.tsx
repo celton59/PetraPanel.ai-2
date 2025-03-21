@@ -4,19 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { InfoIcon, Maximize2, DownloadIcon } from "lucide-react";
-
-interface TrainingExample {
-  id: number;
-  title: string;
-  is_evergreen: boolean;
-  embedding?: number[];
-  vector_processed?: boolean;
-  confidence?: number;
-}
+import { InfoIcon, DownloadIcon } from "lucide-react";
+import { TrainingTitleExample } from "@db/schema";
 
 interface EmbeddingVisualizerProps {
-  examples: TrainingExample[];
+  examples: TrainingTitleExample[];
   className?: string;
 }
 
@@ -24,16 +16,16 @@ export function EmbeddingVisualizer({ examples, className = "" }: EmbeddingVisua
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<string>("2d");
-  const [selectedPoint, setSelectedPoint] = useState<TrainingExample | null>(null);
-  const [hoverPoint, setHoverPoint] = useState<TrainingExample | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<TrainingTitleExample | null>(null);
+  const [hoverPoint, setHoverPoint] = useState<TrainingTitleExample | null>(null);
   
   // Filtramos los ejemplos que tienen embedding
-  const processedExamples = examples.filter(ex => ex.vector_processed && ex.embedding && ex.embedding.length > 0);
+  const processedExamples = examples.filter(ex => ex.embedding && ex.embedding && ex.embedding.length > 0);
   
   // Aplicar PCA de forma simple para reducir los embeddings a 2D/3D
   // Nota: Esta es una implementación muy simple para visualización, 
   // una implementación real usaría bibliotecas como TensorFlow.js o ml.js
-  const applySimplePCA = (examples: TrainingExample[], dimensions: 2 | 3 = 2) => {
+  const applySimplePCA = (examples: TrainingTitleExample[], dimensions: 2 | 3 = 2) => {
     if (examples.length === 0 || !examples[0].embedding) return [];
     
     // En un caso real, esta función implementaría PCA o t-SNE apropiadamente
@@ -102,13 +94,13 @@ export function EmbeddingVisualizer({ examples, className = "" }: EmbeddingVisua
       if (selectedPoint?.id === example.id) pointSize = 10;
       
       // Color basado en si es evergreen o no
-      ctx.fillStyle = example.is_evergreen
+      ctx.fillStyle = example.isEvergreen
         ? 'rgba(34, 197, 94, 0.8)' // verde para evergreen
         : 'rgba(249, 115, 22, 0.8)'; // naranja para no evergreen
         
       // Si es el punto seleccionado, añadir borde
       if (selectedPoint?.id === example.id || hoverPoint?.id === example.id) {
-        ctx.strokeStyle = example.is_evergreen ? '#16a34a' : '#ea580c';
+        ctx.strokeStyle = example.isEvergreen ? '#16a34a' : '#ea580c';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(pointX, pointY, pointSize + 2, 0, Math.PI * 2);
@@ -214,9 +206,9 @@ export function EmbeddingVisualizer({ examples, className = "" }: EmbeddingVisua
     return () => window.removeEventListener('resize', updateCanvasSize);
   }, [activeTab]);
   
-  const countVectorizedExamples = examples.filter(ex => ex.vector_processed).length;
-  const countEvergreenVectorized = examples.filter(ex => ex.vector_processed && ex.is_evergreen).length;
-  const countNonEvergreenVectorized = examples.filter(ex => ex.vector_processed && !ex.is_evergreen).length;
+  const countVectorizedExamples = examples.filter(ex => ex.embedding).length;
+  const countEvergreenVectorized = examples.filter(ex => ex.embedding && ex.isEvergreen).length;
+  const countNonEvergreenVectorized = examples.filter(ex => ex.embedding && !ex.isEvergreen).length;
   
   return (
     <Card className={className}>
@@ -296,14 +288,14 @@ export function EmbeddingVisualizer({ examples, className = "" }: EmbeddingVisua
                   <div className="space-y-2">
                     <div className="flex gap-2 items-center">
                       <Badge 
-                        variant={selectedPoint?.is_evergreen || hoverPoint?.is_evergreen ? "default" : "outline"}
-                        className={`${selectedPoint?.is_evergreen || hoverPoint?.is_evergreen ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-orange-100 text-orange-800 hover:bg-orange-100"}`}
+                        variant={selectedPoint?.isEvergreen || hoverPoint?.isEvergreen ? "default" : "outline"}
+                        className={`${selectedPoint?.isEvergreen || hoverPoint?.isEvergreen ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-orange-100 text-orange-800 hover:bg-orange-100"}`}
                       >
-                        {selectedPoint?.is_evergreen || hoverPoint?.is_evergreen ? "Evergreen" : "No Evergreen"}
+                        {selectedPoint?.isEvergreen || hoverPoint?.isEvergreen ? "Evergreen" : "No Evergreen"}
                       </Badge>
                       {selectedPoint?.confidence !== undefined && (
                         <Badge variant="outline">
-                          Confianza: {Math.round((selectedPoint.confidence || 0) * 100)}%
+                          Confianza: {Math.round(parseFloat(selectedPoint.confidence ?? '0') * 100)}%
                         </Badge>
                       )}
                     </div>
