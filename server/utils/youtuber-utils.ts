@@ -45,21 +45,24 @@ export async function countMonthlyVideos(userId: number): Promise<number> {
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
+
     // Formatear fechas para mostrar en log
     const firstDayStr = firstDayOfMonth.toISOString().split('T')[0];
     const lastDayStr = lastDayOfMonth.toISOString().split('T')[0];
     console.log(`Contando videos del mes (${firstDayStr} al ${lastDayStr}) para usuario ${userId}`);
-    
+
     // Obtener todos los videos completados por el usuario en el mes actual
-    // Usamos updatedAt en lugar de completedAt, ya que el campo completedAt no existe
+    // Ahora incluimos videos en estado final_review o completed
     const monthlyVideos = await db
       .select({ id: videos.id })
       .from(videos)
       .where(
         and(
           eq(videos.contentUploadedBy, userId),
-          eq(videos.status, "completed"),
+          or(
+            eq(videos.status, "final_review"),
+            eq(videos.status, "completed")
+          ),
           eq(videos.isDeleted, false),
           // Videos completados en el mes actual (basado en la fecha de última actualización)
           and(
@@ -68,7 +71,7 @@ export async function countMonthlyVideos(userId: number): Promise<number> {
           )
         )
       );
-    
+
     console.log(`Videos del mes para usuario ${userId}:`, monthlyVideos.length);
     return monthlyVideos.length;
   } catch (error) {

@@ -6,18 +6,20 @@ import { securityUtils } from 'server/services/security';
 
 async function createUser() {
   // Datos del usuario a crear
-  const username = 'hola';
+  const username = 'youtuber';
   const password = '1234';
-  const role = 'admin'; // Para que tenga acceso completo
-  
+  const role = 'youtuber'; // Rol youtuber para acceso rápido
+
   try {
-    
+
     await db.insert(users).values({
       password: await securityUtils.hashPassword(password),
       username,
-      role
+      role,
+      fullName: 'Creator Demo',
+      email: 'creator@demo.com'
     })
-    
+
   } catch (error) {
     console.error('Error:', error);
   }

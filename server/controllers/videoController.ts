@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { eq, and, desc, getTableColumns, aliasedTable, isNull, inArray, or, sql } from "drizzle-orm";
+import { eq, and, desc, getTableColumns, aliasedTable, isNull, inArray, or, sql, asc } from "drizzle-orm";
 import {
   videos,
   users,
@@ -14,10 +14,10 @@ import { db } from "@db";
 import { z } from "zod";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { 
-  generateS3Key, 
-  initiateMultipartUpload as initiateS3Upload, 
-  completeMultipartUpload as completeS3Upload, 
+import {
+  generateS3Key,
+  initiateMultipartUpload as initiateS3Upload,
+  completeMultipartUpload as completeS3Upload,
   abortMultipartUpload as abortS3Upload,
   getSignedUploadUrl,
   s3,
@@ -180,10 +180,10 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
     }
 
     // Si el video está en estado "upload_media" y ya está asignado a otro youtuber, no permitir que otro lo tome
-    if (req.user.role === "youtuber" && 
-        currentVideo.status === "upload_media" && 
-        currentVideo.contentUploadedBy !== null && 
-        currentVideo.contentUploadedBy !== req.user.id) {
+    if (req.user.role === "youtuber" &&
+      currentVideo.status === "upload_media" &&
+      currentVideo.contentUploadedBy !== null &&
+      currentVideo.contentUploadedBy !== req.user.id) {
       return res
         .status(403)
         .json({
@@ -197,17 +197,17 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
     if (updates.optimizedBy && !updates.status && currentVideo?.status === "available") {
       updatedStatus = "content_corrections"; // Usamos content_corrections para indicar que está en progreso de optimización
     }
-    
+
     // Para los youtubers que empiezan a trabajar en un video, verificamos el límite y luego asignamos
-    if (req.user.role === "youtuber" && 
-        currentVideo.status === "upload_media" && 
-        !currentVideo.contentUploadedBy) {
-      
+    if (req.user.role === "youtuber" &&
+      currentVideo.status === "upload_media" &&
+      !currentVideo.contentUploadedBy) {
+
       // Verificar el límite solo si el youtuber intenta asignarse el video a sí mismo
       if (!updates.contentUploadedBy) {
         // Verificar si el youtuber ha alcanzado su límite de videos
         const { canTakeMore, currentCount, maxAllowed } = await canYoutuberTakeMoreVideos(req.user.id);
-        
+
         if (!canTakeMore) {
           return res.status(403).json({
             success: false,
@@ -216,7 +216,7 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
             maxAllowed
           });
         }
-        
+
         // Si no ha alcanzado el límite, asignamos el video al usuario actual
         updates.contentUploadedBy = req.user.id;
       }
@@ -247,7 +247,7 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
       })
       .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)))
       .returning();
-      
+
     // Si se actualizó el título, escanear para detectar afiliados fuera de la transacción
     if (updates.title && result) {
       try {
@@ -277,7 +277,7 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
   const permanent = req.query.permanent === 'true';
-  
+
   // Para eliminación solo administradores
   if (req.user!.role !== "admin") {
     return res.status(403).json({
@@ -292,12 +292,12 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
       .select()
       .from(videos)
       .where(and(
-        eq(videos.id, videoId), 
+        eq(videos.id, videoId),
         eq(videos.projectId, projectId),
         permanent ? undefined : eq(videos.isDeleted, false)
       ))
       .limit(1);
-      
+
     if (!video) {
       return res.status(404).json({
         success: false,
@@ -367,7 +367,7 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
   try {
     const projectId = parseInt(req.params.projectId);
     const videoId = parseInt(req.params.videoId);
-    
+
     // Verificar que el usuario sea un youtuber
     if (req.user!.role !== "youtuber") {
       return res.status(403).json({
@@ -375,26 +375,26 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
         message: "Solo los youtubers pueden ser asignados a videos"
       });
     }
-    
+
     // Verificar que el video exista y esté en estado upload_media
     const [video] = await db
       .select()
       .from(videos)
       .where(and(
-        eq(videos.id, videoId), 
+        eq(videos.id, videoId),
         eq(videos.projectId, projectId),
         eq(videos.status, "upload_media"),
         eq(videos.isDeleted, false)
       ))
       .limit(1);
-      
+
     if (!video) {
       return res.status(404).json({
         success: false,
         message: "Video no encontrado o no está en estado de carga de medios"
       });
     }
-    
+
     // Verificar si el video ya está asignado a otro youtuber
     if (video.contentUploadedBy !== null && video.contentUploadedBy !== req.user!.id) {
       return res.status(403).json({
@@ -402,7 +402,7 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
         message: "Este video ya está asignado a otro youtuber"
       });
     }
-    
+
     // Si ya está asignado al mismo youtuber, no hacemos nada
     if (video.contentUploadedBy === req.user!.id) {
       return res.status(200).json({
@@ -411,12 +411,12 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
         videoId
       });
     }
-    
+
     // Verificar si el youtuber ha alcanzado su límite de videos
     const { canTakeMore, currentCount, maxAllowed } = await canYoutuberTakeMoreVideos(req.user!.id);
-    
+
     console.log(`Usuario ${req.user!.id} - Límite de videos:`, { canTakeMore, currentCount, maxAllowed });
-    
+
     if (!canTakeMore) {
       return res.status(403).json({
         success: false,
@@ -425,7 +425,7 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
         maxAllowed
       });
     }
-    
+
     // Asignar el video al youtuber actual
     const [updatedVideo] = await db
       .update(videos)
@@ -437,14 +437,14 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
         eq(videos.projectId, projectId)
       ))
       .returning();
-      
+
     if (!updatedVideo) {
       return res.status(500).json({
         success: false,
         message: "Error al asignar el video"
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       message: "Video asignado correctamente",
@@ -452,7 +452,7 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
       currentCount: currentCount + 1, // Incrementar porque acabamos de asignar uno
       maxAllowed
     });
-    
+
   } catch (error: any) {
     console.error("Error al asignar video:", error);
     return res.status(500).json({
@@ -492,7 +492,7 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
   try {
     // Validar que todos los IDs sean números
     const validVideoIds = videoIds.filter(id => !isNaN(parseInt(id))).map(id => parseInt(id));
-    
+
     if (validVideoIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -504,9 +504,9 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
     const results = await db.transaction(async (tx) => {
       // Verificar que todos los videos pertenezcan al proyecto y no estén ya en la papelera (para no permanentes)
       const videosToProcess = await tx
-        .select({ 
+        .select({
           id: videos.id,
-          createdBy: videos.createdBy 
+          createdBy: videos.createdBy
         })
         .from(videos)
         .where(and(
@@ -514,17 +514,17 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
           inArray(videos.id, validVideoIds),
           permanent ? undefined : eq(videos.isDeleted, false)
         ));
-      
+
       const foundIds = videosToProcess.map(v => v.id);
-      
+
       if (videosToProcess.length === 0) {
-        return { 
-          processed: 0, 
+        return {
+          processed: 0,
           notFound: validVideoIds.length,
           notAuthorized: videosToProcess.length - foundIds.length
         };
       }
-      
+
       if (permanent) {
         // Eliminar los videos permanentemente
         await tx
@@ -547,8 +547,8 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
             inArray(videos.id, foundIds)
           ));
       }
-      
-      return { 
+
+      return {
         processed: foundIds.length,
         notFound: validVideoIds.length - videosToProcess.length,
         notAuthorized: videosToProcess.length - foundIds.length
@@ -557,11 +557,11 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 
     const action = permanent ? "eliminados permanentemente" : "movidos a la papelera";
     let message = `${results.processed} videos ${action} correctamente`;
-    
+
     if (results.notFound > 0) {
       message += `, ${results.notFound} no encontrados`;
     }
-    
+
     if (results.notAuthorized > 0) {
       message += `, ${results.notAuthorized} sin autorización`;
     }
@@ -583,28 +583,27 @@ async function bulkDeleteVideos(req: Request, res: Response): Promise<Response> 
 }
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
-
   // Parámetros de paginación (obligatorios)
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
+  const sortField = (req.query.sortField as string) || 'updatedAt';
+  const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
 
   // Validar parámetros de paginación
   if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
     return res.status(400).json({
-        success: false,
-        message: "Los parámetros de paginación son inválidos. 'page' y 'limit' son requeridos y deben ser números positivos."
-      });
+      success: false,
+      message: "Los parámetros de paginación son inválidos. 'page' y 'limit' son requeridos y deben ser números positivos."
+    });
   }
 
   // Calcular el offset
   const offset = (page - 1) * limit;
-  
-  
-  try {
 
+  try {
     // Verificar si queremos mostrar elementos de la papelera
     const showDeleted = req.query.trash === 'true';
-    
+
     // Preparamos los filtros comunes tanto para el count como para la consulta principal
     const commonFilters = and(
       // Filtro de papelera - mostrar solo videos en papelera o no en papelera según el parámetro
@@ -655,22 +654,41 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
           ? isNull(videos.mediaReviewedBy)
           : undefined,
       ),
-      
+
       // Acceso a proyectos (para usuarios no administradores)
       req.user?.role !== "admin"
         ? eq(projectAccess.userId, req.user!.id!)
         : undefined,
     );
-    
-    // Consulta para obtener el total de videos (para metadata de paginación) con los mismos filtros
+
+    // Consulta para obtener el total de videos con los mismos filtros
     const countQuery = db.select({
       count: sql`count(distinct ${videos.id})`.mapWith(Number)
     })
-    .from(videos)
-    .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
-    .where(commonFilters);
-    
+      .from(videos)
+      .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
+      .where(commonFilters);
+
     const [countResult] = await countQuery.execute();
+
+    // Construir el objeto de ordenamiento
+    let orderBy: any = {};
+    switch (sortField) {
+      case 'title':
+        orderBy = sortOrder === 'asc' ? asc(videos.title) : desc(videos.title);
+        break;
+      case 'status':
+        orderBy = sortOrder === 'asc' ? asc(videos.status) : desc(videos.status);
+        break;
+      case 'seriesNumber':
+        orderBy = sortOrder === 'asc' ? asc(videos.seriesNumber) : desc(videos.seriesNumber);
+        break;
+      case 'createdAt':
+        orderBy = sortOrder === 'asc' ? asc(videos.createdAt) : desc(videos.createdAt);
+        break;
+      default:
+        orderBy = desc(videos.updatedAt);
+    }
 
     const query = db
       .selectDistinct({
@@ -695,7 +713,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
         // Datos del optimizador
         optimizerName: optimizer.fullName,
         optimizerUsername: optimizer.username,
-        
+
         // Datos de quien eliminó el video
         deletedByName: deleter.fullName,
         deletedByUsername: deleter.username
@@ -709,9 +727,9 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .leftJoin(deleter, eq(videos.deletedBy, deleter.id))
       .leftJoin(projectAccess, eq(projectAccess.projectId, videos.projectId))
       .where(commonFilters)
-      .orderBy(showDeleted ? desc(videos.deletedAt!) : desc(videos.updatedAt))
+      .orderBy(orderBy)
       .limit(limit)
-      .offset(offset)
+      .offset(offset);
 
     const result = await query.execute();
 
@@ -744,12 +762,6 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   }
 }
 
-/**
- * Restaura un video de la papelera
- * @param req Request con ID del video a restaurar
- * @param res Response
- * @returns Response con resultado de la operación
- */
 async function restoreVideo(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
@@ -760,19 +772,19 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
       .select()
       .from(videos)
       .where(and(
-        eq(videos.id, videoId), 
+        eq(videos.id, videoId),
         eq(videos.projectId, projectId),
         eq(videos.isDeleted, true)
       ))
       .limit(1);
-      
+
     if (!video) {
       return res.status(404).json({
         success: false,
         message: "Video no encontrado en la papelera",
       });
     }
-    
+
     // Verificar permisos: el usuario debe ser admin o el creador del video
     if (req.user!.role !== "admin" && video.createdBy !== req.user!.id) {
       return res.status(403).json({
@@ -823,7 +835,7 @@ async function restoreVideo(req: Request, res: Response): Promise<Response> {
 
 async function emptyTrash(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
-  
+
   // Solo los administradores pueden vaciar la papelera
   if (req.user!.role !== "admin") {
     return res.status(403).json({
@@ -831,7 +843,7 @@ async function emptyTrash(req: Request, res: Response): Promise<Response> {
       message: "Solo los administradores pueden vaciar la papelera",
     });
   }
-  
+
   try {
     // Eliminar permanentemente todos los videos en la papelera del proyecto
     await db
@@ -840,7 +852,7 @@ async function emptyTrash(req: Request, res: Response): Promise<Response> {
         eq(videos.projectId, projectId),
         eq(videos.isDeleted, true)
       ));
-    
+
     return res.status(200).json({
       success: true,
       message: "Papelera vaciada correctamente",
@@ -935,7 +947,7 @@ async function uploadThumbnail(
 
   const projectId = parseInt(req.params.projectId);
   const videoId = parseInt(req.params.videoId);
-  
+
   const file = req.file;
 
   if (!file) {
@@ -943,7 +955,7 @@ async function uploadThumbnail(
   }
 
   try {
-    
+
     const fileExtension = file.originalname.substring(file.originalname.lastIndexOf('.') + 1);
     const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExtension}`;
     const objectKey = `videos/thumbnail/${uniqueFilename}`; // Ruta simple y organizada
@@ -953,9 +965,9 @@ async function uploadThumbnail(
     // Si es una miniatura, procesarla con sharp en diferentes resoluciones
     // Crear versión optimizada para tamaño completo (1280x720)
     const processedImageFull = await sharp(file.buffer)
-      .resize({ 
-        width: 1280, 
-        height: 720, 
+      .resize({
+        width: 1280,
+        height: 720,
         fit: 'cover',
         position: 'centre'
       })
@@ -964,9 +976,9 @@ async function uploadThumbnail(
 
     // Crear versión para vista previa (640x360)
     const processedImagePreview = await sharp(file.buffer)
-      .resize({ 
-        width: 640, 
-        height: 360, 
+      .resize({
+        width: 640,
+        height: 360,
         fit: 'cover',
         position: 'centre'
       })
@@ -975,9 +987,9 @@ async function uploadThumbnail(
 
     // Crear versión thumbnail para listas (320x180)
     const processedImageThumb = await sharp(file.buffer)
-      .resize({ 
-        width: 320, 
-        height: 180, 
+      .resize({
+        width: 320,
+        height: 180,
         fit: 'cover',
         position: 'centre'
       })
@@ -1008,16 +1020,16 @@ async function uploadThumbnail(
     ]);
 
     await db
-    .update(videos)
-    .set({ thumbnailUrl: fileUrl })
-    .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)));
+      .update(videos)
+      .set({ thumbnailUrl: fileUrl })
+      .where(and(eq(videos.id, videoId), eq(videos.projectId, projectId)));
 
     return res.json({
       success: true,
       url: fileUrl,
       message: 'Miniatura subida correctamente'
     });
-    
+
   } catch (error: any) {
     console.error("Error processing file:", error)
     return res.status(500).json({
@@ -1044,9 +1056,9 @@ async function initiateMultipartUpload(
   const { originalName, fileSize, contentType = 'video/mp4' } = req.body;
 
   if (!originalName || !fileSize) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Se requiere el nombre y tamaño del archivo" 
+    return res.status(400).json({
+      success: false,
+      message: "Se requiere el nombre y tamaño del archivo"
     });
   }
 
@@ -1054,31 +1066,31 @@ async function initiateMultipartUpload(
   const useMockS3 = process.env.MOCK_S3 === 'true';
   if (useMockS3) {
     console.log("[MOCK S3] Simulando carga multiparte para:", originalName);
-    
+
     // Generar una clave única para el objeto
     const timestamp = Date.now();
     const randomId = Math.round(Math.random() * 1e9);
     const extension = originalName.split('.').pop() || 'mp4';
     const key = `videos/video/${timestamp}-${randomId}.${extension}`;
-    
+
     // Simular upload ID único
     const uploadId = `mockupload-${timestamp}-${randomId}`;
-    
+
     // Calculamos el tamaño de cada parte (5MB mínimo)
     const partSize = Math.max(5 * 1024 * 1024, Math.ceil(fileSize / 10000));
-    
+
     // Calculamos el número de partes
     const numParts = Math.ceil(fileSize / partSize);
-    
+
     // Generar URLs simuladas para cada parte
     const parts = Array.from({ length: numParts }, (_, i) => ({
       partNumber: i + 1,
-      url: `http://localhost:5000/mock-s3-upload/${key}/${uploadId}/${i+1}`
+      url: `http://localhost:5000/mock-s3-upload/${key}/${uploadId}/${i + 1}`
     }));
-    
+
     // URL simulada del archivo final
     const fileUrl = `http://localhost:5000/mock-s3/${key}`;
-    
+
     return res.json({
       success: true,
       message: 'Carga multiparte iniciada (SIMULACIÓN)',
@@ -1098,11 +1110,11 @@ async function initiateMultipartUpload(
     // Cada parte será de aproximadamente 5MB, excepto posiblemente la última
     const PART_SIZE = 5 * 1024 * 1024; // 5MB en bytes
     const numParts = Math.ceil(fileSize / PART_SIZE);
-    
+
     if (numParts > 10000) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "El archivo es demasiado grande para la carga multiparte (máximo 10,000 partes)" 
+      return res.status(400).json({
+        success: false,
+        message: "El archivo es demasiado grande para la carga multiparte (máximo 10,000 partes)"
       });
     }
 
@@ -1110,7 +1122,7 @@ async function initiateMultipartUpload(
     const fileExtension = originalName.substring(originalName.lastIndexOf('.') + 1);
     const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${fileExtension}`;
     const objectKey = `videos/video/${uniqueFilename}`;
-    
+
     // URL final del archivo
     const fileUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${objectKey}`;
 
@@ -1156,18 +1168,18 @@ async function completeMultipartUpload(
   res: Response,
 ): Promise<Response> {
   if (!req.user?.role) {
-    return res.status(403).json({ 
-      success: false, 
-      message: "No tienes permisos para editar videos" 
+    return res.status(403).json({
+      success: false,
+      message: "No tienes permisos para editar videos"
     });
   }
 
   const { uploadId, key, parts } = req.body;
 
   if (!uploadId || !key || !parts?.length) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Se requieren ID de carga, clave y partes para completar la carga" 
+    return res.status(400).json({
+      success: false,
+      message: "Se requieren ID de carga, clave y partes para completar la carga"
     });
   }
 
@@ -1177,10 +1189,10 @@ async function completeMultipartUpload(
     console.log("[MOCK S3] Simulando completado de carga multiparte para:", key);
     console.log("[MOCK S3] Upload ID:", uploadId);
     console.log("[MOCK S3] Partes recibidas:", parts.length);
-    
+
     // URL simulada del archivo final
     const fileUrl = `http://localhost:5000/mock-s3/${key}`;
-    
+
     return res.json({
       success: true,
       url: fileUrl,
@@ -1218,18 +1230,18 @@ async function abortMultipartUpload(
   res: Response,
 ): Promise<Response> {
   if (!req.user?.role) {
-    return res.status(403).json({ 
-      success: false, 
-      message: "No tienes permisos para editar videos" 
+    return res.status(403).json({
+      success: false,
+      message: "No tienes permisos para editar videos"
     });
   }
 
   const { uploadId, key } = req.body;
 
   if (!uploadId || !key) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Se requieren ID de carga y clave para abortar la carga" 
+    return res.status(400).json({
+      success: false,
+      message: "Se requieren ID de carga y clave para abortar la carga"
     });
   }
 
@@ -1238,7 +1250,7 @@ async function abortMultipartUpload(
   if (useMockS3) {
     console.log("[MOCK S3] Simulando aborto de carga multiparte para:", key);
     console.log("[MOCK S3] Upload ID a abortar:", uploadId);
-    
+
     return res.json({
       success: true,
       message: 'Carga multiparte abortada correctamente (SIMULACIÓN)',
@@ -1283,17 +1295,17 @@ async function getVideoUploadUrl(
   const useMockS3 = process.env.MOCK_S3 === 'true';
   if (useMockS3) {
     console.log("[MOCK S3] Simulando generación de URL firmada para:", originalName);
-    
+
     // Generar una clave única para el objeto
     const timestamp = Date.now();
     const randomId = Math.round(Math.random() * 1e9);
     const extension = originalName.split('.').pop() || 'mp4';
     const key = `videos/video/${timestamp}-${randomId}.${extension}`;
-    
+
     // URLs simuladas
     const uploadUrl = `http://localhost:5000/mock-s3-upload/${key}`;
     const fileUrl = `http://localhost:5000/mock-s3/${key}`;
-    
+
     return res.json({
       success: true,
       url: fileUrl,
@@ -1301,15 +1313,15 @@ async function getVideoUploadUrl(
       message: 'Presigned URL generada (SIMULACIÓN)',
     });
   }
-  
+
   try {
     // Generar clave única para el objeto en S3
     const objectKey = generateS3Key(originalName, 'videos/video');
-    
+
     // Obtener URL firmada usando nuestra función de utilidad
     const { uploadUrl: signedUrl, fileUrl } = await getSignedUploadUrl(
-      objectKey, 
-      'video/mp4', 
+      objectKey,
+      'video/mp4',
       60 * 5
     );
 
@@ -1338,25 +1350,18 @@ async function getVideoUploadUrl(
 async function createBulkVideos(req: Request, res: Response): Promise<Response> {
   const projectId = parseInt(req.params.projectId);
   const { titles } = req.body;
-  
+
   if (!Array.isArray(titles) || titles.length === 0) {
     return res.status(400).json({
       success: false,
       message: "Se requiere un array de títulos"
     });
   }
-  
-  if (titles.length > 50) {
-    return res.status(400).json({
-      success: false,
-      message: "Máximo 50 títulos permitidos por operación"
-    });
-  }
 
-  if (req.user?.role !== 'admin') {
+  if (req.user?.role !== "admin") {
     return res.status(403).json({
       success: false,
-      message: "No tienes permisos para crear videos en masa"
+      message: "Solo los administradores pueden crear videos",
     });
   }
 
@@ -1373,20 +1378,20 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
       if (!project) {
         throw new Error("Proyecto no encontrado");
       }
-      
+
       let currentNumber = project.current_number || 0;
       const createdVideos = [];
-      
+
       // Crear cada video
       for (const title of titles) {
         if (typeof title !== 'string' || !title.trim()) continue;
-        
+
         // Generate series number
         currentNumber++;
         const seriesNumber = project.prefix
           ? `${project.prefix}-${String(currentNumber).padStart(4, "0")}`
           : String(currentNumber).padStart(4, "0");
-          
+
         // Create video
         const videoData: InsertVideo = {
           projectId,
@@ -1395,22 +1400,21 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
           seriesNumber,
           createdBy: req.user?.id,
         };
-        
+
         const [newVideo] = await tx.insert(videos).values(videoData).returning();
         createdVideos.push(newVideo);
       }
-      
+
       // Update project's current number
       await tx
         .update(projects)
         .set({ current_number: currentNumber })
         .where(eq(projects.id, projectId));
-        
+
       return createdVideos;
     });
 
-    // Escanear todos los videos creados para detectar afiliados
-    console.log(`🔍 Escaneando ${results.length} videos para detectar afiliados después de la creación masiva...`);
+    // Escanear los videos creados para detectar afiliados fuera de la transacción
     for (const video of results) {
       if (video.title) {
         try {
@@ -1421,22 +1425,22 @@ async function createBulkVideos(req: Request, res: Response): Promise<Response> 
         }
       }
     }
-    
+
     return res.status(201).json({
       success: true,
       message: `${results.length} videos creados correctamente`,
       data: results
     });
-  } catch (error: any) {
-    console.error("Error creating bulk videos:", error);
+  } catch (error) {
+    console.error("Error creating videos in bulk:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error al crear los videos en masa"
+      message: error instanceof Error ? error.message : "Error al crear los videos",
     });
   }
 }
 
-export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
+export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined, app: Express) {
   // Videos normales (no eliminados)
   app.get("/api/videos", requireAuth, getVideos);
 
@@ -1446,56 +1450,56 @@ export function setUpVideoRoutes (requireAuth: (req: Request, res: Response, nex
 
   // Actualización de videos
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
-  
+
   // Asignación de video a youtuber cuando lo visualiza
   app.post("/api/projects/:projectId/videos/:videoId/assign", requireAuth, assignVideoToYoutuber);
 
   // Eliminación de videos (mover a papelera o eliminación permanente)
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);
   app.delete("/api/projects/:projectId/videos", requireAuth, bulkDeleteVideos);
-  
+
   // Rutas relacionadas con la papelera
   app.post("/api/projects/:projectId/videos/:videoId/restore", requireAuth, restoreVideo);
   app.delete("/api/projects/:projectId/trash", requireAuth, emptyTrash);
   // Ruta para obtener videos en la papelera
   app.get("/api/projects/:projectId/videos", requireAuth, getVideos);
-  
+
   // Video upload endpoint
-  const thumbailUpload = multer({ 
+  const thumbailUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
       fileSize: 1024 * 1024 * 1024 // 1GB limit
     }
   });
-  
+
   // Endpoint para cargar miniaturas
-  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail", 
-    requireAuth, 
-    thumbailUpload.single('file'), 
+  app.post("/api/projects/:projectId/videos/:videoId/uploadThumbnail",
+    requireAuth,
+    thumbailUpload.single('file'),
     uploadThumbnail
   );
 
   // Endpoint para iniciar carga multiparte (nuevo método recomendado)
-  app.post("/api/projects/:projectId/videos/:videoId/initiate-multipart-upload", 
-    requireAuth, 
+  app.post("/api/projects/:projectId/videos/:videoId/initiate-multipart-upload",
+    requireAuth,
     initiateMultipartUpload
   );
-  
+
   // Endpoint para completar carga multiparte
-  app.post("/api/projects/:projectId/videos/:videoId/complete-multipart-upload", 
-    requireAuth, 
+  app.post("/api/projects/:projectId/videos/:videoId/complete-multipart-upload",
+    requireAuth,
     completeMultipartUpload
   );
-  
+
   // Endpoint para abortar carga multiparte
-  app.post("/api/projects/:projectId/videos/:videoId/abort-multipart-upload", 
-    requireAuth, 
+  app.post("/api/projects/:projectId/videos/:videoId/abort-multipart-upload",
+    requireAuth,
     abortMultipartUpload
   );
 
   // Endpoint legado para compatibilidad con versiones anteriores
-  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo", 
-    requireAuth, 
+  app.post("/api/projects/:projectId/videos/:videoId/uploadVideo",
+    requireAuth,
     getVideoUploadUrl
   );
 }

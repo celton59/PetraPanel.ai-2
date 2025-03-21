@@ -81,11 +81,11 @@ export const videos = pgTable("videos", {
   seriesNumber: text("series_number"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  
+
   optimizedTitle: text("optimized_title"),
   optimizedDescription: text("optimized_description"),
   optimizedBy: integer("optimized_by").references(() => users.id),
-  
+
   contentReviewedBy: integer("content_reviewed_by").references(() => users.id),
   contentLastReviewedAt: timestamp("content_last_reviewed_at"),
   contentReviewComments: text("content_review_comments").array(),
@@ -99,13 +99,21 @@ export const videos = pgTable("videos", {
   mediaReviewComments: text("media_review_comments").array(),
   mediaVideoNeedsCorrection: boolean("media_video_needs_correction"),
   mediaThumbnailNeedsCorrection: boolean("media_thumbnail_needs_correction"),
-  
+
   publishedAt: timestamp("published_at"),
-  
+
   // Campos para la papelera
   isDeleted: boolean("is_deleted").default(false),
   deletedAt: timestamp("deleted_at"),
   deletedBy: integer("deleted_by").references(() => users.id)
+}, (table) => {
+  return {
+    statusIdx: index("videos_status_idx").on(table.status),
+    createdAtIdx: index("videos_created_at_idx").on(table.createdAt),
+    updatedAtIdx: index("videos_updated_at_idx").on(table.updatedAt),
+    titleIdx: index("videos_title_idx").on(table.title),
+    projectIdx: index("videos_project_id_idx").on(table.projectId)
+  };
 });
 
 export type Video = typeof videos.$inferSelect
@@ -127,25 +135,25 @@ export const youtubeChannels = pgTable("youtube_channels", {
   lastVideoFetch: timestamp("last_video_fetch"),
   lastAnalysis: timestamp("last_analysis"),
   active: boolean("active").default(true),
-   createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  });
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export type YoutubeChannel = typeof youtubeChannels.$inferSelect;
 
 // Tabla para configurar las tarifas por acción según el rol
 export const actionRates = pgTable("action_rates", {
   id: serial("id").primaryKey(),
-  actionType: text("action_type", { 
+  actionType: text("action_type", {
     enum: [
-      "content_optimization", 
-      "content_review", 
-      "upload_media", 
-      "media_review", 
+      "content_optimization",
+      "content_review",
+      "upload_media",
+      "media_review",
       "video_creation"
-    ] 
+    ]
   }).notNull(),
-  roleId: text("role_id", { 
+  roleId: text("role_id", {
     enum: ["admin", "reviewer", "content_reviewer", "media_reviewer", "optimizer", "youtuber"]
   }).notNull(),
   rate: numeric("rate").notNull(),
@@ -179,6 +187,14 @@ export const youtubeVideos = pgTable("youtube_videos", {
   confidence: numeric("confidence"),
   analyzedAt: timestamp("analyzed_at"),
   reason: text("reason"),
+}, (table) => {
+  return {
+    publishedAtIdx: index("youtube_videos_published_at_idx").on(table.publishedAt),
+    viewCountIdx: index("youtube_videos_view_count_idx").on(table.viewCount),
+    likeCountIdx: index("youtube_videos_like_count_idx").on(table.likeCount),
+    channelIdx: index("youtube_videos_channel_id_idx").on(table.channelId),
+    titleIdx: index("youtube_videos_title_idx").on(table.title)
+  };
 });
 
 export type YoutubeVideo = typeof youtubeVideos.$inferSelect
@@ -189,14 +205,14 @@ export const userActions = pgTable("user_actions", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  actionType: text("action_type", { 
+  actionType: text("action_type", {
     enum: [
-      "content_optimization", 
-      "content_review", 
-      "upload_media", 
-      "media_review", 
+      "content_optimization",
+      "content_review",
+      "upload_media",
+      "media_review",
       "video_creation"
-    ] 
+    ]
   }).notNull(),
   videoId: integer("video_id")
     .references(() => videos.id, { onDelete: "cascade" }),
@@ -248,8 +264,8 @@ export const notifications = pgTable("notifications", {
     .notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  type: text("type", { 
-    enum: ["info", "success", "warning", "error", "system"] 
+  type: text("type", {
+    enum: ["info", "success", "warning", "error", "system"]
   }).notNull().default("info"),
   isRead: boolean("is_read").default(false),
   isArchived: boolean("is_archived").default(false),
@@ -398,3 +414,32 @@ export type InsertMonthlyVideoLimit = typeof monthlyVideoLimits.$inferInsert;
 export const insertMonthlyVideoLimitSchema = createInsertSchema(monthlyVideoLimits);
 export const selectMonthlyVideoLimitSchema = createSelectSchema(monthlyVideoLimits);
 
+
+// Tabla para registrar sesiones de usuario
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
+  lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
+  duration: integer("duration"), // duración en segundos
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  isActive: boolean("is_active").default(true),
+});
+
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = typeof userSessions.$inferInsert;
+
+export const insertUserSessionSchema = createInsertSchema(userSessions);
+export const selectUserSessionSchema = createSelectSchema(userSessions);
+
+// Relaciones para userSessions
+export const userSessionsRelations = relations(userSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [userSessions.userId],
+    references: [users.id],
+  }),
+}));

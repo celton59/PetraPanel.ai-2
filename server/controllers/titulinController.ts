@@ -74,6 +74,7 @@ async function addChannel(req: Request, res: Response): Promise<Response> {
 
 async function getVideos(req: Request, res: Response): Promise<Response> {
   if (!req.user?.role || req.user.role !== "admin") {
+
     return res.status(403).json({
       success: false,
       message: "No tienes permisos para obtener videos",
@@ -83,8 +84,31 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
   // Obtener parámetros para paginación y filtrado
   const { channelId, title, isEvergreen, analyzed } = req.query;
   const page = Number(req.query.page || "1");
+  const sortFieldRequested = (req.query.sortField as string) || 'publishedAt';
+  const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
   const limit = Number(req.query.limit || "20");
   const offset = (page - 1) * limit;
+
+  let sortField
+  switch (sortFieldRequested) {
+    case 'viewCount':
+      sortField = youtubeVideos.viewCount;
+      break;
+    case 'likeCount':
+      sortField = youtubeVideos.likeCount;
+      break;
+    case 'publishedAt':
+      sortField = youtubeVideos.publishedAt;
+      break;
+    case 'title':
+      sortField = youtubeVideos.title;
+      break;
+    case 'channelId':
+      sortField = youtubeVideos.channelId;
+      break;
+    default:
+      sortField = youtubeVideos.publishedAt;
+  }
 
   try {
     const conditions = and(
@@ -108,7 +132,7 @@ async function getVideos(req: Request, res: Response): Promise<Response> {
       .select()
       .from(youtubeVideos)
       .where(conditions)
-      .orderBy(desc(youtubeVideos.publishedAt))
+      .orderBy( sortOrder === 'desc' ? desc(sortField) : asc(sortField))
       .limit(limit)
       .offset(offset);
 
@@ -229,7 +253,6 @@ async function deleteChannel(req: Request, res: Response): Promise<Response> {
   }
 }
 
-// Función para analizar si un video es evergreen usando vectores
 async function analyzeVideo(req: Request, res: Response): Promise<Response> {
   if (!req.user?.role || req.user.role !== "admin") {
     return res.status(403).json({
@@ -310,43 +333,44 @@ async function getVideoStats(req: Request, res: Response): Promise<Response> {
   }
 
   try {
-    // Consulta para obtener el total de vistas
-    const [viewsResult] = await db
+
+    console.log('Obteniendo estadísticas de titulin videos...');
+
+    // Obtener el total y conteos por estado de la tabla videos
+    const [videoStats] = await db
       .select({
-        totalViews: sql`SUM(view_count)`.mapWith(Number),
+        total_videos: count(),
+        upload_media_count: count(sql`CASE WHEN status = 'upload_media' THEN 1 END`),
+        content_corrections_count: count(sql`CASE WHEN status = 'content_corrections' THEN 1 END`),
+        available_count: count(sql`CASE WHEN status = 'available' THEN 1 END`),
+        final_review_count: count(sql`CASE WHEN status = 'final_review' THEN 1 END`)
       })
-      .from(youtubeVideos)
+      .from(videos)
       .execute();
 
-    // Consulta para obtener el total de likes
-    const [likesResult] = await db
-      .select({
-        totalLikes: sql`SUM(like_count)`.mapWith(Number),
-      })
-      .from(youtubeVideos)
-      .execute();
+    // Asegurar que los valores son números
+    const totalVideos = videoStats.total_videos ?? 0;
+    const stateCountsObj = {
+      'upload_media': videoStats.upload_media_count || 0,
+      'content_corrections': videoStats.content_corrections_count || 0,
+      'available': videoStats.available_count || 0,
+      'final_review': videoStats.final_review_count || 0
+    };
 
-    const evergreenCount = await db
-    .select({ count: count() })
-    .from(youtubeVideos)
-    .where( eq(youtubeVideos.isEvergreen, true) );
-
-    const analyzedCount = await db
-    .select({ count: count() })
-    .from(youtubeVideos)
-    .where( isNotNull(youtubeVideos.embedding) );
+    console.log('Respuesta final:', {
+      totalVideos,
+      stateCounts: stateCountsObj
+    });
 
     return res.status(200).json({
-      totalViews: viewsResult?.totalViews || 0,
-      totalLikes: likesResult?.totalLikes || 0,
-      evergreenVideos: evergreenCount?.at(0)?.count || 0,
-      analyzedVideos: analyzedCount?.at(0)?.count || 0,
+      totalVideos,
+      stateCounts: stateCountsObj
     });
   } catch (error) {
-    console.error("Error al obtener estadísticas de videos", error);
-    return res.status(500).json({
-      error: "Error al obtener estadísticas de videos",
-      details: error instanceof Error ? error.message : "Error desconocido",
+    console.error('Error al obtener estadísticas de videos:', error);
+    return res.status(500).json({ 
+      error: 'Error al obtener estadísticas de videos',
+      details: error instanceof Error ? error.message : 'Error desconocido'
     });
   }
 }
@@ -448,13 +472,14 @@ async function syncChannel(req: Request, res: Response): Promise<Response> {
   } catch (error) {
     console.error("Error syncing channel:", error);
     return res.status(500).json({
-      error: "Error al añadir canal",
-      details: error instanceof Error ? error.message : "Error desconocido",
+      error: "Error al sincronizar el canal",
+      details: error instanceof Error ? error.message : "Error desconocido"
     });
   }
 }
 
 async function sendToOptimize(req: Request, res: Response): Promise<Response> {
+
   if (!req.user?.role || req.user.role !== "admin") {
     return res.status(403).json({
       success: false,
@@ -1371,4 +1396,5 @@ export function setUpTitulinRoutes(
 
   // Aplicar categoria a un ejemplo de título
   app.post('/api/titulin/training-examples/category', requireAuth, setCategoryToExamples );
+
 }

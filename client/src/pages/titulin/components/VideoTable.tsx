@@ -6,7 +6,7 @@ import { es } from "date-fns/locale";
 import { ColumnDef, SortingState } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlayCircle } from "lucide-react";
+import { Loader2, PlayCircle, ArrowUp, ArrowDown, ArrowUpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "./DataTable";
 import { TitulinVideo } from "@/hooks/useTitulin";
@@ -20,10 +20,10 @@ interface VideoTableProps {
   onSortingChange?: (sorting: SortingState) => void;
 }
 
-export function VideoTable({ 
-  videos, 
-  setSelectedVideo, 
-  setAnalysisVideo, 
+export function VideoTable({
+  videos,
+  setSelectedVideo,
+  setAnalysisVideo,
   getChannelName,
   isLoading = false,
   onSortingChange
@@ -31,7 +31,7 @@ export function VideoTable({
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnDef<TitulinVideo>[]>([]);
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "publishedAt", desc: true } // Ordenación por defecto: videos más recientes primero
+    { id: "publishedAt", desc: true }
   ]);
 
   // Formatear fecha ISO a una fecha legible
@@ -122,7 +122,24 @@ export function VideoTable({
       },
       {
         accessorKey: "title",
-        header: "Título",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Título
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         cell: ({ row }) => (
           <div className="max-w-[300px] truncate" title={row.original.title}>
             {row.original.title}
@@ -136,7 +153,24 @@ export function VideoTable({
       },
       {
         accessorKey: "viewCount",
-        header: "Vistas",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Vistas
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         sortingFn: (rowA, rowB) => {
           const aValue = Number(rowA.original.viewCount || 0);
           const bValue = Number(rowB.original.viewCount || 0);
@@ -148,7 +182,24 @@ export function VideoTable({
       },
       {
         accessorKey: "likeCount",
-        header: "Likes",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Likes
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         sortingFn: (rowA, rowB) => {
           const aValue = Number(rowA.original.likeCount || 0);
           const bValue = Number(rowB.original.likeCount || 0);
@@ -160,7 +211,24 @@ export function VideoTable({
       },
       {
         id: "publishedAt",
-        header: "Publicado",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Publicado
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         accessorFn: (row) => {
           // Intentar obtener el valor, ya sea como publishedAt o published_at
           return row.publishedAt
@@ -173,7 +241,7 @@ export function VideoTable({
           // Convertir a fechas para comparar
           const aTime = aValue ? new Date(aValue).getTime() : 0;
           const bTime = bValue ? new Date(bValue).getTime() : 0;
-          
+
           return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
         },
         cell: ({ row }) => {
@@ -183,7 +251,24 @@ export function VideoTable({
       },
       {
         accessorKey: "duration",
-        header: "Duración",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Duración
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         sortingFn: (rowA, rowB) => {
           // Convertir duración a segundos para comparar
           const getDurationInSeconds = (duration: string | null) => {
@@ -193,7 +278,7 @@ export function VideoTable({
             const seconds = parseInt(duration.match(/(\d+)S/)?.[1] || '0');
             return hours * 3600 + minutes * 60 + seconds;
           };
-          
+
           const aValue = getDurationInSeconds(rowA.original.duration);
           const bValue = getDurationInSeconds(rowB.original.duration);
           return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
@@ -204,7 +289,24 @@ export function VideoTable({
       },
       {
         accessorKey: "channelId",
-        header: "Canal",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Canal
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         sortingFn: (rowA, rowB) => {
           const aValue = getChannelName(rowA.original.channelId);
           const bValue = getChannelName(rowB.original.channelId);
@@ -218,18 +320,36 @@ export function VideoTable({
       },
       {
         accessorKey: "analysisData",
-        header: "Evergreen",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="flex items-center gap-2"
+            >
+              Evergreen
+              {column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-4 w-4" />
+              ) : (
+                <ArrowUpCircle className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         sortingFn: (rowA, rowB) => {
           // Si no está analizado, va al final
           if (!rowA.original.embedding && !rowB.original.embedding) return 0;
           if (!rowA.original.embedding) return 1;
           if (!rowB.original.embedding) return -1;
           
+
           // Primero compara si es evergreen (true primero)
           if (rowA.original.isEvergreen !== rowB.original.confidence) {
             return rowA.original.isEvergreen ? -1 : 1;
           }
-          
+
           // Si ambos tienen el mismo estado evergreen, compara por confianza
           return (rowB.original.confidence ?? 0) - (rowB.original.confidence ?? 0);
         },
@@ -300,9 +420,9 @@ export function VideoTable({
 
   return (
     <div className="rounded-md border">
-      <DataTable 
-        columns={columns} 
-        data={videos} 
+      <DataTable
+        columns={columns}
+        data={videos}
         initialSorting={sorting}
         onSortingChange={handleSortingChange}
         isLoading={isLoading}
