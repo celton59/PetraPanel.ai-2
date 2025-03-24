@@ -197,9 +197,7 @@ export default function AuthPage() {
     // Enfocar el primer campo después de que el diálogo esté visible
     setTimeout(() => pinRefs[0].current?.focus(), 100);
   };
-  
-  // Este comentario reemplaza la declaración duplicada de showOverlay
-  
+    
   // Helper de inicio de sesión rápido con credenciales predefinidas
   const handleQuickLogin = async (username: string, password: string) => {
     // Si no está desbloqueado el acceso a cuentas de prueba, mostrar el diálogo de PIN

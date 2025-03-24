@@ -57,12 +57,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Crear carpeta de uploads si no existe
-const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-
 // Middleware para loggear peticiones API
 app.use((req, res, next) => {
   const start = Date.now();
@@ -79,32 +73,33 @@ app.use((req, res, next) => {
   next();
 });
 
+// Configurar autenticación
+console.log("Setting up authentication...");
+setupAuth(app);
+console.log("Authentication setup complete");
+
+// Registrar rutas y obtener el servidor HTTP
+const server = registerRoutes(app);
+
+// Inicializar servicio de usuarios en línea
+const onlineUsersService = setupOnlineUsersService(server);
+console.log("Online users service initialized");
+
+// Inicializar servicio de notificaciones
+const notificationsService = setupNotificationsService(server);
+console.log("Notifications service initialized");
+
+// Middleware de manejo de errores
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Error:", err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
+
 (async () => {
   try {
-    // Configurar autenticación
-    console.log("Setting up authentication...");
-    setupAuth(app);
-    console.log("Authentication setup complete");
-
-    // Registrar rutas y obtener el servidor HTTP
-    const server = registerRoutes(app);
-
-    // Inicializar servicio de usuarios en línea
-    const onlineUsersService = setupOnlineUsersService(server);
-    console.log("Online users service initialized");
-
-    // Inicializar servicio de notificaciones
-    const notificationsService = setupNotificationsService(server);
-    console.log("Notifications service initialized");
-
-    // Middleware de manejo de errores
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error("Error:", err);
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-    });
-
+    
     // Configurar Vite en desarrollo o servir archivos estáticos en producción
     if (app.get("env") === "development") {
       await setupVite(app, server);

@@ -83,20 +83,6 @@ export async function addAvatar(req: Request, res: Response): Promise<Response> 
   }
 }
 
-export function setUpProfileRoutes(
-  requireAuth: (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => Response<any, Record<string, any>> | undefined,
-  app: Express,
-) {
-  app.get("/api/profile", requireAuth, getProfile);
-  app.post("/api/profile/password", requireAuth, validateBody(changePasswordSchema), changePassword);
-  app.put("/api/profile", requireAuth, validateBody(updateProfileSchema), updateProfile);
-  app.post('/api/profile/avatar', requireAuth, addAvatar);
-}
-
 export async function getProfile(
   req: Request,
   res: Response,
@@ -257,4 +243,18 @@ export async function updateProfile(
         message: "Error al actualizar el perfil"
       });
   }
+}
+
+export function setUpProfileRoutes(
+  requireAuth: (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => Response<any, Record<string, any>> | undefined,
+  app: Express,
+) {
+  app.get("/api/profile", requireAuth, getProfile);
+  app.post("/api/profile/password", requireAuth, validateBody(changePasswordSchema), changePassword);
+  app.put("/api/profile", requireAuth, validateBody(updateProfileSchema), updateProfile);
+  app.post('/api/profile/avatar', requireAuth, addAvatar);
 }

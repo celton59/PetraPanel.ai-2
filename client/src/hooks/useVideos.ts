@@ -205,6 +205,46 @@ export function useVideos() {
     },
   });
 
+  const sendVideoToReviewMutation = useMutation({
+    mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
+      const { refreshCSRFToken } = await import('../lib/axios');
+
+      console.log('Datos de actualización:', updateRequest);
+      try {
+        await refreshCSRFToken();
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}`, updateRequest);
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
+    },
+  });
+
   const deleteVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
       const { refreshCSRFToken } = await import('../lib/axios');

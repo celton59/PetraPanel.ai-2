@@ -64,6 +64,7 @@ export function OptimizeContentDetail({
       optimizedTitle: video.optimizedTitle || video.title || "",
     },
   });
+  
   function handleEmojiSelect(emoji: string) {
     const currentOptimizedTitle = form.getValues("optimizedTitle");
 

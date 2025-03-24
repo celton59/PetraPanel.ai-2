@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
-import * as activityService from "../services/activityService";
+import { NextFunction, Request, Response } from "express";
+import { type Express } from "express";
 
-export async function getUserActivity(req: Request, res: Response) {
+async function getUserActivity(req: Request, res: Response) {
   try {
     const timeRange = req.query.timeRange as string || "week";
     const [stats, sessions] = await Promise.all([
@@ -16,7 +16,7 @@ export async function getUserActivity(req: Request, res: Response) {
   }
 }
 
-export async function startSession(req: Request, res: Response) {
+async function startSession(req: Request, res: Response) {
   try {
     const { userId } = req.body;
     const ipAddress = req.ip;
@@ -33,7 +33,7 @@ export async function startSession(req: Request, res: Response) {
   }
 }
 
-export async function endSession(req: Request, res: Response) {
+async function endSession(req: Request, res: Response) {
   try {
     const { sessionId } = req.params;
     console.log("Ending session:", sessionId);
@@ -48,7 +48,7 @@ export async function endSession(req: Request, res: Response) {
   }
 }
 
-export async function updateActivity(req: Request, res: Response) {
+async function updateActivity(req: Request, res: Response) {
   try {
     const { sessionId } = req.params;
     console.log("Updating activity for session:", sessionId);
@@ -61,4 +61,20 @@ export async function updateActivity(req: Request, res: Response) {
     console.error("Error updating activity:", error);
     res.status(500).json({ error: "Error al actualizar la actividad" });
   }
+}
+
+
+export function setUpActivityRoutes(
+  requireAuth: (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => Response<any, Record<string, any>> | undefined,
+  app: Express,
+) {
+  app.get("/api/admin/activity", requireAuth, getUserActivity);
+  app.post("/api/sessions/start", requireAuth, startSession);
+  app.post("/api/sessions/:sessionId/end", requireAuth, endSession);
+  app.post("/api/sessions/:sessionId/update-activity", requireAuth, updateActivity);
+
 }

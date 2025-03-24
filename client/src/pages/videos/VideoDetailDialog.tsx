@@ -4,14 +4,11 @@ import {
   AlertCircle,  
 } from "lucide-react";
 import {  
-  Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { useState } from "react";
 import { UpdateVideoData } from "@/hooks/useVideos";
 import { OptimizeContentDetail } from "./detail/OptimizeContentDetail";
 import { ContentReviewDetail } from "./detail/OptimizeReviewContent";
@@ -78,17 +75,6 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
       </DialogContent>
     );
   }
-
-  const form = useForm<UpdateVideoData>({
-    defaultValues: {
-      title: video.title,
-      description: video.description ?? "",
-      optimizedTitle: video.optimizedTitle ?? "",
-      optimizedDescription: video.optimizedDescription ?? "",
-      tags: video.tags ?? "",
-    },
-  });
-
 
   function renderCardContent() {
     switch (video.status) {
