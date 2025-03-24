@@ -21,7 +21,7 @@ interface EmojiPickerProps {
 
 // Categorías de emojis con sus emojis correspondientes
 const EMOJI_CATEGORIES = {
-  recent: { icon: History, label: "Recientes" },
+  recent: { icon: History, label: "Recientes", emojis: [] },
   smileys: {
     icon: Smile,
     label: "Caras y Personas",

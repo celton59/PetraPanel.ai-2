@@ -45,6 +45,7 @@ import { useVideoLimits } from "@/hooks/useVideoLimits";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Loader2 } from 'lucide-react';
 import { useMutation } from "@tanstack/react-query";
+import { MonthlyVideoLimit } from "@db/schema";
 
 // Tipo para el usuario con sus límites
 interface UserWithLimits {
@@ -544,7 +545,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
     data: monthlyLimitsData,
     isLoading,
     error
-  } = useQuery({
+  } = useQuery<Pick<MonthlyVideoLimit,'year' | 'month' | 'maxVideos'>[]>({
     queryKey: ["monthly-limits", userId],
     queryFn: async () => {
       const response = await axios.get(`/api/youtuber/monthly-limits/${userId}`);

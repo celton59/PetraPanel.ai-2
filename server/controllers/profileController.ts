@@ -6,9 +6,96 @@ import { type Express } from "express";
 import { changePasswordSchema, updateProfileSchema, validateBody } from "server/services/validation";
 import { passwordUtils } from "server/auth";
 import sharp from "sharp";
-import fs from "fs";
-import path from "path";
 import multer from "multer";
+import { generateS3Key, PutObjectCommand, s3 } from "../services/s3";
+
+// Configurar multer para procesar solo la subida de archivos en memoria
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 1024 * 1024 * 10 } // 10MB límite
+}).single('avatar');
+
+export async function addAvatar(req: Request, res: Response): Promise<Response> {
+  try {
+    // Usar multer para procesar el archivo en memoria
+    await new Promise<void>((resolve, reject) => {
+      avatarUpload(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No se subió ningún archivo"
+      });
+    }
+
+    // Procesar la imagen con sharp
+    const processedImageBuffer = await sharp(file.buffer)
+      .resize(256, 256)
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    // Generar una clave única para S3
+    const objectKey = generateS3Key(file.originalname, 'avatars');
+
+    // Subir la imagen procesada a S3
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: objectKey,
+      Body: processedImageBuffer,
+      ContentType: 'image/jpeg'
+    });
+
+    await s3.send(command);
+
+    // Construir la URL pública del avatar
+    const avatarUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${objectKey}`;
+
+    // Actualizar la URL del avatar en la base de datos
+    const result = await db
+      .update(users)
+      .set({ 
+        avatarUrl,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, req.user!.id as number))
+      .returning();
+
+    if (!result || result.length === 0) {
+      throw new Error("Error al actualizar la URL del avatar");
+    }
+
+    return res.json({
+      success: true,
+      data: { avatarUrl },
+      message: "Avatar actualizado correctamente"
+    });
+  } catch (error) {
+    console.error("Error processing avatar:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al procesar el avatar"
+    });
+  }
+}
+
+export function setUpProfileRoutes(
+  requireAuth: (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => Response<any, Record<string, any>> | undefined,
+  app: Express,
+) {
+  app.get("/api/profile", requireAuth, getProfile);
+  app.post("/api/profile/password", requireAuth, validateBody(changePasswordSchema), changePassword);
+  app.put("/api/profile", requireAuth, validateBody(updateProfileSchema), updateProfile);
+  app.post('/api/profile/avatar', requireAuth, addAvatar);
+}
 
 export async function getProfile(
   req: Request,
@@ -170,86 +257,4 @@ export async function updateProfile(
         message: "Error al actualizar el perfil"
       });
   }
-}
-
-const avatarStorage = multer.diskStorage({
-  destination: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req: Express.Request, file: Express.Multer.File, cb: Function) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const avatarUpload = multer({ 
-  storage: avatarStorage,
-  limits: { fileSize: 1024 * 1024 * 10 }
-});
-
-export async function addAvatar (req: Request, res: Response): Promise<Response> {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        message: "No se subió ningún archivo"
-      });
-    }
-
-    try {
-      const processedImagePath = file.path.replace(path.extname(file.path), '_processed.jpg');
-      await sharp(file.path)
-        .resize(256, 256)
-        .jpeg({ quality: 90 })
-        .toFile(processedImagePath);
-
-      fs.unlinkSync(file.path);
-
-      const avatarUrl = `/uploads/avatars/${path.basename(processedImagePath)}`;
-      const result = await db
-        .update(users)
-        .set({ avatarUrl })
-        .where(eq(users.id, req.user!.id as number))
-        .returning();
-
-      if (!result || result.length === 0) {
-        throw new Error("Error al actualizar la URL del avatar");
-      }
-
-      return res.json({
-        success: true,
-        data: { avatarUrl },
-        message: "Avatar actualizado correctamente"
-      });
-    } catch (error) {
-      console.error("Error processing avatar:", error);
-      if (file) {
-        fs.unlinkSync(file.path);
-      }
-      return res.status(500).json({
-        success: false,
-        message: "Error al procesar el avatar"
-      });
-    }
-  }
-
-export function setUpProfileRoutes(
-  requireAuth: (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => Response<any, Record<string, any>> | undefined,
-  app: Express,
-) {
-  app.get("/api/profile", requireAuth, getProfile);
-
-  app.post( "/api/profile/password", requireAuth, validateBody(changePasswordSchema), changePassword);
-
-  app.put("/api/profile", requireAuth, validateBody(updateProfileSchema), updateProfile );
-
-  app.post('/api/profile/avatar', requireAuth, avatarUpload.single('avatar'), addAvatar)
 }

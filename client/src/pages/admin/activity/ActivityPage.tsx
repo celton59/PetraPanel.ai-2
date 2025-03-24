@@ -6,9 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { FileDown, Users, Clock, Calendar, Activity, ChevronUp, UserCheck, RefreshCw } from "lucide-react";
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { cn } from '@/lib/utils';
+
+interface UserActivityCountData {
+    sessionCount: number
+    totalDuration: number
+    lastActive: Date
+}
 
 export default function ActivityPage() {
   const [timeRange, setTimeRange] = useState("week");
@@ -28,7 +33,7 @@ export default function ActivityPage() {
     {
       title: "Tiempo Promedio",
       icon: Clock,
-      value: isLoading ? "..." : `${Math.floor(activityData?.stats.averageSessionDuration / 60)}m`,
+      value: isLoading ? "..." : `${Math.floor(activityData?.stats?.averageSessionDuration ?? 0 / 60)}m`,
       description: "Por sesión",
     },
     {
@@ -41,7 +46,7 @@ export default function ActivityPage() {
     {
       title: "Tasa de Retorno",
       icon: RefreshCw,
-      value: isLoading ? "..." : `${Math.round((activityData?.stats.returningUsers / activityData?.stats.totalUsers) * 100)}%`,
+      value: isLoading ? "..." : `${Math.round((activityData?.stats?.returningUsers ?? 0 / (activityData?.stats.totalUsers ?? 1) ) * 100)}%`,
       description: "Usuarios que vuelven",
     },
   ];
@@ -64,7 +69,7 @@ export default function ActivityPage() {
           <tbody>
             {activityData.sessions.map((session, index) => (
               <tr key={session.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-                <td className="px-6 py-4">{session.user?.username || 'N/A'}</td>
+                <td className="px-6 py-4">{session.userId || 'N/A'}</td>
                 <td className="px-6 py-4">{format(new Date(session.startedAt), 'dd/MM/yy HH:mm')}</td>
                 <td className="px-6 py-4">
                   {session.duration ? `${Math.floor(session.duration / 60)}m` : 'En curso'}
@@ -89,13 +94,12 @@ export default function ActivityPage() {
   const renderUserActivityTable = () => {
     if (!activityData?.stats) return null;
 
-    const users = activityData.sessions.reduce((acc: any, session) => {
-      const userId = session.user?.id;
+    const users: Record<number, UserActivityCountData> = activityData.sessions.reduce((acc: any, session) => {
+      const userId = session.userId
       if (!userId) return acc;
 
       if (!acc[userId]) {
         acc[userId] = {
-          username: session.user?.username,
           sessionCount: 0,
           totalDuration: 0,
           lastActive: new Date(0)
@@ -322,7 +326,7 @@ export default function ActivityPage() {
                   <div className="h-[350px] flex items-center justify-center">
                     <div className="text-center">
                       <div className="text-4xl font-bold mb-2">
-                        {Math.round((activityData?.stats.returningUsers / activityData?.stats.totalUsers) * 100)}%
+                        {Math.round((activityData?.stats.returningUsers ?? 0 / (activityData?.stats.totalUsers ?? 1) ) * 100)}%
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Tasa de retención

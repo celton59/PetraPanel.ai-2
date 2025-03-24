@@ -23,7 +23,7 @@ export async function startSession(req: Request, res: Response) {
     const userAgent = req.headers["user-agent"] || "";
 
     console.log("Starting session for user:", userId, "IP:", ipAddress);
-    const session = await activityService.startUserSession(userId, ipAddress, userAgent);
+    const session = await activityService.startUserSession(userId, ipAddress!, userAgent);
     console.log("Session started:", session);
 
     res.json(session);
