@@ -1,12 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { type Express } from "express";
+import { getUserActivityStats, getRecentSessions, startUserSession, endUserSession, updateLastActivity } from '../services/activityService'
 
 async function getUserActivity(req: Request, res: Response) {
   try {
     const timeRange = req.query.timeRange as string || "week";
     const [stats, sessions] = await Promise.all([
-      activityService.getUserActivityStats(timeRange),
-      activityService.getRecentSessions(timeRange)
+      getUserActivityStats(timeRange),
+      getRecentSessions(timeRange)
     ]);
 
     res.json({ stats, sessions });
@@ -23,7 +24,7 @@ async function startSession(req: Request, res: Response) {
     const userAgent = req.headers["user-agent"] || "";
 
     console.log("Starting session for user:", userId, "IP:", ipAddress);
-    const session = await activityService.startUserSession(userId, ipAddress!, userAgent);
+    const session = await startUserSession(userId, ipAddress!, userAgent);
     console.log("Session started:", session);
 
     res.json(session);
@@ -38,7 +39,7 @@ async function endSession(req: Request, res: Response) {
     const { sessionId } = req.params;
     console.log("Ending session:", sessionId);
 
-    await activityService.endUserSession(parseInt(sessionId));
+    await endUserSession(parseInt(sessionId));
     console.log("Session ended successfully:", sessionId);
 
     res.json({ success: true });
@@ -53,7 +54,7 @@ async function updateActivity(req: Request, res: Response) {
     const { sessionId } = req.params;
     console.log("Updating activity for session:", sessionId);
 
-    await activityService.updateLastActivity(parseInt(sessionId));
+    await updateLastActivity(parseInt(sessionId));
     console.log("Activity updated successfully:", sessionId);
 
     res.json({ success: true });

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Video } from '@db/schema'
 import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
-import api from '../lib/axios'
+import api, { refreshCSRFToken } from '../lib/axios'
 
 export type PaginationMetadata = {
   page: number;
@@ -87,7 +87,7 @@ export function useVideos() {
 
   const createVideoMutation = useMutation({
     mutationFn: async (video: Pick<Video, "title" | "description" | "projectId">) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       try {
         await refreshCSRFToken();
@@ -126,7 +126,7 @@ export function useVideos() {
 
   const createBulkVideosMutation = useMutation({
     mutationFn: async ({ projectId, titles }: { projectId: number, titles: string[] }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       try {
         await refreshCSRFToken();
@@ -167,7 +167,7 @@ export function useVideos() {
 
   const updateVideoMutation = useMutation({
     mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       console.log('Datos de actualización:', updateRequest);
       try {
@@ -206,13 +206,15 @@ export function useVideos() {
   });
 
   const sendVideoToReviewMutation = useMutation({
-    mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+    mutationFn: async ({ optimizedBy, optimizedDescription, optimizedTitle, projectId, videoId }: { optimizedBy?: number; optimizedDescription?: string, optimizedTitle?: string, projectId: number, videoId: number }) => {
 
-      console.log('Datos de actualización:', updateRequest);
       try {
         await refreshCSRFToken();
-        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}`, updateRequest);
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/sendToReview`, {
+          optimizedBy,
+          optimizedDescription,
+          optimizedTitle
+        });
         return response.data;
       } catch (error: any) {
         console.error("Error updating video:", error);
@@ -247,7 +249,7 @@ export function useVideos() {
 
   const deleteVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       try {
         await refreshCSRFToken();
@@ -287,7 +289,7 @@ export function useVideos() {
 
   const bulkDeleteVideosMutation = useMutation({
     mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       try {
         await refreshCSRFToken();
@@ -329,7 +331,7 @@ export function useVideos() {
 
   const restoreVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       try {
         await refreshCSRFToken();
@@ -367,7 +369,7 @@ export function useVideos() {
 
   const emptyTrashMutation = useMutation({
     mutationFn: async ({projectId}: { projectId: number }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       
       try {
         await refreshCSRFToken();
@@ -416,7 +418,7 @@ export function useVideos() {
 
   const assignVideoToYoutuberMutation = useMutation({
     mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
-      const { refreshCSRFToken } = await import('../lib/axios');
+      
       try {
         await refreshCSRFToken();
         const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/assign`);
@@ -487,5 +489,6 @@ export function useVideos() {
     emptyTrash: emptyTrashMutation.mutateAsync,
     getTrashVideos,
     assignVideoToYoutuber: assignVideoToYoutuberMutation.mutateAsync,
+    sendVideoToReview: sendVideoToReviewMutation.mutateAsync,
   };
 }

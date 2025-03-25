@@ -31,6 +31,14 @@ interface OptimizeContentDetailProps {
   onUpdate: (data: UpdateVideoData, keepDialog?: boolean) => Promise<void>;
 }
 
+interface OptimizeContentDetailUpdateData { 
+  optimizedBy?: number
+  optimizedDescription?: string
+  optimizedTitle?: string
+  projectId: number
+  videoId: number 
+}
+
 type FormValues = Partial<UpdateVideoData>;
 
 const MAX_TITLE_LENGTH = 100;
