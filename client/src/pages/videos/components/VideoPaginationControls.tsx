@@ -59,14 +59,6 @@ export function VideoPaginationControls({
   const [isPageDialogOpen, setIsPageDialogOpen] = useState(false);
   const [pageInput, setPageInput] = useState("");
 
-  // Solo muestra la paginación si hay más de una página o si se puede cambiar el número de elementos por página
-  const showPagination = totalPages > 1 || setItemsPerPage;
-
-  // No mostrar la paginación en estos casos:
-  // 1. Si no hay páginas o solo hay una y no se puede cambiar el límite
-  // 2. Si el total de páginas es 0 (no hay videos)
-  if (!showPagination || totalPages <= 0) return null;
-
   // Asegurar que la página actual nunca sea mayor que el total de páginas
   // Esto previene errores cuando cambiamos el límite y no hay suficientes elementos
   useEffect(() => {
@@ -75,27 +67,72 @@ export function VideoPaginationControls({
     }
   }, [currentPage, totalPages, setCurrentPage]);
 
+  // Solo muestra la paginación si hay más de una página o si se puede cambiar el número de elementos por página
+  const showPagination = totalPages > 1 || setItemsPerPage;
+
+  // No mostrar la paginación en estos casos:
+  // 1. Si no hay páginas o solo hay una y no se puede cambiar el límite
+  // 2. Si el total de páginas es 0 (no hay videos)
+  if (!showPagination || totalPages <= 0) return null;
+
   // Función para manejar el cambio de página manual
   const handlePageChange = () => {
-    const pageNumber = parseInt(pageInput);
-    if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
-      toast.error(`Por favor, introduce un número entre 1 y ${totalPages}`);
-      return;
+    try {
+      // Validar que sea un número dentro del rango válido
+      const pageNumber = parseInt(pageInput);
+      if (isNaN(pageNumber)) {
+        toast.error(`Por favor, introduce un número válido`);
+        return;
+      }
+      
+      // Limitar al rango de páginas disponibles
+      const validPageNumber = Math.max(1, Math.min(pageNumber, totalPages));
+      
+      if (validPageNumber !== pageNumber) {
+        toast.warning(`Ajustado a página ${validPageNumber} (rango válido: 1-${totalPages})`);
+      }
+      
+      // Cerrar el diálogo antes de cambiar de página para evitar problemas de UI
+      setIsPageDialogOpen(false);
+      
+      // Limpiar el input
+      setPageInput("");
+      
+      // Usar setTimeout para asegurar que el diálogo se cerró completamente
+      setTimeout(() => {
+        setCurrentPage(validPageNumber);
+      }, 10);
+    } catch (error) {
+      console.error("Error al cambiar de página:", error);
+      toast.error("Error al cambiar de página. Inténtalo de nuevo.");
+      
+      // Cerrar el diálogo y limpiar el estado en caso de error
+      setIsPageDialogOpen(false);
+      setPageInput("");
     }
-    setCurrentPage(pageNumber);
-    setIsPageDialogOpen(false);
-    setPageInput("");
   };
 
   // Función para generar los items de la paginación
   const generatePaginationItems = () => {
+    // Protección contra valores inválidos
+    const safeTotalPages = Math.max(1, totalPages || 1);
+    const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages));
+    
     // Caso simple: 7 o menos páginas
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+    if (safeTotalPages <= 7) {
+      return Array.from({ length: safeTotalPages }, (_, i) => i + 1).map((page) => (
         <PaginationItem key={page}>
           <PaginationLink
-            onClick={() => setCurrentPage(page)}
-            isActive={page === currentPage}
+            onClick={(e) => {
+              e.preventDefault();
+              try {
+                setCurrentPage(page);
+              } catch (error) {
+                console.error(`Error al cambiar a la página ${page}:`, error);
+                toast.error("Error al cambiar de página");
+              }
+            }}
+            isActive={page === safeCurrentPage}
           >
             {page}
           </PaginationLink>
@@ -110,8 +147,16 @@ export function VideoPaginationControls({
     items.push(
       <PaginationItem key={1}>
         <PaginationLink
-          onClick={() => setCurrentPage(1)}
-          isActive={1 === currentPage}
+          onClick={(e) => {
+            e.preventDefault();
+            try {
+              setCurrentPage(1);
+            } catch (error) {
+              console.error("Error al cambiar a la primera página:", error);
+              toast.error("Error al cambiar de página");
+            }
+          }}
+          isActive={1 === safeCurrentPage}
         >
           1
         </PaginationLink>
@@ -119,7 +164,7 @@ export function VideoPaginationControls({
     );
 
     // Lógica para mostrar páginas alrededor de la actual
-    if (currentPage > 3) {
+    if (safeCurrentPage > 3) {
       items.push(
         <PaginationItem key="ellipsis-start">
           <PaginationEllipsis />
@@ -128,15 +173,23 @@ export function VideoPaginationControls({
     }
 
     // Páginas alrededor de la actual
-    const startPage = Math.max(2, currentPage - 1);
-    const endPage = Math.min(totalPages - 1, currentPage + 1);
+    const startPage = Math.max(2, safeCurrentPage - 1);
+    const endPage = Math.min(safeTotalPages - 1, safeCurrentPage + 1);
 
     for (let page = startPage; page <= endPage; page++) {
       items.push(
         <PaginationItem key={page}>
           <PaginationLink
-            onClick={() => setCurrentPage(page)}
-            isActive={page === currentPage}
+            onClick={(e) => {
+              e.preventDefault();
+              try {
+                setCurrentPage(page);
+              } catch (error) {
+                console.error(`Error al cambiar a la página ${page}:`, error);
+                toast.error("Error al cambiar de página");
+              }
+            }}
+            isActive={page === safeCurrentPage}
           >
             {page}
           </PaginationLink>
@@ -145,7 +198,7 @@ export function VideoPaginationControls({
     }
 
     // Elipsis final si es necesario
-    if (currentPage < totalPages - 2) {
+    if (safeCurrentPage < safeTotalPages - 2) {
       items.push(
         <PaginationItem key="ellipsis-end">
           <PaginationEllipsis />
@@ -154,14 +207,22 @@ export function VideoPaginationControls({
     }
 
     // Siempre mostrar última página
-    if (totalPages > 1) {
+    if (safeTotalPages > 1) {
       items.push(
-        <PaginationItem key={totalPages}>
+        <PaginationItem key={safeTotalPages}>
           <PaginationLink
-            onClick={() => setCurrentPage(totalPages)}
-            isActive={totalPages === currentPage}
+            onClick={(e) => {
+              e.preventDefault();
+              try {
+                setCurrentPage(safeTotalPages);
+              } catch (error) {
+                console.error(`Error al cambiar a la última página:`, error);
+                toast.error("Error al cambiar de página");
+              }
+            }}
+            isActive={safeTotalPages === safeCurrentPage}
           >
-            {totalPages}
+            {safeTotalPages}
           </PaginationLink>
         </PaginationItem>
       );
@@ -177,7 +238,17 @@ export function VideoPaginationControls({
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              onClick={(e) => {
+                e.preventDefault();
+                if (currentPage > 1) {
+                  try {
+                    setCurrentPage(Math.max(1, currentPage - 1));
+                  } catch (error) {
+                    console.error("Error al cambiar a la página anterior:", error);
+                    toast.error("Error al cambiar de página");
+                  }
+                }
+              }}
               className={currentPage <= 1 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
               tabIndex={currentPage <= 1 ? -1 : 0}
               aria-disabled={currentPage <= 1}
@@ -187,7 +258,16 @@ export function VideoPaginationControls({
           {generatePaginationItems()}
 
           {/* Botón para ir a una página específica */}
-          <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
+          <Dialog 
+            open={isPageDialogOpen} 
+            onOpenChange={(open) => {
+              // Cuando el diálogo se cierra, limpiamos el input
+              if (!open) {
+                setPageInput("");
+              }
+              setIsPageDialogOpen(open);
+            }}
+          >
             <DialogTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -198,7 +278,14 @@ export function VideoPaginationControls({
                 <span className="sr-only">Ir a página</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]" onClick={e => e.stopPropagation()}>
+            <DialogContent 
+              className="sm:max-w-[425px]" 
+              onClick={(e) => e.stopPropagation()}
+              onPointerDownOutside={(e) => {
+                // Prevenir que clicks fuera del diálogo lo cierren y produzcan efectos secundarios
+                e.preventDefault();
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>Ir a página</DialogTitle>
                 <DialogDescription>
@@ -211,10 +298,22 @@ export function VideoPaginationControls({
                   min={1}
                   max={totalPages}
                   value={pageInput}
-                  onChange={(e) => setPageInput(e.target.value)}
+                  onChange={(e) => {
+                    // Validar que sea un número y esté dentro del rango
+                    const value = e.target.value;
+                    const parsed = parseInt(value);
+                    if (value === "" || (
+                      !isNaN(parsed) && parsed >= 1 && parsed <= totalPages
+                    )) {
+                      setPageInput(value);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handlePageChange();
+                    } else if (e.key === 'Escape') {
+                      setIsPageDialogOpen(false);
+                      setPageInput("");
                     }
                   }}
                   placeholder={`1-${totalPages}`}
@@ -222,6 +321,15 @@ export function VideoPaginationControls({
                 />
               </div>
               <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsPageDialogOpen(false);
+                    setPageInput("");
+                  }}
+                >
+                  Cancelar
+                </Button>
                 <Button onClick={handlePageChange}>Ir a página</Button>
               </DialogFooter>
             </DialogContent>
@@ -229,7 +337,17 @@ export function VideoPaginationControls({
 
           <PaginationItem>
             <PaginationNext
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={(e) => {
+                e.preventDefault();
+                if (currentPage < totalPages) {
+                  try {
+                    setCurrentPage(Math.min(totalPages, currentPage + 1));
+                  } catch (error) {
+                    console.error("Error al cambiar a la página siguiente:", error);
+                    toast.error("Error al cambiar de página");
+                  }
+                }
+              }}
               className={currentPage >= totalPages ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
               tabIndex={currentPage >= totalPages ? -1 : 0}
               aria-disabled={currentPage >= totalPages}
