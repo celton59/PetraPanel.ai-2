@@ -15,6 +15,7 @@ import translatorRouter from "./routes/translator";
 import { setUpVideoRoutes } from "./controllers/videoController";
 import { setUpProjectRoutes } from "./controllers/projectController.js";
 import { setUpYoutuberRoutes } from "./controllers/userController.js";
+import { setUpUserRoutes } from "./controllers/youtuberController.js";
 import { setUpTitulinRoutes } from "./controllers/titulinController.js";
 import { setUpProfileRoutes } from "./controllers/profileController.js";
 import { setupNotificationRoutes } from "./routes/notifications";
@@ -86,6 +87,7 @@ export function registerRoutes(app: Express): Server {
 
     // Users routes
     setUpYoutuberRoutes(requireAuth, app)
+    setUpUserRoutes(requireAuth, app)
 
     // Profile routes
     setUpProfileRoutes(requireAuth, app)
@@ -108,10 +110,6 @@ export function registerRoutes(app: Express): Server {
     });
     // Rutas para el sistema de contabilidad
     setUpAccountingRoutes(requireAuth, app)
-    
-
-    // YoutuberRoutes
-    setUpYoutuberRoutes(requireAuth, app)
     
 
     // Ruta para obtener usuarios en línea (alternativa REST al WebSocket)
