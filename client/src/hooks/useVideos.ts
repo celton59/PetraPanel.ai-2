@@ -34,6 +34,7 @@ export type ApiVideo = {
   uploaderUsername: User["username"];
   deletedByName: User["fullName"] | null;
   deletedByUsername: User["username"] | null;
+  assignedToId?: number | null; // Añadiendo campo opcional para el ID del usuario asignado
 };
 
 export function useVideos() {

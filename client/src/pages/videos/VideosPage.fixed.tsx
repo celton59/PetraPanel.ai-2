@@ -315,7 +315,7 @@ export default function VideosPage() {
     if (selectedVideos.length === filteredVideos.length) {
       setSelectedVideos([]);
     } else {
-      setSelectedVideos(filteredVideos.map(video => video.id));
+      setSelectedVideos(filteredVideos.map((video: ApiVideo) => video.id));
     }
   };
 
@@ -323,7 +323,7 @@ export default function VideosPage() {
   const handleBulkDelete = async () => {
     if (selectedVideos.length === 0) return;
 
-    const projectIdToUse = videos.find(v => selectedVideos.includes(v.id))?.projectId;
+    const projectIdToUse = videos.find((v: ApiVideo) => selectedVideos.includes(v.id))?.projectId;
     if (!projectIdToUse) return;
 
     try {
@@ -565,7 +565,7 @@ export default function VideosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVideos?.map((video) => (
+                {filteredVideos?.map((video: ApiVideo) => (
                   <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
                     {/* Selection checkbox */}
                     {user?.role === "admin" && selectMode && (
@@ -716,7 +716,7 @@ export default function VideosPage() {
   function getGridView() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {filteredVideos?.map((video) => (
+        {filteredVideos?.map((video: ApiVideo) => (
           <div
             key={video.id}
             className="group video-card relative rounded-lg border shadow-sm overflow-hidden transition-all hover:shadow-md bg-card"
@@ -812,7 +812,7 @@ export default function VideosPage() {
   function getListView() {
     return (
       <div className="space-y-3">
-        {filteredVideos?.map((video) => (
+        {filteredVideos?.map((video: ApiVideo) => (
           <div
             key={video.id}
             className="group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"
