@@ -1,6 +1,6 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos, SortConfig } from "@/hooks/useVideos";
-import { VideoPaginationControls } from "./components/VideoPaginationControls";
+import { VideoPaginationControls } from "../../components/videos/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { VideoBadges } from "@/components/video/VideoBadges";
 import { VideoAffiliates } from "@/components/video/VideoAffiliates";
