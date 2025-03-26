@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSuggestions } from '@/hooks/useSuggestions';
+import { useSuggestions, Suggestion } from '@/hooks/useSuggestions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

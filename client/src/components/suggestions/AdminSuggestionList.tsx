@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSuggestions } from '@/hooks/useSuggestions';
+import { useSuggestions, Suggestion } from '@/hooks/useSuggestions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -218,7 +218,7 @@ export function AdminSuggestionList() {
 
         {suggestions && (suggestions.length > 0) ? (
           <div className="space-y-4">
-            {(suggestions || []).map((suggestion: any) => (
+            {(suggestions || []).map((suggestion: Suggestion) => (
               <div key={suggestion.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">{suggestion.title}</h3>

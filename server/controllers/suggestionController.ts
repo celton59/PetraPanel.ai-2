@@ -1,24 +1,24 @@
-import { Express, Request, Response, NextFunction } from "express";
-import { db } from "db";
-import { and, asc, desc, eq, like, or } from "drizzle-orm";
-import { suggestions, users } from "@db/schema";
-import { z } from "zod";
+import { Request, Response, Express, NextFunction } from 'express';
+import { z } from 'zod';
+import { db } from '@db';
+import { users, suggestions } from '@db/schema';
+import { eq, and, desc, sql, like, or } from 'drizzle-orm';
 
 /**
  * Esquema de validación para crear una sugerencia
  */
 const createSuggestionSchema = z.object({
-  title: z.string().min(3, "El título debe tener al menos 3 caracteres").max(255, "El título no puede exceder 255 caracteres"),
-  description: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
-  category: z.string().optional(),
+  title: z.string().min(3).max(255),
+  description: z.string().min(10).max(2000),
+  category: z.string().min(1).max(50),
 });
 
 /**
  * Esquema de validación para actualizar el estado de una sugerencia
  */
 const updateSuggestionStatusSchema = z.object({
-  status: z.enum(["pending", "reviewed", "implemented", "rejected"]),
-  adminNotes: z.string().optional(),
+  status: z.enum(['pending', 'reviewed', 'implemented', 'rejected']),
+  adminNotes: z.string().max(1000).optional(),
 });
 
 /**
@@ -26,58 +26,52 @@ const updateSuggestionStatusSchema = z.object({
  */
 async function getAllSuggestions(req: Request, res: Response): Promise<Response> {
   try {
-    const { status, category, search } = req.query;
-    
-    // Condiciones para filtrado
-    const conditions = [];
-    
+    // Parámetros de filtrado opcionales
+    const status = req.query.status as string | undefined;
+    const category = req.query.category as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    // Filtros
+    let filters = [];
     if (status) {
-      conditions.push(eq(suggestions.status, status as string));
+      filters.push(eq(suggestions.status, status));
     }
-    
     if (category) {
-      conditions.push(eq(suggestions.category, category as string));
+      filters.push(eq(suggestions.category, category));
     }
-    
     if (search) {
       const searchTerm = `%${search}%`;
-      conditions.push(
+      filters.push(
         or(
           like(suggestions.title, searchTerm),
           like(suggestions.description, searchTerm)
         )
       );
     }
-    
-    // Crear la consulta base
-    const query = db.select({
-      id: suggestions.id,
-      title: suggestions.title,
-      description: suggestions.description,
-      category: suggestions.category,
-      status: suggestions.status,
-      adminNotes: suggestions.adminNotes,
-      created_at: suggestions.created_at,
-      updated_at: suggestions.updated_at,
-      userId: suggestions.userId,
-      userName: users.fullName,
-    })
-    .from(suggestions)
-    .leftJoin(users, eq(suggestions.userId, users.id));
-    
-    // Aplicar condiciones si existen
-    const queryWithConditions = conditions.length > 0 
-      ? query.where(and(...conditions))
-      : query;
-    
-    // Aplicar ordenamiento
-    const finalQuery = queryWithConditions.orderBy(desc(suggestions.created_at));
 
-    const result = await finalQuery;
-    return res.status(200).json(result);
+    // Construir la consulta
+    const query = filters.length > 0
+      ? db.select({
+          ...suggestions,
+          userName: users.fullName,
+        })
+        .from(suggestions)
+        .leftJoin(users, eq(suggestions.userId, users.id))
+        .where(and(...filters))
+        .orderBy(desc(suggestions.created_at))
+      : db.select({
+          ...suggestions,
+          userName: users.fullName,
+        })
+        .from(suggestions)
+        .leftJoin(users, eq(suggestions.userId, users.id))
+        .orderBy(desc(suggestions.created_at));
+
+    const results = await query;
+    return res.status(200).json(results);
   } catch (error) {
-    console.error("Error al obtener sugerencias:", error);
-    return res.status(500).json({ error: "Error al obtener sugerencias" });
+    console.error('Error al obtener sugerencias:', error);
+    return res.status(500).json({ message: 'Error al obtener las sugerencias' });
   }
 }
 
@@ -87,18 +81,18 @@ async function getAllSuggestions(req: Request, res: Response): Promise<Response>
 async function getUserSuggestions(req: Request, res: Response): Promise<Response> {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: "No autenticado" });
+      return res.status(401).json({ message: 'Usuario no autenticado' });
     }
 
-    const result = await db.select()
+    const userSuggestions = await db.select()
       .from(suggestions)
       .where(eq(suggestions.userId, req.user.id))
       .orderBy(desc(suggestions.created_at));
 
-    return res.status(200).json(result);
+    return res.status(200).json(userSuggestions);
   } catch (error) {
-    console.error("Error al obtener sugerencias del usuario:", error);
-    return res.status(500).json({ error: "Error al obtener sugerencias del usuario" });
+    console.error('Error al obtener sugerencias del usuario:', error);
+    return res.status(500).json({ message: 'Error al obtener las sugerencias' });
   }
 }
 
@@ -108,32 +102,37 @@ async function getUserSuggestions(req: Request, res: Response): Promise<Response
 async function createSuggestion(req: Request, res: Response): Promise<Response> {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: "No autenticado" });
+      return res.status(401).json({ message: 'Usuario no autenticado' });
     }
 
+    // Validar datos
     const validation = createSuggestionSchema.safeParse(req.body);
     if (!validation.success) {
-      return res.status(400).json({ errors: validation.error.format() });
+      return res.status(400).json({ 
+        message: 'Datos inválidos', 
+        errors: validation.error.format() 
+      });
     }
 
-    const { title, description, category = "general" } = validation.data;
+    const { title, description, category } = validation.data;
 
-    const [result] = await db.insert(suggestions)
+    // Insertar en la base de datos
+    const [newSuggestion] = await db.insert(suggestions)
       .values({
+        userId: req.user.id,
         title,
         description,
         category,
-        userId: req.user.id,
-        status: "pending",
+        status: 'pending',
         created_at: new Date(),
         updated_at: new Date(),
       })
       .returning();
 
-    return res.status(201).json(result);
+    return res.status(201).json(newSuggestion);
   } catch (error) {
-    console.error("Error al crear sugerencia:", error);
-    return res.status(500).json({ error: "Error al crear la sugerencia" });
+    console.error('Error al crear sugerencia:', error);
+    return res.status(500).json({ message: 'Error al crear la sugerencia' });
   }
 }
 
@@ -142,39 +141,55 @@ async function createSuggestion(req: Request, res: Response): Promise<Response> 
  */
 async function updateSuggestionStatus(req: Request, res: Response): Promise<Response> {
   try {
-    if (!req.user || req.user.role !== "admin") {
-      return res.status(403).json({ error: "No tienes permisos para esta acción" });
+    if (!req.user) {
+      return res.status(401).json({ message: 'Usuario no autenticado' });
     }
 
-    const { id } = req.params;
-    if (!id || isNaN(Number(id))) {
-      return res.status(400).json({ error: "ID de sugerencia inválido" });
+    // Verificar si es administrador
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Acceso no autorizado' });
     }
 
+    const suggestionId = parseInt(req.params.id);
+    if (isNaN(suggestionId)) {
+      return res.status(400).json({ message: 'ID de sugerencia inválido' });
+    }
+
+    // Validar datos
     const validation = updateSuggestionStatusSchema.safeParse(req.body);
     if (!validation.success) {
-      return res.status(400).json({ errors: validation.error.format() });
+      return res.status(400).json({ 
+        message: 'Datos inválidos', 
+        errors: validation.error.format() 
+      });
     }
 
     const { status, adminNotes } = validation.data;
 
+    // Verificar si la sugerencia existe
+    const existingSuggestion = await db.select()
+      .from(suggestions)
+      .where(eq(suggestions.id, suggestionId))
+      .limit(1);
+
+    if (existingSuggestion.length === 0) {
+      return res.status(404).json({ message: 'Sugerencia no encontrada' });
+    }
+
+    // Actualizar estado
     const [updatedSuggestion] = await db.update(suggestions)
       .set({
         status,
         adminNotes,
         updated_at: new Date(),
       })
-      .where(eq(suggestions.id, Number(id)))
+      .where(eq(suggestions.id, suggestionId))
       .returning();
-
-    if (!updatedSuggestion) {
-      return res.status(404).json({ error: "Sugerencia no encontrada" });
-    }
 
     return res.status(200).json(updatedSuggestion);
   } catch (error) {
-    console.error("Error al actualizar sugerencia:", error);
-    return res.status(500).json({ error: "Error al actualizar la sugerencia" });
+    console.error('Error al actualizar estado de sugerencia:', error);
+    return res.status(500).json({ message: 'Error al actualizar el estado' });
   }
 }
 
@@ -183,20 +198,21 @@ async function updateSuggestionStatus(req: Request, res: Response): Promise<Resp
  */
 async function getSuggestionCategories(req: Request, res: Response): Promise<Response> {
   try {
-    // Lista de categorías predefinidas
+    // En una implementación completa, estas categorías podrían venir de la base de datos
+    // Por ahora, devolvemos valores predefinidos
     const categories = [
-      "general",
-      "interfaz",
-      "funcionalidad",
-      "rendimiento",
-      "bug",
-      "optimización"
+      'general', 
+      'interfaz', 
+      'funcionalidad', 
+      'rendimiento', 
+      'bug', 
+      'optimización'
     ];
     
     return res.status(200).json(categories);
   } catch (error) {
-    console.error("Error al obtener categorías:", error);
-    return res.status(500).json({ error: "Error al obtener categorías" });
+    console.error('Error al obtener categorías:', error);
+    return res.status(500).json({ message: 'Error al obtener categorías' });
   }
 }
 
@@ -207,12 +223,12 @@ export function setupSuggestionRoutes(
   app: Express,
   requireAuth: (req: Request, res: Response, next: NextFunction) => void
 ) {
-  // Rutas públicas (requieren autenticación)
-  app.get("/api/suggestions/user", requireAuth, getUserSuggestions);
-  app.post("/api/suggestions", requireAuth, createSuggestion);
-  app.get("/api/suggestions/categories", requireAuth, getSuggestionCategories);
+  // Rutas para todos los usuarios
+  app.get('/api/suggestions/user', requireAuth, getUserSuggestions);
+  app.post('/api/suggestions', requireAuth, createSuggestion);
+  app.get('/api/suggestions/categories', requireAuth, getSuggestionCategories);
   
-  // Rutas de administración (solo para admins)
-  app.get("/api/suggestions", requireAuth, getAllSuggestions);
-  app.patch("/api/suggestions/:id/status", requireAuth, updateSuggestionStatus);
+  // Rutas para administradores
+  app.get('/api/suggestions', requireAuth, getAllSuggestions);
+  app.patch('/api/suggestions/:id/status', requireAuth, updateSuggestionStatus);
 }

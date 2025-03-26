@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from './use-toast';
 
+// Definición del tipo Suggestion
 export interface Suggestion {
   id: number;
   userId: number;
+  userName?: string;
   title: string;
   description: string;
   category: string;
@@ -13,71 +15,72 @@ export interface Suggestion {
   adminNotes?: string;
   created_at: string;
   updated_at: string;
-  userName?: string;
 }
 
-export interface SuggestionFormData {
-  title: string;
-  description: string;
+// Tipo para los filtros de sugerencias (para administradores)
+interface SuggestionFilters {
+  status: string;
   category: string;
+  search: string;
 }
 
+// Tipo para los datos de actualización de estado
+interface UpdateStatusData {
+  id: number;
+  data: {
+    status: string;
+    adminNotes?: string;
+  };
+}
+
+// Hook para gestionar las sugerencias
 export function useSuggestions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<SuggestionFilters>({
     status: '',
     category: '',
     search: '',
   });
 
   // Obtener las sugerencias del usuario actual
-  const userSuggestions = useQuery<Suggestion[]>({
+  const userSuggestions = useQuery({
     queryKey: ['suggestions', 'user'],
     queryFn: async () => {
       try {
         const { data } = await axios.get<Suggestion[]>('/api/suggestions/user');
         return data;
       } catch (error) {
-        console.error('Error al obtener sugerencias:', error);
-        toast({
-          title: 'Error',
-          description: 'No se pudieron cargar tus sugerencias. Intenta de nuevo más tarde.',
-          variant: 'destructive',
-        });
-        return [];
+        console.error('Error al obtener las sugerencias del usuario:', error);
+        throw error;
       }
     },
   });
 
   // Obtener todas las sugerencias (para administradores)
-  const allSuggestions = useQuery<Suggestion[]>({
+  const allSuggestions = useQuery({
     queryKey: ['suggestions', 'all', filters],
     queryFn: async () => {
       try {
+        const { status, category, search } = filters;
         const params = new URLSearchParams();
-        if (filters.status) params.append('status', filters.status);
-        if (filters.category) params.append('category', filters.category);
-        if (filters.search) params.append('search', filters.search);
+        
+        if (status) params.append('status', status);
+        if (category) params.append('category', category);
+        if (search) params.append('search', search);
 
-        const { data } = await axios.get<Suggestion[]>(`/api/suggestions?${params.toString()}`);
+        const url = `/api/suggestions${params.toString() ? `?${params.toString()}` : ''}`;
+        const { data } = await axios.get<Suggestion[]>(url);
         return data;
       } catch (error) {
         console.error('Error al obtener todas las sugerencias:', error);
-        toast({
-          title: 'Error',
-          description: 'No se pudieron cargar las sugerencias. Intenta de nuevo más tarde.',
-          variant: 'destructive',
-        });
-        return [];
+        throw error;
       }
     },
   });
 
   // Obtener categorías disponibles
-  const defaultCategories = ['general', 'interfaz', 'funcionalidad', 'rendimiento', 'bug', 'optimización'];
-  
-  const categories = useQuery<string[]>({
+  const categories = useQuery({
     queryKey: ['suggestions', 'categories'],
     queryFn: async () => {
       try {
@@ -85,69 +88,86 @@ export function useSuggestions() {
         return data;
       } catch (error) {
         console.error('Error al obtener categorías:', error);
-        toast({
-          title: 'Error',
-          description: 'No se pudieron cargar las categorías. Usando valores predeterminados.',
-          variant: 'destructive',
-        });
-        return defaultCategories;
+        throw error;
       }
     },
-    placeholderData: defaultCategories,
   });
 
   // Crear una nueva sugerencia
   const createSuggestion = useMutation({
-    mutationFn: async (data: SuggestionFormData) => {
-      const response = await axios.post<Suggestion>('/api/suggestions', data);
-      return response.data;
+    mutationFn: async (suggestion: { title: string; description: string; category: string }) => {
+      try {
+        const { data } = await axios.post<Suggestion>('/api/suggestions', suggestion);
+        return data;
+      } catch (error) {
+        console.error('Error al crear sugerencia:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suggestions', 'user'] });
+      // Invalidar consultas para actualizar las listas
+      queryClient.invalidateQueries({
+        queryKey: ['suggestions', 'user'],
+      });
+      
       toast({
-        title: 'Sugerencia enviada',
-        description: 'Tu sugerencia ha sido enviada correctamente. ¡Gracias por ayudarnos a mejorar!',
+        title: '¡Sugerencia enviada!',
+        description: 'Tu sugerencia ha sido enviada correctamente. Gracias por ayudarnos a mejorar.',
+        variant: 'default',
       });
     },
-    onError: (error) => {
-      console.error('Error al crear sugerencia:', error);
+    onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: 'No se pudo enviar la sugerencia. Por favor, intenta de nuevo.',
+        title: 'Error al enviar sugerencia',
+        description: error.response?.data?.message || 'Ha ocurrido un error al enviar tu sugerencia.',
         variant: 'destructive',
       });
     },
   });
 
-  // Actualizar estado de una sugerencia (solo para administradores)
+  // Actualizar el estado de una sugerencia (para administradores)
   const updateSuggestionStatus = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { status: string; adminNotes?: string } }) => {
-      const response = await axios.patch<Suggestion>(`/api/suggestions/${id}/status`, data);
-      return response.data;
+    mutationFn: async ({ id, data }: UpdateStatusData) => {
+      try {
+        const response = await axios.patch<Suggestion>(`/api/suggestions/${id}/status`, data);
+        return response.data;
+      } catch (error) {
+        console.error('Error al actualizar estado:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suggestions', 'all'] });
+      // Invalidar consultas para actualizar las listas
+      queryClient.invalidateQueries({
+        queryKey: ['suggestions'],
+      });
+      
       toast({
         title: 'Estado actualizado',
         description: 'El estado de la sugerencia ha sido actualizado correctamente.',
+        variant: 'default',
       });
     },
-    onError: (error) => {
-      console.error('Error al actualizar estado:', error);
+    onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el estado de la sugerencia. Intenta de nuevo.',
+        title: 'Error al actualizar estado',
+        description: error.response?.data?.message || 'Ha ocurrido un error al actualizar el estado.',
         variant: 'destructive',
       });
     },
   });
 
   return {
+    // Consultas
     userSuggestions,
     allSuggestions,
     categories,
+    
+    // Mutaciones
     createSuggestion,
     updateSuggestionStatus,
+    
+    // Estado de filtros
     filters,
     setFilters,
   };
