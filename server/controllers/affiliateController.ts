@@ -391,8 +391,8 @@ async function scanAllVideosForAffiliates(req: Request, res: Response): Promise<
             
             totalMatches++;
             
-            // Notificar al youtuber si el video está asignado
-            if (video.assignedTo) {
+            // Notificar al youtuber que subió el contenido si existe
+            if (video.contentUploadedBy) {
               await notifyYoutuberAboutAffiliate(video.id, company);
             }
           }
@@ -496,7 +496,7 @@ async function notifyYoutuberAboutAffiliate(videoId: number, company: any): Prom
       return;
     }
     
-    // Crear notificación
+    // Crear notificación para el youtuber que subió el contenido
     await notificationsService.createNotification({
       userId: video.contentUploadedBy,
       title: 'Enlace de afiliado requerido',

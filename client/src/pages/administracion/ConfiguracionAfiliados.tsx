@@ -43,7 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, X, Check, Save, PlusCircle, Upload, FileText, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Check, Save, PlusCircle, Upload, FileText, AlertCircle, Search } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -370,6 +370,36 @@ export default function ConfiguracionAfiliados() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  // Mostrar un indicador de carga
+                  toast({
+                    title: 'Escaneando...',
+                    description: 'Buscando menciones de afiliados en todos los videos',
+                  });
+                  
+                  // Llamar al endpoint para escanear videos
+                  axios.post('/api/affiliates/scan-all-videos')
+                    .then(response => {
+                      toast({
+                        title: 'Escaneo completado',
+                        description: response.data.message,
+                      });
+                    })
+                    .catch(error => {
+                      console.error('Error al escanear videos:', error);
+                      toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: error.response?.data?.error || 'No se pudieron escanear los videos'
+                      });
+                    });
+                }} 
+                variant="outline" 
+                className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+              >
+                <Search className="mr-2 h-4 w-4" /> Escanear Videos
+              </Button>
               <Button 
                 onClick={() => {
                   if (window.confirm('¿Estás seguro de que deseas eliminar TODAS las empresas afiliadas? Esta acción no se puede deshacer.')) {
