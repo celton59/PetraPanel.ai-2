@@ -322,24 +322,34 @@ export function MediaCorrectionsDetail({
           />
         </motion.div>
 
-        {/* Información sobre enlaces de afiliación */}
+        {/* Información sobre enlaces de afiliación - Advertencia mejorada */}
         <motion.div 
           className="mt-6 mb-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-4 relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-24 h-24 bg-blue-100 dark:bg-blue-900/20 opacity-50 rounded-full -mr-8 -mt-8"></div>
+          <div className="bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-800 rounded-md p-4 relative overflow-hidden shadow-md">
+            <div className="absolute right-0 top-0 w-24 h-24 bg-amber-100 dark:bg-amber-900/20 opacity-50 rounded-full -mr-8 -mt-8"></div>
             <div className="flex items-start gap-3 relative z-10">
-              <div className="flex-shrink-0 p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full mt-0.5">
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="flex-shrink-0 p-1.5 bg-amber-100 dark:bg-amber-900/50 rounded-full mt-0.5">
+                <Info className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Enlaces de afiliación</h3>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Si tu video contiene enlaces de afiliación, tienes que decir en el vídeo que en la descripción y en el comentario destacado tienen un enlace, para registrarse, comprar o lo que sea.
-                </p>
+                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">⚠️ IMPORTANTE: Enlaces de afiliación</h3>
+                <div className="text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                  <p className="font-medium">
+                    Si tu video menciona productos o servicios con enlaces de afiliación, <span className="underline font-bold">DEBES DECIR EXPLÍCITAMENTE EN EL VIDEO</span>:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Que hay enlaces en la descripción y en los comentarios fijados</li>
+                    <li>Mencionar claramente que son enlaces de afiliación</li>
+                    <li>Explicar brevemente que usarlos ayuda al canal</li>
+                  </ul>
+                  <p className="pt-1 font-semibold">
+                    Este requisito es obligatorio para cumplir con las normativas aplicables. Los videos sin esta mención explícita serán rechazados.
+                  </p>
+                </div>
                 <div className="mt-3">
                   <AffiliateInfoDialog variant="button" />
                 </div>

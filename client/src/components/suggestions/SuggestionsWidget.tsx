@@ -24,9 +24,9 @@ export function SuggestionsWidget() {
           <div className="text-2xl font-bold">
             <Skeleton className="h-8 w-16" />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             <Skeleton className="h-4 w-[150px] mt-1" />
-          </p>
+          </div>
         </CardContent>
         <CardFooter>
           <Skeleton className="h-8 w-full" />
