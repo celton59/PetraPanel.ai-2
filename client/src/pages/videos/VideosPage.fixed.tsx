@@ -465,11 +465,11 @@ export default function VideosPage() {
 
   function getSortIcon(field: string, currentSort: SortConfig) {
     if (currentSort.field !== field) {
-      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+      return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground/50" />;
     }
     return currentSort.order === 'asc'
-      ? <ArrowUp className="ml-2 h-4 w-4" />
-      : <ArrowDown className="ml-2 h-4 w-4" />;
+      ? <ArrowUp className="ml-2 h-4 w-4 text-primary" />
+      : <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
   }
 
   function getTableView() {
@@ -502,7 +502,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'seriesNumber' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'seriesNumber',
                         order: prev.field === 'seriesNumber' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -514,7 +517,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'title' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'title',
                         order: prev.field === 'title' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -527,7 +533,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'status' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'status',
                         order: prev.field === 'status' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -540,7 +549,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'updatedAt' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'updatedAt',
                         order: prev.field === 'updatedAt' && prev.order === 'asc' ? 'desc' : 'asc'

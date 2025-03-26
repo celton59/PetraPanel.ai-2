@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { VideoUploadFields } from "./upload/VideoUploadFields";
@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "@/hooks/use-user";
 import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
 import { AffiliateManager } from "@/components/video/AffiliateManager";
+import { AffiliateInfoDialog } from "@/components/video/AffiliateInfoDialog";
 
 // Estado inicial de progreso vacío
 const emptyProgressState: UploadProgressState = {
