@@ -23,6 +23,7 @@ import { setupTrainingExamplesRoutes } from "./routes/trainingExamples";
 import { setupTitleComparisonRoutes } from "./controllers/titleComparisonController";
 import { setupAffiliateRoutes } from "./controllers/affiliateController";
 import * as activityController from "./controllers/activityController";
+import { setupSuggestionRoutes } from "./controllers/suggestionController";
 
 export function registerRoutes(app: Express): Server {
   try {
@@ -87,6 +88,9 @@ export function registerRoutes(app: Express): Server {
     
     // Sistema de afiliados
     setupAffiliateRoutes(app, requireAuth)
+    
+    // Sistema de sugerencias y mejoras
+    setupSuggestionRoutes(app, requireAuth)
 
     // Users routes
     setUpUserRoutes(requireAuth, app)
