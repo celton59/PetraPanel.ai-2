@@ -1,4 +1,4 @@
-import { Home, Languages, Leaf, Video, Shield } from "lucide-react";
+import { Home, Languages, Leaf, Video, Shield, MessageSquareHeart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { useUser } from "@/hooks/use-user";
