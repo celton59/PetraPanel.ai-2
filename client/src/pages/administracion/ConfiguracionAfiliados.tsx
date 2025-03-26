@@ -378,8 +378,10 @@ export default function ConfiguracionAfiliados() {
                     description: 'Buscando menciones de afiliados en todos los videos',
                   });
                   
-                  // Llamar al endpoint para escanear videos
-                  axios.post('/api/affiliates/scan-all-videos')
+                  // Llamar al endpoint para escanear videos con un tiempo de espera mayor
+                  axios.post('/api/affiliates/scan-all-videos', {}, {
+                    timeout: 120000 // 2 minutos de timeout para permitir que la operación termine
+                  })
                     .then(response => {
                       toast({
                         title: 'Escaneo completado',
@@ -388,10 +390,20 @@ export default function ConfiguracionAfiliados() {
                     })
                     .catch(error => {
                       console.error('Error al escanear videos:', error);
+                      // Mensaje de error más descriptivo basado en el tipo de error
+                      let errorMessage = 'No se pudieron escanear los videos';
+                      if (error.code === 'ECONNABORTED') {
+                        errorMessage = 'La operación tardó demasiado tiempo. Intente nuevamente o con menos videos.';
+                      } else if (error.code === 'ERR_NETWORK') {
+                        errorMessage = 'Problema de conexión. Verifique su conexión a internet e intente nuevamente.';
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
                       toast({
                         variant: 'destructive',
                         title: 'Error',
-                        description: error.response?.data?.error || 'No se pudieron escanear los videos'
+                        description: errorMessage
                       });
                     });
                 }} 

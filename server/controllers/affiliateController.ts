@@ -321,6 +321,7 @@ export async function scanVideoForAffiliates(videoId: number, title: string): Pr
 /**
  * Escanea todos los videos existentes para todas las empresas activas
  * - Se utiliza para volver a escanear todos los videos en busca de coincidencias
+ * - Procesa los videos en lotes para evitar tiempos de espera excesivos
  */
 async function scanAllVideosForAffiliates(req: Request, res: Response): Promise<Response> {
   try {
@@ -359,44 +360,72 @@ async function scanAllVideosForAffiliates(req: Request, res: Response): Promise<
     let totalMatches = 0;
     let processedVideos = 0;
     
-    // Para cada video, escanear si coincide con alguna de las empresas
-    for (const video of allVideos) {
-      processedVideos++;
-      const title = video.title?.toLowerCase() || '';
+    // Definir tamaño de lote para procesar videos
+    const BATCH_SIZE = 20;
+    
+    // Procesar videos en lotes para mejorar el rendimiento y evitar tiempos de espera
+    for (let i = 0; i < allVideos.length; i += BATCH_SIZE) {
+      // Obtener un lote de videos
+      const videoBatch = allVideos.slice(i, i + BATCH_SIZE);
+      console.log(`Procesando lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(allVideos.length/BATCH_SIZE)}, videos ${i+1}-${Math.min(i+BATCH_SIZE, allVideos.length)} de ${allVideos.length}`);
       
-      // Buscar coincidencias con cada empresa
-      for (const company of activeCompanies) {
-        // Verificar si hay coincidencias en el título
-        const keywords = company.keywords || [];
-        const hasMatch = [company.name.toLowerCase(), ...keywords]
-          .some(keyword => keyword && title.includes(keyword.toLowerCase()));
+      // Procesar cada video en el lote actual de forma paralela
+      const batchPromises = videoBatch.map(async (video) => {
+        const title = video.title?.toLowerCase() || '';
+        let videoMatches = 0;
         
-        if (hasMatch) {
-          // Verificar si ya existe una entrada para este video y esta empresa
-          const existingMatch = await db.query.videoAffiliateMatches.findFirst({
-            where: and(
-              eq(videoAffiliateMatches.video_id, video.id),
-              eq(videoAffiliateMatches.company_id, company.id)
-            )
-          });
+        // Buscar coincidencias con cada empresa
+        for (const company of activeCompanies) {
+          // Verificar si hay coincidencias en el título
+          const keywords = company.keywords || [];
+          const hasMatch = [company.name.toLowerCase(), ...keywords]
+            .some(keyword => keyword && title.includes(keyword.toLowerCase()));
           
-          // Si no existe, crear la entrada y contar
-          if (!existingMatch) {
-            await db.insert(videoAffiliateMatches).values({
-              video_id: video.id,
-              company_id: company.id,
-              notified: false,
-              included_by_youtuber: false
+          if (hasMatch) {
+            // Verificar si ya existe una entrada para este video y esta empresa
+            const existingMatch = await db.query.videoAffiliateMatches.findFirst({
+              where: and(
+                eq(videoAffiliateMatches.video_id, video.id),
+                eq(videoAffiliateMatches.company_id, company.id)
+              )
             });
             
-            totalMatches++;
-            
-            // Notificar al youtuber que subió el contenido si existe
-            if (video.contentUploadedBy) {
-              await notifyYoutuberAboutAffiliate(video.id, company);
+            // Si no existe, crear la entrada y contar
+            if (!existingMatch) {
+              await db.insert(videoAffiliateMatches).values({
+                video_id: video.id,
+                company_id: company.id,
+                notified: false,
+                included_by_youtuber: false
+              });
+              
+              videoMatches++;
+              
+              // Notificar al youtuber que subió el contenido si existe
+              if (video.contentUploadedBy) {
+                await notifyYoutuberAboutAffiliate(video.id, company);
+              }
             }
           }
         }
+        
+        return { processed: true, matches: videoMatches };
+      });
+      
+      // Esperar a que se complete el procesamiento del lote actual
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Actualizar contadores con los resultados del lote
+      for (const result of batchResults) {
+        if (result.processed) {
+          processedVideos++;
+          totalMatches += result.matches;
+        }
+      }
+      
+      // Pequeña pausa entre lotes para permitir que el servidor respire
+      if (i + BATCH_SIZE < allVideos.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
     
@@ -418,6 +447,7 @@ async function scanAllVideosForAffiliates(req: Request, res: Response): Promise<
 /**
  * Escanea todos los videos existentes para una empresa específica
  * - Se utiliza cuando se activa una empresa previamente inactiva
+ * - Procesa los videos en lotes para mejor rendimiento
  */
 async function scanVideosForCompany(companyId: number): Promise<void> {
   try {
@@ -430,12 +460,30 @@ async function scanVideosForCompany(companyId: number): Promise<void> {
       return;
     }
     
-    // Obtener videos relevantes (aquellos que no han sido escaneados para esta empresa)
-    const allVideos = await db.query.videos.findMany();
+    // Obtener videos activos (aquellos que no han sido eliminados)
+    const allVideos = await db.query.videos.findMany({
+      where: isNull(videos.deletedAt)
+    });
     
-    // Escanear cada video
-    for (const video of allVideos) {
-      if (video.title) {
+    if (allVideos.length === 0) {
+      return;
+    }
+    
+    console.log(`Escaneando ${allVideos.length} videos para empresa "${company.name}" (ID: ${company.id})`);
+    
+    // Definir tamaño de lote para procesar videos
+    const BATCH_SIZE = 25;
+    let matchesFound = 0;
+    
+    // Procesar videos en lotes para mejorar el rendimiento
+    for (let i = 0; i < allVideos.length; i += BATCH_SIZE) {
+      // Obtener un lote de videos
+      const videoBatch = allVideos.slice(i, i + BATCH_SIZE);
+      
+      // Procesar cada video en el lote actual de forma paralela
+      const batchPromises = videoBatch.map(async (video) => {
+        if (!video.title) return false;
+        
         const titleLower = video.title.toLowerCase();
         const nameLower = company.name.toLowerCase();
         
@@ -465,10 +513,27 @@ async function scanVideosForCompany(companyId: number): Promise<void> {
             
             // Enviar notificación
             await notifyYoutuberAboutAffiliate(video.id, company);
+            
+            return true; // Encontramos coincidencia
           }
         }
+        
+        return false; // No encontramos coincidencia
+      });
+      
+      // Esperar a que se complete el procesamiento del lote actual
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Contabilizar resultados
+      matchesFound += batchResults.filter(result => result).length;
+      
+      // Pequeña pausa entre lotes
+      if (i + BATCH_SIZE < allVideos.length) {
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
+    
+    console.log(`Escaneo completado para empresa "${company.name}": ${matchesFound} coincidencias nuevas encontradas`);
   } catch (error) {
     console.error('Error al escanear videos para empresa:', error);
   }

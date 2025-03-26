@@ -1,0 +1,96 @@
+index-CTeqCxMB.js:964 No se recibió respuesta del servidor: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: true, upload: XMLHttpRequestUpload, …}
+(anónimo) @ index-CTeqCxMB.js:964
+Promise.then
+_request @ index-CTeqCxMB.js:964
+request @ index-CTeqCxMB.js:963
+(anónimo) @ index-CTeqCxMB.js:964
+(anónimo) @ index-CTeqCxMB.js:959
+onClick @ index-CTeqCxMB.js:1247
+TX @ index-CTeqCxMB.js:37
+MX @ index-CTeqCxMB.js:37
+RX @ index-CTeqCxMB.js:37
+wO @ index-CTeqCxMB.js:37
+QL @ index-CTeqCxMB.js:37
+(anónimo) @ index-CTeqCxMB.js:37
+eP @ index-CTeqCxMB.js:40
+wL @ index-CTeqCxMB.js:37
+v1 @ index-CTeqCxMB.js:37
+PE @ index-CTeqCxMB.js:37
+XX @ index-CTeqCxMB.js:37Entender este errorAI
+index-CTeqCxMB.js:1247 Error al escanear videos: vt {message: 'Network Error', name: 'AxiosError', code: 'ERR_NETWORK', config: {…}, request: XMLHttpRequest, …}
+(anónimo) @ index-CTeqCxMB.js:1247
+Promise.catch
+onClick @ index-CTeqCxMB.js:1247
+TX @ index-CTeqCxMB.js:37
+MX @ index-CTeqCxMB.js:37
+RX @ index-CTeqCxMB.js:37
+wO @ index-CTeqCxMB.js:37
+QL @ index-CTeqCxMB.js:37
+(anónimo) @ index-CTeqCxMB.js:37
+eP @ index-CTeqCxMB.js:40
+wL @ index-CTeqCxMB.js:37
+v1 @ index-CTeqCxMB.js:37
+PE @ index-CTeqCxMB.js:37
+XX @ index-CTeqCxMB.js:37Entender este errorAI
+index-CTeqCxMB.js:961 
+            
+            
+           POST https://petrapanel.ai/api/affiliates/scan-all-videos net::ERR_INTERNET_DISCONNECTED
+(anónimo) @ index-CTeqCxMB.js:961
+xhr @ index-CTeqCxMB.js:961
+s4 @ index-CTeqCxMB.js:963
+Promise.then
+_request @ index-CTeqCxMB.js:964
+request @ index-CTeqCxMB.js:963
+(anónimo) @ index-CTeqCxMB.js:964
+(anónimo) @ index-CTeqCxMB.js:959
+onClick @ index-CTeqCxMB.js:1247
+TX @ index-CTeqCxMB.js:37
+MX @ index-CTeqCxMB.js:37
+RX @ index-CTeqCxMB.js:37
+wO @ index-CTeqCxMB.js:37
+QL @ index-CTeqCxMB.js:37
+(anónimo) @ index-CTeqCxMB.js:37
+eP @ index-CTeqCxMB.js:40
+wL @ index-CTeqCxMB.js:37
+v1 @ index-CTeqCxMB.js:37
+PE @ index-CTeqCxMB.js:37
+XX @ index-CTeqCxMB.js:37Entender este errorAI
+index-CTeqCxMB.js:964 No se recibió respuesta del servidor: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: true, upload: XMLHttpRequestUpload, …}
+(anónimo) @ index-CTeqCxMB.js:964
+Promise.then
+_request @ index-CTeqCxMB.js:964
+request @ index-CTeqCxMB.js:963
+(anónimo) @ index-CTeqCxMB.js:964
+(anónimo) @ index-CTeqCxMB.js:959
+onClick @ index-CTeqCxMB.js:1247
+TX @ index-CTeqCxMB.js:37
+MX @ index-CTeqCxMB.js:37
+RX @ index-CTeqCxMB.js:37
+wO @ index-CTeqCxMB.js:37
+QL @ index-CTeqCxMB.js:37
+(anónimo) @ index-CTeqCxMB.js:37
+eP @ index-CTeqCxMB.js:40
+wL @ index-CTeqCxMB.js:37
+v1 @ index-CTeqCxMB.js:37
+PE @ index-CTeqCxMB.js:37
+XX @ index-CTeqCxMB.js:37Entender este errorAI
+index-CTeqCxMB.js:1247 Error al escanear videos: vt {message: 'Network Error', name: 'AxiosError', code: 'ERR_NETWORK', config: {…}, request: XMLHttpRequest, …}
+(anónimo) @ index-CTeqCxMB.js:1247
+Promise.catch
+onClick @ index-CTeqCxMB.js:1247
+TX @ index-CTeqCxMB.js:37
+MX @ index-CTeqCxMB.js:37
+RX @ index-CTeqCxMB.js:37
+wO @ index-CTeqCxMB.js:37
+QL @ index-CTeqCxMB.js:37
+(anónimo) @ index-CTeqCxMB.js:37
+eP @ index-CTeqCxMB.js:40
+wL @ index-CTeqCxMB.js:37
+v1 @ index-CTeqCxMB.js:37
+PE @ index-CTeqCxMB.js:37
+XX @ index-CTeqCxMB.js:37Entender este errorAI
+index-CTeqCxMB.js:961 
+            
+            
+           POST https://petrapanel.ai/api/affiliates/scan-all-videos net::ERR_INTERNET_DISCONNECTED
