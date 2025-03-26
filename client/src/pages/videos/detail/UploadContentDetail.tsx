@@ -300,7 +300,7 @@ export function UploadContentDetail({
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Enlaces de afiliación</h3>
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Si tu video contiene enlaces de afiliación, <strong>recuerda mencionarlos verbalmente</strong> e incluirlos en la descripción y un comentario destacado para mejorar la experiencia de tus espectadores.
+                  Si tu video contiene enlaces de afiliación, <strong>recuerda mencionar que tienes estos enlaces</strong> verbalmente en el video e incluirlos explícitamente en la descripción y un comentario destacado para mejorar la experiencia de tus espectadores.
                 </p>
                 <div className="mt-3">
                   <AffiliateInfoDialog variant="button" />

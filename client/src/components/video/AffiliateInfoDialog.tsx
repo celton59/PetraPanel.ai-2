@@ -75,19 +75,19 @@ export function AffiliateInfoDialog({ trigger, variant = "button" }: AffiliateIn
           <div className="space-y-2">
             <p><strong>1. En el video (verbalmente):</strong></p>
             <p>
-              Ejemplo: <em>"En la descripción encontrarás enlaces para registrarte o comprar todos los productos que uso en este video. Si compras a través de ellos, apoyas al canal sin costo adicional para ti."</em>
+              Ejemplo: <em>"En la descripción y comentario destacado encontrarás enlaces para registrarte o comprar todos los productos que uso en este video. Tengo estos enlaces disponibles para ti. Si compras a través de ellos, apoyas al canal sin costo adicional."</em>
             </p>
             
             <p><strong>2. En la descripción del video:</strong></p>
             <p>
-              Ejemplo: <em>"Enlaces para comprar los productos mencionados: 
-              - Producto A: [Enlace afiliado] 
-              - Producto B: [Enlace afiliado]"</em>
+              Ejemplo: <em>"Tengo enlaces para registrarte/comprar los productos mencionados: 
+              - Producto A: [Enlace afiliado para registrarse/comprar] 
+              - Producto B: [Enlace afiliado para registrarse/comprar]"</em>
             </p>
             
             <p><strong>3. En un comentario destacado/fijado:</strong></p>
             <p>
-              Ejemplo: <em>"Aquí tienes los enlaces directos para registrarte o comprar los productos que recomiendo en este video: [Enlaces afiliados]"</em>
+              Ejemplo: <em>"Aquí tienes los enlaces para registrarte/comprar los productos que recomiendo en este video: [Enlaces afiliados]"</em>
             </p>
           </div>
           
