@@ -689,7 +689,7 @@ export default function TrashPage() {
                             getStatusBadgeColor(video.status)
                           )}
                         >
-                          {getStatusLabel(user.role, video)}
+                          {getStatusLabel(video)}
                         </Badge>
                       </TableCell>
                       {/* Fecha de eliminación */}
@@ -764,7 +764,7 @@ export default function TrashPage() {
                         getStatusBadgeColor(video.status)
                       )}
                     >
-                      {getStatusLabel(user.role, video)}
+                      {getStatusLabel(video)}
                     </Badge>
                   </div>
                   

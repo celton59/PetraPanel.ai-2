@@ -1,5 +1,4 @@
-import { VideoStatus, Video, User } from "@db/schema";
-
+import { VideoStatus, Video } from "@db/schema";
 
 
 const statusLabels: Record<VideoStatus, string> = {
@@ -13,12 +12,7 @@ const statusLabels: Record<VideoStatus, string> = {
     final_review: "Revisión final"    
 }
 
-export function getStatusLabel (role: User['role'], video: Video): string {
-  // Roles permitidos
-  const allowedRoles = ['admin', 'reviewer', 'optimizer', 'youtuber', 'content_reviewer', 'media_reviewer'];
-  
-  // Verificamos que el rol sea uno de los permitidos
-  const safeRole = allowedRoles.includes(role) ? role : 'admin';
+export function getStatusLabel (video: Video): string {
 
   if (video.status === 'content_review' && video.contentReviewComments?.at(0)) {
       return 'Corregido';

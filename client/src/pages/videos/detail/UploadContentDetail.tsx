@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { VideoUploadFields } from "./upload/VideoUploadFields";
-import { ApiVideo, UpdateVideoData } from "@/hooks/useVideos";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import {
   Accordion,
   AccordionItem,
@@ -15,25 +14,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUser } from "@/hooks/use-user";
 import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
 import { AffiliateManager } from "@/components/video/AffiliateManager";
-
-// Estado inicial de progreso vacío
-const emptyProgressState: UploadProgressState = {
-  isUploading: false,
-  progress: 0,
-  uploadedParts: 0,
-  totalParts: 0,
-  uploadSpeed: 0,
-  estimatedTimeRemaining: 0
-};
+import api from '../../../lib/axios'
 
 interface UploadContentDetailProps {
   video: ApiVideo;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
 export function UploadContentDetail({
   video,
-  onUpdate,
 }: UploadContentDetailProps) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -41,21 +29,18 @@ export function UploadContentDetail({
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState | undefined>(undefined);
   const [uploader, setUploader] = useState<VideoUploader | null>(null);
 
+  const { sendVideoToMediaReview } = useVideos()
   const { user } = useUser();
 
-  async function uploadThumbnail (file: File): Promise<void> {
+  async function uploadThumbnail(file: File): Promise<void> {
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../../../lib/axios');
-      const api = (await import('../../../lib/axios')).default;
-      
-      // Refrescar proactivamente el token CSRF antes de esta operación importante
+
       await refreshCSRFToken();
-      
-      // Usar nuestra instancia de axios configurada con manejo CSRF
+
       await api.post(
         `/api/projects/${video.projectId}/videos/${video.id}/uploadThumbnail`,
         formData,
@@ -67,55 +52,19 @@ export function UploadContentDetail({
       );
     } catch (error: any) {
       console.error(`Error uploading thumbnail:`, error);
-      
-      // Manejo mejorado de errores de CSRF
+
       if (error.response?.status === 403 && 
           (error.response?.data?.message?.includes('CSRF') || 
            error.response?.data?.message?.includes('token') || 
            error.response?.data?.message?.includes('Token'))) {
         throw new Error("Error de validación de seguridad. Intente de nuevo.");
       }
-      
+
       throw new Error(error.response?.data?.message || error.message || `Error al subir la miniatura`);
     }
   }
 
-  async function uploadVideo(file: File): Promise<{ url: string, uploadUrl?: string }> {
-    try {
-      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
-      const { refreshCSRFToken } = await import('../../../lib/axios');
-      const api = (await import('../../../lib/axios')).default;
-      
-      // Refrescar proactivamente el token CSRF antes de esta operación importante
-      await refreshCSRFToken();
-      
-      // Usar nuestra instancia de axios configurada con manejo CSRF
-      const response = await api.post(
-        `/api/projects/${video.projectId}/videos/${video.id}/uploadVideo`,
-        { originalName: file.name }
-      );
-      
-      return {
-        url: response.data.url,
-        uploadUrl: response.data.uploadUrl,
-      };
-    } catch (error: any) {
-      console.error(`Error uploading video:`, error);
-      
-      // Manejo mejorado de errores de CSRF
-      if (error.response?.status === 403 && 
-          (error.response?.data?.message?.includes('CSRF') || 
-           error.response?.data?.message?.includes('token') || 
-           error.response?.data?.message?.includes('Token'))) {
-        throw new Error("Error de validación de seguridad. Intente de nuevo.");
-      }
-      
-      throw new Error(error.response?.data?.message || error.message || `Error al subir el video`);
-    }
-  }
-
-  // Función para manejar la cancelación de la carga
-  const handleCancelUpload = async () => {
+  async function handleCancelUpload() {
     if (uploader) {
       try {
         await uploader.cancel();
@@ -140,36 +89,30 @@ export function UploadContentDetail({
     let videoUrl: string | undefined;
 
     try {
-      // Subida de video usando carga multiparte
       if (videoFile) {
-        // Crear la instancia del uploader
         const videoUploader = new VideoUploader(video.projectId, video.id, videoFile);
         setUploader(videoUploader);
-        
-        // Configurar el callback de progreso
+
         videoUploader.onProgress((progressState) => {
           setUploadProgress(progressState);
         });
-        
-        // Iniciar la carga multiparte
+
         videoUrl = await videoUploader.upload();
-        
-        // Limpiar el uploader después de completar
+
         setUploader(null);
       }
 
-      // Subida de miniatura (mantiene el método anterior)
       if (thumbnailFile) {
         await uploadThumbnail(thumbnailFile);
       }
 
-      // Actualizar el estado del video
-      await onUpdate({
-        status: "media_review",
-        videoUrl: videoUrl,
+      await sendVideoToMediaReview({
         contentUploadedBy: user?.id,
-      });
-      
+        videoUrl,
+        videoId: video.id,
+        projectId: video.projectId,
+      })
+
       toast.success("Archivos subidos correctamente");
     } catch (error: any) {
       console.error("Error al subir:", error);
@@ -180,8 +123,13 @@ export function UploadContentDetail({
     }
   }
 
+  // Función preparada para la desasignación (será implementada externamente)
+  const handleUnassign = async () => {
+    // La implementación será proporcionada posteriormente
+  };
+
   return (
-    <ScrollArea className="max-h-[65vh] h-auto">
+    <ScrollArea className="h-auto max-h-[75vh] overflow-y-auto">
       <div className="p-4">
         {/* Alerta de correcciones compacta */}      
         {video.mediaReviewComments?.at(0) && (
@@ -193,8 +141,7 @@ export function UploadContentDetail({
               <div className="flex-1">
                 <div className="flex items-center flex-wrap gap-2 mb-1">
                   <h3 className="text-xs font-medium text-red-700 dark:text-red-300">Corrección solicitada</h3>
-                  
-                  {/* Badges de corrección */}
+
                   {video.mediaVideoNeedsCorrection && (
                     <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/40 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/50">
                       Corregir Video
@@ -212,7 +159,6 @@ export function UploadContentDetail({
               </div>
             </div>
 
-            {/* Historial de correcciones mejorado */}
             <Accordion type="single" collapsible className="mt-2 overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
               <AccordionItem value="item-1" className="border-0">
                 <AccordionTrigger className="px-3 py-2 text-xs font-medium bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900/40 dark:to-transparent">
@@ -259,19 +205,36 @@ export function UploadContentDetail({
               Sube el video y la miniatura para continuar con el proceso
             </p>
           </div>
-          <Button
-            onClick={handleUpload}
-            className="py-1 h-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white"
-            size="sm"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <span className="flex items-center">
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" /> 
-                Subiendo...
-              </span>
-            ) : !videoFile && !thumbnailFile ? 'Enviar archivos' : "Subir Archivos"}
-          </Button>
+          <div className="flex gap-2">
+            {/* Botón de desasignación - solo visible si hay contentUploadedBy */}
+            {video.contentUploadedBy && (
+              <Button
+                onClick={handleUnassign}
+                className="py-1 h-8 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 border-0 text-white"
+                size="sm"
+                disabled={isUploading}
+              >
+                <span className="flex items-center">
+                  <UserX className="mr-1 h-3.5 w-3.5" />
+                  Desasignar
+                </span>
+              </Button>
+            )}
+
+            <Button
+              onClick={handleUpload}
+              className="py-1 h-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white"
+              size="sm"
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <span className="flex items-center">
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> 
+                  Subiendo...
+                </span>
+              ) : !videoFile && !thumbnailFile ? 'Enviar archivos' : "Subir Archivos"}
+            </Button>
+          </div>
         </div>
 
         {/* Contenedor para los campos de carga */}

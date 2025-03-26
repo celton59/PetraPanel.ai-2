@@ -81,24 +81,15 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
       case "available":
       case "content_corrections":
         return (
-          <OptimizeContentDetail
-            video={video}
-            onUpdate={onUpdate}
-          />
+          <OptimizeContentDetail video={video} />
         );
       case "content_review":
         return (
-          <ContentReviewDetail
-            video={video}
-            onUpdate={onUpdate}
-          />
+          <ContentReviewDetail video={video} />
         );
       case "upload_media":
         return (
-          <UploadContentDetail
-            video={video}
-            onUpdate={onUpdate}
-          />
+          <UploadContentDetail video={video} />
         );
       case "media_corrections":
         return (
@@ -116,7 +107,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
   }
 
   const statusColor = getStatusBadgeColor(video.status)
-  const statusLabel = getStatusLabel(user!.role, video);
+  const statusLabel = getStatusLabel(video);
 
   return (
     <DialogContent className="w-[95vw] max-w-7xl p-6 overflow-hidden max-h-[92vh]">

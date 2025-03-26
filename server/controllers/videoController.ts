@@ -20,8 +20,7 @@ import {
   completeMultipartUpload as completeS3Upload,
   abortMultipartUpload as abortS3Upload,
   getSignedUploadUrl,
-  s3,
-  getSignedUrl
+  s3
 } from "../services/s3"
 import { canYoutuberTakeMoreVideos } from "../utils/youtuber-utils";
 import { scanVideoForAffiliates } from "../controllers/affiliateController";
@@ -273,14 +272,63 @@ async function updateVideo(req: Request, res: Response): Promise<Response> {
   }
 }
 
-const videoToReviewSchema = z.object({
+const videoToContentReviewSchema = z.object({
   optimizedBy: z.number().optional(),
   optimizedDescription: z.string().optional(),
   optimizedTitle: z.string().optional(),
+  tags: z.string().optional(),
 });
-type VideoToReviewSchema = z.infer<typeof videoToReviewSchema>;
+type VideoToReviewSchema = z.infer<typeof videoToContentReviewSchema>;
 
-async function sendVideoToReview(req: Request, res: Response): Promise<Response> {
+
+async function assignOptimizerToVideo(req: Request, res: Response): Promise<Response> {
+  try {
+    const { optimizedBy } = req.body;
+    const videoId = parseInt(req.params.videoId);
+
+    if (! optimizedBy) {
+      return res.status(400).json({
+        success: false,
+        message: "Debe especificar un optimizador"
+      })
+    }
+
+    // Obtener el video actual para preservar los datos existentes
+    const [currentVideo] = await db
+      .select()
+      .from(videos)
+      .where( eq(videos.id, videoId) )
+      .limit(1);
+
+    if (!currentVideo) {
+      return res.status(404).json({ success: false, message: "Video no encontrado" });
+    }
+
+    if (currentVideo.status !== 'available' || currentVideo.optimizedBy) {
+      return res.status(400).json({ success: false, message: "No se puede asignar un optimizador a este video" })
+    }
+
+    // Actualizar el video
+    const [result] = await db
+      .update(videos)
+      .set({ updatedAt: new Date(), optimizedBy })
+      .where( eq(videos.id, videoId) )
+      .returning();
+
+    return res.status(200).json({
+        success: true,
+        data: result,
+        message: "Video actualizado correctamente",
+      });
+  }
+  catch (error) {
+    console.error("Error updating video:", error);
+    return res.status(500)
+      .json({ success: false, message: "Error al actualizar el video" });
+  }
+}
+
+async function sendVideoToContentReview(req: Request, res: Response): Promise<Response> {
   if (!req.user?.role)
     return res.status(403)
       .json({ success: false, message: "No tienes permisos para editar videos" });
@@ -289,7 +337,7 @@ async function sendVideoToReview(req: Request, res: Response): Promise<Response>
   const updates = req.body as VideoToReviewSchema;
 
   // Validar body con schema
-  const validationResult = videoToReviewSchema.safeParse(updates);
+  const validationResult = videoToContentReviewSchema.safeParse(updates);
   if (!validationResult.success) {
     return res.status(400).json({ success: false, message: validationResult.error.message });
   }
@@ -319,6 +367,7 @@ async function sendVideoToReview(req: Request, res: Response): Promise<Response>
         optimizedBy: updates.optimizedBy,
         optimizedDescription: updates.optimizedDescription,
         optimizedTitle: updates.optimizedTitle,
+        tags: updates.tags,
       })
       .where( eq(videos.id, videoId) )
       .returning();
@@ -334,6 +383,127 @@ async function sendVideoToReview(req: Request, res: Response): Promise<Response>
       .json({ success: false, message: "Error al actualizar el video" });
   }
 }
+
+const reviewVideoContentSchema = z.object({
+  status: z.enum(["upload_media", "content_corrections"]),
+  contentReviewedBy: z.number(),
+  contentReviewComments: z.array(z.string())
+});
+type ReviewVideoOptimizationsSchema = z.infer<typeof reviewVideoContentSchema>;
+
+async function reviewVideoContent(req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role)
+    return res.status(403)
+      .json({ success: false, message: "No tienes permisos para editar videos" });
+
+  const videoId = parseInt(req.params.videoId);
+  const updates = req.body as ReviewVideoOptimizationsSchema;
+
+  // Validar body con schema
+  const validationResult = reviewVideoContentSchema.safeParse(updates);
+  if (!validationResult.success) {
+    return res.status(400).json({ success: false, message: validationResult.error.message });
+  }
+
+  try {
+    // Obtener el video actual para preservar los datos existentes
+    const [currentVideo] = await db
+      .select()
+      .from(videos)
+      .where( eq(videos.id, videoId) )
+      .limit(1);
+
+    if (!currentVideo) {
+      return res.status(404).json({ success: false, message: "Video no encontrado" });
+    }
+
+    if (currentVideo.status !== 'content_review') {
+      return res.status(400).json({ success: false, message: "No se puede revisar este video" })
+    }
+
+    // Actualizar el video
+    const [result] = await db
+      .update(videos)
+      .set({
+        status: updates.status,
+        updatedAt: new Date(),
+        contentReviewedBy: updates.contentReviewedBy,
+        contentReviewComments: updates.contentReviewComments,
+      })
+      .where( eq(videos.id, videoId) )
+      .returning();
+
+    return res.status(200).json({
+        success: true,
+        data: result,
+        message: "Video actualizado correctamente",
+      });
+  } catch (error) {
+    console.error("Error updating video:", error);
+    return res.status(500)
+      .json({ success: false, message: "Error al actualizar el video" });
+  }
+}
+
+const videoToMediaReviewSchema = z.object({
+  videoUrl: z.string().url(),
+  contentUploadedBy: z.number(),
+});
+type VideoToMediaReviewSchema = z.infer<typeof videoToMediaReviewSchema>;
+
+async function sendVideoToMediaReview(req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role)
+    return res.status(403)
+      .json({ success: false, message: "No tienes permisos para editar videos" });
+
+  const videoId = parseInt(req.params.videoId);
+  const updates = req.body as VideoToMediaReviewSchema;
+
+  // Validar body con schema
+  const validationResult = videoToMediaReviewSchema.safeParse(updates);
+  if (!validationResult.success) {
+    return res.status(400).json({ success: false, message: validationResult.error.message });
+  }
+
+  try {
+    // Obtener el video actual para preservar los datos existentes
+    const [currentVideo] = await db
+      .select()
+      .from(videos)
+      .where( eq(videos.id, videoId) )
+      .limit(1);
+
+    if (!currentVideo) {
+      return res.status(404).json({ success: false, message: "Video no encontrado" });
+    }
+
+    if (currentVideo.status !== 'upload_media') {
+      return res.status(400).json({ success: false, message: "No se puede revisar este video" })
+    }
+
+    // Actualizar el video
+    const [result] = await db
+      .update(videos)
+      .set({
+        status: 'media_review',
+        videoUrl: updates.videoUrl,
+        contentUploadedBy: updates.contentUploadedBy,
+      })
+      .where( eq(videos.id, videoId) )
+      .returning();
+
+    return res.status(200).json({
+        success: true,
+        data: result,
+        message: "Video actualizado correctamente",
+      });
+  } catch (error) {
+    console.error("Error updating video:", error);
+    return res.status(500)
+      .json({ success: false, message: "Error al actualizar el video" });
+  }
+}
+
 
 
 async function deleteVideo(req: Request, res: Response): Promise<Response> {
@@ -426,19 +596,30 @@ async function deleteVideo(req: Request, res: Response): Promise<Response> {
  * @param res Response con el resultado de la asignación
  * @returns Response con resultado de la operación
  */
-async function assignVideoToYoutuber(req: Request, res: Response): Promise<Response> {
+async function manageVideoYoutuber(req: Request, res: Response): Promise<Response> {
+
+  // Verificar que el usuario sea un youtuber
+  if (req.user!.role !== "youtuber" && req.user!.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: "Solo los youtubers pueden ser asignados a videos"
+    });
+  }
+
+  
   try {
     const projectId = parseInt(req.params.projectId);
     const videoId = parseInt(req.params.videoId);
 
-    // Verificar que el usuario sea un youtuber
-    if (req.user!.role !== "youtuber") {
-      return res.status(403).json({
+    const { mode } = req.body;
+
+    if (!mode || !['assign', 'unassign'].includes(mode)) {
+      return res.status(400).json({
         success: false,
-        message: "Solo los youtubers pueden ser asignados a videos"
+        message: 'Debe especificar el modo de operación (assign o unassign)',
       });
     }
-
+    
     // Verificar que el video exista y esté en estado upload_media
     const [video] = await db
       .select()
@@ -467,33 +648,34 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
     }
 
     // Si ya está asignado al mismo youtuber, no hacemos nada
-    if (video.contentUploadedBy === req.user!.id) {
-      return res.status(200).json({
-        success: true,
-        message: "El video ya está asignado a este youtuber",
-        videoId
-      });
-    }
-
     // Verificar si el youtuber ha alcanzado su límite de videos
     const { canTakeMore, currentCount, maxAllowed } = await canYoutuberTakeMoreVideos(req.user!.id);
+    
+    if (mode === 'assign') {
+        if (video.contentUploadedBy === req.user!.id) {
+          return res.status(200).json({
+            success: true,
+            message: "El video ya está asignado a este youtuber",
+            videoId
+          });
+        }
 
-    console.log(`Usuario ${req.user!.id} - Límite de videos:`, { canTakeMore, currentCount, maxAllowed });
+        console.log(`Usuario ${req.user!.id} - Límite de videos:`, { canTakeMore, currentCount, maxAllowed });
 
-    if (!canTakeMore) {
-      return res.status(403).json({
-        success: false,
-        message: `Has alcanzado tu límite de ${maxAllowed} videos asignados simultáneamente`,
-        currentCount,
-        maxAllowed
-      });
+        if (!canTakeMore) {
+          return res.status(403).json({
+            success: false,
+            message: `Has alcanzado tu límite de ${maxAllowed} videos asignados simultáneamente`,
+            currentCount,
+            maxAllowed
+          });
+        }
     }
-
-    // Asignar el video al youtuber actual
+    
     const [updatedVideo] = await db
       .update(videos)
       .set({
-        contentUploadedBy: req.user!.id
+        contentUploadedBy: mode === 'assign' ? req.user!.id : null
       })
       .where(and(
         eq(videos.id, videoId),
@@ -504,23 +686,23 @@ async function assignVideoToYoutuber(req: Request, res: Response): Promise<Respo
     if (!updatedVideo) {
       return res.status(500).json({
         success: false,
-        message: "Error al asignar el video"
+        message: "Error al asignar/desasignar el video"
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Video asignado correctamente",
+      message: "Video asignado/desasignado correctamente",
       videoId,
-      currentCount: currentCount + 1, // Incrementar porque acabamos de asignar uno
+      currentCount: mode === 'asign' ? currentCount + 1 : currentCount - 1, // Incrementar porque acabamos de asignar uno
       maxAllowed
     });
 
   } catch (error: any) {
-    console.error("Error al asignar video:", error);
+    console.error("Error al asignar/desasignar video:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Error al asignar el video",
+      message: error.message || "Error al asignar/desasignar el video",
       stack: process.env.NODE_ENV === "development" && error instanceof Error ? error.stack : undefined
     });
   }
@@ -1499,10 +1681,13 @@ export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next
 
   // Actualización de videos
   app.patch("/api/projects/:projectId/videos/:videoId", requireAuth, updateVideo);
-  app.patch("/api/projects/:projectId/videos/:videoId/sendToReview", requireAuth, sendVideoToReview);
+  app.patch("/api/projects/:projectId/videos/:videoId/assignOptimizer", requireAuth, assignOptimizerToVideo);
+  app.patch("/api/projects/:projectId/videos/:videoId/sendToContentReview", requireAuth, sendVideoToContentReview);
+   app.patch("/api/projects/:projectId/videos/:videoId/reviewContent", requireAuth, reviewVideoContent);
+  app.patch("/api/projects/:projectId/videos/:videoId/sendToMediaReview", requireAuth, sendVideoToMediaReview);
 
   // Asignación de video a youtuber cuando lo visualiza
-  app.post("/api/projects/:projectId/videos/:videoId/assign", requireAuth, assignVideoToYoutuber);
+  app.post("/api/projects/:projectId/videos/:videoId/manageYoutuber", requireAuth, manageVideoYoutuber);
 
   // Eliminación de videos (mover a papelera o eliminación permanente)
   app.delete("/api/projects/:projectId/videos/:videoId", requireAuth, deleteVideo);

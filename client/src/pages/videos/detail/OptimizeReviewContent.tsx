@@ -14,38 +14,36 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@/hooks/use-user";
-import { UpdateVideoData, ApiVideo } from "@/hooks/useVideos";
+import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ContentReviewDetailProps {
   video: ApiVideo;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
 export function ContentReviewDetail({
   video,
-  onUpdate,
 }: ContentReviewDetailProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [titleCorrections, setTitleCorrections] = useState<string | undefined>(
-    undefined,
-  );
+  const [titleCorrections, setTitleCorrections] = useState<string | undefined>(undefined);
+  const { reviewContent } = useVideos()
   const { user } = useUser();
 
-  function handleSubmit(approve: boolean) {
+  async function handleSubmit(approve: boolean) {
     if (!approve && !titleCorrections?.trim()) return;
 
     setIsSubmitting(true);
 
     try {
-      onUpdate({
+      await reviewContent({
+        projectId: video.projectId,
+        videoId: video.id,
         status: approve ? "upload_media" : "content_corrections",
-        contentReviewedBy: user?.id,
         contentReviewComments: titleCorrections
-          ? [...(video.contentReviewComments ?? []), titleCorrections.trim()]
-          : video.contentReviewComments ?? [],
-      });
+        ? [...(video.contentReviewComments ?? []), titleCorrections.trim()]
+        : video.contentReviewComments ?? [],
+        contentReviewedBy: user?.id
+      })
     } catch (error) {
       console.error("Error al enviar los cambios:", error);
     } finally {
@@ -54,7 +52,7 @@ export function ContentReviewDetail({
   }
 
   return (
-    <ScrollArea className="h-auto max-h-[70vh]">
+    <ScrollArea className="h-auto max-h-[75vh] overflow-y-auto">
       <div className="mt-2 p-4">
         {/* Título optimizado con layout de 2 columnas */}
         <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">

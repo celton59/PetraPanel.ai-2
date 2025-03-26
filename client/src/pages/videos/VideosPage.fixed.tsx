@@ -2,10 +2,7 @@ import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos, SortConfig } from "@/hooks/useVideos";
 import { VideoPaginationControls } from "./components/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
-import { VideoBadges } from "@/components/video/VideoBadges";
-import { VideoAffiliates } from "@/components/video/VideoAffiliates";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
-import { useVideoAffiliates } from "@/hooks/useVideoAffiliates";
 import { AffiliateIcon } from "@/components/video/AffiliateIcon";
 // Importamos el nuevo badge para límites de videos
 import { VideoLimitsBadge } from "@/components/video/VideoLimitsBadge";
@@ -59,6 +56,7 @@ import type { DateRange } from "react-day-picker";
 import { getStatusBadgeColor, getStatusLabel } from "@/lib/status-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { User, VideoStatus } from "@db/schema";
+import { UserBadges } from "@/components/video/UserBadges";
 
 // Estados visibles por rol
 const VISIBLE_STATES: Record<User['role'], string[]> = {
@@ -123,7 +121,7 @@ export default function VideosPage() {
     deleteVideo,
     updateVideo,
     bulkDeleteVideos,
-    assignVideoToYoutuber,
+    manageVideoYoutuber,
     pagination,
     page,
     setPage,
@@ -256,9 +254,10 @@ export default function VideosPage() {
     ) {
       try {
         // Intentar asignar el video al youtuber
-        await assignVideoToYoutuber({
+        await manageVideoYoutuber({
           videoId: video.id,
-          projectId: video.projectId
+          projectId: video.projectId,
+          mode: 'assign',
         });
         // No es necesario un toast aquí porque es una operación transparente para el usuario
       } catch (error: any) {
@@ -630,12 +629,15 @@ export default function VideosPage() {
                           getStatusBadgeColor(video.status)
                         )}
                       >
-                        {getStatusLabel(user!.role, video)}
+                        {getStatusLabel(video)}
                       </Badge>
                     </TableCell>
                     {/* Contributors */}
                     <TableCell>
-                      <VideoBadges video={video} compact={true} />
+                      <div className="flex flex-wrap gap-2">
+                        {/* Badges de usuarios asignados */}
+                        <UserBadges video={video} compact={true} />
+                      </div>
                     </TableCell>
                     {/* Updated */}
                     <TableCell className="text-muted-foreground text-sm">
@@ -783,7 +785,7 @@ export default function VideosPage() {
                     getStatusBadgeColor(video.status)
                   )}
                 >
-                  {getStatusLabel(user!.role, video)}
+                  {getStatusLabel(video)}
                 </Badge>
                 <div className="text-xs text-muted-foreground">
                   {video.updatedAt ? formatDate(video.updatedAt) : ""}
@@ -792,7 +794,10 @@ export default function VideosPage() {
 
               {/* Colaboradores */}
               <div className="mt-3 mb-1">
-                <VideoBadges video={video} compact={true} />
+                <div className="flex flex-wrap gap-2">
+                  {/* Badges de usuarios asignados */}
+                  <UserBadges video={video} compact={true} />
+                </div>
               </div>
             </div>
           </div>
@@ -878,7 +883,7 @@ export default function VideosPage() {
                     getStatusBadgeColor(video.status)
                   )}
                 >
-                  {getStatusLabel(user!.role, video)}
+                  {getStatusLabel(video)}
                 </Badge>
 
                 <div className="text-xs text-muted-foreground">
@@ -888,7 +893,10 @@ export default function VideosPage() {
 
               {/* Colaboradores */}
               <div className="mt-2">
-                <VideoBadges video={video} compact={true} />
+                <div className="flex flex-wrap gap-2">
+                  {/* Badges de usuarios asignados */}
+                  <UserBadges video={video} compact={true} />
+                </div>
               </div>
             </div>
 

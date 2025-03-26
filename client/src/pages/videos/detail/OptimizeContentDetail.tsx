@@ -5,8 +5,7 @@ import type { Video } from "@db/schema";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UpdateVideoData } from "@/hooks/useVideos";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
@@ -25,18 +24,10 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { useUser } from "@/hooks/use-user";
+import { OptimizeContentDetailData } from '@/hooks/useVideos'
 
 interface OptimizeContentDetailProps {
   video: Video;
-  onUpdate: (data: UpdateVideoData, keepDialog?: boolean) => Promise<void>;
-}
-
-interface OptimizeContentDetailUpdateData { 
-  optimizedBy?: number
-  optimizedDescription?: string
-  optimizedTitle?: string
-  projectId: number
-  videoId: number 
 }
 
 type FormValues = Partial<UpdateVideoData>;
@@ -45,26 +36,30 @@ const MAX_TITLE_LENGTH = 100;
 
 export function OptimizeContentDetail({
   video,
-  onUpdate,
 }: OptimizeContentDetailProps) {
-  
+
+  const { sendVideoToContentReview: sendVideoToReview, assignOptimizer } = useVideos()
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Establecer el optimizador automáticamente al cargar
   useEffect(() => {
-    if (!video.optimizedBy) {
-      try {
-        console.log("Datos de actualización:", { optimizedBy: user!.id! });
-        onUpdate({ optimizedBy: user!.id! }, true);
-      } catch (error) {
-        console.error("Error al actualizar el optimizador:", error);
-      }
-    }
+
+    if (Boolean(video.optimizedBy))
+      return
+    
+    assignOptimizer({
+      optimizedBy: user!.id!,
+      videoId: video.id,
+      projectId: video.projectId,
+    }).catch( error => {
+      console.error("Error al actualizar el optimizador:", error);
+    })
+    
   }, [video.id]);
 
-  const form = useForm<FormValues>({
+  const form = useForm<OptimizeContentDetailData>({
     defaultValues: {
       optimizedDescription:
         video.optimizedDescription || video.description || "",
@@ -87,12 +82,13 @@ export function OptimizeContentDetail({
   async function handleSubmit(formData: FormValues) {
     setIsSubmitting(true);
     try {
-      await onUpdate({
+      await sendVideoToReview({
+        projectId: video.projectId,
+        videoId: video.id,
+        optimizedBy: user!.id!,
         optimizedDescription: formData.optimizedDescription,
-        tags: formData.tags,
         optimizedTitle: formData.optimizedTitle,
-        status: "content_review",
-        optimizedBy: user!.id!
+        tags: formData.tags
       });
     } catch (error) {
       console.error("Error al actualizar el video:", error);

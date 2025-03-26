@@ -769,7 +769,7 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
 
         <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           {/* Stepper */}
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center" style={{ marginBottom: '3rem'}}>
             <div className="flex items-center">
               <div className="relative">
                 <div

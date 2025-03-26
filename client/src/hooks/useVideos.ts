@@ -20,6 +20,7 @@ export type SortConfig = {
 
 export type UpdateVideoData = Omit<Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl'>;
 
+
 export type ApiVideo = Video & {
   contentReviewerName: User["fullName"] | null;
   contentReviewerUsername: User["username"];
@@ -85,6 +86,7 @@ export function useVideos() {
     gcTime: 30 * 60 * 1000
   });
 
+  // Create Video
   const createVideoMutation = useMutation({
     mutationFn: async (video: Pick<Video, "title" | "description" | "projectId">) => {
       
@@ -124,6 +126,7 @@ export function useVideos() {
     },
   });
 
+  // Create Bulk Videos
   const createBulkVideosMutation = useMutation({
     mutationFn: async ({ projectId, titles }: { projectId: number, titles: string[] }) => {
       
@@ -165,6 +168,7 @@ export function useVideos() {
     },
   });
 
+  // Update Video
   const updateVideoMutation = useMutation({
     mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
       
@@ -205,12 +209,54 @@ export function useVideos() {
     },
   });
 
-  const sendVideoToReviewMutation = useMutation({
-    mutationFn: async ({ optimizedBy, optimizedDescription, optimizedTitle, projectId, videoId }: { optimizedBy?: number; optimizedDescription?: string, optimizedTitle?: string, projectId: number, videoId: number }) => {
+  // Assign Optimizer
+  const assignOptimizerMutation = useMutation({
+    mutationFn: async ({ optimizedBy, projectId, videoId }: { optimizedBy: number, projectId: number, videoId: number }) => {
 
       try {
         await refreshCSRFToken();
-        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/sendToReview`, {
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/assignOptimizer`, {
+          optimizedBy,
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
+    },
+  });
+
+  // Send Video to Content Review
+  const sendVideoToContentReviewMutation = useMutation({
+    mutationFn: async ({ optimizedBy, optimizedDescription, optimizedTitle, projectId, videoId }: OptimizeContentDetailData) => {
+
+      try {
+        await refreshCSRFToken();
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/sendToContentReview`, {
           optimizedBy,
           optimizedDescription,
           optimizedTitle
@@ -246,7 +292,140 @@ export function useVideos() {
       }
     },
   });
+  
+  // Review Content
+  const reviewVideoContentMutation = useMutation({
+    mutationFn: async ({ status, contentReviewedBy, contentReviewComments, projectId, videoId }: ReviewVideoContentlData) => {
 
+      try {
+        await refreshCSRFToken();
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/reviewContent`, {
+          status,
+          contentReviewedBy,
+          contentReviewComments
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
+    },
+  });
+
+  // Send Video to Media Review
+  const sendVideoToMediaReviewMutation = useMutation({
+    mutationFn: async ({ contentUploadedBy, videoUrl, projectId, videoId }: SendVideoToMediaReviewData) => {
+
+      try {
+        await refreshCSRFToken();
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/sendToMediaReview`, {
+          contentUploadedBy,
+          videoUrl
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
+    },
+  });
+
+  // Assign Video to Youtuber
+  const manageVideoYoutuberMutation = useMutation({
+    mutationFn: async ({videoId, projectId, mode }: { videoId: number, projectId: number, mode: 'assign' | 'unassign' }) => {
+
+      try {
+        await refreshCSRFToken();
+        const response = await                       api.post(`/api/projects/${projectId}/videos/${videoId}/manageYoutuber`, {
+          mode
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error assigning video to youtuber:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        if (error.response?.status === 403 && error.response?.data?.message?.includes('asignado a otro youtuber')) {
+          throw new Error(error.response?.data?.message || "Este video ya está asignado a otro youtuber");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al asignar el video");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["video-limits"] });
+    },
+    onError: (error: Error) => {
+      if (!error.message.includes('ya está asignado a este youtuber')) {
+        if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+          toast.error("Error de seguridad", {
+            description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+          });
+        } else if (error.message.includes('asignado a otro youtuber')) {
+          toast.error("Video no disponible", {
+            description: "Este video ya está siendo trabajado por otro youtuber",
+          });
+        } else {
+          toast.error("Error", {
+            description: error.message || "No se pudo asignar el video",
+          });
+        }
+      }
+    },
+  });
+
+  // Delete Video
   const deleteVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId, permanent = false } : { videoId: number, projectId: number, permanent?: boolean }) => {
       
@@ -287,6 +466,7 @@ export function useVideos() {
     },
   });
 
+  // Bulk Delete Videos
   const bulkDeleteVideosMutation = useMutation({
     mutationFn: async ({projectId, videoIds, permanent = false} : { projectId: number, videoIds: number[], permanent?: boolean }) => {
       
@@ -329,6 +509,7 @@ export function useVideos() {
     },
   });
 
+  // Restore Video
   const restoreVideoMutation = useMutation({
     mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
       
@@ -367,6 +548,7 @@ export function useVideos() {
     },
   });
 
+  // Empty Trash
   const emptyTrashMutation = useMutation({
     mutationFn: async ({projectId}: { projectId: number }) => {
       
@@ -405,6 +587,7 @@ export function useVideos() {
     },
   });
 
+  // Get Trash Videos
   const getTrashVideos = useCallback(async ({projectId}: { projectId: number }): Promise<ApiVideo[]> => {
     try {
       
@@ -416,49 +599,6 @@ export function useVideos() {
     }
   }, []);
 
-  const assignVideoToYoutuberMutation = useMutation({
-    mutationFn: async ({videoId, projectId}: { videoId: number, projectId: number }) => {
-      
-      try {
-        await refreshCSRFToken();
-        const response = await api.post(`/api/projects/${projectId}/videos/${videoId}/assign`);
-        return response.data;
-      } catch (error: any) {
-        console.error("Error assigning video to youtuber:", error);
-        if (error.response?.status === 403 && 
-            (error.response?.data?.message?.includes('CSRF') || 
-             error.response?.data?.message?.includes('token') || 
-             error.response?.data?.message?.includes('Token'))) {
-          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
-        }
-        if (error.response?.status === 403 && error.response?.data?.message?.includes('asignado a otro youtuber')) {
-          throw new Error(error.response?.data?.message || "Este video ya está asignado a otro youtuber");
-        }
-        throw new Error(error.response?.data?.message || error.message || "Error al asignar el video");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: ["video-limits"] });
-    },
-    onError: (error: Error) => {
-      if (!error.message.includes('ya está asignado a este youtuber')) {
-        if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
-          toast.error("Error de seguridad", {
-            description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
-          });
-        } else if (error.message.includes('asignado a otro youtuber')) {
-          toast.error("Video no disponible", {
-            description: "Este video ya está siendo trabajado por otro youtuber",
-          });
-        } else {
-          toast.error("Error", {
-            description: error.message || "No se pudo asignar el video",
-          });
-        }
-      }
-    },
-  });
 
   const pagination: PaginationMetadata = videosData?.pagination || {
     page,
@@ -488,7 +628,34 @@ export function useVideos() {
     restoreVideo: restoreVideoMutation.mutateAsync,
     emptyTrash: emptyTrashMutation.mutateAsync,
     getTrashVideos,
-    assignVideoToYoutuber: assignVideoToYoutuberMutation.mutateAsync,
-    sendVideoToReview: sendVideoToReviewMutation.mutateAsync,
+    manageVideoYoutuber: manageVideoYoutuberMutation.mutateAsync,
+    sendVideoToContentReview: sendVideoToContentReviewMutation.mutateAsync,
+    assignOptimizer: assignOptimizerMutation.mutateAsync,
+    reviewContent: reviewVideoContentMutation.mutateAsync,
+    sendVideoToMediaReview: sendVideoToMediaReviewMutation.mutateAsync
   };
+}
+
+export interface OptimizeContentDetailData { 
+  optimizedBy?: number
+  optimizedDescription?: string | null
+  optimizedTitle?: string | null
+  projectId: number
+  videoId: number 
+  tags?: string | null
+}
+
+export interface ReviewVideoContentlData { 
+  projectId: number
+  videoId: number 
+  status?: "upload_media" | "content_corrections"
+  contentReviewedBy?: number
+  contentReviewComments: string[]
+}
+
+export interface SendVideoToMediaReviewData { 
+  projectId: number
+  videoId: number 
+  videoUrl?: string
+  contentUploadedBy?: number
 }

@@ -51,20 +51,6 @@ export const DETAILS_PERMISSION: Record<User["role"], VideoStatus[]> = {
 };
 
 /**
- * Verifica si un usuario puede ver un video basado en su rol y el estado del video
- * @param userRole Rol del usuario
- * @param videoStatus Estado del video
- * @returns True si el usuario puede ver el video, false en caso contrario
- */
-export function canUserSeeVideo(userRole: User["role"], videoStatus: string): boolean {
-  // Admin puede ver todos los videos
-  if (userRole === "admin") return true;
-  
-  // Para otros roles, verificar si el estado está en su lista de estados visibles
-  return VISIBLE_STATES[userRole].includes(videoStatus as any);
-}
-
-/**
  * Verifica si un usuario puede ver los detalles de un video basado en su rol y el estado del video
  * @param userRole Rol del usuario
  * @param videoStatus Estado del video
