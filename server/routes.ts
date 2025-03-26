@@ -59,20 +59,6 @@ export function registerRoutes(app: Express): Server {
       });
     });
     
-    // Ruta para obtener el usuario autenticado actualmente
-    app.get("/api/user", (req: Request, res: Response) => {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
-      
-      // Eliminamos la contraseña del objeto del usuario
-      const userWithoutPassword = { ...req.user };
-      // @ts-ignore: eliminamos contraseña de forma segura
-      delete userWithoutPassword.password;
-      
-      return res.json(userWithoutPassword);
-    });
-    
 
     // Serve uploaded files
     app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
