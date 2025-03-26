@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentIcon, MoneyIcon, TasksIcon, PendingIcon } from "@/components/CustomIcons";
 import StatsCard from "@/components/StatsCard";
-import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon, Bell, Link as LinkIcon } from "lucide-react";
+import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon, Bell, Link as LinkIcon, MessageSquareHeart } from "lucide-react";
 import ActionCard from '@/components/ActionCard';
 import { RolesTab } from './configuration/tabs/roles/RolesTab';
 import { UsersTab } from './configuration/tabs/users/UsersTab';

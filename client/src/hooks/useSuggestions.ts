@@ -55,6 +55,8 @@ export function useSuggestions() {
         throw error;
       }
     },
+    retry: 1, // Limitar a un único reintento para evitar múltiples errores
+    refetchOnWindowFocus: false, // No refrescar automáticamente al enfocar la ventana
   });
 
   // Obtener todas las sugerencias (para administradores)
@@ -77,6 +79,8 @@ export function useSuggestions() {
         throw error;
       }
     },
+    retry: 1, // Limitar a un único reintento para evitar múltiples errores en el widget
+    refetchOnWindowFocus: false, // No refrescar automáticamente al enfocar la ventana
   });
 
   // Obtener categorías disponibles

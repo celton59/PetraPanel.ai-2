@@ -35,6 +35,30 @@ export function SuggestionsWidget() {
     );
   }
   
+  // Si hay error, mostrar un widget simplificado
+  if (allSuggestions.isError) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Sugerencias Pendientes</CardTitle>
+          <MessageSquareHeart className="h-4 w-4 text-primary" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">--</div>
+          <p className="text-xs text-muted-foreground">Cargando datos...</p>
+        </CardContent>
+        <CardFooter className="p-0">
+          <Link href="/sugerencias">
+            <Button variant="ghost" className="w-full h-9 px-4 py-2 rounded-t-none justify-between">
+              <span>Gestionar sugerencias</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </CardFooter>
+      </Card>
+    );
+  }
+  
   // Contar sugerencias pendientes y recientes
   const suggestions = allSuggestions.data || [];
   const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
