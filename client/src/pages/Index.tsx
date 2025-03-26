@@ -47,6 +47,14 @@ const Index = () => {
       </motion.div>
 
       <motion.div variants={itemVariants} className="grid gap-4 md:gap-6">
+        {/* Sugerencias */}
+        <motion.div variants={itemVariants}>
+          <h3 className="text-xl font-semibold mb-4">Sugerencias pendientes de revisión</h3>
+          <div className="max-w-xl">
+            <SuggestionsWidget />
+          </div>
+        </motion.div>
+        
         {/* Action cards */}
         <motion.div variants={itemVariants}>
           <h3 className="text-xl font-semibold mb-4">Acciones rápidas</h3>
@@ -73,13 +81,6 @@ const Index = () => {
           <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4">
             <h3 className="text-xl font-semibold mb-4">Rendimiento</h3>
             <PerformanceStats />
-          </motion.div>
-          
-          <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4">
-            <h3 className="text-xl font-semibold mb-4">Sugerencias</h3>
-            <div className="py-2">
-              <SuggestionsWidget />
-            </div>
           </motion.div>
 
           <motion.div variants={itemVariants} className="lg:col-span-2 border border-muted/40 rounded-lg p-4">
