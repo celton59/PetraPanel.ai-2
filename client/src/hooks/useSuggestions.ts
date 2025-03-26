@@ -32,60 +32,68 @@ export function useSuggestions() {
   });
 
   // Obtener las sugerencias del usuario actual
-  const userSuggestions = useQuery({
+  const userSuggestions = useQuery<Suggestion[]>({
     queryKey: ['suggestions', 'user'],
     queryFn: async () => {
-      const { data } = await axios.get<Suggestion[]>('/api/suggestions/user');
-      return data;
-    },
-    onError: (error) => {
-      console.error('Error al obtener sugerencias:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar tus sugerencias. Intenta de nuevo más tarde.',
-        variant: 'destructive',
-      });
+      try {
+        const { data } = await axios.get<Suggestion[]>('/api/suggestions/user');
+        return data;
+      } catch (error) {
+        console.error('Error al obtener sugerencias:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar tus sugerencias. Intenta de nuevo más tarde.',
+          variant: 'destructive',
+        });
+        return [];
+      }
     },
   });
 
   // Obtener todas las sugerencias (para administradores)
-  const allSuggestions = useQuery({
+  const allSuggestions = useQuery<Suggestion[]>({
     queryKey: ['suggestions', 'all', filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters.status) params.append('status', filters.status);
-      if (filters.category) params.append('category', filters.category);
-      if (filters.search) params.append('search', filters.search);
+      try {
+        const params = new URLSearchParams();
+        if (filters.status) params.append('status', filters.status);
+        if (filters.category) params.append('category', filters.category);
+        if (filters.search) params.append('search', filters.search);
 
-      const { data } = await axios.get<Suggestion[]>(`/api/suggestions?${params.toString()}`);
-      return data;
-    },
-    onError: (error) => {
-      console.error('Error al obtener todas las sugerencias:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar las sugerencias. Intenta de nuevo más tarde.',
-        variant: 'destructive',
-      });
+        const { data } = await axios.get<Suggestion[]>(`/api/suggestions?${params.toString()}`);
+        return data;
+      } catch (error) {
+        console.error('Error al obtener todas las sugerencias:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar las sugerencias. Intenta de nuevo más tarde.',
+          variant: 'destructive',
+        });
+        return [];
+      }
     },
   });
 
   // Obtener categorías disponibles
-  const categories = useQuery({
+  const defaultCategories = ['general', 'interfaz', 'funcionalidad', 'rendimiento', 'bug', 'optimización'];
+  
+  const categories = useQuery<string[]>({
     queryKey: ['suggestions', 'categories'],
     queryFn: async () => {
-      const { data } = await axios.get<string[]>('/api/suggestions/categories');
-      return data;
+      try {
+        const { data } = await axios.get<string[]>('/api/suggestions/categories');
+        return data;
+      } catch (error) {
+        console.error('Error al obtener categorías:', error);
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar las categorías. Usando valores predeterminados.',
+          variant: 'destructive',
+        });
+        return defaultCategories;
+      }
     },
-    onError: (error) => {
-      console.error('Error al obtener categorías:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar las categorías. Usando valores predeterminados.',
-        variant: 'destructive',
-      });
-      return ['general', 'interfaz', 'funcionalidad', 'rendimiento', 'bug', 'optimización'];
-    },
+    placeholderData: defaultCategories,
   });
 
   // Crear una nueva sugerencia

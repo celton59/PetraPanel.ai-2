@@ -86,7 +86,7 @@ export function SuggestionForm() {
                           Cargando...
                         </div>
                       ) : (
-                        categories.data?.map((category) => (
+                        (categories.data || []).map((category: string) => (
                           <SelectItem key={category} value={category}>
                             {category.charAt(0).toUpperCase() + category.slice(1)}
                           </SelectItem>

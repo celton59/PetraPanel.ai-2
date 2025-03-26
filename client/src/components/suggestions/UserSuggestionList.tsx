@@ -91,9 +91,9 @@ export function UserSuggestionList() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {suggestions && suggestions.length > 0 ? (
+        {suggestions && (suggestions.length > 0) ? (
           <div className="space-y-4">
-            {suggestions.map((suggestion) => (
+            {(suggestions || []).map((suggestion: Suggestion) => (
               <div key={suggestion.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">{suggestion.title}</h3>

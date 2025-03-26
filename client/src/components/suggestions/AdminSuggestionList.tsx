@@ -186,7 +186,7 @@ export function AdminSuggestionList() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Todas las categorías</SelectItem>
-                  {categories.data?.map((category) => (
+                  {(categories.data || []).map((category: string) => (
                     <SelectItem key={category} value={category}>
                       {category.charAt(0).toUpperCase() + category.slice(1)}
                     </SelectItem>
@@ -216,9 +216,9 @@ export function AdminSuggestionList() {
           </div>
         )}
 
-        {suggestions && suggestions.length > 0 ? (
+        {suggestions && (suggestions.length > 0) ? (
           <div className="space-y-4">
-            {suggestions.map((suggestion) => (
+            {(suggestions || []).map((suggestion: any) => (
               <div key={suggestion.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">{suggestion.title}</h3>
