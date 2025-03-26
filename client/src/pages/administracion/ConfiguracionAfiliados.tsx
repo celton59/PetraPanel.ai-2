@@ -43,7 +43,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, X, Check, Save, PlusCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Check, Save, PlusCircle, Upload, FileText, AlertCircle } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface AffiliateCompany {
   id: number;
@@ -83,6 +89,11 @@ export default function ConfiguracionAfiliados() {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<AffiliateCompany | null>(null);
+  
+  // Estados para la importación masiva
+  const [bulkImportDialogOpen, setBulkImportDialogOpen] = useState(false);
+  const [bulkNames, setBulkNames] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     fetchCompanies();

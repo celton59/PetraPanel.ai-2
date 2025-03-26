@@ -15,6 +15,11 @@ const affiliateCompanySchema = z.object({
   active: z.boolean().optional()
 });
 
+// Esquema para creación masiva de empresas (solo nombres)
+const bulkCompanySchema = z.object({
+  names: z.array(z.string().min(2, "Cada nombre debe tener al menos 2 caracteres"))
+});
+
 /**
  * Obtiene todas las empresas afiliadas
  */
@@ -420,6 +425,95 @@ async function notifyYoutuberAboutAffiliate(videoId: number, company: any): Prom
 }
 
 /**
+ * Crea múltiples empresas afiliadas a partir de una lista de nombres
+ */
+async function createBulkAffiliateCompanies(req: Request, res: Response) {
+  try {
+    const result = bulkCompanySchema.safeParse(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Datos inválidos', 
+        details: result.error.format() 
+      });
+    }
+    
+    const { names } = result.data;
+    
+    // Si no hay nombres, devolver error
+    if (names.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'No se proporcionaron nombres de empresas'
+      });
+    }
+    
+    // Limitar a un máximo razonable para evitar sobrecarga
+    const limitedNames = names.slice(0, 100);
+    console.log(`Procesando ${limitedNames.length} nombres de empresas`);
+    
+    // Obtener empresas existentes para verificar duplicados
+    const existingCompanies = await db.query.affiliateCompanies.findMany({
+      columns: { name: true }
+    });
+    const existingNames = new Set(existingCompanies.map(c => c.name.toLowerCase()));
+    
+    // Filtrar solo los nombres que no existen
+    const newNames = limitedNames.filter(name => !existingNames.has(name.toLowerCase()));
+    const duplicateNames = limitedNames.filter(name => existingNames.has(name.toLowerCase()));
+    
+    // Si todos los nombres ya existen, devolver error
+    if (newNames.length === 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Todas las empresas proporcionadas ya existen',
+        totalDuplicates: duplicateNames.length,
+        duplicateNames
+      });
+    }
+    
+    // Insertamos las nuevas empresas
+    const companiesToInsert = newNames.map(name => ({
+      name,
+      description: null,
+      logo_url: null,
+      affiliate_url: 'https://pendiente.com', // URL temporal - se deberá actualizar posteriormente
+      keywords: [],
+      active: false // Por defecto inactivas hasta que se configuren adecuadamente
+    }));
+    
+    // Insertar en lotes para evitar problemas con grandes cantidades
+    const BATCH_SIZE = 20;
+    let insertedCount = 0;
+    const newCompanies = [];
+    
+    for (let i = 0; i < companiesToInsert.length; i += BATCH_SIZE) {
+      const batch = companiesToInsert.slice(i, i + BATCH_SIZE);
+      const result = await db.insert(affiliateCompanies).values(batch).returning();
+      insertedCount += result.length;
+      newCompanies.push(...result);
+    }
+    
+    return res.status(201).json({
+      success: true,
+      message: `${insertedCount} empresas afiliadas creadas correctamente`,
+      totalProcessed: limitedNames.length,
+      newCompanies,
+      skippedCount: duplicateNames.length,
+      skippedNames: duplicateNames
+    });
+    
+  } catch (error) {
+    console.error('Error al crear empresas afiliadas en masa:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al crear empresas afiliadas en masa'
+    });
+  }
+}
+
+/**
  * Configura las rutas para el controlador de afiliados
  */
 export function setupAffiliateRoutes(
@@ -429,6 +523,7 @@ export function setupAffiliateRoutes(
   // Rutas para gestión de empresas afiliadas
   app.get('/api/affiliates/companies', requireAuth, getAffiliateCompanies);
   app.post('/api/affiliates/companies', requireAuth, createAffiliateCompany);
+  app.post('/api/affiliates/companies/bulk', requireAuth, createBulkAffiliateCompanies);
   app.put('/api/affiliates/companies/:id', requireAuth, updateAffiliateCompany);
   app.delete('/api/affiliates/companies/:id', requireAuth, deleteAffiliateCompany);
   
