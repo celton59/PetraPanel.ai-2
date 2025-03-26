@@ -514,6 +514,41 @@ async function createBulkAffiliateCompanies(req: Request, res: Response) {
 }
 
 /**
+ * Elimina todas las empresas afiliadas
+ */
+async function deleteAllAffiliateCompanies(req: Request, res: Response) {
+  try {
+    // Esta es una operación potencialmente peligrosa, así que verificamos que sea un administrador
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Solo los administradores pueden realizar esta operación' 
+      });
+    }
+    
+    // Eliminar registros de coincidencias primero para mantener integridad referencial
+    await db.delete(videoAffiliateMatches);
+    
+    // Eliminar todas las empresas
+    const deleteResult = await db.delete(affiliateCompanies).returning({ deletedId: affiliateCompanies.id });
+    
+    const deletedCount = deleteResult.length;
+    
+    return res.json({
+      success: true,
+      message: `${deletedCount} empresas afiliadas eliminadas correctamente`,
+      deletedCount
+    });
+  } catch (error) {
+    console.error('Error al eliminar todas las empresas afiliadas:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al eliminar empresas afiliadas' 
+    });
+  }
+}
+
+/**
  * Configura las rutas para el controlador de afiliados
  */
 export function setupAffiliateRoutes(
@@ -526,6 +561,7 @@ export function setupAffiliateRoutes(
   app.post('/api/affiliates/companies/bulk', requireAuth, createBulkAffiliateCompanies);
   app.put('/api/affiliates/companies/:id', requireAuth, updateAffiliateCompany);
   app.delete('/api/affiliates/companies/:id', requireAuth, deleteAffiliateCompany);
+  app.delete('/api/affiliates/companies', requireAuth, deleteAllAffiliateCompanies);
   
   // Rutas para coincidencias de afiliados en videos
   app.get('/api/affiliates/videos/:videoId/matches', requireAuth, getVideoAffiliateMatches);

@@ -370,6 +370,32 @@ export default function ConfiguracionAfiliados() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  if (window.confirm('¿Estás seguro de que deseas eliminar TODAS las empresas afiliadas? Esta acción no se puede deshacer.')) {
+                    axios.delete('/api/affiliates/companies')
+                      .then(response => {
+                        toast({
+                          title: 'Éxito',
+                          description: `${response.data.deletedCount} empresas afiliadas eliminadas correctamente`,
+                        });
+                        fetchCompanies();
+                      })
+                      .catch(error => {
+                        console.error('Error al eliminar todas las empresas:', error);
+                        toast({
+                          variant: 'destructive',
+                          title: 'Error',
+                          description: error.response?.data?.error || 'No se pudieron eliminar las empresas'
+                        });
+                      });
+                  }
+                }} 
+                variant="outline" 
+                className="bg-red-50 text-red-600 hover:bg-red-100"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Eliminar Todas
+              </Button>
               <Button onClick={handleOpenBulkImport} variant="outline">
                 <Upload className="mr-2 h-4 w-4" /> Importar en Masa
               </Button>
