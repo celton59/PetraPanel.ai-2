@@ -479,8 +479,8 @@ async function createBulkAffiliateCompanies(req: Request, res: Response) {
       description: null,
       logo_url: null,
       affiliate_url: 'https://pendiente.com', // URL temporal - se deberá actualizar posteriormente
-      keywords: [],
-      active: false // Por defecto inactivas hasta que se configuren adecuadamente
+      keywords: [name], // La primera palabra clave es el nombre de la empresa
+      active: true // Por defecto activas como solicitado por el usuario
     }));
     
     // Insertar en lotes para evitar problemas con grandes cantidades
