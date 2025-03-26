@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Loader2, Upload, Cloud, Send } from "lucide-react";
+import { AlertCircle, Loader2, Upload, Cloud, Send, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ApiVideo, UpdateVideoData } from "@/hooks/useVideos";
@@ -17,6 +17,7 @@ import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
 import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
 import { motion, AnimatePresence } from "framer-motion";
 import { AffiliateManager } from "@/components/video/AffiliateManager";
+import { AffiliateInfoDialog } from "@/components/video/AffiliateInfoDialog";
 
 // Estado inicial de progreso vacío
 const emptyProgressState: UploadProgressState = {
@@ -321,13 +322,39 @@ export function MediaCorrectionsDetail({
           />
         </motion.div>
 
+        {/* Información sobre enlaces de afiliación */}
+        <motion.div 
+          className="mt-6 mb-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-4 relative overflow-hidden">
+            <div className="absolute right-0 top-0 w-24 h-24 bg-blue-100 dark:bg-blue-900/20 opacity-50 rounded-full -mr-8 -mt-8"></div>
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="flex-shrink-0 p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full mt-0.5">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Enlaces de afiliación</h3>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Si tu video contiene enlaces de afiliación, <strong>debes mencionarlo verbalmente</strong> en el video para cumplir con las normativas legales.
+                </p>
+                <div className="mt-3">
+                  <AffiliateInfoDialog variant="button" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Componente de gestión de afiliados */}
         {video && video.id && (
           <motion.div 
             className="mt-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
           >
             <AffiliateManager video={video} className="overflow-hidden" />
           </motion.div>
