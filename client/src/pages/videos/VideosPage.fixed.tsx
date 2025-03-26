@@ -189,7 +189,7 @@ export default function VideosPage() {
   }, [viewMode]);
 
   // Filtrar videos según criterios
-  const filteredVideos = videos.filter((video) => {
+  const filteredVideos = videos.filter((video: ApiVideo) => {
     if (searchTerm) {
       return (
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

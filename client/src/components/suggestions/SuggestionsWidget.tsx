@@ -37,6 +37,9 @@ export function SuggestionsWidget() {
   
   // Si hay error, mostrar un widget simplificado
   if (allSuggestions.isError) {
+    // Determinar si el error es de autenticación (401)
+    const isAuthError = (allSuggestions.error as any)?.response?.status === 401;
+    
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -45,12 +48,16 @@ export function SuggestionsWidget() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">--</div>
-          <p className="text-xs text-muted-foreground">Cargando datos...</p>
+          <p className="text-xs text-muted-foreground">
+            {isAuthError 
+              ? "Inicia sesión para ver sugerencias" 
+              : "No se pudieron cargar los datos"}
+          </p>
         </CardContent>
         <CardFooter className="p-0">
-          <Link href="/sugerencias">
+          <Link href={isAuthError ? "/auth" : "/sugerencias"}>
             <Button variant="ghost" className="w-full h-9 px-4 py-2 rounded-t-none justify-between">
-              <span>Gestionar sugerencias</span>
+              <span>{isAuthError ? "Iniciar sesión" : "Gestionar sugerencias"}</span>
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           </Link>
