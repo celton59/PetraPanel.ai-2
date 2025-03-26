@@ -51,24 +51,24 @@ async function getAllSuggestions(req: Request, res: Response): Promise<Response>
 
     // Construir la consulta
     const query = filters.length > 0
-      ? db.select({
-          ...suggestions,
-          userName: users.fullName,
-        })
+      ? db.select()
         .from(suggestions)
         .leftJoin(users, eq(suggestions.userId, users.id))
         .where(and(...filters))
         .orderBy(desc(suggestions.created_at))
-      : db.select({
-          ...suggestions,
-          userName: users.fullName,
-        })
+      : db.select()
         .from(suggestions)
         .leftJoin(users, eq(suggestions.userId, users.id))
         .orderBy(desc(suggestions.created_at));
+        
+    // Ejecutar la consulta y formatear resultados para incluir el nombre del usuario
+    const queryResults = await query;
+    const formattedResults = queryResults.map(result => ({
+      ...result.suggestions,
+      userName: result.users?.fullName || 'Usuario'
+    }));
 
-    const results = await query;
-    return res.status(200).json(results);
+    return res.status(200).json(formattedResults);
   } catch (error) {
     console.error('Error al obtener sugerencias:', error);
     return res.status(500).json({ message: 'Error al obtener las sugerencias' });
