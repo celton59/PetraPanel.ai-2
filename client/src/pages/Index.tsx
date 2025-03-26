@@ -5,6 +5,7 @@ import { PerformanceStats } from "@/components/dashboard/PerformanceStats";
 import { VideoStats } from "@/components/dashboard/VideoStats";
 import { WeatherWidget } from "@/components/dashboard/WeatherWidget";
 import { UsersList } from "@/components/dashboard/UsersList";
+import { SuggestionsWidget } from "@/components/suggestions/SuggestionsWidget";
 import { useUser } from "@/hooks/use-user";
 import { motion } from "framer-motion";
 
@@ -72,6 +73,13 @@ const Index = () => {
           <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4">
             <h3 className="text-xl font-semibold mb-4">Rendimiento</h3>
             <PerformanceStats />
+          </motion.div>
+          
+          <motion.div variants={itemVariants} className="border border-muted/40 rounded-lg p-4">
+            <h3 className="text-xl font-semibold mb-4">Sugerencias</h3>
+            <div className="py-2">
+              <SuggestionsWidget />
+            </div>
           </motion.div>
 
           <motion.div variants={itemVariants} className="lg:col-span-2 border border-muted/40 rounded-lg p-4">

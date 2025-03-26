@@ -654,7 +654,7 @@ function MonthlyLimitsManager({ userId }: { userId: number }) {
                       placeholder="Límite"
                       className="h-8"
                       defaultValue={limit?.maxVideos || 50}
-                      onChange={(e) => {
+                      onBlur={(e) => {
                         const value = parseInt(e.target.value);
                         if (!isNaN(value) && value > 0) {
                           updateLimitMutation.mutate({
