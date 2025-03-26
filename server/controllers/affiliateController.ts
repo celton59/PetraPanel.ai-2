@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction, Express } from 'express';
 import { db } from '../../db';
 import { affiliateCompanies, videoAffiliateMatches, videos } from '../../db/schema';
-import { eq, and, ilike, inArray, sql } from 'drizzle-orm';
+import { eq, and, ilike, inArray, sql, isNull } from 'drizzle-orm';
 import { getNotificationsService } from '../services/notifications';
 import { z } from 'zod';
 
@@ -319,6 +319,103 @@ export async function scanVideoForAffiliates(videoId: number, title: string): Pr
 }
 
 /**
+ * Escanea todos los videos existentes para todas las empresas activas
+ * - Se utiliza para volver a escanear todos los videos en busca de coincidencias
+ */
+async function scanAllVideosForAffiliates(req: Request, res: Response): Promise<Response> {
+  try {
+    // Verificar que sea un administrador
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Solo los administradores pueden realizar esta operación' 
+      });
+    }
+    
+    // Obtener todas las empresas afiliadas activas
+    const activeCompanies = await db.query.affiliateCompanies.findMany({
+      where: eq(affiliateCompanies.active, true)
+    });
+    
+    if (activeCompanies.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No hay empresas afiliadas activas para escanear' 
+      });
+    }
+    
+    // Obtener todos los videos activos (no eliminados)
+    const allVideos = await db.query.videos.findMany({
+      where: isNull(videos.deletedAt)
+    });
+    
+    if (allVideos.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No hay videos para escanear' 
+      });
+    }
+    
+    let totalMatches = 0;
+    let processedVideos = 0;
+    
+    // Para cada video, escanear si coincide con alguna de las empresas
+    for (const video of allVideos) {
+      processedVideos++;
+      const title = video.title?.toLowerCase() || '';
+      
+      // Buscar coincidencias con cada empresa
+      for (const company of activeCompanies) {
+        // Verificar si hay coincidencias en el título
+        const keywords = company.keywords || [];
+        const hasMatch = [company.name.toLowerCase(), ...keywords]
+          .some(keyword => keyword && title.includes(keyword.toLowerCase()));
+        
+        if (hasMatch) {
+          // Verificar si ya existe una entrada para este video y esta empresa
+          const existingMatch = await db.query.videoAffiliateMatches.findFirst({
+            where: and(
+              eq(videoAffiliateMatches.video_id, video.id),
+              eq(videoAffiliateMatches.company_id, company.id)
+            )
+          });
+          
+          // Si no existe, crear la entrada y contar
+          if (!existingMatch) {
+            await db.insert(videoAffiliateMatches).values({
+              video_id: video.id,
+              company_id: company.id,
+              notified: false,
+              included_by_youtuber: false
+            });
+            
+            totalMatches++;
+            
+            // Notificar al youtuber si el video está asignado
+            if (video.assignedTo) {
+              await notifyYoutuberAboutAffiliate(video.id, company);
+            }
+          }
+        }
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: `Escaneo completo: ${processedVideos} videos procesados, ${totalMatches} nuevas coincidencias encontradas`,
+      processedVideos,
+      newMatches: totalMatches
+    });
+  } catch (error) {
+    console.error('Error escaneando videos para empresas afiliadas:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Error al escanear videos para empresas afiliadas' 
+    });
+  }
+}
+
+/**
  * Escanea todos los videos existentes para una empresa específica
  * - Se utiliza cuando se activa una empresa previamente inactiva
  */
@@ -566,4 +663,5 @@ export function setupAffiliateRoutes(
   // Rutas para coincidencias de afiliados en videos
   app.get('/api/affiliates/videos/:videoId/matches', requireAuth, getVideoAffiliateMatches);
   app.put('/api/affiliates/matches/:matchId/inclusion', requireAuth, updateAffiliateInclusion);
+  app.post('/api/affiliates/scan-all-videos', requireAuth, scanAllVideosForAffiliates);
 }
