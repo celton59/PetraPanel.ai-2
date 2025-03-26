@@ -47,13 +47,8 @@ export function AffiliateInfoDialog({ trigger, variant = "button" }: AffiliateIn
               Recordatorio importante
             </h3>
             <p>
-              Para ofrecer la mejor experiencia a tus espectadores, es importante:
+              Si tu video contiene enlaces de afiliación, tienes que decir en el vídeo que en la descripción y en el comentario destacado tienen un enlace, para registrarse, comprar o lo que sea.
             </p>
-            <ul className="list-disc ml-4 mt-2">
-              <li><strong>Mencionar verbalmente</strong> en el video que tienes enlaces para registro o compra</li>
-              <li><strong>Incluir los enlaces</strong> en la descripción del video</li>
-              <li><strong>Fijar un comentario</strong> con los enlaces de afiliados principales</li>
-            </ul>
           </div>
           
           <h3 className="font-semibold">¿Qué son los enlaces de afiliación?</h3>
@@ -62,32 +57,18 @@ export function AffiliateInfoDialog({ trigger, variant = "button" }: AffiliateIn
             Cuando los espectadores hacen clic en estos enlaces y realizan una compra, tú o el canal reciben una comisión.
           </p>
           
-          <h3 className="font-semibold">¿Por qué es importante mencionarlos en tres lugares?</h3>
+          <h3 className="font-semibold">¿Por qué es importante mencionarlo?</h3>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Verbalmente:</strong> Mayor transparencia con tu audiencia</li>
-            <li><strong>Descripción:</strong> Facilita el acceso directo a los productos</li>
-            <li><strong>Comentario fijado:</strong> Asegura visibilidad incluso después de publicar</li>
-            <li>Aumenta significativamente la probabilidad de que tu audiencia utilice los enlaces</li>
+            <li>Mayor transparencia con tu audiencia</li>
             <li>Construye una relación de confianza con tus seguidores</li>
+            <li>Mejora la experiencia del usuario</li>
           </ul>
           
           <h3 className="font-semibold">¿Dónde y cómo mencionar los enlaces?</h3>
           <div className="space-y-2">
-            <p><strong>1. En el video (verbalmente):</strong></p>
+            <p><strong>En el video (verbalmente):</strong></p>
             <p>
-              Ejemplo: <em>"En la descripción y comentario destacado encontrarás enlaces para registrarte o comprar todos los productos que uso en este video. Tengo estos enlaces disponibles para ti. Si compras a través de ellos, apoyas al canal sin costo adicional."</em>
-            </p>
-            
-            <p><strong>2. En la descripción del video:</strong></p>
-            <p>
-              Ejemplo: <em>"Tengo enlaces para registrarte/comprar los productos mencionados: 
-              - Producto A: [Enlace afiliado para registrarse/comprar] 
-              - Producto B: [Enlace afiliado para registrarse/comprar]"</em>
-            </p>
-            
-            <p><strong>3. En un comentario destacado/fijado:</strong></p>
-            <p>
-              Ejemplo: <em>"Aquí tienes los enlaces para registrarte/comprar los productos que recomiendo en este video: [Enlaces afiliados]"</em>
+              Ejemplo: <em>"En la descripción y comentario destacado tienen un enlace para registrarse o comprar los productos que uso en este video."</em>
             </p>
           </div>
           
