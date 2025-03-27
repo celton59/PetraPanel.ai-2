@@ -199,15 +199,19 @@ export function VideoLimitsTab() {
     try {
       const userId = Number(data.userId);
 
-      // Intentar actualizar mediante API - Intentaremos primero con la ruta principal
-      // Esto es para mantener compatibilidad con la versión en producción
+      // Intentar actualizar mediante API - Probaremos varias opciones
+      // Esto es para mantener compatibilidad con versión en producción y resolver problemas de permisos
       try {
         console.log(`Actualizando límites para usuario ${userId}:`, {
           maxMonthlyVideos: data.maxMonthlyVideos,
           maxAssignedVideos: data.maxAssignedVideos
         });
         
-        // Intentamos primero con la ruta principal (para compatibilidad con producción)
+        // Intentaremos las tres rutas posibles en secuencia hasta que alguna funcione
+        let updateSuccess = false;
+        let lastError = null;
+        
+        // Intento 1: Ruta principal (compatibilidad con producción)
         try {
           console.log("Intentando actualizar con ruta principal...");
           await axios.put(`/api/users/${userId}`, {
@@ -215,17 +219,46 @@ export function VideoLimitsTab() {
             maxAssignedVideos: data.maxAssignedVideos
           });
           console.log("Actualización exitosa con ruta principal");
+          updateSuccess = true;
         } catch (error) {
-          console.log("Error con ruta principal, intentando con ruta específica...", error);
-          // Si falla, intentamos con la ruta específica (implementada recientemente)
-          await axios.put(`/api/users/${userId}/limits`, {
-            maxMonthlyVideos: data.maxMonthlyVideos,
-            maxAssignedVideos: data.maxAssignedVideos
-          });
-          console.log("Actualización exitosa con ruta específica");
+          console.log("Error con ruta principal:", error);
+          lastError = error;
+          
+          // Intento 2: Ruta específica para límites
+          try {
+            console.log("Intentando con ruta específica...");
+            await axios.put(`/api/users/${userId}/limits`, {
+              maxMonthlyVideos: data.maxMonthlyVideos,
+              maxAssignedVideos: data.maxAssignedVideos
+            });
+            console.log("Actualización exitosa con ruta específica");
+            updateSuccess = true;
+          } catch (error2) {
+            console.log("Error con ruta específica:", error2);
+            lastError = error2;
+            
+            // Intento 3: Ruta de compatibilidad (fallback)
+            try {
+              console.log("Intentando con ruta de compatibilidad...");
+              await axios.post(`/api/compat/update-limits`, {
+                userId: userId,
+                maxMonthlyVideos: data.maxMonthlyVideos,
+                maxAssignedVideos: data.maxAssignedVideos
+              });
+              console.log("Actualización exitosa con ruta de compatibilidad");
+              updateSuccess = true;
+            } catch (error3) {
+              console.log("Error con ruta de compatibilidad:", error3);
+              lastError = error3;
+            }
+          }
+        }
+        
+        if (!updateSuccess) {
+          throw lastError || new Error("No se pudo actualizar por ninguna de las rutas");
         }
       } catch (apiError) {
-        console.warn("API update failed, only updating UI:", apiError);
+        console.warn("Todas las actualizaciones API fallaron, usando solo UI:", apiError);
       }
 
       // Siempre actualizar el estado local (para modo demo/offline)

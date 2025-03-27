@@ -176,19 +176,79 @@ export async function updateUser(
 
     const body = req.body;
     const { id } = req.params;
+    const referer = req.headers.referer || '';
     
-    // Caso especial: actualización solo de límites desde el panel de límites
-    // Este caso permite que las actualizaciones desde el panel de límites funcionen,
-    // aunque solo se envíen maxAssignedVideos y maxMonthlyVideos
-    if (
-      Object.keys(body).length <= 2 && 
-      (body.maxAssignedVideos !== undefined || body.maxMonthlyVideos !== undefined) &&
-      !body.username && !body.fullName && !body.password && !body.email && !body.projectIds
-    ) {
-      console.log("Detectada actualización de límites simplificada:", body);
+    // Caso especial: actualización solo de límites (detecta request específica)
+    // Detectamos si la petición es desde la página de límites por el referer o la estructura de datos
+    const isFromLimitsPage = (
+      // Si contiene estas URLs en el referer, muy probablemente es del panel de límites
+      (referer.includes('/configuration/limits') || referer.includes('/admin/configuration')) ||
+      // O por la estructura de la petición que solo incluye límites y nada más
+      (Object.keys(body).length <= 2 && 
+       (body.maxAssignedVideos !== undefined || body.maxMonthlyVideos !== undefined) &&
+       !body.username && !body.fullName && !body.password && !body.email && !body.projectIds)
+    );
+    
+    if (isFromLimitsPage) {
+      console.log("Detectada actualización de límites:", {
+        body,
+        from: referer || 'unknown',
+        userId: id
+      });
       
-      // Redirigir a la función específica de actualización de límites
-      return updateUserLimits(req, res);
+      // Para estas actualizaciones, simplificamos y solo actualizamos los límites
+      // sin requerir todos los campos del esquema de validación
+      const updateData: Record<string, any> = {
+        updatedAt: new Date()
+      };
+      
+      if (body.maxAssignedVideos !== undefined && typeof body.maxAssignedVideos === 'number' && body.maxAssignedVideos > 0) {
+        updateData.maxAssignedVideos = body.maxAssignedVideos;
+      }
+      
+      if (body.maxMonthlyVideos !== undefined && typeof body.maxMonthlyVideos === 'number' && body.maxMonthlyVideos > 0) {
+        updateData.maxMonthlyVideos = body.maxMonthlyVideos;
+      }
+      
+      console.log("Actualizando solo límites con:", updateData);
+      
+      try {
+        // Actualizar directamente solo los límites sin validación completa
+        const [updatedUser] = await db
+          .update(users)
+          .set(updateData)
+          .where(eq(users.id, parseInt(id)))
+          .returning();
+          
+        if (!updatedUser) {
+          return res.status(404).json({
+            success: false,
+            message: "Usuario no encontrado"
+          });
+        }
+        
+        console.log("Límites actualizados correctamente:", {
+          id: updatedUser.id,
+          maxAssignedVideos: updatedUser.maxAssignedVideos,
+          maxMonthlyVideos: updatedUser.maxMonthlyVideos
+        });
+        
+        return res.json({
+          success: true,
+          data: {
+            id: updatedUser.id,
+            maxAssignedVideos: updatedUser.maxAssignedVideos,
+            maxMonthlyVideos: updatedUser.maxMonthlyVideos  
+          },
+          message: "Límites actualizados correctamente"
+        });
+      } catch (error) {
+        console.error("Error actualizando límites:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Error actualizando límites de usuario"
+        });
+      }
     }
     
     // Para todas las demás actualizaciones, procedemos con la validación completa
