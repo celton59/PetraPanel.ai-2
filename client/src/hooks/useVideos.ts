@@ -295,7 +295,7 @@ export function useVideos() {
   
   // Review Content
   const reviewVideoContentMutation = useMutation({
-    mutationFn: async ({ status, contentReviewedBy, contentReviewComments, projectId, videoId }: ReviewVideoContentlData) => {
+    mutationFn: async ({ status, contentReviewedBy, contentReviewComments, projectId, videoId }: ReviewVideoContentData) => {
 
       try {
         await refreshCSRFToken();
@@ -378,6 +378,50 @@ export function useVideos() {
     },
   });
 
+  // Review Media
+  const reviewVideoMediaMutation = useMutation({
+    mutationFn: async ({ status, mediaReviewedBy, mediaReviewComments, projectId, videoId }: ReviewVideoMediaData) => {
+
+      try {
+        await refreshCSRFToken();
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/reviewMedia`, {
+          status,
+          mediaReviewedBy,
+          mediaReviewComments
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
+    },
+  });
+
+  
   // Assign Video to Youtuber
   const manageVideoYoutuberMutation = useMutation({
     mutationFn: async ({videoId, projectId, mode }: { videoId: number, projectId: number, mode: 'assign' | 'unassign' }) => {
@@ -632,7 +676,8 @@ export function useVideos() {
     sendVideoToContentReview: sendVideoToContentReviewMutation.mutateAsync,
     assignOptimizer: assignOptimizerMutation.mutateAsync,
     reviewContent: reviewVideoContentMutation.mutateAsync,
-    sendVideoToMediaReview: sendVideoToMediaReviewMutation.mutateAsync
+    sendVideoToMediaReview: sendVideoToMediaReviewMutation.mutateAsync,
+    reviewVideoMedia: reviewVideoMediaMutation.mutateAsync,
   };
 }
 
@@ -645,7 +690,7 @@ export interface OptimizeContentDetailData {
   tags?: string | null
 }
 
-export interface ReviewVideoContentlData { 
+export interface ReviewVideoContentData { 
   projectId: number
   videoId: number 
   status?: "upload_media" | "content_corrections"
@@ -658,4 +703,12 @@ export interface SendVideoToMediaReviewData {
   videoId: number 
   videoUrl?: string
   contentUploadedBy?: number
+}
+
+export interface ReviewVideoMediaData { 
+  projectId: number
+  videoId: number 
+  status?: "final_review" | "media_corrections"
+  mediaReviewedBy?: number
+  mediaReviewComments: string[]
 }

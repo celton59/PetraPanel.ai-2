@@ -29,18 +29,22 @@ export function UploadContentDetail({
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState | undefined>(undefined);
   const [uploader, setUploader] = useState<VideoUploader | null>(null);
 
-  const { sendVideoToMediaReview } = useVideos()
+  const { sendVideoToMediaReview, manageVideoYoutuber } = useVideos()
   const { user } = useUser();
 
-  async function uploadThumbnail(file: File): Promise<void> {
+  async function uploadThumbnail (file: File): Promise<void> {
     const formData = new FormData();
     formData.append("file", file);
 
     try {
+      // Importamos api y refreshCSRFToken de nuestro archivo axios mejorado
       const { refreshCSRFToken } = await import('../../../lib/axios');
-
+      
+      
+      // Refrescar proactivamente el token CSRF antes de esta operación importante
       await refreshCSRFToken();
-
+      
+      // Usar nuestra instancia de axios configurada con manejo CSRF
       await api.post(
         `/api/projects/${video.projectId}/videos/${video.id}/uploadThumbnail`,
         formData,
@@ -52,19 +56,21 @@ export function UploadContentDetail({
       );
     } catch (error: any) {
       console.error(`Error uploading thumbnail:`, error);
-
+      
+      // Manejo mejorado de errores de CSRF
       if (error.response?.status === 403 && 
           (error.response?.data?.message?.includes('CSRF') || 
            error.response?.data?.message?.includes('token') || 
            error.response?.data?.message?.includes('Token'))) {
         throw new Error("Error de validación de seguridad. Intente de nuevo.");
       }
-
+      
       throw new Error(error.response?.data?.message || error.message || `Error al subir la miniatura`);
     }
   }
 
-  async function handleCancelUpload() {
+  // Función para manejar la cancelación de la carga
+  async function handleCancelUpload () {
     if (uploader) {
       try {
         await uploader.cancel();
@@ -89,30 +95,37 @@ export function UploadContentDetail({
     let videoUrl: string | undefined;
 
     try {
+      // Subida de video usando carga multiparte
       if (videoFile) {
+        // Crear la instancia del uploader
         const videoUploader = new VideoUploader(video.projectId, video.id, videoFile);
         setUploader(videoUploader);
-
+        
+        // Configurar el callback de progreso
         videoUploader.onProgress((progressState) => {
           setUploadProgress(progressState);
         });
-
+        
+        // Iniciar la carga multiparte
         videoUrl = await videoUploader.upload();
-
+        
+        // Limpiar el uploader después de completar
         setUploader(null);
       }
 
+      // Subida de miniatura (mantiene el método anterior)
       if (thumbnailFile) {
         await uploadThumbnail(thumbnailFile);
       }
 
+      // Actualizar el estado del video
       await sendVideoToMediaReview({
         contentUploadedBy: user?.id,
         videoUrl,
         videoId: video.id,
         projectId: video.projectId,
       })
-
+      
       toast.success("Archivos subidos correctamente");
     } catch (error: any) {
       console.error("Error al subir:", error);
@@ -123,11 +136,25 @@ export function UploadContentDetail({
     }
   }
 
-  // Función preparada para la desasignación (será implementada externamente)
-  const handleUnassign = async () => {
-    // La implementación será proporcionada posteriormente
-  };
+  async function handleUnassign() {
+    try {
+      await manageVideoYoutuber({
+        videoId: video.id,
+        projectId: video.projectId,
+        mode: 'unassign'
+      })
 
+      toast.success("Video desasignado correctamente");
+    } catch (error: any) {
+      console.error("Error al desasignar:", error);
+      toast.error(error.message || "Error al desasignar");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(undefined);
+    }
+    
+  }
+  
   return (
     <ScrollArea className="h-auto max-h-[75vh] overflow-y-auto">
       <div className="p-4">
@@ -141,7 +168,8 @@ export function UploadContentDetail({
               <div className="flex-1">
                 <div className="flex items-center flex-wrap gap-2 mb-1">
                   <h3 className="text-xs font-medium text-red-700 dark:text-red-300">Corrección solicitada</h3>
-
+                  
+                  {/* Badges de corrección */}
                   {video.mediaVideoNeedsCorrection && (
                     <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/40 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/50">
                       Corregir Video
@@ -159,6 +187,7 @@ export function UploadContentDetail({
               </div>
             </div>
 
+            {/* Historial de correcciones mejorado */}
             <Accordion type="single" collapsible className="mt-2 overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 shadow-sm">
               <AccordionItem value="item-1" className="border-0">
                 <AccordionTrigger className="px-3 py-2 text-xs font-medium bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900/40 dark:to-transparent">

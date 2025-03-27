@@ -504,6 +504,67 @@ async function sendVideoToMediaReview(req: Request, res: Response): Promise<Resp
   }
 }
 
+const reviewVideoMediaSchema = z.object({
+  status: z.enum(['media_corrections', 'final_review']),
+  mediaReviewedBy: z.number(),
+  mediaReviewComments: z.array(z.string())
+});
+type ReviewVideoMediaSchema = z.infer<typeof reviewVideoMediaSchema>;
+
+async function reviewVideoMedia(req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role)
+    return res.status(403)
+      .json({ success: false, message: "No tienes permisos para editar videos" });
+
+  const videoId = parseInt(req.params.videoId);
+  const updates = req.body as ReviewVideoMediaSchema;
+
+  // Validar body con schema
+  const validationResult = reviewVideoMediaSchema.safeParse(updates);
+  if (!validationResult.success) {
+    return res.status(400).json({ success: false, message: validationResult.error.message });
+  }
+
+  try {
+    // Obtener el video actual para preservar los datos existentes
+    const [currentVideo] = await db
+      .select()
+      .from(videos)
+      .where( eq(videos.id, videoId) )
+      .limit(1);
+
+    if (!currentVideo) {
+      return res.status(404).json({ success: false, message: "Video no encontrado" });
+    }
+
+    if (currentVideo.status !== 'upload_media' && currentVideo.status !== 'media_corrections') {
+      return res.status(400).json({ success: false, message: "No se puede revisar este video" })
+    }
+
+    // Actualizar el video
+    const [result] = await db
+      .update(videos)
+      .set({
+        status: updates.status,
+        updatedAt: new Date(),
+        mediaReviewedBy: updates.mediaReviewedBy,
+        mediaReviewComments: updates.mediaReviewComments,
+      })
+      .where( eq(videos.id, videoId) )
+      .returning();
+
+    return res.status(200).json({
+        success: true,
+        data: result,
+        message: "Video actualizado correctamente",
+      });
+  } catch (error) {
+    console.error("Error updating video:", error);
+    return res.status(500)
+      .json({ success: false, message: "Error al actualizar el video" });
+  }
+}
+
 
 
 async function deleteVideo(req: Request, res: Response): Promise<Response> {
@@ -671,7 +732,7 @@ async function manageVideoYoutuber(req: Request, res: Response): Promise<Respons
           });
         }
     }
-    
+
     const [updatedVideo] = await db
       .update(videos)
       .set({
@@ -1685,6 +1746,7 @@ export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next
   app.patch("/api/projects/:projectId/videos/:videoId/sendToContentReview", requireAuth, sendVideoToContentReview);
    app.patch("/api/projects/:projectId/videos/:videoId/reviewContent", requireAuth, reviewVideoContent);
   app.patch("/api/projects/:projectId/videos/:videoId/sendToMediaReview", requireAuth, sendVideoToMediaReview);
+  app.patch("/api/projects/:projectId/videos/:videoId/reviewMedia", requireAuth, reviewVideoMedia);
 
   // Asignación de video a youtuber cuando lo visualiza
   app.post("/api/projects/:projectId/videos/:videoId/manageYoutuber", requireAuth, manageVideoYoutuber);

@@ -132,7 +132,6 @@ export default function VideosPage() {
   } = useVideos();
 
   // Estados para UI
-  const [updatingVideoId, setUpdatingVideoId] = useState<number | undefined>(undefined);
   const [newVideoDialogOpen, setNewVideoDialogOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<ApiVideo | undefined>(undefined);
 
@@ -248,7 +247,7 @@ export default function VideosPage() {
   async function handleVideoClick(video: ApiVideo) {
     // Asignar el video automáticamente al youtuber cuando está en estado 'upload_media' y no está asignado
     if (
-      user?.role === 'youtuber' &&
+      (user?.role === 'youtuber' || user?.role === 'admin') &&
       video.status === 'upload_media' &&
       !video.contentUploadedBy
     ) {
@@ -259,7 +258,9 @@ export default function VideosPage() {
           projectId: video.projectId,
           mode: 'assign',
         });
-        // No es necesario un toast aquí porque es una operación transparente para el usuario
+
+        video.contentUploadedBy = user!.id;
+          
       } catch (error: any) {
         // No mostramos error si ya está asignado al mismo youtuber
         if (!error.message?.includes('ya está asignado a este youtuber')) {
@@ -352,11 +353,6 @@ export default function VideosPage() {
     // Capturar las coordenadas relativas al viewport
     const clientX = e.clientX;
     const clientY = e.clientY;
-
-    // Calcular coordenadas relativas al contenedor
-    const containerRect = e.currentTarget.getBoundingClientRect();
-    const offsetX = clientX - containerRect.left;
-    const offsetY = clientY - containerRect.top;
 
     // Actualizar el estado para reflejar la posición inicial del arrastre
     setIsDragging(true);
@@ -966,7 +962,6 @@ export default function VideosPage() {
   async function handleVideoUpdate (data: UpdateVideoData, keepDialogOpen = false): Promise<void> {
     if (!selectedVideo) return;
 
-    setUpdatingVideoId(selectedVideo.id);
 
     try {
       await updateVideo({
@@ -983,8 +978,6 @@ export default function VideosPage() {
     } catch (error) {
       console.error(error);
       toast.error("Error al actualizar el video");
-    } finally {
-      setUpdatingVideoId(undefined);
     }
   };
 
