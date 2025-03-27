@@ -1,6 +1,6 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
 import { ApiVideo, UpdateVideoData, useVideos, SortConfig } from "@/hooks/useVideos";
-import { VideoPaginationControls } from "./components/VideoPaginationControls";
+import { VideoPaginationControls } from "../../components/videos/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
 import { AffiliateIcon } from "@/components/video/AffiliateIcon";
@@ -67,12 +67,7 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
     "title_corrections",
     "en_revision",
   ],
-  youtuber: [
-    "upload_media",  // Video esperando subida de media
-    "media_corrections", // Video necesita correcciones de media
-    "available", // Video disponible para tomar
-    "completed" // Videos completados
-  ],
+  youtuber: ["video_disponible", "asignado", "youtube_ready", "completed"],
   reviewer: [
     "optimize_review",
     "title_corrections",
@@ -94,7 +89,7 @@ const VISIBLE_STATES: Record<User['role'], string[]> = {
     "in_progress",
     "optimize_review",
     "title_corrections",
-    "upload_review", 
+    "upload_review",
     "media_corrections",
     "review",
     "youtube_ready",
@@ -191,7 +186,7 @@ export default function VideosPage() {
   }, [viewMode]);
 
   // Filtrar videos según criterios
-  const filteredVideos = videos.filter((video) => {
+  const filteredVideos = videos.filter((video: ApiVideo) => {
     if (searchTerm) {
       return (
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -320,7 +315,7 @@ export default function VideosPage() {
     if (selectedVideos.length === filteredVideos.length) {
       setSelectedVideos([]);
     } else {
-      setSelectedVideos(filteredVideos.map(video => video.id));
+      setSelectedVideos(filteredVideos.map((video: ApiVideo) => video.id));
     }
   };
 
@@ -328,7 +323,7 @@ export default function VideosPage() {
   const handleBulkDelete = async () => {
     if (selectedVideos.length === 0) return;
 
-    const projectIdToUse = videos.find(v => selectedVideos.includes(v.id))?.projectId;
+    const projectIdToUse = videos.find((v: ApiVideo) => selectedVideos.includes(v.id))?.projectId;
     if (!projectIdToUse) return;
 
     try {
@@ -465,11 +460,11 @@ export default function VideosPage() {
 
   function getSortIcon(field: string, currentSort: SortConfig) {
     if (currentSort.field !== field) {
-      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+      return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground/50" />;
     }
     return currentSort.order === 'asc'
-      ? <ArrowUp className="ml-2 h-4 w-4" />
-      : <ArrowDown className="ml-2 h-4 w-4" />;
+      ? <ArrowUp className="ml-2 h-4 w-4 text-primary" />
+      : <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
   }
 
   function getTableView() {
@@ -502,7 +497,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'seriesNumber' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'seriesNumber',
                         order: prev.field === 'seriesNumber' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -514,7 +512,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'title' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'title',
                         order: prev.field === 'title' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -527,7 +528,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'status' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'status',
                         order: prev.field === 'status' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -540,7 +544,10 @@ export default function VideosPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      className="hover:bg-transparent px-0 font-semibold"
+                      className={cn(
+                        "hover:bg-muted px-2 font-semibold rounded transition-all",
+                        sort.field === 'updatedAt' ? "bg-muted/80 text-primary" : "text-foreground"
+                      )}
                       onClick={() => setSort(prev => ({
                         field: 'updatedAt',
                         order: prev.field === 'updatedAt' && prev.order === 'asc' ? 'desc' : 'asc'
@@ -553,7 +560,7 @@ export default function VideosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVideos?.map((video) => (
+                {filteredVideos?.map((video: ApiVideo) => (
                   <TableRow key={video.id} className="group video-card" data-video-id={video.id}>
                     {/* Selection checkbox */}
                     {user?.role === "admin" && selectMode && (
@@ -707,7 +714,7 @@ export default function VideosPage() {
   function getGridView() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {filteredVideos?.map((video) => (
+        {filteredVideos?.map((video: ApiVideo) => (
           <div
             key={video.id}
             className="group video-card relative rounded-lg border shadow-sm overflow-hidden transition-all hover:shadow-md bg-card"
@@ -806,7 +813,7 @@ export default function VideosPage() {
   function getListView() {
     return (
       <div className="space-y-3">
-        {filteredVideos?.map((video) => (
+        {filteredVideos?.map((video: ApiVideo) => (
           <div
             key={video.id}
             className="group video-card relative flex items-center border rounded-lg p-3 bg-card shadow-sm hover:shadow-md transition-all"

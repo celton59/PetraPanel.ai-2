@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, numeric, jsonb, vector, index, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -443,3 +443,32 @@ export const userSessionsRelations = relations(userSessions, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// Tabla para sugerencias/mejoras de usuarios
+export const suggestions = pgTable("suggestions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").default("general").notNull(),
+  status: text("status").default("pending").notNull(), // pending, reviewed, implemented, rejected
+  adminNotes: text("admin_notes"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Relaciones para sugerencias
+export const suggestionsRelations = relations(suggestions, ({ one }) => ({
+  user: one(users, {
+    fields: [suggestions.userId],
+    references: [users.id],
+  }),
+}));
+
+// Tipos para sugerencias
+export type Suggestion = typeof suggestions.$inferSelect;
+export type InsertSuggestion = typeof suggestions.$inferInsert;
+
+// Esquemas para sugerencias
+export const insertSuggestionSchema = createInsertSchema(suggestions);
+export const selectSuggestionSchema = createSelectSchema(suggestions);

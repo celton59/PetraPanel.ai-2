@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { AlertCircle, Loader2, Upload, Cloud, Send } from "lucide-react";
+import { AlertCircle, Loader2, Send, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ApiVideo, UpdateVideoData } from "@/hooks/useVideos";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ApiVideo, useVideos } from "@/hooks/useVideos";
 import {
   Accordion,
   AccordionItem,
@@ -17,6 +16,7 @@ import { VideoUploader, UploadProgressState } from "@/services/videoUploader";
 import { VideoUploadProgress } from "@/components/video/VideoUploadProgress";
 import { motion, AnimatePresence } from "framer-motion";
 import { AffiliateManager } from "@/components/video/AffiliateManager";
+import { AffiliateInfoDialog } from "@/components/video/AffiliateInfoDialog";
 
 // Estado inicial de progreso vacío
 const emptyProgressState: UploadProgressState = {
@@ -30,12 +30,10 @@ const emptyProgressState: UploadProgressState = {
 
 interface MediaCorrectionsDetailProps {
   video: ApiVideo;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }
 
 export function MediaCorrectionsDetail({
   video,
-  onUpdate,
 }: MediaCorrectionsDetailProps) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -43,6 +41,7 @@ export function MediaCorrectionsDetail({
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState>(emptyProgressState);
   const [uploader, setUploader] = useState<VideoUploader | null>(null);
 
+  const { sendVideoToMediaReview } = useVideos()
   const { user } = useUser();
 
   async function uploadThumbnail(file: File): Promise<void> {
@@ -147,9 +146,10 @@ export function MediaCorrectionsDetail({
       }
 
       // Actualizar el estado del video
-      await onUpdate({
-        status: "media_review",
-        videoUrl: videoUrl,
+      await sendVideoToMediaReview({
+        projectId: video.projectId,
+        videoId: video.id,
+        videoUrl,
         contentUploadedBy: user?.id,
       });
 
@@ -164,7 +164,7 @@ export function MediaCorrectionsDetail({
   }
 
   return (
-    <ScrollArea className="max-h-[65vh]">
+    <ScrollArea className="h-auto max-h-[75vh] overflow-y-auto">
       <div className="p-4 pr-6">
         {/* Alerta de correcciones compacta */}
         {video.mediaReviewComments?.at(0) && (
@@ -321,13 +321,49 @@ export function MediaCorrectionsDetail({
           />
         </motion.div>
 
+        {/* Información sobre enlaces de afiliación - Advertencia mejorada */}
+        <motion.div 
+          className="mt-6 mb-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <div className="bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-800 rounded-md p-4 relative overflow-hidden shadow-md">
+            <div className="absolute right-0 top-0 w-24 h-24 bg-amber-100 dark:bg-amber-900/20 opacity-50 rounded-full -mr-8 -mt-8"></div>
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="flex-shrink-0 p-1.5 bg-amber-100 dark:bg-amber-900/50 rounded-full mt-0.5">
+                <Info className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">⚠️ IMPORTANTE: Enlaces de afiliación</h3>
+                <div className="text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                  <p className="font-medium">
+                    Si tu video menciona productos o servicios con enlaces de afiliación, <span className="underline font-bold">DEBES DECIR EXPLÍCITAMENTE EN EL VIDEO</span>:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Que hay enlaces en la descripción y en los comentarios fijados</li>
+                    <li>Mencionar claramente que son enlaces de afiliación</li>
+                    <li>Explicar brevemente que usarlos ayuda al canal</li>
+                  </ul>
+                  <p className="pt-1 font-semibold">
+                    Este requisito es obligatorio para cumplir con las normativas aplicables. Los videos sin esta mención explícita serán rechazados.
+                  </p>
+                </div>
+                <div className="mt-3">
+                  <AffiliateInfoDialog variant="button" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Componente de gestión de afiliados */}
         {video && video.id && (
           <motion.div 
             className="mt-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
           >
             <AffiliateManager video={video} className="overflow-hidden" />
           </motion.div>

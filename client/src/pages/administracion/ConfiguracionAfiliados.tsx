@@ -43,7 +43,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, X, Check, Save, PlusCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Check, Save, PlusCircle, Upload, FileText, AlertCircle, Search } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface AffiliateCompany {
   id: number;
@@ -83,6 +89,11 @@ export default function ConfiguracionAfiliados() {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<AffiliateCompany | null>(null);
+  
+  // Estados para la importación masiva
+  const [bulkImportDialogOpen, setBulkImportDialogOpen] = useState(false);
+  const [bulkNames, setBulkNames] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -227,6 +238,125 @@ export default function ConfiguracionAfiliados() {
       });
     }
   };
+  
+  // Abrir el diálogo de importación masiva
+  const handleOpenBulkImport = () => {
+    setBulkNames('');
+    setBulkImportDialogOpen(true);
+  };
+  
+  // Función para importar empresas en masa
+  const handleBulkImport = async () => {
+    if (bulkLoading) return;
+    
+    try {
+      setBulkLoading(true);
+      
+      // Procesar los nombres de empresas
+      const names = bulkNames
+        .split('\n')
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
+      
+      if (names.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se encontraron nombres válidos de empresas'
+        });
+        return;
+      }
+      
+      // Enviar la solicitud al servidor
+      const response = await axios.post('/api/affiliates/companies/bulk', {
+        names
+      });
+      
+      // Manejar la respuesta
+      if (response.data.success) {
+        toast({
+          title: 'Éxito',
+          description: response.data.message,
+        });
+        
+        // Si hay empresas que fueron omitidas por duplicación, mostrar advertencia
+        if (response.data.skippedCount > 0) {
+          toast({
+            title: 'Advertencia',
+            description: `${response.data.skippedCount} empresas omitidas por estar duplicadas`,
+          });
+        }
+        
+        // Cerrar diálogo y actualizar lista
+        setBulkImportDialogOpen(false);
+        fetchCompanies();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: response.data.message || 'Error al crear empresas en masa'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error al importar empresas en masa:', error);
+      
+      // Mostrar mensaje de error específico si está disponible
+      const errorMessage = error.response?.data?.error || 'Error al crear empresas en masa';
+      
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errorMessage
+      });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+  
+  // Función para manejar la importación desde archivo
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      
+      if (file.name.endsWith('.csv')) {
+        // Si es un CSV, procesar como tal
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length === 1 && lines[0].includes(',')) {
+          // Si hay una sola línea con comas, asumimos que es un CSV de una línea
+          const names = lines[0].split(',').map(name => name.trim()).filter(Boolean);
+          setBulkNames(names.join('\n'));
+        } else {
+          // Múltiples líneas
+          setBulkNames(lines.join('\n'));
+        }
+      } else {
+        // Si es un TXT u otro formato de texto, usamos como está
+        setBulkNames(content);
+      }
+      
+      toast({
+        title: 'Archivo importado',
+        description: 'Los nombres se han cargado correctamente',
+      });
+      
+      // Limpiar el input file
+      event.target.value = '';
+    };
+    
+    reader.onerror = () => {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo leer el archivo'
+      });
+    };
+    
+    reader.readAsText(file);
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -239,9 +369,82 @@ export default function ConfiguracionAfiliados() {
                 Gestiona las empresas afiliadas y sus enlaces para incluir en videos
               </CardDescription>
             </div>
-            <Button onClick={handleCreateCompany}>
-              <Plus className="mr-2 h-4 w-4" /> Añadir Empresa
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  // Mostrar un indicador de carga
+                  toast({
+                    title: 'Escaneando...',
+                    description: 'Buscando menciones de afiliados en todos los videos',
+                  });
+                  
+                  // Llamar al endpoint para escanear videos con un tiempo de espera mayor
+                  axios.post('/api/affiliates/scan-all-videos', {}, {
+                    timeout: 120000 // 2 minutos de timeout para permitir que la operación termine
+                  })
+                    .then(response => {
+                      toast({
+                        title: 'Escaneo completado',
+                        description: response.data.message,
+                      });
+                    })
+                    .catch(error => {
+                      console.error('Error al escanear videos:', error);
+                      // Mensaje de error más descriptivo basado en el tipo de error
+                      let errorMessage = 'No se pudieron escanear los videos';
+                      if (error.code === 'ECONNABORTED') {
+                        errorMessage = 'La operación tardó demasiado tiempo. Intente nuevamente o con menos videos.';
+                      } else if (error.code === 'ERR_NETWORK') {
+                        errorMessage = 'Problema de conexión. Verifique su conexión a internet e intente nuevamente.';
+                      } else if (error.response?.data?.error) {
+                        errorMessage = error.response.data.error;
+                      }
+                      
+                      toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: errorMessage
+                      });
+                    });
+                }} 
+                variant="outline" 
+                className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+              >
+                <Search className="mr-2 h-4 w-4" /> Escanear Videos
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (window.confirm('¿Estás seguro de que deseas eliminar TODAS las empresas afiliadas? Esta acción no se puede deshacer.')) {
+                    axios.delete('/api/affiliates/companies')
+                      .then(response => {
+                        toast({
+                          title: 'Éxito',
+                          description: `${response.data.deletedCount} empresas afiliadas eliminadas correctamente`,
+                        });
+                        fetchCompanies();
+                      })
+                      .catch(error => {
+                        console.error('Error al eliminar todas las empresas:', error);
+                        toast({
+                          variant: 'destructive',
+                          title: 'Error',
+                          description: error.response?.data?.error || 'No se pudieron eliminar las empresas'
+                        });
+                      });
+                  }
+                }} 
+                variant="outline" 
+                className="bg-red-50 text-red-600 hover:bg-red-100"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Eliminar Todas
+              </Button>
+              <Button onClick={handleOpenBulkImport} variant="outline">
+                <Upload className="mr-2 h-4 w-4" /> Importar en Masa
+              </Button>
+              <Button onClick={handleCreateCompany}>
+                <Plus className="mr-2 h-4 w-4" /> Añadir Empresa
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -473,6 +676,126 @@ export default function ConfiguracionAfiliados() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Dialog de importación masiva de empresas */}
+      <Dialog open={bulkImportDialogOpen} onOpenChange={setBulkImportDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Importación Masiva de Empresas
+            </DialogTitle>
+            <DialogDescription>
+              Importa múltiples empresas afiliadas a la vez. Introduce un nombre de empresa por línea o importa desde un archivo.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="manual" className="w-full mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="manual">Ingreso Manual</TabsTrigger>
+              <TabsTrigger value="file">Desde Archivo</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="manual" className="mt-4">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="bulkNames">Nombres de Empresas</Label>
+                  <Textarea
+                    id="bulkNames"
+                    placeholder="Amazon&#10;Aliexpress&#10;Microsoft&#10;Apple&#10;..."
+                    className="mt-2"
+                    rows={8}
+                    value={bulkNames}
+                    onChange={(e) => setBulkNames(e.target.value)}
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    Introduce un nombre de empresa por línea. Las empresas se crearán con una URL de afiliado genérica que podrás editar después.
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="file" className="mt-4">
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <FileText className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                  <p className="text-sm font-medium mb-2">
+                    Sube un archivo TXT o CSV con los nombres de las empresas
+                  </p>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Un nombre por línea o separados por comas
+                  </p>
+                  <Input
+                    type="file"
+                    accept=".txt,.csv"
+                    onChange={handleFileImport}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <Label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Seleccionar archivo
+                    </div>
+                  </Label>
+                </div>
+                
+                {bulkNames && (
+                  <div className="mt-4">
+                    <Label htmlFor="preview">Vista previa</Label>
+                    <div className="mt-2 bg-gray-50 p-3 rounded-md max-h-[200px] overflow-y-auto">
+                      <pre className="text-sm text-gray-700 whitespace-pre-wrap break-all">{bulkNames}</pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          {bulkNames && bulkNames.split('\n').filter(name => name.trim()).length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mt-4 flex items-start">
+              <AlertCircle className="h-5 w-5 text-amber-500 mr-3 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">
+                  Información importante
+                </p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Se crearán {bulkNames.split('\n').filter(name => name.trim()).length} empresas con el nombre proporcionado. 
+                  Cada empresa se creará con una URL de afiliado genérica que deberás actualizar posteriormente.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-6">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setBulkImportDialogOpen(false)}
+              disabled={bulkLoading}
+            >
+              <X className="mr-2 h-4 w-4" /> 
+              Cancelar
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleBulkImport}
+              disabled={bulkLoading || !bulkNames || bulkNames.split('\n').filter(name => name.trim()).length === 0}
+            >
+              {bulkLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" /> 
+                  Importar Empresas
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -716,11 +716,9 @@ export function NewVideoDialog({ open, onOpenChange }: NewVideoDialogProps) {
       return;
     }
 
-    // Confirmar si hay muchos títulos
-    if (titles.length > 100) {
-      if (!window.confirm(`¿Estás seguro que deseas crear ${titles.length} videos? Esta operación puede tardar varios minutos.`)) {
-        return;
-      }
+    // Mostrar siempre una confirmación con el número de videos
+    if (!window.confirm(`¿Estás seguro que deseas crear ${titles.length} videos? Esta operación puede tardar varios minutos.`)) {
+      return;
     }
 
     setIsSubmitting(true);

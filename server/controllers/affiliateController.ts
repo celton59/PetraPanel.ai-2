@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction, Express } from 'express';
 import { db } from '../../db';
 import { affiliateCompanies, videoAffiliateMatches, videos } from '../../db/schema';
-import { eq, and, ilike, inArray, sql } from 'drizzle-orm';
+import { eq, and, ilike, inArray, sql, isNull } from 'drizzle-orm';
 import { getNotificationsService } from '../services/notifications';
 import { z } from 'zod';
 
@@ -13,6 +13,11 @@ const affiliateCompanySchema = z.object({
   affiliate_url: z.string().url("La URL de afiliación debe ser válida"),
   keywords: z.array(z.string()).optional(),
   active: z.boolean().optional()
+});
+
+// Esquema para creación masiva de empresas (solo nombres)
+const bulkCompanySchema = z.object({
+  names: z.array(z.string().min(2, "Cada nombre debe tener al menos 2 caracteres"))
 });
 
 /**
@@ -314,8 +319,135 @@ export async function scanVideoForAffiliates(videoId: number, title: string): Pr
 }
 
 /**
+ * Escanea todos los videos existentes para todas las empresas activas
+ * - Se utiliza para volver a escanear todos los videos en busca de coincidencias
+ * - Procesa los videos en lotes para evitar tiempos de espera excesivos
+ */
+async function scanAllVideosForAffiliates(req: Request, res: Response): Promise<Response> {
+  try {
+    // Verificar que sea un administrador
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Solo los administradores pueden realizar esta operación' 
+      });
+    }
+    
+    // Obtener todas las empresas afiliadas activas
+    const activeCompanies = await db.query.affiliateCompanies.findMany({
+      where: eq(affiliateCompanies.active, true)
+    });
+    
+    if (activeCompanies.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No hay empresas afiliadas activas para escanear' 
+      });
+    }
+    
+    // Obtener todos los videos activos (no eliminados)
+    const allVideos = await db.query.videos.findMany({
+      where: isNull(videos.deletedAt)
+    });
+    
+    if (allVideos.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No hay videos para escanear' 
+      });
+    }
+    
+    let totalMatches = 0;
+    let processedVideos = 0;
+    
+    // Definir tamaño de lote para procesar videos
+    const BATCH_SIZE = 20;
+    
+    // Procesar videos en lotes para mejorar el rendimiento y evitar tiempos de espera
+    for (let i = 0; i < allVideos.length; i += BATCH_SIZE) {
+      // Obtener un lote de videos
+      const videoBatch = allVideos.slice(i, i + BATCH_SIZE);
+      console.log(`Procesando lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(allVideos.length/BATCH_SIZE)}, videos ${i+1}-${Math.min(i+BATCH_SIZE, allVideos.length)} de ${allVideos.length}`);
+      
+      // Procesar cada video en el lote actual de forma paralela
+      const batchPromises = videoBatch.map(async (video) => {
+        const title = video.title?.toLowerCase() || '';
+        let videoMatches = 0;
+        
+        // Buscar coincidencias con cada empresa
+        for (const company of activeCompanies) {
+          // Verificar si hay coincidencias en el título
+          const keywords = company.keywords || [];
+          const hasMatch = [company.name.toLowerCase(), ...keywords]
+            .some(keyword => keyword && title.includes(keyword.toLowerCase()));
+          
+          if (hasMatch) {
+            // Verificar si ya existe una entrada para este video y esta empresa
+            const existingMatch = await db.query.videoAffiliateMatches.findFirst({
+              where: and(
+                eq(videoAffiliateMatches.video_id, video.id),
+                eq(videoAffiliateMatches.company_id, company.id)
+              )
+            });
+            
+            // Si no existe, crear la entrada y contar
+            if (!existingMatch) {
+              await db.insert(videoAffiliateMatches).values({
+                video_id: video.id,
+                company_id: company.id,
+                notified: false,
+                included_by_youtuber: false
+              });
+              
+              videoMatches++;
+              
+              // Notificar al youtuber que subió el contenido si existe
+              if (video.contentUploadedBy) {
+                await notifyYoutuberAboutAffiliate(video.id, company);
+              }
+            }
+          }
+        }
+        
+        return { processed: true, matches: videoMatches };
+      });
+      
+      // Esperar a que se complete el procesamiento del lote actual
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Actualizar contadores con los resultados del lote
+      for (const result of batchResults) {
+        if (result.processed) {
+          processedVideos++;
+          totalMatches += result.matches;
+        }
+      }
+      
+      // Pequeña pausa entre lotes para permitir que el servidor respire
+      if (i + BATCH_SIZE < allVideos.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: `Escaneo completo: ${processedVideos} videos procesados, ${totalMatches} nuevas coincidencias encontradas`,
+      processedVideos,
+      newMatches: totalMatches
+    });
+  } catch (error) {
+    console.error('Error escaneando videos para empresas afiliadas:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Error al escanear videos para empresas afiliadas' 
+    });
+  }
+}
+
+/**
  * Escanea todos los videos existentes para una empresa específica
  * - Se utiliza cuando se activa una empresa previamente inactiva
+ * - Procesa los videos en lotes para mejor rendimiento
  */
 async function scanVideosForCompany(companyId: number): Promise<void> {
   try {
@@ -328,12 +460,30 @@ async function scanVideosForCompany(companyId: number): Promise<void> {
       return;
     }
     
-    // Obtener videos relevantes (aquellos que no han sido escaneados para esta empresa)
-    const allVideos = await db.query.videos.findMany();
+    // Obtener videos activos (aquellos que no han sido eliminados)
+    const allVideos = await db.query.videos.findMany({
+      where: isNull(videos.deletedAt)
+    });
     
-    // Escanear cada video
-    for (const video of allVideos) {
-      if (video.title) {
+    if (allVideos.length === 0) {
+      return;
+    }
+    
+    console.log(`Escaneando ${allVideos.length} videos para empresa "${company.name}" (ID: ${company.id})`);
+    
+    // Definir tamaño de lote para procesar videos
+    const BATCH_SIZE = 25;
+    let matchesFound = 0;
+    
+    // Procesar videos en lotes para mejorar el rendimiento
+    for (let i = 0; i < allVideos.length; i += BATCH_SIZE) {
+      // Obtener un lote de videos
+      const videoBatch = allVideos.slice(i, i + BATCH_SIZE);
+      
+      // Procesar cada video en el lote actual de forma paralela
+      const batchPromises = videoBatch.map(async (video) => {
+        if (!video.title) return false;
+        
         const titleLower = video.title.toLowerCase();
         const nameLower = company.name.toLowerCase();
         
@@ -363,10 +513,27 @@ async function scanVideosForCompany(companyId: number): Promise<void> {
             
             // Enviar notificación
             await notifyYoutuberAboutAffiliate(video.id, company);
+            
+            return true; // Encontramos coincidencia
           }
         }
+        
+        return false; // No encontramos coincidencia
+      });
+      
+      // Esperar a que se complete el procesamiento del lote actual
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Contabilizar resultados
+      matchesFound += batchResults.filter(result => result).length;
+      
+      // Pequeña pausa entre lotes
+      if (i + BATCH_SIZE < allVideos.length) {
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
+    
+    console.log(`Escaneo completado para empresa "${company.name}": ${matchesFound} coincidencias nuevas encontradas`);
   } catch (error) {
     console.error('Error al escanear videos para empresa:', error);
   }
@@ -394,7 +561,7 @@ async function notifyYoutuberAboutAffiliate(videoId: number, company: any): Prom
       return;
     }
     
-    // Crear notificación
+    // Crear notificación para el youtuber que subió el contenido
     await notificationsService.createNotification({
       userId: video.contentUploadedBy,
       title: 'Enlace de afiliado requerido',
@@ -420,6 +587,130 @@ async function notifyYoutuberAboutAffiliate(videoId: number, company: any): Prom
 }
 
 /**
+ * Crea múltiples empresas afiliadas a partir de una lista de nombres
+ */
+async function createBulkAffiliateCompanies(req: Request, res: Response) {
+  try {
+    const result = bulkCompanySchema.safeParse(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Datos inválidos', 
+        details: result.error.format() 
+      });
+    }
+    
+    const { names } = result.data;
+    
+    // Si no hay nombres, devolver error
+    if (names.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'No se proporcionaron nombres de empresas'
+      });
+    }
+    
+    // Limitar a un máximo razonable para evitar sobrecarga
+    const limitedNames = names.slice(0, 100);
+    console.log(`Procesando ${limitedNames.length} nombres de empresas`);
+    
+    // Obtener empresas existentes para verificar duplicados
+    const existingCompanies = await db.query.affiliateCompanies.findMany({
+      columns: { name: true }
+    });
+    const existingNames = new Set(existingCompanies.map(c => c.name.toLowerCase()));
+    
+    // Filtrar solo los nombres que no existen
+    const newNames = limitedNames.filter(name => !existingNames.has(name.toLowerCase()));
+    const duplicateNames = limitedNames.filter(name => existingNames.has(name.toLowerCase()));
+    
+    // Si todos los nombres ya existen, devolver error
+    if (newNames.length === 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Todas las empresas proporcionadas ya existen',
+        totalDuplicates: duplicateNames.length,
+        duplicateNames
+      });
+    }
+    
+    // Insertamos las nuevas empresas
+    const companiesToInsert = newNames.map(name => ({
+      name,
+      description: null,
+      logo_url: null,
+      affiliate_url: 'https://pendiente.com', // URL temporal - se deberá actualizar posteriormente
+      keywords: [name], // La primera palabra clave es el nombre de la empresa
+      active: true // Por defecto activas como solicitado por el usuario
+    }));
+    
+    // Insertar en lotes para evitar problemas con grandes cantidades
+    const BATCH_SIZE = 20;
+    let insertedCount = 0;
+    const newCompanies = [];
+    
+    for (let i = 0; i < companiesToInsert.length; i += BATCH_SIZE) {
+      const batch = companiesToInsert.slice(i, i + BATCH_SIZE);
+      const result = await db.insert(affiliateCompanies).values(batch).returning();
+      insertedCount += result.length;
+      newCompanies.push(...result);
+    }
+    
+    return res.status(201).json({
+      success: true,
+      message: `${insertedCount} empresas afiliadas creadas correctamente`,
+      totalProcessed: limitedNames.length,
+      newCompanies,
+      skippedCount: duplicateNames.length,
+      skippedNames: duplicateNames
+    });
+    
+  } catch (error) {
+    console.error('Error al crear empresas afiliadas en masa:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al crear empresas afiliadas en masa'
+    });
+  }
+}
+
+/**
+ * Elimina todas las empresas afiliadas
+ */
+async function deleteAllAffiliateCompanies(req: Request, res: Response) {
+  try {
+    // Esta es una operación potencialmente peligrosa, así que verificamos que sea un administrador
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Solo los administradores pueden realizar esta operación' 
+      });
+    }
+    
+    // Eliminar registros de coincidencias primero para mantener integridad referencial
+    await db.delete(videoAffiliateMatches);
+    
+    // Eliminar todas las empresas
+    const deleteResult = await db.delete(affiliateCompanies).returning({ deletedId: affiliateCompanies.id });
+    
+    const deletedCount = deleteResult.length;
+    
+    return res.json({
+      success: true,
+      message: `${deletedCount} empresas afiliadas eliminadas correctamente`,
+      deletedCount
+    });
+  } catch (error) {
+    console.error('Error al eliminar todas las empresas afiliadas:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al eliminar empresas afiliadas' 
+    });
+  }
+}
+
+/**
  * Configura las rutas para el controlador de afiliados
  */
 export function setupAffiliateRoutes(
@@ -429,10 +720,13 @@ export function setupAffiliateRoutes(
   // Rutas para gestión de empresas afiliadas
   app.get('/api/affiliates/companies', requireAuth, getAffiliateCompanies);
   app.post('/api/affiliates/companies', requireAuth, createAffiliateCompany);
+  app.post('/api/affiliates/companies/bulk', requireAuth, createBulkAffiliateCompanies);
   app.put('/api/affiliates/companies/:id', requireAuth, updateAffiliateCompany);
   app.delete('/api/affiliates/companies/:id', requireAuth, deleteAffiliateCompany);
+  app.delete('/api/affiliates/companies', requireAuth, deleteAllAffiliateCompanies);
   
   // Rutas para coincidencias de afiliados en videos
   app.get('/api/affiliates/videos/:videoId/matches', requireAuth, getVideoAffiliateMatches);
   app.put('/api/affiliates/matches/:matchId/inclusion', requireAuth, updateAffiliateInclusion);
+  app.post('/api/affiliates/scan-all-videos', requireAuth, scanAllVideosForAffiliates);
 }

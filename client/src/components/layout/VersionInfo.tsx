@@ -34,6 +34,32 @@ interface ChangelogEntry {
 // Historial de versiones
 const versionHistory: ChangelogEntry[] = [
   {
+    version: '2.9.0',
+    date: '26.05.2025',
+    changes: [
+      { 
+        type: 'new', 
+        description: 'Sistema de sugerencias para que los usuarios envíen feedback directamente a los administradores'
+      },
+      { 
+        type: 'new', 
+        description: 'Categorización de sugerencias para mejor organización y seguimiento'
+      },
+      { 
+        type: 'new', 
+        description: 'Panel de administración de sugerencias con control de estados (pendiente, revisión, implementado, rechazado)'
+      },
+      { 
+        type: 'improved', 
+        description: 'Acceso directo a Sugerencias desde el menú principal de navegación'
+      },
+      { 
+        type: 'improved', 
+        description: 'Notificaciones en tiempo real para actualizaciones del estado de sugerencias'
+      }
+    ]
+  },
+  {
     version: '2.8.0',
     date: '18.03.2025',
     changes: [

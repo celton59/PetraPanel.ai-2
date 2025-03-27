@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentIcon, MoneyIcon, TasksIcon, PendingIcon } from "@/components/CustomIcons";
 import StatsCard from "@/components/StatsCard";
-import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon, Bell, Link as LinkIcon } from "lucide-react";
+import { ArrowRight, BarChart, Settings, Users, FileText, BarChart2, Server, User, DatabaseIcon, Bell, Link as LinkIcon, MessageSquareHeart } from "lucide-react";
 import ActionCard from '@/components/ActionCard';
 import { RolesTab } from './configuration/tabs/roles/RolesTab';
 import { UsersTab } from './configuration/tabs/users/UsersTab';
 import { ProjectsTab } from './configuration/tabs/project/ProjectsTab';
+import { SuggestionsWidget } from '@/components/suggestions/SuggestionsWidget';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings'>('dashboard');
@@ -67,13 +68,7 @@ export default function AdminPage() {
                 isPositive={true}
                 icon={TasksIcon}
               />
-              <StatsCard
-                title="Pagos del Mes"
-                value="$5,280.00"
-                change="+12% vs mes anterior"
-                isPositive={true}
-                icon={MoneyIcon}
-              />
+              <SuggestionsWidget />
             </div>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -147,7 +142,7 @@ export default function AdminPage() {
               </Card>
             </div>
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <Link href="/admin/stats">
                 <ActionCard
                   icon={BarChart2}
@@ -182,6 +177,15 @@ export default function AdminPage() {
                   description="Gestiona las empresas afiliadas y sus enlaces para videos."
                   iconColor="text-indigo-500"
                   iconBgColor="bg-indigo-50 dark:bg-indigo-900/20"
+                />
+              </Link>
+              <Link href="/sugerencias">
+                <ActionCard
+                  icon={MessageSquareHeart}
+                  title="Sugerencias"
+                  description="Revisa y gestiona las sugerencias enviadas por los usuarios."
+                  iconColor="text-rose-500"
+                  iconBgColor="bg-rose-50 dark:bg-rose-900/20"
                 />
               </Link>
               <ActionCard

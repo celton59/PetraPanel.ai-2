@@ -1,4 +1,4 @@
-import { Bell, Home, Menu, Video, Languages, Leaf, Settings, Shield, Users, Info } from "lucide-react";
+import { Bell, Home, Menu, Video, Languages, Leaf, Settings, Shield, Users, Info, MessageSquareHeart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -51,7 +51,7 @@ export function MobileNavBar() {
   const navItems = [
     { icon: Home, label: "Inicio", path: "/" },
     { icon: Video, label: "Videos", path: "/videos" },
-    { icon: Leaf, label: "Titulin", path: "/titulin" },
+    { icon: MessageSquareHeart, label: "Sugerencias", path: "/sugerencias" },
     // Botón de notificaciones con contador
     { 
       icon: Bell, 
@@ -70,6 +70,7 @@ export function MobileNavBar() {
     { icon: Video, label: "Videos", path: "/videos" },
     { icon: Leaf, label: "Titulin", path: "/titulin" },
     { icon: Languages, label: "Traductor", path: "/traductor" },
+    { icon: MessageSquareHeart, label: "Sugerencias", path: "/sugerencias" },
     ...(isAdmin ? [
       { icon: Shield, label: "Administración", path: "/admin" }
     ] : []),

@@ -93,10 +93,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
         );
       case "media_corrections":
         return (
-          <MediaCorrectionsDetail
-            video={video}
-            onUpdate={onUpdate}
-          />
+          <MediaCorrectionsDetail video={video} />
         );
       case "media_review":
       case "final_review":

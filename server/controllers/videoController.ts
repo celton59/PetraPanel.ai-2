@@ -507,7 +507,9 @@ async function sendVideoToMediaReview(req: Request, res: Response): Promise<Resp
 const reviewVideoMediaSchema = z.object({
   status: z.enum(['media_corrections', 'final_review']),
   mediaReviewedBy: z.number(),
-  mediaReviewComments: z.array(z.string())
+  mediaReviewComments: z.array(z.string()).optional(),
+  mediaVideoNeedsCorrection: z.boolean().optional(),
+  mediaThumbnailNeedsCorrection: z.boolean().optional(),
 });
 type ReviewVideoMediaSchema = z.infer<typeof reviewVideoMediaSchema>;
 
@@ -537,7 +539,7 @@ async function reviewVideoMedia(req: Request, res: Response): Promise<Response> 
       return res.status(404).json({ success: false, message: "Video no encontrado" });
     }
 
-    if (currentVideo.status !== 'upload_media' && currentVideo.status !== 'media_corrections') {
+    if (currentVideo.status !== 'media_review' && currentVideo.status !== 'media_corrections') {
       return res.status(400).json({ success: false, message: "No se puede revisar este video" })
     }
 
@@ -549,6 +551,8 @@ async function reviewVideoMedia(req: Request, res: Response): Promise<Response> 
         updatedAt: new Date(),
         mediaReviewedBy: updates.mediaReviewedBy,
         mediaReviewComments: updates.mediaReviewComments,
+        mediaVideoNeedsCorrection: updates.mediaVideoNeedsCorrection,
+        mediaThumbnailNeedsCorrection: updates.mediaThumbnailNeedsCorrection
       })
       .where( eq(videos.id, videoId) )
       .returning();

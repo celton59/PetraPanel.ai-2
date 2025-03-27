@@ -32,6 +32,7 @@ import ConfigurationPage from "@/pages/admin/configuration/ConfigurationPage";
 import NotificationsAdminPage from "@/pages/admin/notifications/NotificationsAdminPage";
 import ConfiguracionAfiliados from "@/pages/administracion/ConfiguracionAfiliados";
 import ActivityPage from "@/pages/admin/activity/ActivityPage";
+import SuggestionsPage from "@/pages/suggestions/SuggestionsPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
@@ -77,6 +78,7 @@ function Router() {
       <Route path="/traductor" component={() => <ProtectedRoute component={VideoTranslator} />} />
       <Route path="/mascot-demo" component={() => <ProtectedRoute component={MascotDemo} />} />
       <Route path="/easter-eggs-demo" component={() => <ProtectedRoute component={EasterEggsDemo} />} />
+      <Route path="/sugerencias" component={() => <ProtectedRoute component={SuggestionsPage} />} />
       
 
       {/* Rutas de administración - solo accesibles para administradores */}

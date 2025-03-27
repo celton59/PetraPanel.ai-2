@@ -307,8 +307,18 @@ export function setupAuth(app: Express) {
     if (req.isAuthenticated()) {
       const userToReturn = JSON.parse(JSON.stringify(req.user))
       delete userToReturn.password;
+      
+      // Log adicional para ayudar en la depuración
+      console.log(`API User response for ${userToReturn.username} (ID: ${userToReturn.id}, role: ${userToReturn.role})`);
+      
       return res.json(userToReturn);
     }
-    res.status(401).send("No autenticado");
+    
+    // Respuesta mejorada para indicar claramente el estado de autenticación
+    return res.status(401).json({ 
+      success: false,
+      message: "No autenticado",
+      authenticated: false
+    });
   });
 }

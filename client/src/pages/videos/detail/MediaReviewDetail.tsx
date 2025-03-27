@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { useState } from "react";
-import { UpdateVideoData } from "@/hooks/useVideos";
+import { UpdateVideoData, useVideos } from "@/hooks/useVideos";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,6 @@ import { useUser } from "@/hooks/use-user";
 // Importamos los componentes modulares para cada estado
 import { MediaReviewContent } from "./media-review/MediaReviewContent";
 import { FinalReviewContent } from "./final-review/FinalReviewContent";
-import { CompletedVideoContent } from "./completed/CompletedVideoContent";
 
 export default function MediaReviewDetail({
   video,
@@ -35,7 +34,6 @@ export default function MediaReviewDetail({
   const [videoPreviewOpen, setVideoPreviewOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
   
-  const [linkCopied, setLinkCopied] = useState(false);
   
   const [youtubeUploadStatus, setYoutubeUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [youtubeUploadData, setYoutubeUploadData] = useState<{
@@ -49,6 +47,10 @@ export default function MediaReviewDetail({
     tags: video.tags ? video.tags.split(',').map(tag => tag.trim()) : [],
     privacyStatus: 'unlisted'
   });
+
+  const { reviewVideoMedia } = useVideos()
+  const { user } = useUser();
+  
 
   // Funciones de manejo
 
@@ -81,14 +83,20 @@ export default function MediaReviewDetail({
     }
   }
 
-  const { user } = useUser();
+  
   
   function handleApprove() {
     // Asignamos el usuario actual como revisor de media
-    onUpdate({ 
+    reviewVideoMedia({
+      projectId: video.projectId,
+      videoId: video.id,
+      mediaReviewedBy: user!.id,
       status: 'final_review',
-      mediaReviewedBy: user?.id 
-    });
+    })
+    // onUpdate({ 
+    //   status: 'final_review',
+    //   mediaReviewedBy: user?.id 
+    // });
     
     // Registramos para depuración
     console.log('Media review approved by user:', user?.id, user?.username);
@@ -97,8 +105,6 @@ export default function MediaReviewDetail({
   function handleCopyLink() {
     if (video.videoUrl) {
       navigator.clipboard.writeText(video.videoUrl);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
     }
   }
 
@@ -115,11 +121,20 @@ export default function MediaReviewDetail({
 
   function handleReject() {
     if (!videoNeedsCorrection && !thumbnailNeedsCorrection) return;
-    
-    onUpdate({
+
+    reviewVideoMedia({
+      projectId: video.projectId,
+      videoId: video.id,
+      mediaReviewedBy: user!.id,
+      mediaReviewComments: video.mediaReviewComments ? [...video.mediaReviewComments, reviewComments] : [reviewComments],
       status: 'media_corrections',
-      mediaReviewComments: video.mediaReviewComments ? [...video.mediaReviewComments, reviewComments] : [reviewComments]
-    });
+      mediaThumbnailNeedsCorrection: thumbnailNeedsCorrection,
+      mediaVideoNeedsCorrection: videoNeedsCorrection,
+    })
+    // onUpdate({
+    //   status: 'media_corrections',
+    //   mediaReviewComments: video.mediaReviewComments ? [...video.mediaReviewComments, reviewComments] : [reviewComments]
+    // });
   }
 
   return (
@@ -426,12 +441,6 @@ export default function MediaReviewDetail({
           openYoutubeDialog={() => setYoutubeDialogOpen(true)}
         />
 
-        <CompletedVideoContent
-          video={video}
-          handleCopyLink={handleCopyLink}
-          handleDownload={handleDownload}
-          linkCopied={linkCopied}
-        />
       </div>
     </div>
   );

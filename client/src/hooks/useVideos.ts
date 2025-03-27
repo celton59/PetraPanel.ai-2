@@ -34,6 +34,7 @@ export type ApiVideo = Video & {
   uploaderUsername: User["username"];
   deletedByName: User["fullName"] | null;
   deletedByUsername: User["username"] | null;
+  assignedToId?: number | null; // Añadiendo campo opcional para el ID del usuario asignado
 };
 
 export function useVideos() {
@@ -380,14 +381,16 @@ export function useVideos() {
 
   // Review Media
   const reviewVideoMediaMutation = useMutation({
-    mutationFn: async ({ status, mediaReviewedBy, mediaReviewComments, projectId, videoId }: ReviewVideoMediaData) => {
+    mutationFn: async ({ status, mediaReviewedBy, mediaReviewComments, projectId, videoId, mediaThumbnailNeedsCorrection, mediaVideoNeedsCorrection }: ReviewVideoMediaData) => {
 
       try {
         await refreshCSRFToken();
         const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/reviewMedia`, {
           status,
           mediaReviewedBy,
-          mediaReviewComments
+          mediaReviewComments,
+          mediaThumbnailNeedsCorrection,
+          mediaVideoNeedsCorrection
         });
         return response.data;
       } catch (error: any) {
@@ -710,5 +713,7 @@ export interface ReviewVideoMediaData {
   videoId: number 
   status?: "final_review" | "media_corrections"
   mediaReviewedBy?: number
-  mediaReviewComments: string[]
+  mediaReviewComments?: string[]
+  mediaVideoNeedsCorrection?: boolean,
+  mediaThumbnailNeedsCorrection?: boolean,
 }

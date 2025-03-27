@@ -5,6 +5,7 @@ import { PerformanceStats } from "@/components/dashboard/PerformanceStats";
 import { VideoStats } from "@/components/dashboard/VideoStats";
 import { WeatherWidget } from "@/components/dashboard/WeatherWidget";
 import { UsersList } from "@/components/dashboard/UsersList";
+import { SuggestionsWidget } from "@/components/suggestions/SuggestionsWidget";
 import { useUser } from "@/hooks/use-user";
 import { motion } from "framer-motion";
 
@@ -46,6 +47,14 @@ const Index = () => {
       </motion.div>
 
       <motion.div variants={itemVariants} className="grid gap-4 md:gap-6">
+        {/* Sugerencias */}
+        <motion.div variants={itemVariants}>
+          <h3 className="text-xl font-semibold mb-4">Sugerencias pendientes de revisión</h3>
+          <div className="max-w-xl">
+            <SuggestionsWidget />
+          </div>
+        </motion.div>
+        
         {/* Action cards */}
         <motion.div variants={itemVariants}>
           <h3 className="text-xl font-semibold mb-4">Acciones rápidas</h3>
