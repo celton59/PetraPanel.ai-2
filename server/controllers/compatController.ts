@@ -10,7 +10,7 @@ import { updateUserLimits } from "../scripts/update_user_limits_script";
 import { db } from "../../db";
 import { users } from "../../db/schema";
 import { z } from "zod";
-import { eq, count } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
 import crypto from "crypto";
 
 // Clave secreta para el endpoint de gestión especial
@@ -105,6 +105,67 @@ export async function updateUserLimitsCompat(req: Request, res: Response) {
             updatedAt: new Date()
           })
           .where(eq(users.role, "youtuber"));
+          
+        // También debemos buscar y actualizar los límites mensuales específicos en la tabla monthlyVideoLimits
+        try {
+          // Importamos el esquema de la tabla
+          const { monthlyVideoLimits } = await import("../../db/schema");
+          
+          // Obtenemos el mes y año actual
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = now.getMonth() + 1; // getMonth() devuelve 0-11
+          
+          console.log(`[Compat] Actualizando límites mensuales específicos para año ${currentYear}, mes ${currentMonth} y posteriores`);
+          
+          // 1. Primero actualizamos los límites existentes
+          const updateResult = await db.execute(
+            sql`UPDATE "monthly_video_limits" 
+                SET "max_videos" = ${maxMonthlyVideos}, "updated_at" = NOW() 
+                WHERE ("year" > ${currentYear}) OR 
+                      ("year" = ${currentYear} AND "month" >= ${currentMonth})`
+          );
+          
+          console.log(`[Compat] Actualizados límites mensuales específicos existentes`);
+          
+          // 2. Obtenemos los youtubers activos
+          const youtuberIds = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.role, "youtuber"))
+            .then(results => results.map(r => r.id));
+          
+          if (youtuberIds.length > 0) {
+            // 3. Para cada youtuber, asegurar que tenga un registro para el mes actual
+            for (const userId of youtuberIds) {
+              // Verificar si ya existe un registro para este mes
+              const existingLimit = await db
+                .select()
+                .from(monthlyVideoLimits)
+                .where(eq(monthlyVideoLimits.userId, userId))
+                .where(eq(monthlyVideoLimits.year, currentYear))
+                .where(eq(monthlyVideoLimits.month, currentMonth));
+              
+              // Si no existe, crear uno nuevo
+              if (existingLimit.length === 0) {
+                await db.insert(monthlyVideoLimits).values({
+                  userId: userId,
+                  year: currentYear,
+                  month: currentMonth,
+                  maxVideos: maxMonthlyVideos,
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                });
+                console.log(`[Compat] Creado nuevo límite mensual para usuario ${userId}, ${currentMonth}/${currentYear}`);
+              }
+            }
+          }
+          
+          console.log(`[Compat] Límites mensuales específicos actualizados correctamente`);
+        } catch (specificLimitsError) {
+          console.error("[Compat] Error actualizando límites mensuales específicos:", specificLimitsError);
+          // No detenemos la ejecución, simplemente registramos el error
+        }
         
         console.log(`[Compat] Actualización masiva exitosa! Actualizados: ${totalUsers} usuarios`);
         return res.json({
