@@ -142,9 +142,11 @@ export async function updateUserLimitsCompat(req: Request, res: Response) {
               const existingLimit = await db
                 .select()
                 .from(monthlyVideoLimits)
-                .where(eq(monthlyVideoLimits.userId, userId))
-                .where(eq(monthlyVideoLimits.year, currentYear))
-                .where(eq(monthlyVideoLimits.month, currentMonth));
+                .where(
+                  sql`${monthlyVideoLimits.userId} = ${userId} AND 
+                  ${monthlyVideoLimits.year} = ${currentYear} AND 
+                  ${monthlyVideoLimits.month} = ${currentMonth}`
+                );
               
               // Si no existe, crear uno nuevo
               if (existingLimit.length === 0) {
