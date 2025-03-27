@@ -174,10 +174,25 @@ export async function updateUser(
       });
     }
 
-    const body = req.body as UpdateUserSchema;
+    const body = req.body;
     const { id } = req.params;
-
-    // Validar body con schema
+    
+    // Caso especial: actualización solo de límites desde el panel de límites
+    // Este caso permite que las actualizaciones desde el panel de límites funcionen,
+    // aunque solo se envíen maxAssignedVideos y maxMonthlyVideos
+    if (
+      Object.keys(body).length <= 2 && 
+      (body.maxAssignedVideos !== undefined || body.maxMonthlyVideos !== undefined) &&
+      !body.username && !body.fullName && !body.password && !body.email && !body.projectIds
+    ) {
+      console.log("Detectada actualización de límites simplificada:", body);
+      
+      // Redirigir a la función específica de actualización de límites
+      return updateUserLimits(req, res);
+    }
+    
+    // Para todas las demás actualizaciones, procedemos con la validación completa
+    // Validar body con schema para actualizaciones completas de usuario
     const validationResult = updateUserSchema.safeParse(body);
     if (!validationResult.success) {
       return res
@@ -195,7 +210,7 @@ export async function updateUser(
       email,
       role,
       maxAssignedVideos,
-    } = body;
+    } = body as UpdateUserSchema;
     console.log("Actualizando usuario:", { id, projectIds });
 
     // Hash password if provided and user is admin
