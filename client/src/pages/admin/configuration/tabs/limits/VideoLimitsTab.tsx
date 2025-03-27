@@ -199,13 +199,14 @@ export function VideoLimitsTab() {
     try {
       const userId = Number(data.userId);
 
-      // Intentar actualizar mediante API
+      // Intentar actualizar mediante API - Usamos la ruta especializada para límites
       try {
         console.log(`Actualizando límites para usuario ${userId}:`, {
           maxMonthlyVideos: data.maxMonthlyVideos,
           maxAssignedVideos: data.maxAssignedVideos
         });
-        await axios.put(`/api/users/${userId}`, {
+        // Usar la nueva ruta específica para actualizar límites
+        await axios.put(`/api/users/${userId}/limits`, {
           maxMonthlyVideos: data.maxMonthlyVideos,
           maxAssignedVideos: data.maxAssignedVideos
         });
