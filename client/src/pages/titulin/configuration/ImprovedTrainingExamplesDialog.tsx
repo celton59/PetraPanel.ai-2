@@ -21,10 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Select, 
   SelectContent, 
@@ -32,29 +30,14 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
 import { 
   Loader2, 
   Plus, 
   Trash, 
-  Search, 
   FileUp, 
-  FileDown, 
   Download,
   CheckCircle, 
-  XCircle,
-  Filter,
-  ChevronDown,
   AlertCircle,
   ListPlus,
   Video,
@@ -62,7 +45,6 @@ import {
   Layers,
   Cpu,
   ArrowUpDown,
-  Info,
   PanelLeftOpen,
   PanelLeftClose
 } from "lucide-react";
@@ -71,485 +53,21 @@ import {
 import { DataQualityMetrics } from "../visualization/DataQualityMetrics";
 import { EmbeddingVisualizer } from "../visualization/EmbeddingVisualizer";
 import { AdvancedCategorizationPanel } from "../visualization/AdvancedCategorizationPanel";
+import { TrainingTitleExample } from "@db/schema";
 
-interface TrainingExample {
-  id: number;
-  title: string;
-  is_evergreen: boolean;
-  created_at: string;
-  created_by?: number;
-  confidence?: number;
-  category?: string;
-  similarity_score?: number;
-  embedding?: number[];
-  vector_processed?: boolean;
-}
-
-interface PaginationData {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-interface TrainingExamplesDialogProps {
+interface TrainingTitleExamplesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-// Componente para el panel de importación
-function ImportPanel({
-  onImportCSV,
-  onImportText,
-  onImportYouTube,
-  isImporting
-}: {
-  onImportCSV: () => void;
-  onImportText: () => void;
-  onImportYouTube: () => void;
-  isImporting: boolean;
-}) {
-  return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-md">Importar ejemplos</CardTitle>
-        <CardDescription>
-          Añade ejemplos desde diferentes fuentes para mejorar el análisis
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            onClick={onImportCSV}
-            disabled={isImporting}
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-          >
-            <FileUp className="mr-2 h-4 w-4" />
-            Importar CSV
-          </Button>
-          <Button 
-            onClick={onImportText}
-            disabled={isImporting}
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-          >
-            <ListPlus className="mr-2 h-4 w-4" />
-            Importar texto
-          </Button>
-          <Button 
-            onClick={onImportYouTube}
-            disabled={isImporting}
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-          >
-            <Video className="mr-2 h-4 w-4" />
-            Importar de YouTube
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
-// Componente para el panel de acciones
-function ActionsPanel({
-  onExport,
-  onProcessVectors,
-  unprocessedCount,
-  isExporting,
-  isProcessing
-}: {
-  onExport: () => void;
-  onProcessVectors: () => void;
-  unprocessedCount: number;
-  isExporting: boolean;
-  isProcessing: boolean;
-}) {
-  return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-md">Acciones</CardTitle>
-        <CardDescription>
-          Gestiona y procesa tus ejemplos de entrenamiento
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            onClick={onExport}
-            disabled={isExporting}
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-          >
-            {isExporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Exportar ejemplos
-          </Button>
-          <Button 
-            onClick={onProcessVectors}
-            disabled={isProcessing || unprocessedCount === 0}
-            variant="default" 
-            size="sm" 
-            className="flex items-center"
-          >
-            {isProcessing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Cpu className="mr-2 h-4 w-4" />
-            )}
-            {isProcessing ? 'Procesando...' : `Procesar vectores (${unprocessedCount})`}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
-// Componente para el formulario de nuevo ejemplo
-function AddExampleForm({
-  title,
-  isEvergreen,
-  onTitleChange,
-  onEvergreenChange,
-  onSubmit,
-  isSubmitting
-}: {
-  title: string;
-  isEvergreen: boolean;
-  onTitleChange: (value: string) => void;
-  onEvergreenChange: (value: boolean) => void;
-  onSubmit: () => void;
-  isSubmitting: boolean;
-}) {
-  return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-md">Añadir nuevo ejemplo</CardTitle>
-        <CardDescription>
-          Ingresa un título y selecciona su tipo
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="new-title">Título</Label>
-            <div className="flex gap-2">
-              <Input
-                id="new-title"
-                placeholder="Título del ejemplo"
-                value={title}
-                onChange={(e) => onTitleChange(e.target.value)}
-                className="flex-1"
-              />
-              <Button 
-                onClick={onSubmit}
-                disabled={isSubmitting || !title.trim()}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Añadir
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="evergreen-toggle" 
-              checked={isEvergreen}
-              onCheckedChange={onEvergreenChange}
-            />
-            <Label htmlFor="evergreen-toggle">
-              {isEvergreen ? (
-                <span className="text-green-700 font-medium">Evergreen (contenido atemporal)</span>
-              ) : (
-                <span className="text-amber-700 font-medium">No Evergreen (contenido temporal)</span>
-              )}
-            </Label>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// Componente para la tabla de ejemplos
-function ExamplesTable({
-  examples, 
-  onDelete, 
-  isLoading
-}: {
-  examples: TrainingExample[];
-  onDelete: (id: number) => void;
-  isLoading: boolean;
-}) {
-  return (
-    <div className="rounded-md border overflow-auto bg-card">
-      <Table>
-        <TableHeader className="sticky top-0 bg-background border-b z-10">
-          <TableRow>
-            <TableHead className="w-[60%]">Título</TableHead>
-            <TableHead className="w-[20%]">Tipo</TableHead>
-            <TableHead className="w-[20%] text-center">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={3} className="text-center py-10">
-                <div className="flex flex-col items-center space-y-2">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                  <div className="text-sm text-muted-foreground">Cargando ejemplos...</div>
-                </div>
-              </TableCell>
-            </TableRow>
-          ) : examples.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
-                <div className="flex flex-col items-center space-y-2">
-                  <AlertCircle className="h-10 w-10 text-muted" />
-                  <div className="text-base font-medium">No hay ejemplos disponibles</div>
-                  <div className="text-sm text-muted-foreground max-w-sm text-center">
-                    No hay ejemplos de entrenamiento. Agrega algunos o importa desde diferentes fuentes.
-                  </div>
-                </div>
-              </TableCell>
-            </TableRow>
-          ) : (
-            examples.map((example) => (
-              <TableRow key={example.id} className="hover:bg-muted/20">
-                <TableCell className="font-medium">{example.title}</TableCell>
-                <TableCell>
-                  {example.is_evergreen ? (
-                    <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                      Evergreen
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
-                      No Evergreen
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(example.id)}
-                    className="hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash className="h-4 w-4 text-red-600" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-
-// Componente para el diálogo de importación masiva
-function BulkImportDialog({
+export function ImprovedTrainingTitleExamplesDialog({
   open,
   onOpenChange,
-  titles,
-  onTitlesChange,
-  isEvergreen,
-  onEvergreenChange,
-  onImport,
-  isImporting
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  titles: string;
-  onTitlesChange: (value: string) => void;
-  isEvergreen: boolean;
-  onEvergreenChange: (value: boolean) => void;
-  onImport: () => void;
-  isImporting: boolean;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Importar ejemplos en masa</DialogTitle>
-          <DialogDescription>
-            Ingrese un título por línea. Todos los títulos serán importados como el tipo seleccionado.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="bulk-titles">Títulos (uno por línea)</Label>
-            <textarea
-              id="bulk-titles"
-              className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Ingrese un título por línea"
-              value={titles}
-              onChange={(e) => onTitlesChange(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="bulk-evergreen" 
-              checked={isEvergreen}
-              onCheckedChange={onEvergreenChange}
-            />
-            <Label htmlFor="bulk-evergreen">
-              {isEvergreen ? (
-                <span className="text-green-700 font-medium">Evergreen (contenido atemporal)</span>
-              ) : (
-                <span className="text-amber-700 font-medium">No Evergreen (contenido temporal)</span>
-              )}
-            </Label>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={onImport}
-            disabled={isImporting || !titles.trim()}
-          >
-            {isImporting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Importando...
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" />
-                Importar títulos
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Componente para el diálogo de importación desde YouTube
-function YouTubeImportDialog({
-  open,
-  onOpenChange,
-  channels,
-  selectedChannel,
-  onChannelChange,
-  isEvergreen,
-  onEvergreenChange,
-  onImport,
-  isImporting
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  channels: {id: string, name: string, channelId: string}[];
-  selectedChannel: {id: string, name: string, channelId: string} | null;
-  onChannelChange: (value: string) => void;
-  isEvergreen: boolean;
-  onEvergreenChange: (value: boolean) => void;
-  onImport: () => void;
-  isImporting: boolean;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Importar desde canal de YouTube</DialogTitle>
-          <DialogDescription>
-            Seleccione un canal e indique si los títulos deben considerarse como contenido evergreen (atemporal) o no evergreen (temporal).
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="channel-selector">Canal de YouTube</Label>
-            <Select
-              value={selectedChannel?.id || ""}
-              onValueChange={(value) => {
-                onChannelChange(value);
-              }}
-            >
-              <SelectTrigger id="channel-selector">
-                <SelectValue placeholder="Seleccione un canal" />
-              </SelectTrigger>
-              <SelectContent>
-                {channels.length === 0 ? (
-                  <div className="py-2 px-4 text-sm text-muted-foreground">
-                    No hay canales disponibles
-                  </div>
-                ) : (
-                  channels.map(channel => (
-                    <SelectItem key={channel.id} value={channel.id}>
-                      {channel.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="youtube-evergreen" 
-              checked={isEvergreen}
-              onCheckedChange={onEvergreenChange}
-            />
-            <Label htmlFor="youtube-evergreen">
-              {isEvergreen ? (
-                <span className="text-green-700 font-medium">Evergreen (contenido atemporal)</span>
-              ) : (
-                <span className="text-amber-700 font-medium">No Evergreen (contenido temporal)</span>
-              )}
-            </Label>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={onImport}
-            disabled={isImporting || !selectedChannel}
-          >
-            {isImporting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Importando...
-              </>
-            ) : (
-              <>
-                <AlertCircle className="mr-2 h-4 w-4" />
-                Importar títulos
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function ImprovedTrainingExamplesDialog({
-  open,
-  onOpenChange,
-}: TrainingExamplesDialogProps) {
+}: TrainingTitleExamplesDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [examples, setExamples] = useState<TrainingExample[]>([]);
+  const [examples, setExamples] = useState<TrainingTitleExample[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [isEvergreen, setIsEvergreen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("examples");
@@ -557,17 +75,6 @@ export function ImprovedTrainingExamplesDialog({
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showSidebar, setShowSidebar] = useState(true);
   
-  // Estado para paginación
-  const [pagination, setPagination] = useState<PaginationData>({
-    total: 0,
-    page: 1,
-    limit: 100,
-    totalPages: 0
-  });
-  
-  // Estado para operaciones por lotes
-  const [selectedExamples, setSelectedExamples] = useState<number[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
   
   // Estado para importación/exportación
   const [isUploading, setIsUploading] = useState(false);
@@ -597,18 +104,16 @@ export function ImprovedTrainingExamplesDialog({
   const dataMetrics = useMemo(() => {
     return {
       totalExamples: examples.length,
-      evergreenExamples: examples.filter(e => e.is_evergreen).length,
-      nonEvergreenExamples: examples.filter(e => !e.is_evergreen).length,
-      processedVectors: examples.filter(e => e.vector_processed).length,
-      avgConfidence: examples.reduce((acc, e) => acc + (e.confidence || 0), 0) / examples.length || 0
+      evergreenExamples: examples.filter(e => e.isEvergreen).length,
+      nonEvergreenExamples: examples.filter(e => !e.isEvergreen).length,
+      processedVectors: examples.filter(e => e.embedding).length,
+      avgConfidence: examples.reduce((acc, e) => acc + (parseFloat(e.confidence ?? '0') || 0), 0) / examples.length || 0
     };
   }, [examples]);
 
   // Cargar ejemplos
   const loadExamples = async () => {
     setIsLoading(true);
-    setSelectedExamples([]);
-    setSelectAll(false);
 
     try {
       // Construir parámetros de consulta
@@ -626,10 +131,9 @@ export function ImprovedTrainingExamplesDialog({
       
       if (response.data.success) {
         setExamples(response.data.data);
-        setPagination(response.data.pagination);
         
         // Contar ejemplos sin procesar
-        const unprocessed = response.data.data.filter((example: TrainingExample) => !example.vector_processed).length;
+        const unprocessed = response.data.data.filter((example: TrainingTitleExample) => !example.embedding).length;
         setUnprocessedCount(unprocessed);
       }
     } catch (error: any) {
@@ -689,7 +193,7 @@ export function ImprovedTrainingExamplesDialog({
   };
 
   // Añadir nuevo ejemplo
-  const addExample = async () => {
+  async function addExample () {
     if (!newTitle.trim()) {
       toast.error("El título no puede estar vacío");
       return;
@@ -736,8 +240,8 @@ export function ImprovedTrainingExamplesDialog({
       // Filtrar por tipo (pestaña activa)
       const matchesTab = 
         activeFilterTab === "all" || 
-        (activeFilterTab === "evergreen" && example.is_evergreen === true) || 
-        (activeFilterTab === "not-evergreen" && example.is_evergreen === false);
+        (activeFilterTab === "evergreen" && example.isEvergreen === true) || 
+        (activeFilterTab === "not-evergreen" && example.isEvergreen === false);
       
       // Filtrar por término de búsqueda
       const matchesSearch = 
@@ -749,8 +253,8 @@ export function ImprovedTrainingExamplesDialog({
   }, [examples, activeFilterTab, searchTerm]);
   
   // Contador de resultados filtrados por tipo para mostrar en las pestañas
-  const evergreenCount = useMemo(() => examples.filter(e => e.is_evergreen === true).length, [examples]);
-  const notEvergreenCount = useMemo(() => examples.filter(e => e.is_evergreen === false).length, [examples]);
+  const evergreenCount = useMemo(() => examples.filter(e => e.isEvergreen === true).length, [examples]);
+  const notEvergreenCount = useMemo(() => examples.filter(e => e.isEvergreen === false).length, [examples]);
   
   // Función para cambiar de pestaña y limpiar la búsqueda
   const handleFilterTabChange = (value: string) => {
@@ -918,36 +422,7 @@ export function ImprovedTrainingExamplesDialog({
       setIsImportingBulk(false);
     }
   };
-  
-  // Función para gestionar operaciones en lote
-  const handleBulkOperation = async (operation: 'delete' | 'update', data?: { is_evergreen?: boolean }) => {
-    if (selectedExamples.length === 0) {
-      toast.error('No hay ejemplos seleccionados');
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const response = await api.post('/api/titulin/training-examples/bulk', {
-        operation,
-        ids: selectedExamples,
-        data
-      });
-      
-      if (response.data.success) {
-        toast.success(`Operación completada con éxito en ${selectedExamples.length} ejemplos`);
-        loadExamples(); // Recargar ejemplos
-        setSelectedExamples([]); // Limpiar selección
-        setSelectAll(false); // Resetear selección total
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al realizar operación en lote');
-      console.error('Error en operación masiva:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+
   // Función para procesar vectores de ejemplos
   const processVectors = async () => {
     if (unprocessedCount === 0) {
@@ -959,7 +434,7 @@ export function ImprovedTrainingExamplesDialog({
     try {
       // Obtener solo IDs de ejemplos sin procesar
       const unprocessedIds = examples
-        .filter(example => !example.vector_processed)
+        .filter(example => !example.embedding)
         .map(example => example.id);
         
       const response = await api.post('/api/titulin/training-examples/process-vectors', {
@@ -983,17 +458,12 @@ export function ImprovedTrainingExamplesDialog({
     setIsLoading(true);
     try {
       // Simulamos actualización con un timeout
-      // Aquí iría la llamada real al API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await api.post('/api/titulin/training-examples/category', {
+          exampleIds: exampleIds,
+          category: category
+      });
       
-      // Actualizar localmente para mostrar cambios
-      const updatedExamples = examples.map(example => 
-        exampleIds.includes(example.id) 
-          ? { ...example, category } 
-          : example
-      );
-      
-      setExamples(updatedExamples);
+      loadExamples()
       toast.success(`${exampleIds.length} ejemplos categorizados como "${category}"`);
     } catch (error: any) {
       toast.error('Error al categorizar ejemplos');
@@ -1005,42 +475,6 @@ export function ImprovedTrainingExamplesDialog({
   
   return (
     <>
-      {/* Diálogo de importación masiva */}
-      <BulkImportDialog
-        open={bulkImportOpen}
-        onOpenChange={setBulkImportOpen}
-        titles={bulkTitles}
-        onTitlesChange={setBulkTitles}
-        isEvergreen={bulkIsEvergreen}
-        onEvergreenChange={setBulkIsEvergreen}
-        onImport={handleBulkImport}
-        isImporting={isImportingBulk}
-      />
-      
-      {/* Diálogo de importación desde YouTube */}
-      <YouTubeImportDialog
-        open={youtubeChannelOpen}
-        onOpenChange={setYoutubeChannelOpen}
-        channels={channels}
-        selectedChannel={selectedChannel}
-        onChannelChange={(value) => {
-          const channel = channels.find(c => c.id === value);
-          setSelectedChannel(channel || null);
-        }}
-        isEvergreen={importAsEvergreen}
-        onEvergreenChange={setImportAsEvergreen}
-        onImport={handleImportFromYoutube}
-        isImporting={isImportingFromYoutube}
-      />
-      
-      {/* Input oculto para carga de archivos */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileUpload}
-        className="hidden"
-        accept=".csv"
-      />
       
       {/* Diálogo principal */}
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1155,7 +589,7 @@ export function ImprovedTrainingExamplesDialog({
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Vectores procesados:</span>
-                          <span className="font-medium">{examples.filter(e => e.vector_processed).length}</span>
+                          <span className="font-medium">{examples.filter(e => e.embedding).length}</span>
                         </div>
                       </div>
                     </Card>
@@ -1192,62 +626,58 @@ export function ImprovedTrainingExamplesDialog({
                   </div>
                   
                   <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleSort('title')}
-                          className="flex items-center"
-                        >
-                          Ordenar
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                        
-                        <Input
-                          className="max-w-[300px]"
-                          placeholder="Buscar ejemplos..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Escape' && setSearchTerm('')}
-                        />
-                        
-                        <Badge>
-                          {filteredExamples.length} resultado{filteredExamples.length !== 1 ? 's' : ''}
-                        </Badge>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleSort('title')}
+                        className="flex items-center"
+                      >
+                        Ordenar
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+
+                      <Input
+                        className="max-w-[300px]"
+                        placeholder="Buscar ejemplos..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && setSearchTerm('')}
+                      />
+
+                      <Badge>
+                        {filteredExamples.length} resultado{filteredExamples.length !== 1 ? 's' : ''}
+                      </Badge>
                       
-                      <div className="space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExport}
-                          disabled={isExporting || examples.length === 0}
-                          className="flex items-center"
-                        >
-                          {isExporting ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="mr-2 h-4 w-4" />
-                          )}
-                          Exportar
-                        </Button>
-                        
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={processVectors}
-                          disabled={isProcessingVectors || unprocessedCount === 0}
-                          className="flex items-center"
-                        >
-                          {isProcessingVectors ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Cpu className="mr-2 h-4 w-4" />
-                          )}
-                          {isProcessingVectors ? 'Procesando...' : `Procesar vectores (${unprocessedCount})`}
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExport}
+                        disabled={isExporting || examples.length === 0}
+                        className="flex items-center ms-auto"
+                      >
+                        {isExporting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        Exportar
+                      </Button>
+
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={processVectors}
+                        disabled={isProcessingVectors || unprocessedCount === 0}
+                        className="flex items-center"
+                      >
+                        {isProcessingVectors ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Cpu className="mr-2 h-4 w-4" />
+                        )}
+                        {isProcessingVectors ? 'Procesando...' : `Procesar vectores (${unprocessedCount})`}
+                      </Button>
                     </div>
                     
                     <ExamplesTable 
@@ -1290,21 +720,11 @@ export function ImprovedTrainingExamplesDialog({
               {/* Sección de categorización */}
               {activeTab === "categorization" && (
                 <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Categorización avanzada</CardTitle>
-                      <CardDescription>
-                        Herramienta para categorizar ejemplos en grupos temáticos que ayuden a mejorar el análisis.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0 min-h-[500px]">
-                      <AdvancedCategorizationPanel 
-                        examples={examples}
-                        onCategorize={handleCategorizeExamples}
-                        className="h-full"
-                      />
-                    </CardContent>
-                  </Card>
+                  <AdvancedCategorizationPanel 
+                    examples={examples}
+                    onCategorize={handleCategorizeExamples}
+                    className="h-full"
+                  />
                 </div>
               )}
             </div>
@@ -1317,6 +737,434 @@ export function ImprovedTrainingExamplesDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de importación masiva */}
+      <BulkImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
+        titles={bulkTitles}
+        onTitlesChange={setBulkTitles}
+        isEvergreen={bulkIsEvergreen}
+        onEvergreenChange={setBulkIsEvergreen}
+        onImport={handleBulkImport}
+        isImporting={isImportingBulk}
+      />
+
+      {/* Diálogo de importación desde YouTube */}
+      <YouTubeImportDialog
+        open={youtubeChannelOpen}
+        onOpenChange={setYoutubeChannelOpen}
+        channels={channels}
+        selectedChannel={selectedChannel}
+        onChannelChange={(value) => {
+          const channel = channels.find(c => c.id === value);
+          setSelectedChannel(channel || null);
+        }}
+        isEvergreen={importAsEvergreen}
+        onEvergreenChange={setImportAsEvergreen}
+        onImport={handleImportFromYoutube}
+        isImporting={isImportingFromYoutube}
+      />
+
+      {/* Input oculto para carga de archivos */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        className="hidden"
+        accept=".csv"
+      />
     </>
+  );
+}
+
+
+
+// Componente para el panel de importación
+function ImportPanel({
+  onImportCSV,
+  onImportText,
+  onImportYouTube,
+  isImporting
+}: {
+  onImportCSV: () => void;
+  onImportText: () => void;
+  onImportYouTube: () => void;
+  isImporting: boolean;
+}) {
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-md">Importar ejemplos</CardTitle>
+        <CardDescription>
+          Añade ejemplos desde diferentes fuentes para mejorar el análisis
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={onImportCSV}
+            disabled={isImporting}
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+          >
+            <FileUp className="mr-2 h-4 w-4" />
+            Importar CSV
+          </Button>
+          <Button 
+            onClick={onImportText}
+            disabled={isImporting}
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+          >
+            <ListPlus className="mr-2 h-4 w-4" />
+            Importar texto
+          </Button>
+          <Button 
+            onClick={onImportYouTube}
+            disabled={isImporting}
+            variant="outline" 
+            size="sm" 
+            className="flex items-center"
+          >
+            <Video className="mr-2 h-4 w-4" />
+            Importar de YouTube
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Componente para el formulario de nuevo ejemplo
+function AddExampleForm({
+  title,
+  isEvergreen,
+  onTitleChange,
+  onEvergreenChange,
+  onSubmit,
+  isSubmitting
+}: {
+  title: string;
+  isEvergreen: boolean;
+  onTitleChange: (value: string) => void;
+  onEvergreenChange: (value: boolean) => void;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+}) {
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-md">Añadir nuevo ejemplo</CardTitle>
+        <CardDescription>
+          Ingresa un título y selecciona su tipo
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="new-title">Título</Label>
+            <div className="flex gap-2">
+              <Input
+                id="new-title"
+                placeholder="Título del ejemplo"
+                value={title}
+                onChange={(e) => onTitleChange(e.target.value)}
+                className="flex-1"
+              />
+              <Button 
+                onClick={onSubmit}
+                disabled={isSubmitting || !title.trim()}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
+                Añadir
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="evergreen-toggle" 
+              checked={isEvergreen}
+              onCheckedChange={onEvergreenChange}
+            />
+            <Label htmlFor="evergreen-toggle">
+              {isEvergreen ? (
+                <span className="text-green-700 font-medium">Evergreen (contenido atemporal)</span>
+              ) : (
+                <span className="text-amber-700 font-medium">No Evergreen (contenido temporal)</span>
+              )}
+            </Label>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Componente para la tabla de ejemplos
+function ExamplesTable({
+  examples, 
+  onDelete, 
+  isLoading
+}: {
+  examples: TrainingTitleExample[];
+  onDelete: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="rounded-md border overflow-auto bg-card">
+      <Table>
+        <TableHeader className="sticky top-0 bg-background border-b z-10">
+          <TableRow>
+            <TableHead className="w-[60%]">Título</TableHead>
+            <TableHead className="w-[20%]">Tipo</TableHead>
+            <TableHead className="w-[20%] text-center">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={3} className="text-center py-10">
+                <div className="flex flex-col items-center space-y-2">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <div className="text-sm text-muted-foreground">Cargando ejemplos...</div>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : examples.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                <div className="flex flex-col items-center space-y-2">
+                  <AlertCircle className="h-10 w-10 text-muted" />
+                  <div className="text-base font-medium">No hay ejemplos disponibles</div>
+                  <div className="text-sm text-muted-foreground max-w-sm text-center">
+                    No hay ejemplos de entrenamiento. Agrega algunos o importa desde diferentes fuentes.
+                  </div>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            examples.map((example) => (
+              <TableRow key={example.id} className="hover:bg-muted/20">
+                <TableCell className="font-medium">{example.title}</TableCell>
+                <TableCell>
+                  {example.isEvergreen ? (
+                    <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                      Evergreen
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
+                      No Evergreen
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(example.id)}
+                    className="hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash className="h-4 w-4 text-red-600" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+// Componente para el diálogo de importación masiva
+function BulkImportDialog({
+  open,
+  onOpenChange,
+  titles,
+  onTitlesChange,
+  isEvergreen,
+  onEvergreenChange,
+  onImport,
+  isImporting
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  titles: string;
+  onTitlesChange: (value: string) => void;
+  isEvergreen: boolean;
+  onEvergreenChange: (value: boolean) => void;
+  onImport: () => void;
+  isImporting: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Importar ejemplos en masa</DialogTitle>
+          <DialogDescription>
+            Ingrese un título por línea. Todos los títulos serán importados como el tipo seleccionado.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="bulk-titles">Títulos (uno por línea)</Label>
+            <textarea
+              id="bulk-titles"
+              className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Ingrese un título por línea"
+              value={titles}
+              onChange={(e) => onTitlesChange(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="bulk-evergreen" 
+              checked={isEvergreen}
+              onCheckedChange={onEvergreenChange}
+            />
+            <Label htmlFor="bulk-evergreen">
+              {isEvergreen ? (
+                <span className="text-green-700 font-medium">Evergreen (contenido atemporal)</span>
+              ) : (
+                <span className="text-amber-700 font-medium">No Evergreen (contenido temporal)</span>
+              )}
+            </Label>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={onImport}
+            disabled={isImporting || !titles.trim()}
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Importar títulos
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Componente para el diálogo de importación desde YouTube
+function YouTubeImportDialog({
+  open,
+  onOpenChange,
+  channels,
+  selectedChannel,
+  onChannelChange,
+  isEvergreen,
+  onEvergreenChange,
+  onImport,
+  isImporting
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  channels: {id: string, name: string, channelId: string}[];
+  selectedChannel: {id: string, name: string, channelId: string} | null;
+  onChannelChange: (value: string) => void;
+  isEvergreen: boolean;
+  onEvergreenChange: (value: boolean) => void;
+  onImport: () => void;
+  isImporting: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Importar desde canal de YouTube</DialogTitle>
+          <DialogDescription>
+            Seleccione un canal e indique si los títulos deben considerarse como contenido evergreen (atemporal) o no evergreen (temporal).
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="channel-selector">Canal de YouTube</Label>
+            <Select
+              value={selectedChannel?.id || ""}
+              onValueChange={(value) => {
+                onChannelChange(value);
+              }}
+            >
+              <SelectTrigger id="channel-selector">
+                <SelectValue placeholder="Seleccione un canal" />
+              </SelectTrigger>
+              <SelectContent>
+                {channels.length === 0 ? (
+                  <div className="py-2 px-4 text-sm text-muted-foreground">
+                    No hay canales disponibles
+                  </div>
+                ) : (
+                  channels.map(channel => (
+                    <SelectItem key={channel.id} value={channel.id}>
+                      {channel.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="youtube-evergreen" 
+              checked={isEvergreen}
+              onCheckedChange={onEvergreenChange}
+            />
+            <Label htmlFor="youtube-evergreen">
+              {isEvergreen ? (
+                <span className="text-green-700 font-medium">Evergreen (contenido atemporal)</span>
+              ) : (
+                <span className="text-amber-700 font-medium">No Evergreen (contenido temporal)</span>
+              )}
+            </Label>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={onImport}
+            disabled={isImporting || !selectedChannel}
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <AlertCircle className="mr-2 h-4 w-4" />
+                Importar títulos
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { videos, users, monthlyVideoLimits } from "@db/schema";
+import { videos, users, monthlyVideoLimits, MonthlyVideoLimit } from "@db/schema";
 import { and, eq, not, or, sql, between, gte, lte } from "drizzle-orm";
 
 /**
@@ -301,11 +301,7 @@ export async function setMonthlyLimit(
  * @param userId ID del usuario youtuber
  * @returns Array de límites mensuales específicos
  */
-export async function getAllMonthlyLimits(userId: number): Promise<Array<{
-  year: number;
-  month: number;
-  maxVideos: number;
-}>> {
+export async function getAllMonthlyLimits(userId: number): Promise<Pick<MonthlyVideoLimit,'year' | 'month' | 'maxVideos'>[]> {
   try {
     const limits = await db
       .select({

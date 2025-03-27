@@ -247,7 +247,7 @@ export default function VideosPage() {
     if (
       user?.role === 'youtuber' &&
       video.status === 'upload_media' &&
-      (!video.assignedToId || (video.assignedToId && video.assignedToId === user.id))
+      !video.contentUploadedBy
     ) {
       try {
         // Intentar asignar el video al youtuber
@@ -962,7 +962,7 @@ export default function VideosPage() {
   }
 
   // Función para actualizar un video
-  const handleVideoUpdate = async (data: UpdateVideoData, keepDialogOpen = false) => {
+  async function handleVideoUpdate (data: UpdateVideoData, keepDialogOpen = false): Promise<void> {
     if (!selectedVideo) return;
 
     setUpdatingVideoId(selectedVideo.id);

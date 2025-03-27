@@ -1,12 +1,13 @@
-import { Request, Response } from "express";
-import * as activityService from "../services/activityService";
+import { NextFunction, Request, Response } from "express";
+import { type Express } from "express";
+import { getUserActivityStats, getRecentSessions, startUserSession, endUserSession, updateLastActivity } from '../services/activityService'
 
-export async function getUserActivity(req: Request, res: Response) {
+async function getUserActivity(req: Request, res: Response) {
   try {
     const timeRange = req.query.timeRange as string || "week";
     const [stats, sessions] = await Promise.all([
-      activityService.getUserActivityStats(timeRange),
-      activityService.getRecentSessions(timeRange)
+      getUserActivityStats(timeRange),
+      getRecentSessions(timeRange)
     ]);
 
     res.json({ stats, sessions });
@@ -16,14 +17,14 @@ export async function getUserActivity(req: Request, res: Response) {
   }
 }
 
-export async function startSession(req: Request, res: Response) {
+async function startSession(req: Request, res: Response) {
   try {
     const { userId } = req.body;
     const ipAddress = req.ip;
     const userAgent = req.headers["user-agent"] || "";
 
     console.log("Starting session for user:", userId, "IP:", ipAddress);
-    const session = await activityService.startUserSession(userId, ipAddress, userAgent);
+    const session = await startUserSession(userId, ipAddress!, userAgent);
     console.log("Session started:", session);
 
     res.json(session);
@@ -33,12 +34,12 @@ export async function startSession(req: Request, res: Response) {
   }
 }
 
-export async function endSession(req: Request, res: Response) {
+async function endSession(req: Request, res: Response) {
   try {
     const { sessionId } = req.params;
     console.log("Ending session:", sessionId);
 
-    await activityService.endUserSession(parseInt(sessionId));
+    await endUserSession(parseInt(sessionId));
     console.log("Session ended successfully:", sessionId);
 
     res.json({ success: true });
@@ -48,12 +49,12 @@ export async function endSession(req: Request, res: Response) {
   }
 }
 
-export async function updateActivity(req: Request, res: Response) {
+async function updateActivity(req: Request, res: Response) {
   try {
     const { sessionId } = req.params;
     console.log("Updating activity for session:", sessionId);
 
-    await activityService.updateLastActivity(parseInt(sessionId));
+    await updateLastActivity(parseInt(sessionId));
     console.log("Activity updated successfully:", sessionId);
 
     res.json({ success: true });
@@ -61,4 +62,20 @@ export async function updateActivity(req: Request, res: Response) {
     console.error("Error updating activity:", error);
     res.status(500).json({ error: "Error al actualizar la actividad" });
   }
+}
+
+
+export function setUpActivityRoutes(
+  requireAuth: (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => Response<any, Record<string, any>> | undefined,
+  app: Express,
+) {
+  app.get("/api/admin/activity", requireAuth, getUserActivity);
+  app.post("/api/sessions/start", requireAuth, startSession);
+  app.post("/api/sessions/:sessionId/end", requireAuth, endSession);
+  app.post("/api/sessions/:sessionId/update-activity", requireAuth, updateActivity);
+
 }

@@ -39,7 +39,6 @@ export const useVideoLimits = (userId?: number) => {
     },
     enabled: !!user && (user.role === "youtuber" || user.role === "admin"),
     staleTime: 30 * 1000, // 30 segundos
-    cacheTime: 5 * 60 * 1000, // 5 minutos
   });
 
   // Query separada para límites mensuales
@@ -51,7 +50,6 @@ export const useVideoLimits = (userId?: number) => {
     },
     enabled: !!userId && !!user && (user.role === "youtuber" || user.role === "admin"),
     staleTime: 30 * 1000, // 30 segundos
-    cacheTime: 5 * 60 * 1000, // 5 minutos
   });
 
   // Valores predeterminados en caso de no tener datos

@@ -1,7 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { StandardSearchButton } from "@/components/ui/search-button";
 
 interface SearchBarProps {
   searchValue: string;
@@ -20,27 +19,20 @@ export function SearchBar({
 }: SearchBarProps) {
   const [inputValue, setInputValue] = useState(searchValue);
 
-  // Actualizar el valor de entrada cuando cambia el valor externo
   useEffect(() => {
     setInputValue(searchValue);
   }, [searchValue]);
 
-  // Manejar la búsqueda
-  const handleSearch = () => {
-    const trimmedValue = inputValue.trim();
-    setSearchValue(trimmedValue);
-    setTitleFilter(trimmedValue);
-    setCurrentPage(1);
-  };
 
-  // Manejar el evento Enter en el input
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleSearch();
+      const trimmedValue = inputValue.trim();
+      setSearchValue(trimmedValue);
+      setTitleFilter(trimmedValue);
+      setCurrentPage(1);
     }
   };
 
-  // Limpiar la búsqueda
   const handleClear = () => {
     setInputValue("");
     setSearchValue("");
@@ -49,36 +41,33 @@ export function SearchBar({
   };
 
   return (
-    <div className="flex w-full gap-3">
-      <div className="relative flex-grow">
+    <div className="w-full">
+      <div className="relative flex items-center w-full bg-white dark:bg-gray-900 rounded-lg border shadow-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex-shrink-0">
+          <Search className="h-5 w-5 text-muted-foreground" />
+        </div>
         <Input
-          placeholder="Buscar videos..."
+          type="text"
+          placeholder="Buscar videos por título..."
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pl-12 h-11 text-base rounded-md"
+          className="w-full pl-10 pr-10 h-11 text-base bg-transparent border-0 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 placeholder:text-muted-foreground/70 text-foreground"
           disabled={isFetching}
         />
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        
         {inputValue && (
-          <button 
-            onClick={handleClear}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex-shrink-0">
+            <button 
+              onClick={handleClear}
+              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+              type="button"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         )}
       </div>
-      
-      <StandardSearchButton 
-        size="default"
-        variant="default"
-        iconOnly={false}
-        className="h-11 whitespace-nowrap font-medium"
-        disabled={isFetching}
-        onClick={handleSearch}
-      />
     </div>
   );
 }
