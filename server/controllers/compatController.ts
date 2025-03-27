@@ -64,33 +64,131 @@ export async function updateUserLimitsCompat(req: Request, res: Response) {
   try {
     console.log("[Compat] Intentando actualizar límites:", req.body);
     
-    // Verificar permisos de administrador
+    // Verificar si es un administrador
     if (req.user?.role !== "admin") {
+      console.log("[Compat] Acceso denegado - El usuario no es admin:", req.user?.username);
       return res.status(403).json({
         success: false,
         message: "No tienes permisos para realizar esta acción"
       });
     }
     
-    // Validar datos de entrada
-    const validationResult = updateLimitsSchema.safeParse(req.body);
-    if (!validationResult.success) {
+    // Comprobar si es una actualización masiva
+    if (req.body.allUsers === true) {
+      console.log("[Compat] Detectada actualización masiva de límites desde la UI");
+      
+      const maxAssignedVideos = req.body.maxAssignedVideos;
+      const maxMonthlyVideos = req.body.maxMonthlyVideos;
+      
+      if (!maxAssignedVideos || !maxMonthlyVideos) {
+        return res.status(400).json({
+          success: false,
+          message: "Debe proporcionar maxAssignedVideos y maxMonthlyVideos para actualización masiva"
+        });
+      }
+      
+      // Actualizar todos los usuarios inmediatamente
+      try {
+        // Contar usuarios antes de actualizar
+        const userCount = await db
+          .select({ count: count() })
+          .from(users);
+          
+        const totalUsers = userCount[0]?.count || 0;
+        
+        // Actualizar SOLO usuarios youtuber
+        const result = await db
+          .update(users)
+          .set({
+            maxAssignedVideos,
+            maxMonthlyVideos,
+            updatedAt: new Date()
+          })
+          .where(eq(users.role, "youtuber"));
+        
+        console.log(`[Compat] Actualización masiva exitosa! Actualizados: ${totalUsers} usuarios`);
+        return res.json({
+          success: true,
+          message: `Límites actualizados para todos los youtubers (${totalUsers})`,
+          data: {
+            totalUsers,
+            newLimits: {
+              maxAssignedVideos,
+              maxMonthlyVideos
+            }
+          }
+        });
+      } catch (dbError) {
+        console.error("[Compat] Error en actualización masiva:", dbError);
+        return res.status(500).json({
+          success: false,
+          message: "Error actualizando todos los límites de usuarios"
+        });
+      }
+    }
+    
+    // Actualización individual
+    // Validar datos de entrada con esquema mínimo para facilitar uso
+    const userId = req.body.userId;
+    const maxAssignedVideos = req.body.maxAssignedVideos;
+    const maxMonthlyVideos = req.body.maxMonthlyVideos;
+    
+    if (!userId || typeof userId !== 'number') {
       return res.status(400).json({
-        success: false, 
-        message: validationResult.error.message
+        success: false,
+        message: "ID de usuario requerido y debe ser un número"
       });
     }
     
-    const { userId, maxAssignedVideos, maxMonthlyVideos } = validationResult.data;
-    
-    // Llamar a la función del script para actualizar límites
-    const result = await updateUserLimits(userId, maxAssignedVideos, maxMonthlyVideos);
-    
-    if (!result.success) {
-      return res.status(result.data ? 200 : 500).json(result);
+    if ((!maxAssignedVideos && !maxMonthlyVideos) || 
+        (maxAssignedVideos && typeof maxAssignedVideos !== 'number') || 
+        (maxMonthlyVideos && typeof maxMonthlyVideos !== 'number')) {
+      return res.status(400).json({
+        success: false,
+        message: "Debe proporcionar al menos un límite válido para actualizar"
+      });
     }
     
-    return res.json(result);
+    // Actualizar el usuario directamente sin validaciones adicionales
+    try {
+      const updateData: any = { updatedAt: new Date() };
+      
+      if (maxAssignedVideos) updateData.maxAssignedVideos = maxAssignedVideos;
+      if (maxMonthlyVideos) updateData.maxMonthlyVideos = maxMonthlyVideos;
+      
+      const updatedUser = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning({
+          id: users.id,
+          username: users.username,
+          maxAssignedVideos: users.maxAssignedVideos,
+          maxMonthlyVideos: users.maxMonthlyVideos
+        });
+        
+      if (!updatedUser || updatedUser.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Usuario no encontrado"
+        });
+      }
+      
+      console.log(`[Compat] Usuario ${updatedUser[0].username} actualizado correctamente:`, 
+        updatedUser[0]);
+      
+      return res.json({
+        success: true,
+        message: "Límites de usuario actualizados correctamente",
+        data: updatedUser[0]
+      });
+    } catch (dbError) {
+      console.error("[Compat] Error en actualización individual:", dbError);
+      return res.status(500).json({
+        success: false,
+        message: "Error actualizando límites del usuario"
+      });
+    }
   } catch (error) {
     console.error("[Compat] Error en actualización de límites:", error);
     return res.status(500).json({
