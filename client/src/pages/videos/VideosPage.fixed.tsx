@@ -1,5 +1,5 @@
 import { VideoDetailDialog } from "./VideoDetailDialog";
-import { ApiVideo, UpdateVideoData, useVideos, SortConfig } from "@/hooks/useVideos";
+import { ApiVideo, useVideos, SortConfig } from "@/hooks/useVideos";
 import { VideoPaginationControls } from "../../components/videos/VideoPaginationControls";
 import { Button } from "@/components/ui/button";
 import { ThumbnailPreview } from "@/components/ui/thumbnail-preview";
@@ -114,7 +114,6 @@ export default function VideosPage() {
     videos,
     isLoading,
     deleteVideo,
-    updateVideo,
     bulkDeleteVideos,
     manageVideoYoutuber,
     pagination,
@@ -965,29 +964,6 @@ export default function VideosPage() {
     );
   }
 
-  // Función para actualizar un video
-  async function handleVideoUpdate (data: UpdateVideoData, keepDialogOpen = false): Promise<void> {
-    if (!selectedVideo) return;
-
-
-    try {
-      await updateVideo({
-        videoId: selectedVideo.id,
-        projectId: selectedVideo.projectId,
-        updateRequest: data,
-      });
-      toast.success("Video actualizado");
-
-      // Cerrar diálogo solo si no se indica lo contrario
-      if (!keepDialogOpen) {
-        setSelectedVideo(undefined);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al actualizar el video");
-    }
-  };
-
   // No se usa función intermedia para evitar problemas con los hooks
   const videoDialogOpen = !!selectedVideo;
   const handleOpenChange = (open: boolean) => {
@@ -1195,7 +1171,6 @@ export default function VideosPage() {
         {selectedVideo && (
           <VideoDetailDialog
             video={selectedVideo}
-            onUpdate={handleVideoUpdate}
           />
         )}
       </Dialog>

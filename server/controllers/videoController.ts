@@ -539,7 +539,7 @@ async function reviewVideoMedia(req: Request, res: Response): Promise<Response> 
       return res.status(404).json({ success: false, message: "Video no encontrado" });
     }
 
-    if (currentVideo.status !== 'media_review' && currentVideo.status !== 'media_corrections') {
+    if (!['media_review','media_corrections',"final_review"].includes(currentVideo.status)) {
       return res.status(400).json({ success: false, message: "No se puede revisar este video" })
     }
 
@@ -553,6 +553,64 @@ async function reviewVideoMedia(req: Request, res: Response): Promise<Response> 
         mediaReviewComments: updates.mediaReviewComments,
         mediaVideoNeedsCorrection: updates.mediaVideoNeedsCorrection,
         mediaThumbnailNeedsCorrection: updates.mediaThumbnailNeedsCorrection
+      })
+      .where( eq(videos.id, videoId) )
+      .returning();
+
+    return res.status(200).json({
+        success: true,
+        data: result,
+        message: "Video actualizado correctamente",
+      });
+  } catch (error) {
+    console.error("Error updating video:", error);
+    return res.status(500)
+      .json({ success: false, message: "Error al actualizar el video" });
+  }
+}
+
+const completeVideoSchema = z.object({
+  youtubeUrl: z.string().url().optional(),
+});
+type CompleteVideoSchema = z.infer<typeof completeVideoSchema>;
+
+async function completeVideo(req: Request, res: Response): Promise<Response> {
+  if (!req.user?.role)
+    return res.status(403)
+      .json({ success: false, message: "No tienes permisos para editar videos" });
+
+  const videoId = parseInt(req.params.videoId);
+  const updates = req.body as CompleteVideoSchema;
+
+  // Validar body con schema
+  const validationResult = completeVideoSchema.safeParse(updates);
+  if (!validationResult.success) {
+    return res.status(400).json({ success: false, message: validationResult.error.message });
+  }
+
+  try {
+    // Obtener el video actual para preservar los datos existentes
+    const [currentVideo] = await db
+      .select()
+      .from(videos)
+      .where( eq(videos.id, videoId) )
+      .limit(1);
+
+    if (!currentVideo) {
+      return res.status(404).json({ success: false, message: "Video no encontrado" });
+    }
+
+    if (currentVideo.status !== 'final_review') {
+      return res.status(400).json({ success: false, message: "No se puede revisar este video" })
+    }
+
+    // Actualizar el video
+    const [result] = await db
+      .update(videos)
+      .set({
+        status: 'completed',
+        updatedAt: new Date(),
+        youtubeUrl: updates.youtubeUrl
       })
       .where( eq(videos.id, videoId) )
       .returning();
@@ -1751,6 +1809,7 @@ export function setUpVideoRoutes(requireAuth: (req: Request, res: Response, next
    app.patch("/api/projects/:projectId/videos/:videoId/reviewContent", requireAuth, reviewVideoContent);
   app.patch("/api/projects/:projectId/videos/:videoId/sendToMediaReview", requireAuth, sendVideoToMediaReview);
   app.patch("/api/projects/:projectId/videos/:videoId/reviewMedia", requireAuth, reviewVideoMedia);
+  app.patch("/api/projects/:projectId/videos/:videoId/complete", requireAuth, completeVideo)
 
   // Asignación de video a youtuber cuando lo visualiza
   app.post("/api/projects/:projectId/videos/:videoId/manageYoutuber", requireAuth, manageVideoYoutuber);

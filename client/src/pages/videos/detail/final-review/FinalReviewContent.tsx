@@ -1,7 +1,7 @@
 import { Video } from "@db/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UpdateVideoData } from "@/hooks/useVideos";
+import { useVideos } from "@/hooks/useVideos";
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -13,20 +13,22 @@ import {
   Check,
   PlayCircle
 } from "lucide-react";
+import { useUser } from "@/hooks/use-user";
 
 interface FinalReviewContentProps {
   video: Video;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
   openYoutubeDialog: () => void;
+  youtubeUrl?: string
 }
 
-export function FinalReviewContent({
-  video,
-  onUpdate,
-  openYoutubeDialog
-}: FinalReviewContentProps) {
+export function FinalReviewContent({ video, openYoutubeDialog, youtubeUrl }: FinalReviewContentProps) {
+
+  const { reviewVideoMedia, completeVideo } = useVideos()
+  const { user } = useUser()
+  
   // Solo se muestra si estamos en estado final_review
   if (video.status !== "final_review") return null;
+
 
   return (
     <Card className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative bg-gradient-to-b from-white to-red-50/30 dark:from-gray-900 dark:to-red-950/10">
@@ -117,7 +119,13 @@ export function FinalReviewContent({
             <Button
               variant="outline"
               className="sm:flex-1 py-2 border-green-200 text-green-600 hover:text-green-700 hover:border-green-300 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20"
-              onClick={() => onUpdate({ status: 'completed' })}
+              onClick={ async () => await completeVideo({ 
+                  projectId : video.projectId,
+                  videoId: video.id,
+                  youtubeUrl: youtubeUrl!,
+                })
+              }
+              
             >
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
               Completar sin YouTube
@@ -125,7 +133,15 @@ export function FinalReviewContent({
             <Button
               variant="outline"
               className="sm:flex-1 py-2 border-amber-200 text-amber-600 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
-              onClick={() => onUpdate({ status: 'media_review' })}
+              onClick={ async () => await reviewVideoMedia({ 
+                  status: 'media_corrections',
+                  projectId: video.projectId,
+                  videoId: video.id,
+                  mediaThumbnailNeedsCorrection: true,
+                  mediaVideoNeedsCorrection: true,
+                  mediaReviewedBy: user?.id
+                })
+              }
             >
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Volver a revisión

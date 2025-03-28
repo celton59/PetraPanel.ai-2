@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { useState } from "react";
-import { UpdateVideoData, useVideos } from "@/hooks/useVideos";
+import { useVideos } from "@/hooks/useVideos";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,6 @@ import { FinalReviewContent } from "./final-review/FinalReviewContent";
 
 export default function MediaReviewDetail({
   video,
-  onUpdate
 }: MediaReviewDetailProps) {
   const [videoNeedsCorrection, setVideoNeedsCorrection] = useState(false);
   const [thumbnailNeedsCorrection, setThumbnailNeedsCorrection] = useState(false);
@@ -33,6 +32,8 @@ export default function MediaReviewDetail({
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [videoPreviewOpen, setVideoPreviewOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
+
+  const youtubeUrl = `https://youtube.com/watch?v=sample-${Date.now()}`;
   
   
   const [youtubeUploadStatus, setYoutubeUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -48,7 +49,7 @@ export default function MediaReviewDetail({
     privacyStatus: 'unlisted'
   });
 
-  const { reviewVideoMedia } = useVideos()
+  const { reviewVideoMedia, completeVideo } = useVideos()
   const { user } = useUser();
   
 
@@ -63,13 +64,13 @@ export default function MediaReviewDetail({
       
       // Actualizar el vídeo con la URL de YouTube
       // En una implementación real, aquí se haría una carga real a YouTube
-      const youtubeUrl = `https://youtube.com/watch?v=sample-${Date.now()}`;
       
-      await onUpdate({
+      await completeVideo({
         youtubeUrl,
-        status: 'completed'
-      });
-      
+        projectId: video.projectId,
+        videoId: video.id
+      })
+
       setYoutubeUploadStatus('success');
       
       // Cerrar el diálogo después de un breve retraso
@@ -93,11 +94,6 @@ export default function MediaReviewDetail({
       mediaReviewedBy: user!.id,
       status: 'final_review',
     })
-    // onUpdate({ 
-    //   status: 'final_review',
-    //   mediaReviewedBy: user?.id 
-    // });
-    
     // Registramos para depuración
     console.log('Media review approved by user:', user?.id, user?.username);
   }
@@ -131,10 +127,7 @@ export default function MediaReviewDetail({
       mediaThumbnailNeedsCorrection: thumbnailNeedsCorrection,
       mediaVideoNeedsCorrection: videoNeedsCorrection,
     })
-    // onUpdate({
-    //   status: 'media_corrections',
-    //   mediaReviewComments: video.mediaReviewComments ? [...video.mediaReviewComments, reviewComments] : [reviewComments]
-    // });
+
   }
 
   return (
@@ -437,7 +430,7 @@ export default function MediaReviewDetail({
 
         <FinalReviewContent
           video={video}
-          onUpdate={onUpdate}
+          youtubeUrl={youtubeUrl}
           openYoutubeDialog={() => setYoutubeDialogOpen(true)}
         />
 
@@ -448,5 +441,4 @@ export default function MediaReviewDetail({
 
 export interface MediaReviewDetailProps {
   video: Video;
-  onUpdate: (data: UpdateVideoData) => Promise<void>;
 }

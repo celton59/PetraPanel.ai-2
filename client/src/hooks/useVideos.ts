@@ -18,8 +18,6 @@ export type SortConfig = {
   order: 'asc' | 'desc';
 };
 
-export type UpdateVideoData = Omit<Partial<Video>, 'id' | 'projectId' | 'contentLastReviewedAt' | 'updatedAt' | 'mediaLastReviewedAt' | 'thumbnailUrl'>;
-
 
 export type ApiVideo = Video & {
   contentReviewerName: User["fullName"] | null;
@@ -164,47 +162,6 @@ export function useVideos() {
       } else {
         toast.error("Error", {
           description: error.message || "No se pudieron crear los videos en masa",
-        });
-      }
-    },
-  });
-
-  // Update Video
-  const updateVideoMutation = useMutation({
-    mutationFn: async ({ videoId, projectId, updateRequest }: { videoId: number; projectId: number, updateRequest: UpdateVideoData }) => {
-      
-      
-      console.log('Datos de actualización:', updateRequest);
-      try {
-        await refreshCSRFToken();
-        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}`, updateRequest);
-        return response.data;
-      } catch (error: any) {
-        console.error("Error updating video:", error);
-        if (error.response?.status === 403 && 
-            (error.response?.data?.message?.includes('CSRF') || 
-             error.response?.data?.message?.includes('token') || 
-             error.response?.data?.message?.includes('Token'))) {
-          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
-        }
-        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
-      toast.success("Video actualizado", {
-        description: "El video se ha actualizado correctamente",
-      });
-    },
-    onError: (error: Error) => {
-      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
-        toast.error("Error de seguridad", {
-          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
-        });
-      } else {
-        toast.error("Error", {
-          description: error.message || "No se pudo actualizar el video",
         });
       }
     },
@@ -391,6 +348,47 @@ export function useVideos() {
           mediaReviewComments,
           mediaThumbnailNeedsCorrection,
           mediaVideoNeedsCorrection
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error("Error updating video:", error);
+        if (error.response?.status === 403 && 
+            (error.response?.data?.message?.includes('CSRF') || 
+             error.response?.data?.message?.includes('token') || 
+             error.response?.data?.message?.includes('Token'))) {
+          throw new Error("Error de validación de seguridad. Se intentará refrescar automáticamente.");
+        }
+        throw new Error(error.response?.data?.message || error.message || "Error al actualizar el video");
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}/videos`] });
+      toast.success("Video actualizado", {
+        description: "El video se ha actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('seguridad') || error.message.includes('token') || error.message.includes('CSRF')) {
+        toast.error("Error de seguridad", {
+          description: "Hubo un problema con la validación de seguridad. Inténtalo de nuevo.",
+        });
+      } else {
+        toast.error("Error", {
+          description: error.message || "No se pudo actualizar el video",
+        });
+      }
+    },
+  });
+
+  // Complete Video
+  const completeVideoMutation = useMutation({
+    mutationFn: async ({ youtubeUrl, projectId, videoId }: CompleteVideoData) => {
+
+      try {
+        await refreshCSRFToken();
+        const response = await api.patch(`/api/projects/${projectId}/videos/${videoId}/complete`, {
+          youtubeUrl
         });
         return response.data;
       } catch (error: any) {
@@ -669,7 +667,6 @@ export function useVideos() {
     setSort,
     createVideo: createVideoMutation.mutateAsync,
     createBulkVideos: createBulkVideosMutation.mutateAsync,
-    updateVideo: updateVideoMutation.mutateAsync,
     deleteVideo: deleteVideoMutation.mutateAsync,
     bulkDeleteVideos: bulkDeleteVideosMutation.mutateAsync,
     restoreVideo: restoreVideoMutation.mutateAsync,
@@ -681,6 +678,7 @@ export function useVideos() {
     reviewContent: reviewVideoContentMutation.mutateAsync,
     sendVideoToMediaReview: sendVideoToMediaReviewMutation.mutateAsync,
     reviewVideoMedia: reviewVideoMediaMutation.mutateAsync,
+    completeVideo: completeVideoMutation.mutateAsync,
   };
 }
 
@@ -716,4 +714,10 @@ export interface ReviewVideoMediaData {
   mediaReviewComments?: string[]
   mediaVideoNeedsCorrection?: boolean,
   mediaThumbnailNeedsCorrection?: boolean,
+}
+
+export interface CompleteVideoData {
+  youtubeUrl: string
+  projectId: number
+  videoId: number
 }

@@ -5,7 +5,7 @@ import type { Video } from "@db/schema";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UpdateVideoData, useVideos } from "@/hooks/useVideos";
+import { useVideos } from "@/hooks/useVideos";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
@@ -30,7 +30,6 @@ interface OptimizeContentDetailProps {
   video: Video;
 }
 
-type FormValues = Partial<UpdateVideoData>;
 
 const MAX_TITLE_LENGTH = 100;
 
@@ -79,7 +78,7 @@ export function OptimizeContentDetail({
     }
   }
 
-  async function handleSubmit(formData: FormValues) {
+  async function handleSubmit(formData: OptimizeContentDetailData) {
     setIsSubmitting(true);
     try {
       await sendVideoToReview({

@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
-import { UpdateVideoData } from "@/hooks/useVideos";
 import { OptimizeContentDetail } from "./detail/OptimizeContentDetail";
 import { ContentReviewDetail } from "./detail/OptimizeReviewContent";
 import { UploadContentDetail } from "./detail/UploadContentDetail";
@@ -36,7 +35,7 @@ const statusDescriptions: Record<VideoStatus, string> = {
   completed: "Video publicado en YouTube",
 };
 
-export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
+export function VideoDetailDialog({ video }: VideoDetailDialogProps) {
   const { user, isLoading: isUserLoading } = useUser();
   
   // Cargar información de afiliados para este video
@@ -97,7 +96,7 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
         );
       case "media_review":
       case "final_review":
-        return <MediaReviewDetail video={video} onUpdate={onUpdate} />;
+        return <MediaReviewDetail video={video} />;
       case "completed":
         return <CompletedVideoDetail video={video} />;      
     }
@@ -167,5 +166,4 @@ export function VideoDetailDialog({ video, onUpdate }: VideoDetailDialogProps) {
 
 interface VideoDetailDialogProps {
   video: ApiVideo;
-  onUpdate: (data: UpdateVideoData, keepDialog?: boolean) => Promise<void>;
 }
