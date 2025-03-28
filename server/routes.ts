@@ -24,6 +24,7 @@ import { setupAffiliateRoutes } from "./controllers/affiliateController";
 import { setupSuggestionRoutes } from "./controllers/suggestionController";
 import { setUpAccountingRoutes } from "./controllers/accountingController.js";
 import { setUpActivityRoutes } from "./controllers/activityController";
+import { setupCompatRoutes } from "./controllers/compatController";
 
 export function registerRoutes(app: Express): Server {
   try {
@@ -340,6 +341,10 @@ export function registerRoutes(app: Express): Server {
 
     // Actividad de usuarios
     setUpActivityRoutes(requireAuth, app);
+    
+    // Rutas de compatibilidad para lidiar con problemas específicos
+    // Estas rutas son alternativas a rutas existentes para resolver problemas de permiso
+    setupCompatRoutes(app, requireAuth);
 
     const httpServer = createServer(app);
     return httpServer;
